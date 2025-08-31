@@ -6,8 +6,9 @@ This is a simple Discord bot built with Python using the discord.py library.
 
 - Greets new members when they join the server.
 - Responds with "Hi!, {pinger}" when pinged (mentioned) in a message.
-- **!reboot**: Restarts the bot (Administrator only).
-- **!shutdown**: Gracefully shuts down the bot (Administrator only).
+- **/reboot**: Restarts the bot (Administrator only).
+- **/shutdown**: Gracefully shuts down the bot (Administrator only).
+- **/games**: Play Rock-Paper-Scissors with the bot.
 
 ## Setup
 
