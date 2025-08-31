@@ -10,6 +10,10 @@ This is a simple Discord bot built with Python using the discord.py library.
 - **/shutdown**: Gracefully shuts down the bot (Administrator only).
 - **/games**: Play Rock-Paper-Scissors with the bot.
 
+## Slash Commands
+
+The bot uses slash commands that are registered to your specific Discord server for faster availability. Commands should appear immediately after the bot starts.
+
 ## Setup
 
 1. Make sure you have Python installed (version 3.8 or higher recommended).

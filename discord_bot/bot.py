@@ -18,11 +18,16 @@ intents.message_content = True
 bot = discord.Client(intents=intents)
 tree = app_commands.CommandTree(bot)
 
+# Guild ID for faster command registration
+GUILD_ID = 1411714476113133680
+
 @bot.event
 async def on_ready():
     print(f'Bot is ready. Logged in as {bot.user}')
-    # Sync the command tree
-    await tree.sync()
+    # Sync the command tree to the specific guild for faster availability
+    guild = discord.Object(id=GUILD_ID)
+    await tree.sync(guild=guild)
+    print(f'Commands synced to guild {GUILD_ID}')
 
 @bot.event
 async def on_member_join(member):
