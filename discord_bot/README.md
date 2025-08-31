@@ -50,3 +50,30 @@ Then set the environment variable before running the bot:
 ```
 export DISCORD_BOT_TOKEN='your_token_here'
 python bot.py
+```
+
+## Running on GitHub Actions
+
+You can run this bot persistently using GitHub Actions runners. Note the following limitations:
+
+- **Time Limits**: GitHub Actions workflows have time limits (6 hours for public repos, 35 days for private repos)
+- **Cost**: This will consume your GitHub Actions minutes
+- **Not Recommended for Production**: GitHub Actions is not designed for persistent services
+
+### Setup Instructions:
+
+1. **Add Bot Token as GitHub Secret**:
+   - Go to your repository settings
+   - Navigate to "Secrets and variables" > "Actions"
+   - Add a new repository secret named `DISCORD_BOT_TOKEN` with your bot token
+
+2. **Trigger the Workflow**:
+   - Go to the "Actions" tab in your repository
+   - Select "Run Discord Bot" workflow
+   - Click "Run workflow"
+
+3. **Monitor the Bot**:
+   - The workflow will run and keep the bot online until the time limit is reached
+   - You can see the bot's logs in the workflow run details
+
+**Note**: For a more reliable persistent hosting solution, consider using services like Heroku, Railway, or DigitalOcean instead of GitHub Actions.
