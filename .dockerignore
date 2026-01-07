@@ -10,21 +10,9 @@ node_modules/
 # OS files
 .DS_Store
 Thumbs.db
-
-# Logs
-logs/
 *.log
 npm-debug.log*
 pnpm-debug.log*
-
-# Build output
-dist/
-build/
-
-# Cache
-.cache/
-.eslintcache
-.prettierrc
 
 # IDE
 .vscode/
@@ -32,6 +20,22 @@ build/
 *.swp
 *.swo
 
+# Git
+.git/
+.gitignore
+*.md
+
 # Testing
 coverage/
 .nyc_output/
+
+# Build
+dist/
+build/
+.cache/
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
