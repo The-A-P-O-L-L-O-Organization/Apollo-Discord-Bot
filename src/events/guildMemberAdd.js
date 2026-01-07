@@ -16,14 +16,14 @@ export default async function guildMemberAddHandler(member) {
     const targetChannel = welcomeChannel || guild.systemChannel || guild.channels.cache.first();
     
     if (!targetChannel) {
-        console.log('❌ No suitable channel found for welcome message');
+        console.log('[ERROR] No suitable channel found for welcome message');
         return;
     }
     
     // Create an embedded welcome message
     const welcomeEmbed = new EmbedBuilder()
         .setColor('#00FF00') // Green color
-        .setTitle('🎉 Welcome to the Server! 🎉')
+        .setTitle('Welcome to the Server!')
         .setDescription(
             config.welcome.message
                 .replace('{user}', member.toString()) // Mentions the user
@@ -31,17 +31,17 @@ export default async function guildMemberAddHandler(member) {
         )
         .addFields(
             {
-                name: '👤 New Member',
+                name: 'New Member',
                 value: member.user.tag,
                 inline: true
             },
             {
-                name: '🆔 Member ID',
+                name: 'Member ID',
                 value: member.id,
                 inline: true
             },
             {
-                name: '📅 Joined At',
+                name: 'Joined At',
                 value: new Date().toLocaleString(),
                 inline: true
             }
@@ -56,12 +56,12 @@ export default async function guildMemberAddHandler(member) {
     // Send the welcome message
     try {
         await targetChannel.send({
-            content: `Hey ${member.toString()}! 👋`,
+            content: `Hey ${member.toString()}!`,
             embeds: [welcomeEmbed]
         });
-        console.log(`✅ Welcome message sent for ${member.user.tag}`);
+        console.log(`[SUCCESS] Welcome message sent for ${member.user.tag}`);
     } catch (error) {
-        console.error('❌ Error sending welcome message:', error);
+        console.error('[ERROR] Error sending welcome message:', error);
     }
 }
 

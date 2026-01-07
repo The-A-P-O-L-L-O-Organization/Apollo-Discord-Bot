@@ -13,13 +13,16 @@
 - [x] Create src/events/ready.js - Bot ready event handler
 - [x] Create src/events/guildMemberAdd.js - Welcome new users
 
-## Phase 3: Additional Features
-- [ ] Create src/commands/ping.js - Test command
-- [ ] Add more commands as needed
+## Phase 3: Additional Features ✅ COMPLETED
+- [x] Create src/commands/ping.js - Test command (Check bot latency)
+- [x] Create src/commands/help.js - Display all available commands
+- [x] Create src/commands/userinfo.js - Show member statistics
+- [x] Create src/handlers/commandHandler.js - Command management system
+- [x] Create deploy-commands.js - Command deployment script
 
-## Phase 4: Documentation
-- [ ] Create README.md with setup instructions
-- [ ] Add contribution guidelines
+## Phase 4: Documentation ✅ COMPLETED
+- [x] Create README.md with setup instructions
+- [x] Add contribution guidelines
 
 ## Phase 5: Testing & Finalization
 - [ ] Test the bot locally
