@@ -6,6 +6,7 @@ import { config } from '../config/config.js';
 
 // Command definitions with descriptions and usage
 const commands = [
+    // Utility Commands
     {
         name: 'ping',
         description: 'Check the bot\'s latency and response time',
@@ -23,6 +24,50 @@ const commands = [
         description: 'Displays information about a user',
         category: 'Utility',
         usage: '/userinfo [user]'
+    },
+    
+    // Moderation Commands
+    {
+        name: 'kick',
+        description: 'Kick a user from the server',
+        category: 'Moderation',
+        usage: '/kick <user> [reason]',
+        permissions: 'Kick Members'
+    },
+    {
+        name: 'ban',
+        description: 'Ban a user from the server',
+        category: 'Moderation',
+        usage: '/ban <user> [reason] [delete-days]',
+        permissions: 'Ban Members'
+    },
+    {
+        name: 'unban',
+        description: 'Unban a previously banned user',
+        category: 'Moderation',
+        usage: '/unban <user-id> [reason]',
+        permissions: 'Ban Members'
+    },
+    {
+        name: 'mute',
+        description: 'Temporarily mute a user',
+        category: 'Moderation',
+        usage: '/mute <user> [duration] [reason]',
+        permissions: 'Mute Members'
+    },
+    {
+        name: 'unmute',
+        description: 'Unmute a previously muted user',
+        category: 'Moderation',
+        usage: '/unmute <user> [reason]',
+        permissions: 'Mute Members'
+    },
+    {
+        name: 'purge',
+        description: 'Delete multiple messages from a channel',
+        category: 'Moderation',
+        usage: '/purge <amount> [user] [reason]',
+        permissions: 'Manage Messages'
     }
 ];
 
@@ -60,11 +105,15 @@ export default {
         // Add fields for each category
         for (const [category, cmds] of Object.entries(categories)) {
             const commandList = cmds.map(cmd => {
-                return `\`/${cmd.name}\` - ${cmd.description}`;
-            }).join('\n');
+                let line = `\`/${cmd.name}\` - ${cmd.description}`;
+                if (cmd.permissions) {
+                    line += `\n   └─ Requires: \`${cmd.permissions}\``;
+                }
+                return line;
+            }).join('\n\n');
             
             helpEmbed.addFields({
-                name: `[CATEGORY] ${category}`,
+                name: `[CATEGORY] ${category} (${cmds.length})`,
                 value: commandList,
                 inline: false
             });
@@ -77,6 +126,16 @@ export default {
                    '2. Select the bot (John)\n' +
                    '3. Choose a command from the list\n' +
                    '4. Press Enter to execute',
+            inline: false
+        });
+        
+        // Add note about moderation commands
+        helpEmbed.addFields({
+            name: 'Moderation Notes',
+            value: '- Moderation commands require specific permissions\n' +
+                   '- All actions are logged for accountability\n' +
+                   '- Reasons are required for moderation actions\n' +
+                   '- Use proper time formats for mute duration (e.g., 1m, 1h, 1d, 1w)',
             inline: false
         });
         
