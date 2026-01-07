@@ -4,9 +4,9 @@
 import { ActivityType } from 'discord.js';
 
 export default async function readyHandler(client) {
-    console.log(`✅ Bot is online! Logged in as ${client.user.tag}`);
-    console.log(`🆔 Bot ID: ${client.user.id}`);
-    console.log(`🏠 Serving ${client.guilds.cache.size} server(s)`);
+    console.log(`[SUCCESS] Bot is online! Logged in as ${client.user.tag}`);
+    console.log(`[INFO] Bot ID: ${client.user.id}`);
+    console.log(`[INFO] Serving ${client.guilds.cache.size} server(s)`);
     
     // Set bot activity/status
     client.user.setActivity({
@@ -14,6 +14,6 @@ export default async function readyHandler(client) {
         type: ActivityType.Watching
     });
     
-    console.log('👀 Bot is now watching for new members...');
+    console.log('[SUCCESS] Bot is now watching for new members...');
 }
 
