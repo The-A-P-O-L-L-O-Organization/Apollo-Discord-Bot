@@ -87,8 +87,6 @@ jobs:
           cache-to: type=gha,mode=max
           # SBOM and provenance generation for security
           provenance: true
-          # Generate attestations
-          attestations: true
           # Generate SBOM (Software Bill of Materials)
           sbom: true
           
