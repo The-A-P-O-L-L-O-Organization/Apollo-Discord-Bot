@@ -365,12 +365,90 @@ Commands are registered automatically when the bot starts. For immediate updates
 - Check that moderation channels exist
 - Verify mute role is configured properly
 
+## GitHub Packages
+
+This project publishes Docker images to GitHub Container Registry (GHCR).
+
+### Pulling the Image
+
+```bash
+# Pull the latest image
+docker pull ghcr.io/${{ github.repository }}:latest
+
+# Pull a specific version
+docker pull ghcr.io/${{ github.repository }}:v1.0.0
+```
+
+### Using the Image
+
+```bash
+# Run the container
+docker run -d \
+  --name john-discord-bot \
+  --restart unless-stopped \
+  -e DISCORD_TOKEN=your-token \
+  ghcr.io/${{ github.repository }}:latest
+```
+
+### Docker Compose with GitHub Packages
+
+```yaml
+version: '3.8'
+
+services:
+  bot:
+    image: ghcr.io/${{ github.repository }}:latest
+    container_name: john-discord-bot
+    restart: unless-stopped
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+    env_file:
+      - .env
+```
+
+## CI/CD Pipeline
+
+This project uses GitHub Actions for continuous integration and deployment:
+
+### Automated Workflows
+
+1. **Build and Publish Docker Image**
+   - Triggered on push to main branch
+   - Triggered on new tags (version releases)
+   - Builds multi-platform images (amd64, arm64)
+   - Publishes to GitHub Container Registry
+   - Generates SBOM and attestations
+
+2. **Security Scanning**
+   - Automatic vulnerability scanning with Trivy
+   - Checks for CRITICAL and HIGH severity issues
+   - Fails deployment on critical vulnerabilities
+
+3. **Image Updates**
+   - Automatically updates container description
+   - Manages version tags and latest tag
+
+### Workflow Triggers
+
+- **Push to main**: Build and deploy latest image
+- **Tag push (v*)**: Build and deploy versioned release
+- **Pull request**: Build and test without publishing
+
+### Security Features
+
+- **Provenance**: Image provenance verification
+- **SBOM**: Software Bill of Materials generation
+- **Attestations**: Image attestations for verification
+- **Vulnerability Scanning**: Automated security scans
+
 ## Technologies Used
 
 - **discord.js** - Discord API wrapper for Node.js
 - **Node.js** - JavaScript runtime
 - **pnpm** - Package manager
 - **Docker** - Containerization platform
+- **GitHub Actions** - CI/CD pipeline
+- **GitHub Packages** - Container registry
 
 ## License
 

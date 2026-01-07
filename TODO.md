@@ -36,6 +36,13 @@
 - [x] Create docker-compose.yml - Docker Compose configuration
 - [x] Create Dockerfile.prod - Production-ready container
 
+## Phase 3d: CI/CD Pipeline ✅ COMPLETED
+- [x] Create .github/workflows/docker-publish.yml - GitHub Actions workflow
+- [x] Update README.md - Add GitHub Packages instructions
+- [x] Multi-platform build support (amd64, arm64)
+- [x] Security scanning with Trivy
+- [x] SBOM and attestation generation
+
 ## Phase 4: Documentation ✅ COMPLETED
 - [x] Create README.md with setup instructions
 - [x] Add contribution guidelines
