@@ -1,4 +1,6 @@
 name: Run Discord Bot
+permissions:
+  contents: read
 
 on:
   workflow_dispatch:  # Manual trigger
