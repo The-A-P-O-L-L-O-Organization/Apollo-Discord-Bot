@@ -2,11 +2,11 @@
 // Registers and manages all bot commands
 
 import { readdirSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { Routes } from 'discord.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default async function commandHandler(client) {
     const commandsPath = join(__dirname, '../commands');
