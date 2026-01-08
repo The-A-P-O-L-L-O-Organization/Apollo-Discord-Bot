@@ -1,5 +1,9 @@
 name: Build and Publish Docker Image
 
+permissions:
+  contents: read
+  packages: write
+  
 # Trigger on pushes to main branch and tag releases
 on:
   push:
