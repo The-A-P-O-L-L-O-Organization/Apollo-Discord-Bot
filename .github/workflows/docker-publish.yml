@@ -3,8 +3,7 @@ name: Build and Publish Docker Image
 permissions:
   contents: read
   packages: write
-  
-# Trigger on pushes to main branch and tag releases
+
 on:
   push:
     branches:
@@ -15,162 +14,72 @@ on:
     branches:
       - main
 
-# Environment variables
 env:
-  # Get repository name in lowercase
-  REPO_NAME: ${{ github.repository }}
-  # Set Docker registry (GitHub Packages)
   REGISTRY: ghcr.io
-  # Image name for Docker
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  # Job to build and test the Docker image
   build:
     name: Build and Test
     runs-on: ubuntu-latest
-    
-    # Steps to execute
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
     steps:
-      # Step 1: Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v4
-        
-      # Step 2: Set up Docker Buildx
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        
-      # Step 3: Log in to GitHub Container Registry
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-        
-      # Step 4: Extract metadata for Docker
+
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          # Generate tags based on branch, tags, and semantic version
           tags: |
             type=raw,value=latest,enable={{ is_default_branch }}
             type=sha
             type=ref,event=tag
-            type=schedule
-          # Add date to tags
-          date: '{{ date }}'
-          # Docker labels for the image
-          labels: |
-            org.opencontainers.image.source=https://github.com/${{ github.repository }}
-            org.opencontainers.image.description=Discord bot with moderation commands
-            org.opencontainers.image.vendor=${{ github.repository_owner }}
-            
-      # Step 5: Build and push Docker image
+
       - name: Build and push Docker image
+        id: build
         uses: docker/build-push-action@v5
         with:
-          # Context for build
           context: .
-          # Push the image
           push: ${{ github.event_name != 'pull_request' }}
-          # Build platforms
           platforms: linux/amd64,linux/arm64
-          # Docker tags from metadata
           tags: ${{ steps.meta.outputs.tags }}
-          # Docker labels from metadata
           labels: ${{ steps.meta.outputs.labels }}
-          # Build arguments
-          build-args: |
-            NODE_ENV=production
-          # Cache from GitHub Actions cache
           cache-from: type=gha
-          # Cache to GitHub Actions cache
           cache-to: type=gha,mode=max
-          # SBOM and provenance generation for security
           provenance: true
-          # Generate SBOM (Software Bill of Materials)
           sbom: true
-          
-      # Step 6: Show image digest
+
       - name: Show image digest
         run: |
-          echo "Image digest: ${{ steps.meta.outputs.digest }}"
-          
-  # Job to run security scan on the image
+          echo "Image digest: ${{ steps.build.outputs.digest }}"
+
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
     needs: build
     if: github.event_name != 'pull_request'
-    
     steps:
-      # Step 1: Checkout repository
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        
-      # Step 2: Log in to GitHub Container Registry
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-          
-      # Step 3: Pull the latest image for scanning
-      - name: Pull Docker image
-        run: |
-          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME,,}}:latest
-          
-      # Step 4: Run Trivy security scan
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME,,}}:latest'
+          image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest'
           format: 'table'
           exit-code: '1'
           severity: 'CRITICAL,HIGH'
           timeout: '5m'
-          
-  # Job to update Docker Hub description (optional)
-  update-readme:
-    name: Update Docker Hub Description
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
-    steps:
-      # Step 1: Checkout repository
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        
-      # Step 2: Log in to GitHub Container Registry
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-          
-      # Step 3: Extract metadata for Docker
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw,value=latest
-            type=sha
-            
-      # Step 4: Update container description
-      - name: Update Container Description
-        uses: peter-evans/dockerhub-description@v5
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: ${{ env.IMAGE_NAME }}
-          readme-file: 'README.md'
-          short-description: 'Discord bot with moderation commands and Docker support'
-
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
