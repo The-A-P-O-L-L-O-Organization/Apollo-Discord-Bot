@@ -1,4 +1,4 @@
-# John Discord Bot
+# A.P.O.L.L.O Discord Bot
 
 A Discord bot built with discord.js that welcomes new users and provides useful utility and moderation commands.
 
@@ -78,7 +78,7 @@ A Discord bot built with discord.js that welcomes new users and provides useful 
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd John-Discord-Bot
+   cd A.P.O.L.L.O-Discord-Bot
    ```
 
 2. **Configure environment variables**
@@ -112,7 +112,7 @@ A Discord bot built with discord.js that welcomes new users and provides useful 
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd John-Discord-Bot
+   cd A.P.O.L.L.O-Discord-Bot
    ```
 
 2. **Install dependencies**
@@ -179,14 +179,14 @@ docker-compose down -v
 
 ```bash
 # Build using production Dockerfile
-docker build -f Dockerfile.prod -t john-discord-bot .
+docker build -f Dockerfile.prod -t A.P.O.L.L.O-discord-bot .
 
 # Run the container
 docker run -d \
-  --name john-discord-bot \
+  --name A.P.O.L.L.O-discord-bot \
   --restart unless-stopped \
   -e DISCORD_TOKEN=your-token \
-  john-discord-bot
+  A.P.O.L.L.O-discord-bot
 ```
 
 ## Configuration
@@ -237,7 +237,7 @@ export const config = {
 ## Project Structure
 
 ```
-John-Discord-Bot/
+A.P.O.L.L.O-Discord-Bot/
 ├── src/
 │   ├── index.js              # Main entry point
 │   ├── config/
@@ -384,7 +384,7 @@ docker pull ghcr.io/${{ github.repository }}:v1.0.0
 ```bash
 # Run the container
 docker run -d \
-  --name john-discord-bot \
+  --name A.P.O.L.L.O-discord-bot \
   --restart unless-stopped \
   -e DISCORD_TOKEN=your-token \
   ghcr.io/${{ github.repository }}:latest
@@ -398,7 +398,7 @@ version: '3.8'
 services:
   bot:
     image: ghcr.io/${{ github.repository }}:latest
-    container_name: john-discord-bot
+    container_name: A.P.O.L.L.O-discord-bot
     restart: unless-stopped
     environment:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
