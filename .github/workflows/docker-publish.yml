@@ -24,6 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       digest: ${{ steps.build.outputs.digest }}
+      tags: ${{ steps.meta.outputs.tags }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -72,10 +73,15 @@ jobs:
     needs: build
     if: github.event_name != 'pull_request'
     steps:
+      - name: Lowercase image name
+        id: image
+        run: |
+          echo "name=$(echo ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest'
+          image-ref: '${{ steps.image.outputs.name }}'
           format: 'table'
           exit-code: '1'
           severity: 'CRITICAL,HIGH'
