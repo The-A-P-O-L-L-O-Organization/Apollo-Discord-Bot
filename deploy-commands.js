@@ -1,13 +1,13 @@
 // Deploy Commands Script
 // Registers slash commands with Discord for immediate use in a specific guild
 
-import { Client, GatewayIntentBits, REST, Routes } from 'discord.js';
+import { REST, Routes } from 'discord.js';
 import { config } from './src/config/config.js';
 import { readdirSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Create a temporary client just to get commands
 const commands = [];
@@ -100,4 +100,3 @@ async function deployCommands() {
     console.log('\n[SUCCESS] Deployment complete!');
     process.exit(0);
 })();
-
