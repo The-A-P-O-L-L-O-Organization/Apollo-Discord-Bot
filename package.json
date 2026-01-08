@@ -1,5 +1,5 @@
 {
-  "name": "john-discord-bot",
+  "name": "apollo-discord-bot",
   "version": "1.0.0",
   "description": "A Discord bot that greets new users upon joining",
   "main": "src/index.js",
@@ -19,9 +19,9 @@
   "author": "CodeMaster013",
   "license": "GPLv3",
   "bugs": {
-    "url": "https://github.com/The-A-P-O-L-L-O-Organization/John-Discord-Bot/issues"
+    "url": "https://github.com/The-A-P-O-L-L-O-Organization/Apollo-Discord-Bot/issues"
   },
-  "homepage": "https://github.com/The-A-P-O-L-L-O-Organization/John-Discord-Bot",
+  "homepage": "https://github.com/The-A-P-O-L-L-O-Organization/Apollo-Discord-Bot",
   "dependencies": {
     "discord.js": "^14.25.1"
   },
