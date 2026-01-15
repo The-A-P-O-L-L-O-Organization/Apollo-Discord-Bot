@@ -1,7 +1,7 @@
 // Main Entry Point - Discord Bot
 // This file initializes the bot and sets up all event listeners
 
-import { Client, GatewayIntentBits, Collection } from 'discord.js';
+import { Client, GatewayIntentBits, Collection, Partials } from 'discord.js';
 import { config } from './config/config.js';
 import readyHandler from './events/ready.js';
 import guildMemberAddHandler from './events/guildMemberAdd.js';
@@ -18,10 +18,10 @@ const client = new Client({
     ],
     // Enable partials for better member handling
     partials: [
-        'CHANNEL',
-        'GUILD_MEMBER',
-        'MESSAGE',
-        'USER'
+        Partials.Channel,
+        Partials.GuildMember,
+        Partials.Message,
+        Partials.User
     ]
 });
 
@@ -30,10 +30,10 @@ client.commands = new Collection();
 client.config = config;
 
 // Event: Bot is ready and logged in
-client.once('ready', async (c) => {
+client.once('ready', async () => {
     console.log('Bot is ready, loading commands...');
-    await readyHandler(c);
-    await commandHandler(c);
+    await readyHandler(client);
+    await commandHandler(client);
 });
 
 // Event: New member joins the server
@@ -104,4 +104,3 @@ client.login(config.DISCORD_TOKEN)
     });
 
 export default client;
-
