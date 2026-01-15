@@ -1,7 +1,8 @@
 // Deploy Commands Script
 // Registers slash commands with Discord for immediate use in a specific guild
 
-import { REST, Routes } from 'discord.js';
+import { REST } from '@discordjs/rest';
+import { Routes } from 'discord.js';
 import { config } from './src/config/config.js';
 import { readdirSync } from 'fs';
 import { join, dirname } from 'path';
