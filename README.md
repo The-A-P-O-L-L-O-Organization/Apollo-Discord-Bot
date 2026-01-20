@@ -1,68 +1,63 @@
 # A.P.O.L.L.O Discord Bot
 
-A Discord bot built with discord.js that welcomes new users and provides useful utility and moderation commands.
+A feature-rich Discord bot built with discord.js v14 that provides moderation, logging, tickets, reaction roles, and utility commands.
 
 ## Features
 
 - **Welcome System**: Automatically greets new members when they join the server
-- **Utility Commands**: Includes helpful commands for server management
-- **Moderation Commands**: Full suite of moderation tools for server management
+- **Moderation Commands**: Full suite of moderation tools with warning system and auto-punishments
+- **Auto-Moderation**: Configurable filters for spam, links, invites, caps, and banned words
+- **Server Logging**: Comprehensive event logging (messages, members, roles, voice)
+- **Ticket System**: Support ticket creation with transcripts saved to JSON
+- **Reaction Roles**: Self-assignable roles via message reactions
+- **Reminders**: Personal reminder system with scheduling
+- **Polls**: Create polls with optional auto-tally when duration ends
 - **Docker Support**: Easy deployment with Docker and Docker Compose
-- **Easy to Extend**: Modular architecture makes it simple to add new features
 - **Rich Embeds**: Beautiful, formatted messages for better user experience
 
-## Commands
+## Commands (29 Total)
 
 ### Utility Commands
 
-1. **/ping** - Check the bot's latency and response time
-   - Measures round-trip latency
-   - Shows API latency
-   - Displays connection status
-
-2. **/help** - Shows the help menu with all available commands
-   - Lists all commands by category
-   - Provides usage instructions
-   - Shows command descriptions
-
-3. **/userinfo** - Displays information about a user
-   - Shows username, ID, and account age
-   - Displays join date and server position
-   - Lists roles and status
+| Command | Description |
+|---------|-------------|
+| `/ping` | Check the bot's latency and response time |
+| `/help` | Shows the help menu with all available commands |
+| `/userinfo` | Displays information about a user |
+| `/serverinfo` | Display detailed server information |
+| `/stats` | Display bot statistics (uptime, memory, servers) |
+| `/embed` | Create custom embed messages |
+| `/remind` | Set a reminder (e.g., `/remind 1h Check the oven`) |
+| `/reminders` | List your active reminders |
+| `/cancelreminder` | Cancel a reminder by ID |
+| `/poll` | Create a poll with optional auto-tally |
 
 ### Moderation Commands
 
-4. **/kick** - Kick a user from the server
-   - Removes user from the server
-   - Requires reason
-   - Logs action in moderation channel
+| Command | Description |
+|---------|-------------|
+| `/kick` | Kick a user from the server |
+| `/ban` | Ban a user from the server |
+| `/unban` | Unban a previously banned user |
+| `/mute` | Temporarily mute a user |
+| `/unmute` | Unmute a previously muted user |
+| `/purge` | Delete multiple messages from a channel |
+| `/warn` | Issue a warning to a user (auto-punishments at thresholds) |
+| `/warnings` | View a user's warnings |
+| `/clearwarnings` | Clear warnings for a user |
 
-5. **/ban** - Ban a user from the server
-   - Permanently removes user from server
-   - Option to delete message history (0-7 days)
-   - Requires reason
-   - Logs action in moderation channel
+### Admin Commands
 
-6. **/unban** - Unban a previously banned user
-   - Removes ban from user by ID
-   - Requires user ID
-   - Logs action in moderation channel
-
-7. **/mute** - Temporarily mute a user
-   - Uses Discord timeout feature
-   - Supports duration (1m, 1h, 1d, 1w)
-   - Fallback to Mute role if needed
-   - Logs action in moderation channel
-
-8. **/unmute** - Unmute a previously muted user
-   - Removes timeout from user
-   - Also removes Mute role if present
-   - Logs action in moderation channel
-
-9. **/purge** - Delete multiple messages from a channel
-   - Bulk delete messages (1-100)
-   - Optional user filter
-   - Logs action in moderation channel
+| Command | Description |
+|---------|-------------|
+| `/warnconfig` | Configure warning thresholds for auto-punishments |
+| `/automod` | Configure auto-moderation settings |
+| `/setlogchannel` | Set the channel for server event logs |
+| `/logging` | Enable/disable specific log events |
+| `/reactionrole` | Setup reaction roles (add/remove/list/clear) |
+| `/ticketsetup` | Configure the ticket system |
+| `/ticket` | Create a support ticket |
+| `/closeticket` | Close a ticket and save transcript |
 
 ## Installation
 
@@ -77,8 +72,8 @@ A Discord bot built with discord.js that welcomes new users and provides useful 
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
-   cd A.P.O.L.L.O-Discord-Bot
+   git clone https://github.com/The-A-P-O-L-L-O-Organization/Apollo-Discord-Bot.git
+   cd Apollo-Discord-Bot
    ```
 
 2. **Configure environment variables**
@@ -111,8 +106,8 @@ A Discord bot built with discord.js that welcomes new users and provides useful 
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
-   cd A.P.O.L.L.O-Discord-Bot
+   git clone https://github.com/The-A-P-O-L-L-O-Organization/Apollo-Discord-Bot.git
+   cd Apollo-Discord-Bot
    ```
 
 2. **Install dependencies**
@@ -179,14 +174,14 @@ docker-compose down -v
 
 ```bash
 # Build using production Dockerfile
-docker build -f Dockerfile.prod -t A.P.O.L.L.O-discord-bot .
+docker build -f Dockerfile.prod -t apollo-discord-bot .
 
 # Run the container
 docker run -d \
-  --name A.P.O.L.L.O-discord-bot \
+  --name apollo-discord-bot \
   --restart unless-stopped \
   -e DISCORD_TOKEN=your-token \
-  A.P.O.L.L.O-discord-bot
+  apollo-discord-bot
 ```
 
 ## Configuration
@@ -214,15 +209,61 @@ export const config = {
     moderation: {
         defaultReason: 'No reason provided',
         muteRoleName: 'Muted',
-        muteDuration: 3600000, // 1 hour
+        muteDuration: 3600000,
         maxMessagesPerPurge: 100,
-        purgeCooldown: 5000,
         logModerationActions: true,
         moderationLogChannel: 'mod-logs'
     },
     
-    // Command Prefix
-    prefix: '!'
+    // Warning System (configurable per-server)
+    warnings: {
+        thresholds: {
+            mute: 3,   // Auto-mute at 3 warnings
+            kick: 5,   // Auto-kick at 5 warnings
+            ban: 7     // Auto-ban at 7 warnings
+        }
+    },
+    
+    // Auto-moderation Settings
+    automod: {
+        enabled: false,
+        maxMentions: 5,
+        maxCapsPercent: 70,
+        filterInvites: true,
+        filterLinks: false,
+        spamThreshold: 5
+    },
+    
+    // Logging Settings
+    logging: {
+        defaultEvents: {
+            messageDelete: true,
+            messageEdit: true,
+            memberJoin: true,
+            memberLeave: true,
+            roleChanges: true,
+            voiceChanges: false
+        }
+    },
+    
+    // Ticket System
+    tickets: {
+        categoryName: 'Support Tickets',
+        channelPrefix: 'ticket-'
+    },
+    
+    // Reminders
+    reminders: {
+        checkInterval: 30000,
+        maxDuration: 30 * 24 * 60 * 60 * 1000 // 30 days
+    },
+    
+    // Polls
+    polls: {
+        defaultDuration: 24 * 60 * 60 * 1000, // 24 hours
+        maxDuration: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxOptions: 10
+    }
 };
 ```
 
@@ -237,26 +278,63 @@ export const config = {
 ## Project Structure
 
 ```
-A.P.O.L.L.O-Discord-Bot/
+Apollo-Discord-Bot/
 ├── src/
 │   ├── index.js              # Main entry point
 │   ├── config/
 │   │   └── config.js         # Bot configuration
 │   ├── commands/
 │   │   ├── ping.js           # Ping command
-│   │   ├── help.js           # Help command
+│   │   ├── help.js           # Dynamic help command
 │   │   ├── userinfo.js       # User info command
+│   │   ├── serverinfo.js     # Server info command
+│   │   ├── stats.js          # Bot statistics
+│   │   ├── embed.js          # Embed creator
 │   │   ├── kick.js           # Kick command
 │   │   ├── ban.js            # Ban command
 │   │   ├── unban.js          # Unban command
 │   │   ├── mute.js           # Mute command
 │   │   ├── unmute.js         # Unmute command
-│   │   └── purge.js          # Purge command
+│   │   ├── purge.js          # Purge command
+│   │   ├── warn.js           # Warning command
+│   │   ├── warnings.js       # View warnings
+│   │   ├── clearwarnings.js  # Clear warnings
+│   │   ├── warnconfig.js     # Warning config
+│   │   ├── automod.js        # Auto-moderation config
+│   │   ├── setlogchannel.js  # Set log channel
+│   │   ├── logging.js        # Configure logging
+│   │   ├── reactionrole.js   # Reaction roles
+│   │   ├── ticketsetup.js    # Ticket setup
+│   │   ├── ticket.js         # Create ticket
+│   │   ├── closeticket.js    # Close ticket
+│   │   ├── remind.js         # Set reminder
+│   │   ├── reminders.js      # List reminders
+│   │   ├── cancelreminder.js # Cancel reminder
+│   │   └── poll.js           # Create polls
 │   ├── events/
-│   │   ├── ready.js          # Ready event handler
-│   │   └── guildMemberAdd.js # Welcome event handler
-│   └── handlers/
-│       └── commandHandler.js # Command registration
+│   │   ├── ready.js          # Ready event
+│   │   ├── guildMemberAdd.js # Welcome + join logging
+│   │   ├── guildMemberRemove.js # Leave logging
+│   │   ├── guildMemberUpdate.js # Role change logging
+│   │   ├── messageCreate.js  # Auto-moderation
+│   │   ├── messageDelete.js  # Delete logging
+│   │   ├── messageUpdate.js  # Edit logging
+│   │   ├── messageReactionAdd.js # Reaction roles
+│   │   ├── messageReactionRemove.js # Reaction roles
+│   │   ├── voiceStateUpdate.js # Voice logging
+│   │   └── interactionCreate.js # Button handlers
+│   ├── handlers/
+│   │   ├── commandHandler.js # Command registration
+│   │   └── eventHandler.js   # Dynamic event loading
+│   └── utils/
+│       ├── modLog.js         # Moderation logging
+│       ├── dataStore.js      # JSON data persistence
+│       ├── automod.js        # Auto-mod checks
+│       ├── logger.js         # Event logging utility
+│       ├── reminderScheduler.js # Reminder scheduler
+│       └── pollScheduler.js  # Poll auto-tally
+├── data/                     # Data storage (gitignored)
+│   └── transcripts/          # Ticket transcripts
 ├── deploy-commands.js        # Command deployment script
 ├── Dockerfile                # Development Dockerfile
 ├── Dockerfile.prod           # Production Dockerfile
@@ -267,76 +345,65 @@ A.P.O.L.L.O-Discord-Bot/
 └── pnpm-lock.yaml            # Locked dependencies
 ```
 
-## Usage
+## Feature Details
 
-### Starting the Bot
+### Warning System
+- Issue warnings with `/warn @user reason`
+- Configure auto-punishment thresholds per-server with `/warnconfig`
+- Default: mute at 3 warnings, kick at 5, ban at 7
+- View warnings with `/warnings @user`
+- Clear warnings with `/clearwarnings @user`
 
-```bash
-# Start in normal mode
-pnpm start
+### Auto-Moderation
+Configure with `/automod`:
+- **Banned words**: Add/remove words to filter
+- **Invite filter**: Block Discord invite links
+- **Link filter**: Block external links
+- **Mention spam**: Limit mentions per message
+- **Caps filter**: Limit excessive caps
+- **Spam detection**: Rate limiting messages
+- **Account age**: Minimum account age requirement
+- **Exempt channels/roles**: Bypass automod for specific channels or roles
 
-# Start in development mode (with auto-restart)
-pnpm dev
+### Server Logging
+Configure with `/setlogchannel` and `/logging`:
+- Message deletes and edits
+- Member joins and leaves
+- Role changes
+- Voice channel activity (join/leave/move)
 
-# Start with Docker Compose (recommended)
-docker-compose up -d
-```
+### Ticket System
+1. Setup: `/ticketsetup category`, `/ticketsetup supportrole`, `/ticketsetup panel`
+2. Users click the panel button or use `/ticket` to create tickets
+3. Staff with support role can view all tickets
+4. Close with `/closeticket` or the close button
+5. Transcripts saved to `data/transcripts/` as JSON
 
-### Inviting the Bot
+### Reaction Roles
+- Add: `/reactionrole add message_id emoji @role`
+- Remove: `/reactionrole remove message_id emoji`
+- List: `/reactionrole list`
+- Clear: `/reactionrole clear message_id`
 
-When inviting the bot to your server, ensure it has the following permissions:
+### Polls
+- Create: `/poll question:"Your question" options:"Option 1 | Option 2 | Option 3"`
+- Optional duration: `duration:1h` for auto-tally
+- Results posted automatically when poll ends
+
+## Bot Permissions
+
+When inviting the bot, ensure it has these permissions:
 - Send Messages
 - Embed Links
 - Manage Roles
 - Manage Messages
+- Manage Channels
 - Kick Members
 - Ban Members
-- Mute Members
+- Moderate Members (for timeout)
 - View Channel
 - Add Reactions
-
-### Managing Commands
-
-Commands are registered automatically when the bot starts. For immediate updates to commands:
-
-1. **Guild-specific commands** (immediate):
-   ```bash
-   # Edit deploy-commands.js to uncomment guild deployment
-   node deploy-commands.js
-   ```
-
-2. **Global commands** (can take up to 1 hour):
-   ```bash
-   node deploy-commands.js
-   ```
-
-## Adding New Commands
-
-1. Create a new file in `src/commands/`
-2. Follow the structure of existing commands:
-   ```javascript
-   import { ApplicationCommandType } from 'discord.js';
-   
-   export default {
-       name: 'commandname',
-       description: 'Your command description',
-       type: ApplicationCommandType.ChatInput,
-       
-       async execute(interaction) {
-           // Your command logic here
-       }
-   };
-   ```
-3. The command will be automatically loaded on next bot restart
-
-## Moderation Notes
-
-- All moderation commands require appropriate permissions
-- Actions are logged with timestamp and moderator information
-- Reasons are required for all moderation actions
-- The bot prevents self-moderation (cannot kick/ban/mute itself)
-- Timeout-based mute is preferred over role-based mute
-- Purge command can filter by specific user
+- Read Message History
 
 ## Troubleshooting
 
@@ -354,96 +421,44 @@ Commands are registered automatically when the bot starts. For immediate updates
 - Verify a "welcome" channel exists (or check server settings)
 - Ensure the bot has permission to send messages in the channel
 
-### Docker issues
-- Ensure Docker and Docker Compose are installed
-- Check if port 3000 is already in use
-- Verify environment variables are set correctly
-- Check container logs: `docker-compose logs`
+### Logging not working
+- Set the log channel with `/setlogchannel set #channel`
+- Enable events with `/logging enable event_name`
+- Check `/logging status` to see current configuration
 
-### Moderation commands not working
-- Ensure bot has required permissions (Kick, Ban, Mute, Manage Messages)
-- Check that moderation channels exist
-- Verify mute role is configured properly
+### Tickets not creating
+- Run `/ticketsetup category` to set the ticket category
+- Ensure bot has Manage Channels permission
+- Check that the category exists
 
 ## GitHub Packages
 
 This project publishes Docker images to GitHub Container Registry (GHCR).
 
-### Pulling the Image
-
 ```bash
 # Pull the latest image
-docker pull ghcr.io/${{ github.repository }}:latest
+docker pull ghcr.io/the-a-p-o-l-l-o-organization/apollo-discord-bot:latest
 
-# Pull a specific version
-docker pull ghcr.io/${{ github.repository }}:v1.0.0
-```
-
-### Using the Image
-
-```bash
 # Run the container
 docker run -d \
-  --name A.P.O.L.L.O-discord-bot \
+  --name apollo-discord-bot \
   --restart unless-stopped \
   -e DISCORD_TOKEN=your-token \
-  ghcr.io/${{ github.repository }}:latest
-```
-
-### Docker Compose with GitHub Packages
-
-```yaml
-version: '3.8'
-
-services:
-  bot:
-    image: ghcr.io/${{ github.repository }}:latest
-    container_name: A.P.O.L.L.O-discord-bot
-    restart: unless-stopped
-    environment:
-      - DISCORD_TOKEN=${DISCORD_TOKEN}
-    env_file:
-      - .env
+  ghcr.io/the-a-p-o-l-l-o-organization/apollo-discord-bot:latest
 ```
 
 ## CI/CD Pipeline
 
 This project uses GitHub Actions for continuous integration and deployment:
 
-### Automated Workflows
-
-1. **Build and Publish Docker Image**
-   - Triggered on push to main branch
-   - Triggered on new tags (version releases)
-   - Builds multi-platform images (amd64, arm64)
-   - Publishes to GitHub Container Registry
-   - Generates SBOM and attestations
-
-2. **Security Scanning**
-   - Automatic vulnerability scanning with Trivy
-   - Checks for CRITICAL and HIGH severity issues
-   - Fails deployment on critical vulnerabilities
-
-3. **Image Updates**
-   - Automatically updates container description
-   - Manages version tags and latest tag
-
-### Workflow Triggers
-
-- **Push to main**: Build and deploy latest image
-- **Tag push (v*)**: Build and deploy versioned release
-- **Pull request**: Build and test without publishing
-
-### Security Features
-
-- **Provenance**: Image provenance verification
-- **SBOM**: Software Bill of Materials generation
-- **Attestations**: Image attestations for verification
-- **Vulnerability Scanning**: Automated security scans
+- **Build and Publish**: Triggered on push to main or version tags
+- **Multi-platform**: Builds for amd64 and arm64
+- **Security Scanning**: Automatic vulnerability scanning with Trivy
+- **SBOM Generation**: Software Bill of Materials for supply chain security
 
 ## Technologies Used
 
-- **discord.js** - Discord API wrapper for Node.js
+- **discord.js v14** - Discord API wrapper for Node.js
 - **Node.js** - JavaScript runtime
 - **pnpm** - Package manager
 - **Docker** - Containerization platform
@@ -456,11 +471,10 @@ This project is licensed under the GPLv3 License - see the LICENSE file for deta
 
 ## Support
 
-For issues and feature requests, please create an issue in the repository.
+For issues and feature requests, please create an issue in the [GitHub repository](https://github.com/The-A-P-O-L-L-O-Organization/Apollo-Discord-Bot/issues).
 
 ## Acknowledgments
 
 - [discord.js](https://discord.js.org/) - Powerful Discord API library
 - [Discord Developer Portal](https://discord.com/developers/applications) - Bot management
 - [Docker](https://www.docker.com/) - Containerization platform
-
