@@ -47,19 +47,25 @@ async function registerCommands(client) {
         const commands = Array.from(client.commands.values()).map(cmd => ({
             name: cmd.name,
             description: cmd.description,
-            type: cmd.type,
             options: cmd.options || []
         }));
         
-        // Register global commands
-        // Note: Global commands can take up to 1 hour to update
-        // For testing, you might want to use guild-specific commands
+        // Register commands with Discord
         const rest = client.rest;
+        const { CLIENT_ID } = client.config;
         
-        // For now, we'll just log that commands are ready
-        console.log(`[INFO] ${commands.length} commands registered and ready`);
-        console.log('[WARNING] Commands need to be registered with Discord');
-        console.log('[HINT] Use client.rest.put(Routes.applicationGuildCommands(...)) for guild-specific commands');
+        if (!CLIENT_ID) {
+            console.error('[ERROR] CLIENT_ID not found in config');
+            return;
+        }
+        
+        // Register global commands
+        await rest.put(
+            Routes.applicationCommands(CLIENT_ID),
+            { body: commands }
+        );
+        
+        console.log(`[SUCCESS] ${commands.length} commands registered globally with Discord`);
         
     } catch (error) {
         console.error('[ERROR] Error registering commands:', error);

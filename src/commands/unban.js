@@ -1,14 +1,30 @@
 // Unban Command
 // Unbans a previously banned user from the server
 
-import { ApplicationCommandType, PermissionsBitField } from 'discord.js';
+import { PermissionsBitField } from 'discord.js';
+import { sendModLog } from '../utils/modLog.js';
 
 export default {
     name: 'unban',
     description: 'Unban a previously banned user',
-    type: ApplicationCommandType.ChatInput,
+    category: 'Moderation',
+    
     defaultMemberPermissions: PermissionsBitField.Flags.BanMembers,
     dmPermission: false,
+    options: [
+        {
+            name: 'user-id',
+            description: 'The ID of the user to unban',
+            type: 3, // STRING type
+            required: true
+        },
+        {
+            name: 'reason',
+            description: 'The reason for unbanning',
+            type: 3, // STRING type
+            required: false
+        }
+    ],
     
     async execute(interaction) {
         try {
@@ -57,6 +73,9 @@ export default {
                 return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
             }
             
+            // Get the banned user object for logging
+            const bannedUser = ban.user;
+            
             // Unban the user
             await interaction.guild.bans.remove(userId, reason);
             
@@ -64,7 +83,7 @@ export default {
             const successEmbed = {
                 color: 0x00FF00,
                 title: '[SUCCESS] User Unbanned',
-                description: `User with ID ${userId} has been unbanned from the server.`,
+                description: `${bannedUser.tag} has been unbanned from the server.`,
                 fields: [
                     {
                         name: '[INFO] Moderator',
@@ -87,8 +106,16 @@ export default {
             
             await interaction.reply({ embeds: [successEmbed] });
             
+            // Send mod log
+            await sendModLog(interaction.guild, {
+                action: 'unban',
+                target: bannedUser,
+                moderator: interaction.user,
+                reason: reason
+            });
+            
             // Log the action
-            console.log(`[MODERATION] User ${userId} was unbanned by ${interaction.user.tag}. Reason: ${reason}`);
+            console.log(`[MODERATION] User ${bannedUser.tag} was unbanned by ${interaction.user.tag}. Reason: ${reason}`);
             
         } catch (error) {
             console.error('[ERROR] Unban command error:', error);
@@ -111,4 +138,3 @@ export default {
         }
     }
 };
-

@@ -23,7 +23,8 @@
   },
   "homepage": "https://github.com/The-A-P-O-L-L-O-Organization/Apollo-Discord-Bot",
   "dependencies": {
-    "discord.js": "^14.25.1"
+    "discord.js": "^14.25.1",
+    "dotenv": "^17.2.3"
   },
   "pnpm": {
     "overrides": {
@@ -31,4 +32,4 @@
       "cross-spawn": "7.0.5"
     }
   }
-}   
+}

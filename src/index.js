@@ -1,6 +1,7 @@
 // Main Entry Point - Discord Bot
 // This file initializes the bot and sets up all event listeners
 
+import 'dotenv/config';
 import { Client, GatewayIntentBits, Collection, Partials } from 'discord.js';
 import { config } from './config/config.js';
 import readyHandler from './events/ready.js';
