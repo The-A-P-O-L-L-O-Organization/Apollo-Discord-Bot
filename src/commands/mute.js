@@ -233,7 +233,11 @@ export default {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+            if (interaction.replied || interaction.deferred) {
+                await interaction.editReply({ embeds: [errorEmbed] });
+            } else {
+                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+            }
         }
     }
 };

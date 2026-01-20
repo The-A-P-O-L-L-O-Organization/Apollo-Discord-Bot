@@ -57,6 +57,12 @@ async function deployCommands() {
         process.exit(1);
     }
     
+    // Check if CLIENT_ID is set
+    if (!config.CLIENT_ID || config.CLIENT_ID === 'your-bot-id') {
+        console.error('Error: CLIENT_ID is not configured. Please set it in your .env file.');
+        process.exit(1);
+    }
+    
     // Create REST API instance
     const rest = new REST({ version: '10' }).setToken(config.DISCORD_TOKEN);
     

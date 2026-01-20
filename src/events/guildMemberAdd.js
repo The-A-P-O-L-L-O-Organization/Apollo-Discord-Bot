@@ -53,7 +53,7 @@ export default async function guildMemberAddHandler(member) {
                 inline: true
             }
         )
-        .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+        .setThumbnail(member.user.displayAvatarURL())
         .setFooter({
             text: `Total Members: ${guild.memberCount}`,
             iconURL: guild.iconURL()

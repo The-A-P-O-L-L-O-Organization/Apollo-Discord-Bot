@@ -63,7 +63,6 @@ export default {
             .setColor('#0099FF')
             .setTitle(`User Information - ${statusIndicator}`)
             .setThumbnail(targetUser.displayAvatarURL({ 
-                dynamic: true, 
                 size: 256 
             }))
             .addFields(
@@ -126,7 +125,7 @@ export default {
         // Add footer and timestamp
         userInfoEmbed.setFooter({
             text: `Requested by ${interaction.user.tag}`,
-            iconURL: interaction.user.displayAvatarURL({ dynamic: true })
+            iconURL: interaction.user.displayAvatarURL()
         }).setTimestamp();
         
         // Send the embed

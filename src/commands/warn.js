@@ -230,16 +230,19 @@ export default {
         } catch (error) {
             console.error('[ERROR] Warn command error:', error);
             
-            await interaction.reply({
-                embeds: [{
-                    color: 0xFF0000,
-                    title: '[ERROR] Command Failed',
-                    description: 'An error occurred while trying to warn the user.',
-                    fields: [{ name: 'Error', value: error.message, inline: true }],
-                    timestamp: new Date().toISOString()
-                }],
-                ephemeral: true
-            });
+            const errorEmbed = {
+                color: 0xFF0000,
+                title: '[ERROR] Command Failed',
+                description: 'An error occurred while trying to warn the user.',
+                fields: [{ name: 'Error', value: error.message, inline: true }],
+                timestamp: new Date().toISOString()
+            };
+            
+            if (interaction.replied || interaction.deferred) {
+                await interaction.editReply({ embeds: [errorEmbed] });
+            } else {
+                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+            }
         }
     }
 };

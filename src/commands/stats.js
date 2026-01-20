@@ -40,7 +40,7 @@ export default {
         const embed = new EmbedBuilder()
             .setColor('#3498DB')
             .setTitle('Bot Statistics')
-            .setThumbnail(client.user.displayAvatarURL({ dynamic: true }))
+            .setThumbnail(client.user.displayAvatarURL())
             .addFields(
                 {
                     name: 'General',

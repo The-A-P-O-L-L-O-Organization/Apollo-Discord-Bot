@@ -48,7 +48,7 @@ export async function sendModLog(guild, options) {
         const logEmbed = new EmbedBuilder()
             .setColor(actionColors[options.action.toLowerCase()] || actionColors.default)
             .setTitle(`[MODERATION] ${options.action.toUpperCase()}`)
-            .setThumbnail(options.target.displayAvatarURL({ dynamic: true }))
+            .setThumbnail(options.target.displayAvatarURL())
             .addFields(
                 {
                     name: 'Target User',

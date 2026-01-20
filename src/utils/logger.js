@@ -107,7 +107,7 @@ export function createMessageDeleteEmbed(message) {
     
     // Add author thumbnail if available
     if (message.author) {
-        embed.setThumbnail(message.author.displayAvatarURL({ dynamic: true }));
+        embed.setThumbnail(message.author.displayAvatarURL());
     }
     
     return embed;
@@ -134,7 +134,7 @@ export function createMessageEditEmbed(oldMessage, newMessage) {
         .setFooter({ text: `Message ID: ${newMessage.id}` });
     
     if (newMessage.author) {
-        embed.setThumbnail(newMessage.author.displayAvatarURL({ dynamic: true }));
+        embed.setThumbnail(newMessage.author.displayAvatarURL());
     }
     
     return embed;
@@ -153,7 +153,7 @@ export function createMemberJoinEmbed(member) {
         .setColor('#4ECDC4')
         .setTitle('📥 Member Joined')
         .setDescription(`${member.user.tag} joined the server`)
-        .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+        .setThumbnail(member.user.displayAvatarURL())
         .addFields(
             { name: 'User', value: `<@${member.id}>`, inline: true },
             { name: 'User ID', value: member.id, inline: true },
@@ -196,7 +196,7 @@ export function createMemberLeaveEmbed(member) {
         .setColor('#FF6B6B')
         .setTitle('📤 Member Left')
         .setDescription(`${member.user.tag} left the server`)
-        .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+        .setThumbnail(member.user.displayAvatarURL())
         .addFields(
             { name: 'User', value: `${member.user.tag}`, inline: true },
             { name: 'User ID', value: member.id, inline: true },
@@ -233,7 +233,7 @@ export function createRoleChangeEmbed(oldMember, newMember) {
         .setColor('#9B59B6')
         .setTitle('🏷️ Role Update')
         .setDescription(`Roles updated for ${newMember.user.tag}`)
-        .setThumbnail(newMember.user.displayAvatarURL({ dynamic: true }))
+        .setThumbnail(newMember.user.displayAvatarURL())
         .addFields(
             { name: 'User', value: `<@${newMember.id}>`, inline: true },
             { name: 'User ID', value: newMember.id, inline: true }
@@ -296,7 +296,7 @@ export function createVoiceChangeEmbed(oldState, newState) {
         .setColor(color)
         .setTitle(title)
         .setDescription(description)
-        .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+        .setThumbnail(member.user.displayAvatarURL())
         .addFields(
             { name: 'User', value: `<@${member.id}>`, inline: true },
             { name: 'User ID', value: member.id, inline: true }
