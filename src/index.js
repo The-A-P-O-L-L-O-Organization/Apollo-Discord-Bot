@@ -7,6 +7,9 @@ import { config } from './config/config.js';
 import readyHandler from './events/ready.js';
 import guildMemberAddHandler from './events/guildMemberAdd.js';
 import commandHandler from './handlers/commandHandler.js';
+import eventHandler from './handlers/eventHandler.js';
+import { initReminderScheduler } from './utils/reminderScheduler.js';
+import { initPollScheduler } from './utils/pollScheduler.js';
 
 // Create a new Client instance with required intents
 const client = new Client({
@@ -15,14 +18,18 @@ const client = new Client({
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildPresences
+        GatewayIntentBits.GuildPresences,
+        GatewayIntentBits.GuildMessageReactions,
+        GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.DirectMessages
     ],
-    // Enable partials for better member handling
+    // Enable partials for better event handling
     partials: [
         Partials.Channel,
         Partials.GuildMember,
         Partials.Message,
-        Partials.User
+        Partials.User,
+        Partials.Reaction
     ]
 });
 
@@ -30,11 +37,27 @@ const client = new Client({
 client.commands = new Collection();
 client.config = config;
 
+// Track bot statistics
+client.stats = {
+    commandsRan: 0,
+    messagesProcessed: 0,
+    startTime: Date.now()
+};
+
 // Event: Bot is ready and logged in
 client.once('ready', async () => {
-    console.log('Bot is ready, loading commands...');
+    console.log('Bot is ready, loading commands and events...');
     await readyHandler(client);
     await commandHandler(client);
+    await eventHandler(client);
+    
+    // Initialize reminder scheduler
+    initReminderScheduler(client);
+    
+    // Initialize poll scheduler
+    initPollScheduler(client);
+    
+    console.log('[SUCCESS] Bot fully initialized!');
 });
 
 // Event: New member joins the server
@@ -42,6 +65,12 @@ client.on('guildMemberAdd', (member) => guildMemberAddHandler(member));
 
 // Event: Handle slash commands
 client.on('interactionCreate', async (interaction) => {
+    // Handle button interactions
+    if (interaction.isButton()) {
+        // Button handling will be added by specific features
+        return;
+    }
+    
     // Check if the interaction is a command
     if (!interaction.isChatInputCommand()) return;
     
@@ -57,6 +86,9 @@ client.on('interactionCreate', async (interaction) => {
     try {
         // Execute the command
         await command.execute(interaction);
+        
+        // Track command usage
+        client.stats.commandsRan++;
     } catch (error) {
         console.error(`[ERROR] Error executing /${interaction.commandName}:`, error);
         
