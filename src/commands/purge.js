@@ -2,13 +2,37 @@
 // Deletes multiple messages from a channel
 
 import { ApplicationCommandType, PermissionsBitField } from 'discord.js';
+import { sendModLog } from '../utils/modLog.js';
 
 export default {
     name: 'purge',
     description: 'Delete multiple messages from a channel',
+    category: 'Moderation',
     type: ApplicationCommandType.ChatInput,
     defaultMemberPermissions: PermissionsBitField.Flags.ManageMessages,
     dmPermission: false,
+    options: [
+        {
+            name: 'amount',
+            description: 'Number of messages to delete (1-100)',
+            type: 4, // INTEGER type
+            required: true,
+            min_value: 1,
+            max_value: 100
+        },
+        {
+            name: 'user',
+            description: 'Only delete messages from this user',
+            type: 6, // USER type
+            required: false
+        },
+        {
+            name: 'reason',
+            description: 'The reason for deleting messages',
+            type: 3, // STRING type
+            required: false
+        }
+    ],
     
     async execute(interaction) {
         try {
@@ -105,6 +129,19 @@ export default {
             
             await interaction.reply({ embeds: [successEmbed] });
             
+            // Send mod log (create a pseudo-target for purge actions)
+            await sendModLog(interaction.guild, {
+                action: 'purge',
+                target: targetUser || interaction.user,
+                moderator: interaction.user,
+                reason: reason,
+                extra: {
+                    'Channel': `#${channel.name}`,
+                    'Messages Deleted': `${deletedMessages.size}`,
+                    'Filter': targetUser ? `Messages from ${targetUser.tag}` : 'All messages'
+                }
+            });
+            
             // Log the action
             console.log(`[MODERATION] ${deletedMessages.size} messages deleted by ${interaction.user.tag}. Channel: ${channel.name}. Reason: ${reason}`);
             
@@ -129,4 +166,3 @@ export default {
         }
     }
 };
-

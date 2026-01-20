@@ -1,12 +1,13 @@
 // Ping Command
 // Measures bot latency and response time
 
-import { EmbedBuilder, ApplicationCommandType } from 'discord.js';
+import { EmbedBuilder } from 'discord.js';
 
 export default {
     name: 'ping',
     description: 'Check the bot\'s latency and response time',
-    type: ApplicationCommandType.ChatInput,
+    category: 'Utility',
+    
     
     async execute(interaction) {
         // Defer the reply to get accurate latency
