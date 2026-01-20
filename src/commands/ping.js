@@ -56,7 +56,7 @@ export default {
             )
             .setFooter({
                 text: `Requested by ${interaction.user.tag}`,
-                iconURL: interaction.user.displayAvatarURL({ dynamic: true })
+                iconURL: interaction.user.displayAvatarURL()
             })
             .setTimestamp();
         

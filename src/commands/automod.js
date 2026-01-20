@@ -391,6 +391,14 @@ async function handleSet(interaction) {
                 ephemeral: true
             });
         }
+        
+        // Validate positive numbers for numeric settings (except maxCapsPercent which can be 0)
+        if (setting !== 'maxCapsPercent' && value <= 0) {
+            return interaction.reply({
+                content: `${setting} must be a positive number greater than zero.`,
+                ephemeral: true
+            });
+        }
     }
     
     updateGuildData('automod', interaction.guild.id, setting, value);

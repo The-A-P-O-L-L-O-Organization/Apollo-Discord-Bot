@@ -93,6 +93,14 @@ export default {
             // Bulk delete messages
             const deletedMessages = await channel.bulkDelete(messages, true);
             
+            // Check if bulkDelete failed to delete messages (messages older than 14 days)
+            if (deletedMessages.size === 0 && messages.size > 0) {
+                return interaction.reply({
+                    content: 'Could not delete messages - they may be older than 14 days.',
+                    ephemeral: true
+                });
+            }
+            
             // Create success embed
             const successEmbed = {
                 color: 0x00FF00,
@@ -162,7 +170,11 @@ export default {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+            if (interaction.replied || interaction.deferred) {
+                await interaction.editReply({ embeds: [errorEmbed] });
+            } else {
+                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+            }
         }
     }
 };

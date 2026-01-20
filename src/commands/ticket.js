@@ -1,21 +1,23 @@
 // Ticket Command
 // Allows users to create a ticket or manage their tickets
 
-import { SlashCommandBuilder, EmbedBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { EmbedBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { getGuildData, setGuildData, generateId } from '../utils/dataStore.js';
 import { config } from '../config/config.js';
 
 export default {
-    data: new SlashCommandBuilder()
-        .setName('ticket')
-        .setDescription('Create a support ticket')
-        .addStringOption(option =>
-            option
-                .setName('reason')
-                .setDescription('Brief reason for opening the ticket')
-                .setRequired(false)
-        ),
+    name: 'ticket',
+    description: 'Create a support ticket',
     category: 'utility',
+    dmPermission: false,
+    options: [
+        {
+            name: 'reason',
+            description: 'Brief reason for opening the ticket',
+            type: 3, // STRING type
+            required: false
+        }
+    ],
 
     async execute(interaction) {
         const guildId = interaction.guild.id;
@@ -34,6 +36,14 @@ export default {
             });
         }
 
+        // Check if bot has permission to manage channels
+        if (!interaction.guild.members.me.permissions.has('ManageChannels')) {
+            return interaction.reply({
+                content: 'I do not have permission to manage channels.',
+                ephemeral: true
+            });
+        }
+
         // Determine where to create the ticket channel
         let parent = null;
         if (ticketConfig.categoryId) {
@@ -46,7 +56,8 @@ export default {
 
         // Generate ticket number
         const ticketNumber = (ticketConfig.totalTickets || 0) + 1;
-        const channelName = `${config.tickets.channelPrefix}${ticketNumber}-${interaction.user.username}`.toLowerCase().replace(/[^a-z0-9-]/g, '');
+        const sanitizedUsername = interaction.user.username.substring(0, 20);
+        const channelName = `${config.tickets.channelPrefix}${ticketNumber}-${sanitizedUsername}`.toLowerCase().replace(/[^a-z0-9-]/g, '');
 
         // Create permission overwrites
         const permissionOverwrites = [

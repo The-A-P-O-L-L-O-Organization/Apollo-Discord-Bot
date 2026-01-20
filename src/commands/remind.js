@@ -1,27 +1,28 @@
 // Remind Command
 // Allows users to set reminders
 
-import { SlashCommandBuilder } from 'discord.js';
 import { addReminder, parseTimeString } from '../utils/reminderScheduler.js';
 import { config } from '../config/config.js';
 
 export default {
-    data: new SlashCommandBuilder()
-        .setName('remind')
-        .setDescription('Set a reminder')
-        .addStringOption(option =>
-            option
-                .setName('time')
-                .setDescription('When to remind you (e.g., 10m, 1h, 2d, 1w)')
-                .setRequired(true)
-        )
-        .addStringOption(option =>
-            option
-                .setName('message')
-                .setDescription('What to remind you about')
-                .setRequired(true)
-        ),
+    name: 'remind',
+    description: 'Set a reminder',
     category: 'utility',
+    dmPermission: false,
+    options: [
+        {
+            name: 'time',
+            description: 'When to remind you (e.g., 10m, 1h, 2d, 1w)',
+            type: 3, // STRING type
+            required: true
+        },
+        {
+            name: 'message',
+            description: 'What to remind you about',
+            type: 3, // STRING type
+            required: true
+        }
+    ],
 
     async execute(interaction) {
         const timeInput = interaction.options.getString('time');
@@ -50,7 +51,7 @@ export default {
 
         // Calculate reminder time
         const reminderTime = Date.now() + duration;
-        const reminderId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const reminderId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
         // Create reminder object
         const reminder = {

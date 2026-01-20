@@ -10,6 +10,7 @@ import commandHandler from './handlers/commandHandler.js';
 import eventHandler from './handlers/eventHandler.js';
 import { initReminderScheduler } from './utils/reminderScheduler.js';
 import { initPollScheduler } from './utils/pollScheduler.js';
+import { stopSpamTrackerCleanup } from './utils/automod.js';
 
 // Create a new Client instance with required intents
 const client = new Client({
@@ -107,10 +108,14 @@ client.on('interactionCreate', async (interaction) => {
         };
         
         // Check if reply has already been sent
-        if (interaction.deferred || interaction.replied) {
-            await interaction.editReply({ embeds: [errorEmbed] });
-        } else {
-            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        try {
+            if (interaction.deferred || interaction.replied) {
+                await interaction.editReply({ embeds: [errorEmbed] });
+            } else {
+                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+            }
+        } catch (e) {
+            console.error('[ERROR] Failed to send error response:', e);
         }
     }
 });
@@ -124,6 +129,21 @@ process.on('unhandledRejection', (error) => {
 process.on('uncaughtException', (error) => {
     console.error('[ERROR] Uncaught exception:', error);
     process.exit(1);
+});
+
+// Graceful shutdown handlers
+process.on('SIGTERM', () => {
+    console.log('[INFO] Received SIGTERM, shutting down gracefully...');
+    stopSpamTrackerCleanup();
+    client.destroy();
+    process.exit(0);
+});
+
+process.on('SIGINT', () => {
+    console.log('[INFO] Received SIGINT, shutting down gracefully...');
+    stopSpamTrackerCleanup();
+    client.destroy();
+    process.exit(0);
 });
 
 // Login to Discord with the bot token

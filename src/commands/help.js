@@ -84,10 +84,10 @@ export default {
                 'Use `/` before each command\n\n' +
                 '----------------------------------------'
             )
-            .setThumbnail(interaction.client.user.displayAvatarURL({ dynamic: true }))
+            .setThumbnail(interaction.client.user.displayAvatarURL())
             .setFooter({
                 text: `Requested by ${interaction.user.tag} | Total Commands: ${totalCommands}`,
-                iconURL: interaction.user.displayAvatarURL({ dynamic: true })
+                iconURL: interaction.user.displayAvatarURL()
             })
             .setTimestamp();
         
