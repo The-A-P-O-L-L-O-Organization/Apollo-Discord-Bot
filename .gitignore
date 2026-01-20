@@ -35,3 +35,6 @@ build/
 # Testing
 coverage/
 .nyc_output/
+
+# Bot Data (user data, transcripts, etc.)
+data/
