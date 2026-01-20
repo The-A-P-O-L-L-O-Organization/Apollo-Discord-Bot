@@ -3,9 +3,16 @@
 
 import { EmbedBuilder } from 'discord.js';
 import { config } from '../config/config.js';
+import { logEvent, createMemberJoinEmbed } from '../utils/logger.js';
 
 export default async function guildMemberAddHandler(member) {
     const { guild } = member;
+    
+    // Log the member join event (if logging is enabled)
+    if (!member.user.bot) {
+        const logEmbed = createMemberJoinEmbed(member);
+        await logEvent(guild, 'memberJoin', logEmbed);
+    }
     
     // Find the welcome channel
     const welcomeChannel = guild.channels.cache.find(
