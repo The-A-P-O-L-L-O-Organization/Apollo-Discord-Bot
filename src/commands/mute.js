@@ -1,14 +1,36 @@
 // Mute Command
-// Temporarily mutes a user by assigning a mute role
+// Temporarily mutes a user by using Discord timeout
 
-import { ApplicationCommandType, PermissionsBitField } from 'discord.js';
+import { PermissionsBitField } from 'discord.js';
+import { sendModLog, fetchMember } from '../utils/modLog.js';
 
 export default {
     name: 'mute',
     description: 'Temporarily mute a user',
-    type: ApplicationCommandType.ChatInput,
+    category: 'Moderation',
+    
     defaultMemberPermissions: PermissionsBitField.Flags.MuteMembers,
     dmPermission: false,
+    options: [
+        {
+            name: 'user',
+            description: 'The user to mute',
+            type: 6, // USER type
+            required: true
+        },
+        {
+            name: 'duration',
+            description: 'Duration (e.g., 1m, 1h, 1d, 1w)',
+            type: 3, // STRING type
+            required: false
+        },
+        {
+            name: 'reason',
+            description: 'The reason for muting',
+            type: 3, // STRING type
+            required: false
+        }
+    ],
     
     async execute(interaction) {
         try {
@@ -28,8 +50,8 @@ export default {
                 return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
             }
             
-            // Get the guild member
-            const member = interaction.guild.members.cache.get(user.id);
+            // Get the guild member using improved fetching
+            const member = await fetchMember(interaction.guild, user.id);
             
             if (!member) {
                 const errorEmbed = {
@@ -102,6 +124,18 @@ export default {
                 }
             }
             
+            // Discord timeout max is 28 days
+            const maxTimeout = 28 * 24 * 60 * 60 * 1000;
+            if (durationMs > maxTimeout) {
+                const errorEmbed = {
+                    color: 0xFF0000,
+                    title: '[ERROR] Duration Too Long',
+                    description: 'Maximum mute duration is 28 days (4 weeks).',
+                    timestamp: new Date().toISOString()
+                };
+                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+            }
+            
             // Try to use Discord timeout first (more reliable)
             try {
                 await member.timeout(durationMs, reason);
@@ -170,6 +204,15 @@ export default {
             
             await interaction.reply({ embeds: [successEmbed] });
             
+            // Send mod log
+            await sendModLog(interaction.guild, {
+                action: 'mute',
+                target: user,
+                moderator: interaction.user,
+                reason: reason,
+                duration: durationText
+            });
+            
             // Log the action
             console.log(`[MODERATION] User ${user.tag} was muted by ${interaction.user.tag}. Duration: ${durationText}. Reason: ${reason}`);
             
@@ -194,4 +237,3 @@ export default {
         }
     }
 };
-

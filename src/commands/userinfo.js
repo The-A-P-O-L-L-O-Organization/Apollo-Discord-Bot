@@ -1,12 +1,13 @@
 // User Info Command
 // Displays detailed information about a user
 
-import { EmbedBuilder, ApplicationCommandType } from 'discord.js';
+import { EmbedBuilder } from 'discord.js';
 
 export default {
     name: 'userinfo',
     description: 'Displays information about a user',
-    type: ApplicationCommandType.ChatInput,
+    category: 'Utility',
+    
     options: [
         {
             name: 'user',
@@ -68,7 +69,7 @@ export default {
             .addFields(
                 {
                     name: 'Username',
-                    value: `**${targetUser.username}**#${targetUser.discriminator}`,
+                    value: `**${targetUser.username}**${targetUser.discriminator !== '0' ? `#${targetUser.discriminator}` : ''}`,
                     inline: true
                 },
                 {

@@ -1,14 +1,38 @@
 // Ban Command
 // Bans a user from the server with a specified reason
 
-import { ApplicationCommandType, PermissionsBitField } from 'discord.js';
+import { PermissionsBitField } from 'discord.js';
+import { sendModLog, fetchMember } from '../utils/modLog.js';
 
 export default {
     name: 'ban',
     description: 'Ban a user from the server',
-    type: ApplicationCommandType.ChatInput,
+    category: 'Moderation',
+    
     defaultMemberPermissions: PermissionsBitField.Flags.BanMembers,
     dmPermission: false,
+    options: [
+        {
+            name: 'user',
+            description: 'The user to ban',
+            type: 6, // USER type
+            required: true
+        },
+        {
+            name: 'reason',
+            description: 'The reason for banning',
+            type: 3, // STRING type
+            required: false
+        },
+        {
+            name: 'delete-days',
+            description: 'Number of days of messages to delete (0-7)',
+            type: 4, // INTEGER type
+            required: false,
+            min_value: 0,
+            max_value: 7
+        }
+    ],
     
     async execute(interaction) {
         try {
@@ -39,10 +63,10 @@ export default {
                 return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
             }
             
-            // Get the guild member if they're in the server
-            const member = interaction.guild.members.cache.get(user.id);
+            // Get the guild member if they're in the server (using improved fetching)
+            const member = await fetchMember(interaction.guild, user.id);
             
-            // Check if the member can be banned
+            // Check if the member can be banned (if they're in the server)
             if (member && !member.bannable) {
                 const errorEmbed = {
                     color: 0xFF0000,
@@ -113,6 +137,17 @@ export default {
             
             await interaction.reply({ embeds: [successEmbed] });
             
+            // Send mod log
+            await sendModLog(interaction.guild, {
+                action: 'ban',
+                target: user,
+                moderator: interaction.user,
+                reason: reason,
+                extra: {
+                    'Delete Days': `${deleteDays} days`
+                }
+            });
+            
             // Log the action
             console.log(`[MODERATION] User ${user.tag} was banned by ${interaction.user.tag}. Reason: ${reason}`);
             
@@ -137,4 +172,3 @@ export default {
         }
     }
 };
-

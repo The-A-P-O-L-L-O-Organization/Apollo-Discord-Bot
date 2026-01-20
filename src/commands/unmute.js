@@ -1,14 +1,30 @@
 // Unmute Command
 // Unmutes a previously muted user
 
-import { ApplicationCommandType, PermissionsBitField } from 'discord.js';
+import { PermissionsBitField } from 'discord.js';
+import { sendModLog, fetchMember } from '../utils/modLog.js';
 
 export default {
     name: 'unmute',
     description: 'Unmute a previously muted user',
-    type: ApplicationCommandType.ChatInput,
+    category: 'Moderation',
+    
     defaultMemberPermissions: PermissionsBitField.Flags.MuteMembers,
     dmPermission: false,
+    options: [
+        {
+            name: 'user',
+            description: 'The user to unmute',
+            type: 6, // USER type
+            required: true
+        },
+        {
+            name: 'reason',
+            description: 'The reason for unmuting',
+            type: 3, // STRING type
+            required: false
+        }
+    ],
     
     async execute(interaction) {
         try {
@@ -27,8 +43,8 @@ export default {
                 return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
             }
             
-            // Get the guild member
-            const member = interaction.guild.members.cache.get(user.id);
+            // Get the guild member using improved fetching
+            const member = await fetchMember(interaction.guild, user.id);
             
             if (!member) {
                 const errorEmbed = {
@@ -118,6 +134,14 @@ export default {
             
             await interaction.reply({ embeds: [successEmbed] });
             
+            // Send mod log
+            await sendModLog(interaction.guild, {
+                action: 'unmute',
+                target: user,
+                moderator: interaction.user,
+                reason: reason
+            });
+            
             // Log the action
             console.log(`[MODERATION] User ${user.tag} was unmuted by ${interaction.user.tag}. Reason: ${reason}`);
             
@@ -142,4 +166,3 @@ export default {
         }
     }
 };
-
