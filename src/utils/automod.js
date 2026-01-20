@@ -238,4 +238,16 @@ export function cleanupSpamTracker() {
 }
 
 // Clean up tracker every minute
-setInterval(cleanupSpamTracker, 60000);
+let spamTrackerCleanupInterval = setInterval(cleanupSpamTracker, 60000);
+
+/**
+ * Stops the spam tracker cleanup interval.
+ * Call this function during graceful shutdown to prevent memory leaks.
+ */
+export function stopSpamTrackerCleanup() {
+    if (spamTrackerCleanupInterval) {
+        clearInterval(spamTrackerCleanupInterval);
+        spamTrackerCleanupInterval = null;
+        console.log('[INFO] Spam tracker cleanup interval stopped');
+    }
+}

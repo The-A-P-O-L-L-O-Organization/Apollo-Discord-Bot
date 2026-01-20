@@ -1,7 +1,7 @@
 // Poll Command
 // Creates polls with optional duration for auto-tally
 
-import { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
+import { EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import { appendToGuildArray, generateId } from '../utils/dataStore.js';
 import { config } from '../config/config.js';
 
@@ -9,35 +9,37 @@ import { config } from '../config/config.js';
 const POLL_EMOJIS = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
 
 export default {
-    data: new SlashCommandBuilder()
-        .setName('poll')
-        .setDescription('Create a poll')
-        .addStringOption(option =>
-            option
-                .setName('question')
-                .setDescription('The poll question')
-                .setRequired(true)
-        )
-        .addStringOption(option =>
-            option
-                .setName('options')
-                .setDescription('Poll options separated by | (e.g., "Yes | No | Maybe")')
-                .setRequired(true)
-        )
-        .addStringOption(option =>
-            option
-                .setName('duration')
-                .setDescription('Poll duration (e.g., 1h, 6h, 1d, 3d). Leave empty for no auto-close.')
-                .setRequired(false)
-        )
-        .addBooleanOption(option =>
-            option
-                .setName('anonymous')
-                .setDescription('Hide who voted for what (default: false)')
-                .setRequired(false)
-        )
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+    name: 'poll',
+    description: 'Create a poll',
     category: 'utility',
+    defaultMemberPermissions: PermissionFlagsBits.ManageMessages,
+    dmPermission: false,
+    options: [
+        {
+            name: 'question',
+            description: 'The poll question',
+            type: 3, // STRING type
+            required: true
+        },
+        {
+            name: 'options',
+            description: 'Poll options separated by | (e.g., "Yes | No | Maybe")',
+            type: 3, // STRING type
+            required: true
+        },
+        {
+            name: 'duration',
+            description: 'Poll duration (e.g., 1h, 6h, 1d, 3d). Leave empty for no auto-close.',
+            type: 3, // STRING type
+            required: false
+        },
+        {
+            name: 'anonymous',
+            description: 'Hide who voted for what (default: false)',
+            type: 5, // BOOLEAN type
+            required: false
+        }
+    ],
 
     async execute(interaction) {
         const question = interaction.options.getString('question');

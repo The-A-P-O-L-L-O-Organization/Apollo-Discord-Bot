@@ -1,77 +1,85 @@
 // Reaction Role Command
 // Allows admins to set up reaction roles on messages
 
-import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
+import { PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import { getGuildData, setGuildData } from '../utils/dataStore.js';
 
 export default {
-    data: new SlashCommandBuilder()
-        .setName('reactionrole')
-        .setDescription('Manage reaction roles')
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('add')
-                .setDescription('Add a reaction role to a message')
-                .addStringOption(option =>
-                    option
-                        .setName('message_id')
-                        .setDescription('The ID of the message to add the reaction role to')
-                        .setRequired(true)
-                )
-                .addStringOption(option =>
-                    option
-                        .setName('emoji')
-                        .setDescription('The emoji to react with (use emoji or emoji ID for custom)')
-                        .setRequired(true)
-                )
-                .addRoleOption(option =>
-                    option
-                        .setName('role')
-                        .setDescription('The role to give when the emoji is reacted')
-                        .setRequired(true)
-                )
-                .addChannelOption(option =>
-                    option
-                        .setName('channel')
-                        .setDescription('The channel the message is in (defaults to current channel)')
-                        .setRequired(false)
-                )
-        )
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('remove')
-                .setDescription('Remove a reaction role from a message')
-                .addStringOption(option =>
-                    option
-                        .setName('message_id')
-                        .setDescription('The ID of the message')
-                        .setRequired(true)
-                )
-                .addStringOption(option =>
-                    option
-                        .setName('emoji')
-                        .setDescription('The emoji to remove')
-                        .setRequired(true)
-                )
-        )
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('list')
-                .setDescription('List all reaction roles in this server')
-        )
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('clear')
-                .setDescription('Clear all reaction roles from a message')
-                .addStringOption(option =>
-                    option
-                        .setName('message_id')
-                        .setDescription('The ID of the message to clear reaction roles from')
-                        .setRequired(true)
-                )
-        )
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles),
+    name: 'reactionrole',
+    description: 'Manage reaction roles',
     category: 'admin',
+    defaultMemberPermissions: PermissionFlagsBits.ManageRoles,
+    dmPermission: false,
+    options: [
+        {
+            name: 'add',
+            description: 'Add a reaction role to a message',
+            type: 1, // SUB_COMMAND type
+            options: [
+                {
+                    name: 'message_id',
+                    description: 'The ID of the message to add the reaction role to',
+                    type: 3, // STRING type
+                    required: true
+                },
+                {
+                    name: 'emoji',
+                    description: 'The emoji to react with (use emoji or emoji ID for custom)',
+                    type: 3, // STRING type
+                    required: true
+                },
+                {
+                    name: 'role',
+                    description: 'The role to give when the emoji is reacted',
+                    type: 8, // ROLE type
+                    required: true
+                },
+                {
+                    name: 'channel',
+                    description: 'The channel the message is in (defaults to current channel)',
+                    type: 7, // CHANNEL type
+                    required: false
+                }
+            ]
+        },
+        {
+            name: 'remove',
+            description: 'Remove a reaction role from a message',
+            type: 1, // SUB_COMMAND type
+            options: [
+                {
+                    name: 'message_id',
+                    description: 'The ID of the message',
+                    type: 3, // STRING type
+                    required: true
+                },
+                {
+                    name: 'emoji',
+                    description: 'The emoji to remove',
+                    type: 3, // STRING type
+                    required: true
+                }
+            ]
+        },
+        {
+            name: 'list',
+            description: 'List all reaction roles in this server',
+            type: 1 // SUB_COMMAND type
+        },
+        {
+            name: 'clear',
+            description: 'Clear all reaction roles from a message',
+            type: 1, // SUB_COMMAND type
+            options: [
+                {
+                    name: 'message_id',
+                    description: 'The ID of the message to clear reaction roles from',
+                    type: 3, // STRING type
+                    required: true
+                }
+            ]
+        }
+    ],
 
     async execute(interaction) {
         const subcommand = interaction.options.getSubcommand();

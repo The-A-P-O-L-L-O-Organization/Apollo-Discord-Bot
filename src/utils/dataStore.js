@@ -8,6 +8,10 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, '../../data');
 
+// Write queue to prevent race conditions during concurrent file operations
+// Map<filename, Promise> - tracks pending write operations per file
+const writeQueue = new Map();
+
 /**
  * Ensures the data directory exists
  */
@@ -89,15 +93,36 @@ export function getGuildData(filename, guildId) {
 }
 
 /**
- * Sets data for a specific guild
+ * Sets data for a specific guild with write queue to prevent race conditions
  * @param {string} filename - Name of the JSON file
  * @param {string} guildId - Guild ID
  * @param {Object} guildData - Data to set for the guild
+ * @returns {Promise<void>}
  */
-export function setGuildData(filename, guildId, guildData) {
-    const data = getData(filename);
-    data[guildId] = guildData;
-    setData(filename, data);
+export async function setGuildData(filename, guildId, guildData) {
+    // Wait for any pending write to complete before starting a new one
+    const pendingWrite = writeQueue.get(filename);
+    if (pendingWrite) {
+        await pendingWrite;
+    }
+    
+    // Create a new write operation
+    const writeOperation = (async () => {
+        const data = getData(filename);
+        data[guildId] = guildData;
+        setData(filename, data);
+    })();
+    
+    writeQueue.set(filename, writeOperation);
+    
+    try {
+        await writeOperation;
+    } finally {
+        // Clean up the queue entry if it's still our operation
+        if (writeQueue.get(filename) === writeOperation) {
+            writeQueue.delete(filename);
+        }
+    }
 }
 
 /**
@@ -106,14 +131,32 @@ export function setGuildData(filename, guildId, guildData) {
  * @param {string} guildId - Guild ID
  * @param {string} key - Key to update
  * @param {*} value - Value to set
+ * @returns {Promise<void>}
  */
-export function updateGuildData(filename, guildId, key, value) {
-    const data = getData(filename);
-    if (!data[guildId]) {
-        data[guildId] = {};
+export async function updateGuildData(filename, guildId, key, value) {
+    const pendingWrite = writeQueue.get(filename);
+    if (pendingWrite) {
+        await pendingWrite;
     }
-    data[guildId][key] = value;
-    setData(filename, data);
+    
+    const writeOperation = (async () => {
+        const data = getData(filename);
+        if (!data[guildId]) {
+            data[guildId] = {};
+        }
+        data[guildId][key] = value;
+        setData(filename, data);
+    })();
+    
+    writeQueue.set(filename, writeOperation);
+    
+    try {
+        await writeOperation;
+    } finally {
+        if (writeQueue.get(filename) === writeOperation) {
+            writeQueue.delete(filename);
+        }
+    }
 }
 
 /**
@@ -122,17 +165,35 @@ export function updateGuildData(filename, guildId, key, value) {
  * @param {string} guildId - Guild ID
  * @param {string} key - Key of the array
  * @param {*} item - Item to append
+ * @returns {Promise<void>}
  */
-export function appendToGuildArray(filename, guildId, key, item) {
-    const data = getData(filename);
-    if (!data[guildId]) {
-        data[guildId] = {};
+export async function appendToGuildArray(filename, guildId, key, item) {
+    const pendingWrite = writeQueue.get(filename);
+    if (pendingWrite) {
+        await pendingWrite;
     }
-    if (!Array.isArray(data[guildId][key])) {
-        data[guildId][key] = [];
+    
+    const writeOperation = (async () => {
+        const data = getData(filename);
+        if (!data[guildId]) {
+            data[guildId] = {};
+        }
+        if (!Array.isArray(data[guildId][key])) {
+            data[guildId][key] = [];
+        }
+        data[guildId][key].push(item);
+        setData(filename, data);
+    })();
+    
+    writeQueue.set(filename, writeOperation);
+    
+    try {
+        await writeOperation;
+    } finally {
+        if (writeQueue.get(filename) === writeOperation) {
+            writeQueue.delete(filename);
+        }
     }
-    data[guildId][key].push(item);
-    setData(filename, data);
 }
 
 /**
@@ -141,20 +202,40 @@ export function appendToGuildArray(filename, guildId, key, item) {
  * @param {string} guildId - Guild ID
  * @param {string} key - Key of the array
  * @param {Function} predicate - Function that returns true for items to remove
- * @returns {number} Number of items removed
+ * @returns {Promise<number>} Number of items removed
  */
-export function removeFromGuildArray(filename, guildId, key, predicate) {
-    const data = getData(filename);
-    if (!data[guildId] || !Array.isArray(data[guildId][key])) {
-        return 0;
+export async function removeFromGuildArray(filename, guildId, key, predicate) {
+    const pendingWrite = writeQueue.get(filename);
+    if (pendingWrite) {
+        await pendingWrite;
     }
     
-    const originalLength = data[guildId][key].length;
-    data[guildId][key] = data[guildId][key].filter(item => !predicate(item));
-    const removed = originalLength - data[guildId][key].length;
+    let removed = 0;
+    const writeOperation = (async () => {
+        const data = getData(filename);
+        if (!data[guildId] || !Array.isArray(data[guildId][key])) {
+            return 0;
+        }
+        
+        const originalLength = data[guildId][key].length;
+        data[guildId][key] = data[guildId][key].filter(item => !predicate(item));
+        removed = originalLength - data[guildId][key].length;
+        
+        if (removed > 0) {
+            setData(filename, data);
+        }
+        
+        return removed;
+    })();
     
-    if (removed > 0) {
-        setData(filename, data);
+    writeQueue.set(filename, writeOperation);
+    
+    try {
+        await writeOperation;
+    } finally {
+        if (writeQueue.get(filename) === writeOperation) {
+            writeQueue.delete(filename);
+        }
     }
     
     return removed;
@@ -178,14 +259,32 @@ export function getUserData(filename, guildId, userId) {
  * @param {string} guildId - Guild ID
  * @param {string} userId - User ID
  * @param {*} userData - Data to set
+ * @returns {Promise<void>}
  */
-export function setUserData(filename, guildId, userId, userData) {
-    const data = getData(filename);
-    if (!data[guildId]) {
-        data[guildId] = {};
+export async function setUserData(filename, guildId, userId, userData) {
+    const pendingWrite = writeQueue.get(filename);
+    if (pendingWrite) {
+        await pendingWrite;
     }
-    data[guildId][userId] = userData;
-    setData(filename, data);
+    
+    const writeOperation = (async () => {
+        const data = getData(filename);
+        if (!data[guildId]) {
+            data[guildId] = {};
+        }
+        data[guildId][userId] = userData;
+        setData(filename, data);
+    })();
+    
+    writeQueue.set(filename, writeOperation);
+    
+    try {
+        await writeOperation;
+    } finally {
+        if (writeQueue.get(filename) === writeOperation) {
+            writeQueue.delete(filename);
+        }
+    }
 }
 
 /**
@@ -194,17 +293,35 @@ export function setUserData(filename, guildId, userId, userData) {
  * @param {string} guildId - Guild ID
  * @param {string} userId - User ID
  * @param {*} item - Item to append
+ * @returns {Promise<void>}
  */
-export function appendToUserArray(filename, guildId, userId, item) {
-    const data = getData(filename);
-    if (!data[guildId]) {
-        data[guildId] = {};
+export async function appendToUserArray(filename, guildId, userId, item) {
+    const pendingWrite = writeQueue.get(filename);
+    if (pendingWrite) {
+        await pendingWrite;
     }
-    if (!Array.isArray(data[guildId][userId])) {
-        data[guildId][userId] = [];
+    
+    const writeOperation = (async () => {
+        const data = getData(filename);
+        if (!data[guildId]) {
+            data[guildId] = {};
+        }
+        if (!Array.isArray(data[guildId][userId])) {
+            data[guildId][userId] = [];
+        }
+        data[guildId][userId].push(item);
+        setData(filename, data);
+    })();
+    
+    writeQueue.set(filename, writeOperation);
+    
+    try {
+        await writeOperation;
+    } finally {
+        if (writeQueue.get(filename) === writeOperation) {
+            writeQueue.delete(filename);
+        }
     }
-    data[guildId][userId].push(item);
-    setData(filename, data);
 }
 
 /**
@@ -213,20 +330,40 @@ export function appendToUserArray(filename, guildId, userId, item) {
  * @param {string} guildId - Guild ID
  * @param {string} userId - User ID
  * @param {Function} predicate - Function that returns true for items to remove
- * @returns {number} Number of items removed
+ * @returns {Promise<number>} Number of items removed
  */
-export function removeFromUserArray(filename, guildId, userId, predicate) {
-    const data = getData(filename);
-    if (!data[guildId] || !Array.isArray(data[guildId][userId])) {
-        return 0;
+export async function removeFromUserArray(filename, guildId, userId, predicate) {
+    const pendingWrite = writeQueue.get(filename);
+    if (pendingWrite) {
+        await pendingWrite;
     }
     
-    const originalLength = data[guildId][userId].length;
-    data[guildId][userId] = data[guildId][userId].filter(item => !predicate(item));
-    const removed = originalLength - data[guildId][userId].length;
+    let removed = 0;
+    const writeOperation = (async () => {
+        const data = getData(filename);
+        if (!data[guildId] || !Array.isArray(data[guildId][userId])) {
+            return 0;
+        }
+        
+        const originalLength = data[guildId][userId].length;
+        data[guildId][userId] = data[guildId][userId].filter(item => !predicate(item));
+        removed = originalLength - data[guildId][userId].length;
+        
+        if (removed > 0) {
+            setData(filename, data);
+        }
+        
+        return removed;
+    })();
     
-    if (removed > 0) {
-        setData(filename, data);
+    writeQueue.set(filename, writeOperation);
+    
+    try {
+        await writeOperation;
+    } finally {
+        if (writeQueue.get(filename) === writeOperation) {
+            writeQueue.delete(filename);
+        }
     }
     
     return removed;
@@ -237,7 +374,7 @@ export function removeFromUserArray(filename, guildId, userId, predicate) {
  * @returns {string} Unique ID string
  */
 export function generateId() {
-    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 }
 
 /**

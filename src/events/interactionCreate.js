@@ -50,6 +50,13 @@ async function handleCreateTicket(interaction) {
     
     await interaction.deferReply({ ephemeral: true });
     
+    // Check if bot has permission to manage channels
+    if (!interaction.guild.members.me.permissions.has('ManageChannels')) {
+        return interaction.editReply({
+            content: 'I do not have permission to manage channels.'
+        });
+    }
+    
     // Determine where to create the ticket channel
     let parent = null;
     if (ticketConfig.categoryId) {
@@ -62,7 +69,8 @@ async function handleCreateTicket(interaction) {
     
     // Generate ticket number
     const ticketNumber = (ticketConfig.totalTickets || 0) + 1;
-    const channelName = `${config.tickets.channelPrefix}${ticketNumber}-${interaction.user.username}`.toLowerCase().replace(/[^a-z0-9-]/g, '');
+    const sanitizedUsername = interaction.user.username.substring(0, 20);
+    const channelName = `${config.tickets.channelPrefix}${ticketNumber}-${sanitizedUsername}`.toLowerCase().replace(/[^a-z0-9-]/g, '');
     
     // Create permission overwrites
     const permissionOverwrites = [

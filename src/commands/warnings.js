@@ -61,7 +61,7 @@ export default {
                         description: showInactive 
                             ? `${user.tag} has no warnings on record.`
                             : `${user.tag} has no active warnings.\n\nUse \`/warnings user:${user.tag} show-inactive:true\` to see cleared warnings.`,
-                        thumbnail: { url: user.displayAvatarURL({ dynamic: true }) },
+                        thumbnail: { url: user.displayAvatarURL() },
                         timestamp: new Date().toISOString()
                     }]
                 });
@@ -75,7 +75,7 @@ export default {
             const embed = new EmbedBuilder()
                 .setColor('#FFA500')
                 .setTitle(`Warnings for ${user.tag}`)
-                .setThumbnail(user.displayAvatarURL({ dynamic: true }))
+                .setThumbnail(user.displayAvatarURL())
                 .setDescription(
                     `**User ID:** ${user.id}\n` +
                     `**Active Warnings:** ${activeCount}\n` +
@@ -84,7 +84,7 @@ export default {
                 .setTimestamp()
                 .setFooter({ 
                     text: `Requested by ${interaction.user.tag}`,
-                    iconURL: interaction.user.displayAvatarURL({ dynamic: true })
+                    iconURL: interaction.user.displayAvatarURL()
                 });
             
             // Add warnings (limit to 10 most recent to avoid embed limits)
