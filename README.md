@@ -1,5 +1,10 @@
 # A.P.O.L.L.O Discord Bot
 
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0-brightgreen.svg)](https://nodejs.org/)
+[![Discord.js](https://img.shields.io/badge/discord.js-v14-blue.svg)](https://discord.js.org/)
+[![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](https://github.com/The-A-P-O-L-L-O-Organization/Apollo-Discord-Bot)
+
 A feature-rich Discord bot built with discord.js v14 that provides moderation, logging, tickets, reaction roles, and utility commands.
 
 ## Features
@@ -14,6 +19,7 @@ A feature-rich Discord bot built with discord.js v14 that provides moderation, l
 - **Polls**: Create polls with optional auto-tally when duration ends
 - **Docker Support**: Easy deployment with Docker and Docker Compose
 - **Rich Embeds**: Beautiful, formatted messages for better user experience
+- **Comprehensive Test Suite**: Full test coverage with Vitest for all commands, events, and utilities
 
 ## Commands (29 Total)
 
@@ -65,8 +71,8 @@ A feature-rich Discord bot built with discord.js v14 that provides moderation, l
 
 - Node.js 18.0 or higher
 - pnpm (recommended) or npm
-- Docker and Docker Compose (optional)
-- A Discord bot token
+- Docker and Docker Compose (optional, for deployment)
+- A Discord bot token from [Discord Developer Portal](https://discord.com/developers/applications)
 
 ### Quick Start with Docker Compose (Recommended)
 
@@ -137,7 +143,12 @@ A feature-rich Discord bot built with discord.js v14 that provides moderation, l
    node deploy-commands.js
    ```
 
-6. **Start the bot**
+6. **Run tests** (optional, to verify the setup)
+   ```bash
+   pnpm test
+   ```
+
+7. **Start the bot**
    ```bash
    pnpm start
    ```
@@ -182,6 +193,41 @@ docker run -d \
   --restart unless-stopped \
   -e DISCORD_TOKEN=your-token \
   apollo-discord-bot
+```
+
+## Configuration
+
+### Running Tests
+
+This project includes a comprehensive test suite using Vitest. All commands, events, and utilities are tested to ensure reliability.
+
+```bash
+# Run all tests once
+pnpm test
+
+# Run tests in watch mode (during development)
+pnpm test:watch
+
+# Run tests with coverage report
+pnpm test:coverage
+
+# Run tests with UI interface
+pnpm test:ui
+```
+
+**Test Coverage:**
+- ✅ All 29 commands have unit tests
+- ✅ All 11 event handlers have unit tests
+- ✅ All utility functions have unit tests
+- ✅ Mock Discord.js objects for isolated testing
+- ✅ 100+ test cases covering edge cases and error handling
+
+### Development Mode
+
+Run the bot in development mode with auto-restart on file changes:
+
+```bash
+pnpm dev
 ```
 
 ## Configuration
@@ -333,9 +379,17 @@ Apollo-Discord-Bot/
 │       ├── logger.js         # Event logging utility
 │       ├── reminderScheduler.js # Reminder scheduler
 │       └── pollScheduler.js  # Poll auto-tally
+├── tests/                    # Test suite (Vitest)
+│   ├── commands/             # Command tests
+│   ├── events/               # Event tests
+│   ├── utils/                # Utility tests
+│   ├── mocks/                # Mock Discord.js objects
+│   │   └── discord.js        # Discord.js mocks
+│   └── setup.js              # Test setup
 ├── data/                     # Data storage (gitignored)
 │   └── transcripts/          # Ticket transcripts
 ├── deploy-commands.js        # Command deployment script
+├── vitest.config.js          # Vitest configuration
 ├── Dockerfile                # Development Dockerfile
 ├── Dockerfile.prod           # Production Dockerfile
 ├── docker-compose.yml        # Docker Compose configuration
@@ -460,7 +514,8 @@ This project uses GitHub Actions for continuous integration and deployment:
 
 - **discord.js v14** - Discord API wrapper for Node.js
 - **Node.js** - JavaScript runtime
-- **pnpm** - Package manager
+- **pnpm** - Fast, disk space efficient package manager
+- **Vitest** - Blazing fast unit test framework
 - **Docker** - Containerization platform
 - **GitHub Actions** - CI/CD pipeline
 - **GitHub Packages** - Container registry
@@ -468,6 +523,16 @@ This project uses GitHub Actions for continuous integration and deployment:
 ## License
 
 This project is licensed under the GPLv3 License - see the LICENSE file for details.
+
+## Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+When contributing code:
+1. Write tests for new features
+2. Ensure all tests pass with `pnpm test`
+3. Follow the existing code style
+4. Update documentation as needed
 
 ## Support
 
