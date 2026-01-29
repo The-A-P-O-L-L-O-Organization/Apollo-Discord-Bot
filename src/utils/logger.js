@@ -97,7 +97,7 @@ export function createMessageDeleteEmbed(message) {
     
     // Add attachment info if any
     if (message.attachments.size > 0) {
-        const attachmentList = message.attachments.map(a => a.url).join('\n');
+        const attachmentList = Array.from(message.attachments.values()).map(a => a.url).join('\n');
         embed.addFields({
             name: `Attachments (${message.attachments.size})`,
             value: attachmentList.substring(0, 1024),
@@ -187,7 +187,7 @@ export function createMemberLeaveEmbed(member) {
     const daysInServer = timeInServer ? Math.floor(timeInServer / (1000 * 60 * 60 * 24)) : 'Unknown';
     
     // Get roles (excluding @everyone)
-    const roles = member.roles.cache
+    const roles = Array.from(member.roles.cache.values())
         .filter(r => r.id !== member.guild.id)
         .map(r => r.name)
         .join(', ') || 'None';
@@ -221,11 +221,11 @@ export function createRoleChangeEmbed(oldMember, newMember) {
     const oldRoles = oldMember.roles.cache;
     const newRoles = newMember.roles.cache;
     
-    const addedRoles = newRoles.filter(r => !oldRoles.has(r.id));
-    const removedRoles = oldRoles.filter(r => !newRoles.has(r.id));
+    const addedRoles = Array.from(newRoles.values()).filter(r => !oldRoles.has(r.id));
+    const removedRoles = Array.from(oldRoles.values()).filter(r => !newRoles.has(r.id));
     
     // No role changes
-    if (addedRoles.size === 0 && removedRoles.size === 0) {
+    if (addedRoles.length === 0 && removedRoles.length === 0) {
         return null;
     }
     
@@ -241,7 +241,7 @@ export function createRoleChangeEmbed(oldMember, newMember) {
         .setTimestamp()
         .setFooter({ text: 'Role Update' });
     
-    if (addedRoles.size > 0) {
+    if (addedRoles.length > 0) {
         embed.addFields({
             name: '➕ Roles Added',
             value: addedRoles.map(r => r.name).join(', '),
@@ -249,7 +249,7 @@ export function createRoleChangeEmbed(oldMember, newMember) {
         });
     }
     
-    if (removedRoles.size > 0) {
+    if (removedRoles.length > 0) {
         embed.addFields({
             name: '➖ Roles Removed',
             value: removedRoles.map(r => r.name).join(', '),

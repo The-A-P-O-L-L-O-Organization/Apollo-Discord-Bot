@@ -90,9 +90,9 @@ export function createMockChannel(options = {}) {
         name: options.name || 'test-channel',
         type: options.type || 0, // GUILD_TEXT
         isTextBased: vi.fn().mockReturnValue(true),
-        send: vi.fn().mockResolvedValue(createMockMessage()),
+        send: vi.fn().mockResolvedValue({}),
         messages: {
-            fetch: vi.fn().mockResolvedValue(createMockMessage())
+            fetch: vi.fn().mockResolvedValue({})
         },
         ...options
     };
