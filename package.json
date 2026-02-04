@@ -33,11 +33,14 @@
     "overrides": {
       "glob": "11.1.0",
       "cross-spawn": "7.0.5"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^4.0.17",
-    "@vitest/ui": "^4.0.17",
-    "vitest": "^4.0.17"
+    "@vitest/coverage-v8": "^4.0.18",
+    "@vitest/ui": "^4.0.18",
+    "vitest": "^4.0.18"
   }
 }
