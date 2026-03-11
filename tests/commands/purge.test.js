@@ -8,7 +8,8 @@ import {
     createMockUser,
     createMockGuild,
     createMockChannel,
-    createMockClient
+    createMockClient,
+    MockCollection
 } from '../mocks/discord.js';
 import { PermissionsBitField } from 'discord.js';
 
@@ -29,7 +30,7 @@ describe('Purge Command', () => {
         vi.clearAllMocks();
         
         // Create mock messages
-        const mockMessages = new Map();
+        const mockMessages = new MockCollection();
         for (let i = 0; i < 10; i++) {
             mockMessages.set(`msg-${i}`, {
                 id: `msg-${i}`,
@@ -138,7 +139,7 @@ describe('Purge Command', () => {
             mockInteraction.options.getUser.mockReturnValue(targetUser);
 
             // Create messages from different users
-            const mixedMessages = new Map();
+            const mixedMessages = new MockCollection();
             mixedMessages.set('msg-1', { id: 'msg-1', author: { id: '123456789' } });
             mixedMessages.set('msg-2', { id: 'msg-2', author: { id: '999999999' } });
             mixedMessages.set('msg-3', { id: 'msg-3', author: { id: '123456789' } });
@@ -180,7 +181,7 @@ describe('Purge Command', () => {
             mockInteraction.options.getUser.mockReturnValue(targetUser);
 
             // Messages from different user
-            const messages = new Map();
+            const messages = new MockCollection();
             messages.set('msg-1', { id: 'msg-1', author: { id: '123456789' } });
             mockChannel.messages.fetch.mockResolvedValue(messages);
 
