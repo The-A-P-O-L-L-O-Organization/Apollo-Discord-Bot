@@ -79,11 +79,11 @@ describe('ReactionRole Command', () => {
 
     describe('Command Metadata', () => {
         it('should have correct name', () => {
-            expect(reactionRoleCommand.data.name).toBe('reactionrole');
+            expect(reactionRoleCommand.name).toBe('reactionrole');
         });
 
         it('should have a description', () => {
-            expect(reactionRoleCommand.data.description).toBeTruthy();
+            expect(reactionRoleCommand.description).toBeTruthy();
         });
 
         it('should be in admin category', () => {

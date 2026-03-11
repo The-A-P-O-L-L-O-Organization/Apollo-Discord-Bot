@@ -10,6 +10,9 @@ export default {
     async execute(message, client) {
         // Ignore DMs
         if (!message.guild) return;
+
+        // Ignore uncached messages without author
+        if (!message.author) return;
         
         // Ignore bot messages
         if (message.author?.bot) return;

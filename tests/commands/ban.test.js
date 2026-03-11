@@ -101,7 +101,7 @@ describe('Ban Command', () => {
             
             expect(mockGuild.bans.create).toHaveBeenCalledWith('111222333', {
                 reason: 'Breaking rules',
-                deleteMessageDays: 0
+                deleteMessageSeconds: 0
             });
         });
 
@@ -144,7 +144,7 @@ describe('Ban Command', () => {
             
             expect(mockGuild.bans.create).toHaveBeenCalledWith('111222333', {
                 reason: 'No reason provided',
-                deleteMessageDays: 0
+                deleteMessageSeconds: 0
             });
         });
 
@@ -155,7 +155,7 @@ describe('Ban Command', () => {
             
             expect(mockGuild.bans.create).toHaveBeenCalledWith('111222333', {
                 reason: 'Breaking rules',
-                deleteMessageDays: 7
+                deleteMessageSeconds: 604800
             });
         });
 
@@ -241,7 +241,7 @@ describe('Ban Command', () => {
             
             expect(mockGuild.bans.create).toHaveBeenCalledWith('111222333', {
                 reason: 'Breaking rules',
-                deleteMessageDays: 7
+                deleteMessageSeconds: 604800
             });
         });
 
