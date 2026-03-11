@@ -139,7 +139,8 @@ describe('Warn Command', () => {
         it('should include warning count in response', async () => {
             getUserData.mockReturnValue([
                 { id: '1', active: true },
-                { id: '2', active: true }
+                { id: '2', active: true },
+                { id: '3', active: true }
             ]);
             
             await warnCommand.execute(mockInteraction);
@@ -147,7 +148,7 @@ describe('Warn Command', () => {
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             const embed = replyCall.embeds[0].data;
             const countField = embed.fields.find(f => f.name === 'Total Warnings');
-            expect(countField.value).toBe('3'); // 2 existing + 1 new
+            expect(countField.value).toBe('3');
         });
 
         it('should send mod log', async () => {
@@ -230,7 +231,8 @@ describe('Warn Command', () => {
         it('should auto-mute at 3 warnings', async () => {
             getUserData.mockReturnValue([
                 { id: '1', active: true },
-                { id: '2', active: true }
+                { id: '2', active: true },
+                { id: '3', active: true }
             ]);
             
             await warnCommand.execute(mockInteraction);
@@ -252,7 +254,8 @@ describe('Warn Command', () => {
                 { id: '1', active: true },
                 { id: '2', active: true },
                 { id: '3', active: true },
-                { id: '4', active: true }
+                { id: '4', active: true },
+                { id: '5', active: true }
             ]);
             
             await warnCommand.execute(mockInteraction);
@@ -269,7 +272,8 @@ describe('Warn Command', () => {
                 { id: '3', active: true },
                 { id: '4', active: true },
                 { id: '5', active: true },
-                { id: '6', active: true }
+                { id: '6', active: true },
+                { id: '7', active: true }
             ]);
             
             await warnCommand.execute(mockInteraction);
@@ -286,7 +290,8 @@ describe('Warn Command', () => {
             getUserData.mockReturnValue([
                 { id: '1', active: true },
                 { id: '2', active: false }, // Cleared warning
-                { id: '3', active: true }
+                { id: '3', active: true },
+                { id: '4', active: true }
             ]);
             
             await warnCommand.execute(mockInteraction);

@@ -37,7 +37,8 @@ export default {
             .setFooter({ text: 'Use /cancelreminder <id> to cancel a reminder' });
 
         // Add each reminder as a field (max 25 fields in an embed)
-        const displayReminders = activeReminders.slice(0, 25);
+        const maxReminderFields = activeReminders.length > 25 ? 24 : 25;
+        const displayReminders = activeReminders.slice(0, maxReminderFields);
         
         for (const reminder of displayReminders) {
             const timestamp = Math.floor(reminder.remindAt / 1000);
