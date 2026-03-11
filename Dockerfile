@@ -2,7 +2,7 @@
 # Optimized for production use with Node.js
 
 # Use official Node.js image as base
-FROM node:20-alpine
+FROM node:24.14.0-alpine
 
 # Set working directory
 WORKDIR /app
