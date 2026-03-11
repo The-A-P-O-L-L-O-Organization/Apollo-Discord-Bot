@@ -73,6 +73,15 @@ describe('MessageCreate Event', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        isExempt.mockReturnValue(false);
+        isChannelExempt.mockReturnValue(false);
+        checkBannedWords.mockReturnValue(null);
+        checkInvites.mockReturnValue(false);
+        checkLinks.mockReturnValue(false);
+        checkMentionSpam.mockReturnValue(false);
+        checkCapsSpam.mockReturnValue(false);
+        checkSpam.mockReturnValue(false);
+        checkAccountAge.mockReturnValue(false);
         
         mockChannel = createMockChannel({
             id: '111222333',

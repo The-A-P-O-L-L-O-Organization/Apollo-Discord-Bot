@@ -69,11 +69,11 @@ describe('Ticket Command', () => {
 
     describe('Command Metadata', () => {
         it('should have correct name', () => {
-            expect(ticketCommand.data.name).toBe('ticket');
+            expect(ticketCommand.name).toBe('ticket');
         });
 
         it('should have a description', () => {
-            expect(ticketCommand.data.description).toBeTruthy();
+            expect(ticketCommand.description).toBeTruthy();
         });
 
         it('should be in utility category', () => {

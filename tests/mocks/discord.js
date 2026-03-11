@@ -3,6 +3,56 @@
 
 import { vi } from 'vitest';
 
+export class MockCollection extends Map {
+    constructor(entries) {
+        super(entries);
+        const getImpl = Map.prototype.get.bind(this);
+        this.get = vi.fn((key) => getImpl(key));
+    }
+
+    filter(fn) {
+        const filtered = new MockCollection();
+        for (const [key, value] of this) {
+            if (fn(value, key, this)) {
+                filtered.set(key, value);
+            }
+        }
+        return filtered;
+    }
+
+    find(fn) {
+        for (const [key, value] of this) {
+            if (fn(value, key, this)) {
+                return value;
+            }
+        }
+        return undefined;
+    }
+
+    first() {
+        return this.values().next().value;
+    }
+
+    sort(compareFn) {
+        const sortedEntries = [...this.entries()].sort(([, a], [, b]) => compareFn(a, b));
+        return new MockCollection(sortedEntries);
+    }
+
+    map(fn) {
+        const result = [];
+        for (const [key, value] of this) {
+            result.push(fn(value, key, this));
+        }
+        return result;
+    }
+}
+
+function toMockCollection(value) {
+    if (value instanceof MockCollection) return value;
+    if (value instanceof Map || Array.isArray(value)) return new MockCollection(value);
+    return new MockCollection();
+}
+
 /**
  * Creates a mock Discord User
  */
@@ -24,21 +74,29 @@ export function createMockUser(options = {}) {
  */
 export function createMockMember(options = {}) {
     const user = options.user || createMockUser();
+    const roleCache = options.roles?.cache
+        ? toMockCollection(options.roles.cache)
+        : toMockCollection(options.roles);
+    const roles = options.roles?.cache
+        ? { ...options.roles, cache: roleCache }
+        : {
+            cache: roleCache,
+            has: vi.fn().mockImplementation(roleId => roleCache.has(roleId))
+        };
+    const permissions = options.permissions?.has
+        ? options.permissions
+        : {
+            has: vi.fn().mockImplementation(perm => {
+                return Array.isArray(options.permissions) ? options.permissions.includes(perm) : false;
+            })
+        };
+
     return {
         id: user.id,
         user,
         guild: options.guild || createMockGuild(),
-        roles: {
-            cache: options.roles || new Map(),
-            has: vi.fn().mockImplementation(roleId => {
-                return options.roles?.has(roleId) || false;
-            })
-        },
-        permissions: {
-            has: vi.fn().mockImplementation(perm => {
-                return options.permissions?.includes(perm) || false;
-            })
-        },
+        roles,
+        permissions,
         bannable: options.bannable !== false,
         kickable: options.kickable !== false,
         moderatable: options.moderatable !== false,
@@ -53,31 +111,63 @@ export function createMockMember(options = {}) {
  * Creates a mock Discord Guild
  */
 export function createMockGuild(options = {}) {
+    const {
+        channels: channelsOpt,
+        members: membersOpt,
+        bans: bansOpt,
+        ...rest
+    } = options;
+
+    const channelCache = channelsOpt?.cache
+        ? toMockCollection(channelsOpt.cache)
+        : toMockCollection(channelsOpt);
+    const channels = channelsOpt?.cache || channelsOpt?.create || channelsOpt?.fetch
+        ? {
+            ...channelsOpt,
+            cache: channelCache,
+            fetch: channelsOpt.fetch || vi.fn().mockImplementation(id => Promise.resolve(channelCache.get(id) || null)),
+            find: channelsOpt.find || vi.fn().mockImplementation(fn => channelCache.find(fn))
+        }
+        : {
+            cache: channelCache,
+            fetch: vi.fn().mockImplementation(id => Promise.resolve(channelCache.get(id) || null)),
+            find: vi.fn().mockImplementation(fn => channelCache.find(fn))
+        };
+
+    const memberCache = membersOpt?.cache
+        ? toMockCollection(membersOpt.cache)
+        : toMockCollection(membersOpt);
+    const defaultMe = {
+        permissions: {
+            has: vi.fn().mockReturnValue(true)
+        }
+    };
+    const members = membersOpt?.cache || membersOpt?.fetch || membersOpt?.me
+        ? {
+            ...membersOpt,
+            cache: memberCache,
+            fetch: membersOpt.fetch || vi.fn().mockImplementation(id => Promise.resolve(memberCache.get(id) || null)),
+            me: membersOpt.me || defaultMe
+        }
+        : {
+            cache: memberCache,
+            fetch: vi.fn().mockImplementation(id => Promise.resolve(memberCache.get(id) || null)),
+            me: defaultMe
+        };
+
     return {
         id: options.id || '987654321098765432',
         name: options.name || 'Test Server',
         memberCount: options.memberCount || 100,
         iconURL: vi.fn().mockReturnValue('https://example.com/icon.png'),
-        channels: {
-            cache: options.channels || new Map(),
-            fetch: vi.fn().mockImplementation(id => {
-                const channels = options.channels || new Map();
-                return Promise.resolve(channels.get(id) || null);
-            }),
-            find: vi.fn()
-        },
-        members: {
-            cache: options.members || new Map(),
-            fetch: vi.fn().mockImplementation(id => {
-                const members = options.members || new Map();
-                return Promise.resolve(members.get(id) || null);
-            })
-        },
+        channels,
+        members,
         bans: {
             create: vi.fn().mockResolvedValue({}),
-            remove: vi.fn().mockResolvedValue({})
+            remove: vi.fn().mockResolvedValue({}),
+            ...bansOpt
         },
-        ...options
+        ...rest
     };
 }
 
@@ -85,12 +175,14 @@ export function createMockGuild(options = {}) {
  * Creates a mock Discord TextChannel
  */
 export function createMockChannel(options = {}) {
+    const id = options.id || '111222333444555666';
     return {
-        id: options.id || '111222333444555666',
+        id,
         name: options.name || 'test-channel',
         type: options.type || 0, // GUILD_TEXT
         isTextBased: vi.fn().mockReturnValue(true),
         send: vi.fn().mockResolvedValue({}),
+        toString: vi.fn().mockReturnValue(`<#${id}>`),
         messages: {
             fetch: vi.fn().mockResolvedValue({})
         },
@@ -137,6 +229,13 @@ export function createMockInteraction(options = {}) {
     const user = options.user || createMockUser();
     const guild = options.guild || createMockGuild();
     const channel = options.channel || createMockChannel();
+
+    const cachePaths = ['channels', 'members', 'roles', 'emojis', 'stickers'];
+    for (const path of cachePaths) {
+        if (guild[path]?.cache instanceof Map && !(guild[path].cache instanceof MockCollection)) {
+            guild[path].cache = toMockCollection(guild[path].cache);
+        }
+    }
     
     return {
         user,
@@ -173,11 +272,11 @@ export function createMockClient(options = {}) {
             ping: options.wsPing || 50
         },
         guilds: {
-            cache: options.guilds || new Map(),
+            cache: toMockCollection(options.guilds),
             fetch: vi.fn()
         },
         channels: {
-            cache: options.channels || new Map(),
+            cache: toMockCollection(options.channels),
             fetch: vi.fn()
         },
         users: {
@@ -211,7 +310,7 @@ export function createMockVoiceState(options = {}) {
  * Creates mock roles collection
  */
 export function createRolesCache(roles = []) {
-    const cache = new Map();
+    const cache = new MockCollection();
     roles.forEach(role => cache.set(role.id, role));
     
     return {
