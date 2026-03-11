@@ -3,7 +3,7 @@
 
 # Use multi-stage build for smaller final image
 # Stage 1: Build stage
-FROM node:20-alpine AS builder
+FROM node:24.14.0-alpine AS builder
 
 WORKDIR /app
 
@@ -25,7 +25,7 @@ COPY src ./src
 COPY deploy-commands.js ./
 
 # Stage 2: Production stage
-FROM node:20-alpine
+FROM node:24.14.0-alpine
 
 WORKDIR /app
 
