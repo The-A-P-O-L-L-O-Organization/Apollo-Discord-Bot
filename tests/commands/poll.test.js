@@ -59,11 +59,11 @@ describe('Poll Command', () => {
 
     describe('Command Metadata', () => {
         it('should have correct name', () => {
-            expect(pollCommand.data.name).toBe('poll');
+            expect(pollCommand.name).toBe('poll');
         });
 
         it('should have a description', () => {
-            expect(pollCommand.data.description).toBeTruthy();
+            expect(pollCommand.description).toBeTruthy();
         });
 
         it('should be in utility category', () => {
