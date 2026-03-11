@@ -191,7 +191,7 @@ describe('Automod Utility', () => {
         });
 
         it('should handle mixed content correctly', () => {
-            // 8 uppercase letters out of 10 total letters = 80%
+            // 8 uppercase letters out of 11 total letters ≈ 72.7%
             const result = checkCapsSpam('THIS is TEST', 70, 10);
             expect(result).toBe(true);
         });
