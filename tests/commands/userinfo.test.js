@@ -197,7 +197,7 @@ describe('Userinfo Command', () => {
 
         it('should use interaction user when no target specified', async () => {
             mockInteraction.options.getUser.mockReturnValue(null);
-            mockGuild.members.cache.get.mockReturnValue(targetMember);
+            mockGuild.members.cache.set(mockInteraction.user.id, targetMember);
             
             await userinfoCommand.execute(mockInteraction);
             
@@ -281,7 +281,7 @@ describe('Userinfo Command', () => {
 
     describe('execute - Error Cases', () => {
         it('should handle member not found', async () => {
-            mockGuild.members.cache.get.mockReturnValue(null);
+            mockGuild.members.cache.delete(targetUser.id);
             mockGuild.members.fetch.mockResolvedValue(null);
             
             await userinfoCommand.execute(mockInteraction);

@@ -137,9 +137,8 @@ export default {
     ],
     
     async execute(interaction) {
-        const subcommand = interaction.options.getSubcommand();
-        
         try {
+            const subcommand = interaction.options.getSubcommand();
             switch (subcommand) {
                 case 'enable':
                     await handleEnable(interaction);

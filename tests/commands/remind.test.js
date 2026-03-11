@@ -45,11 +45,11 @@ describe('Remind Command', () => {
 
     describe('Command Metadata', () => {
         it('should have correct name', () => {
-            expect(remindCommand.data.name).toBe('remind');
+            expect(remindCommand.name).toBe('remind');
         });
 
         it('should have a description', () => {
-            expect(remindCommand.data.description).toBeTruthy();
+            expect(remindCommand.description).toBeTruthy();
         });
 
         it('should be in utility category', () => {

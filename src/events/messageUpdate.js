@@ -10,6 +10,9 @@ export default {
     async execute(oldMessage, newMessage, client) {
         // Ignore DMs
         if (!newMessage.guild) return;
+
+        // Ignore uncached messages without author
+        if (!newMessage.author) return;
         
         // Ignore bot messages
         if (newMessage.author?.bot) return;

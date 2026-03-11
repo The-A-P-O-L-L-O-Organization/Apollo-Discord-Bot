@@ -51,7 +51,8 @@ async function handleCreateTicket(interaction) {
     await interaction.deferReply({ ephemeral: true });
     
     // Check if bot has permission to manage channels
-    if (!interaction.guild.members.me.permissions.has('ManageChannels')) {
+    const botMember = interaction.guild.members?.me;
+    if (!botMember?.permissions?.has?.(PermissionFlagsBits.ManageChannels)) {
         return interaction.editReply({
             content: 'I do not have permission to manage channels.'
         });
