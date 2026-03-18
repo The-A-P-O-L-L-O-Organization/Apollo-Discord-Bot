@@ -19,8 +19,6 @@ services:
       - NODE_ENV=production
       - DISCORD_TOKEN=${DISCORD_TOKEN}
       - CLIENT_ID=${CLIENT_ID}
-      - DASHBOARD_PORT=${DASHBOARD_PORT:-3001}
-      - DASHBOARD_TOKEN=${DASHBOARD_TOKEN}
       - OWNER_IDS=${OWNER_IDS}
 
     # Volume mount for environment file
@@ -31,10 +29,6 @@ services:
     volumes:
       - bot-data:/app/bot
       - bot-logs:/app/logs
-
-    # Expose dashboard port (optional - only if you want external access)
-    ports:
-      - "${DASHBOARD_PORT:-3001}:${DASHBOARD_PORT:-3001}"
 
     # Health check configuration
     healthcheck:
