@@ -5,7 +5,7 @@
 FROM node:24.14.0-alpine
 
 # Install build dependencies for better-sqlite3
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache python3 make g++ sqlite-dev
 
 # Set working directory
 WORKDIR /app
@@ -19,10 +19,13 @@ ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy package files first for better caching
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* .npmrc* ./
 
 # Install dependencies (including native builds)
-RUN pnpm install --frozen-lockfile
+RUN pnpm config set enable-pre-post-scripts true && \
+    pnpm install --frozen-lockfile && \
+    cd node_modules/better-sqlite3 && \
+    npm run build-release
 
 # Copy application source code
 COPY src ./src

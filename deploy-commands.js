@@ -1,6 +1,7 @@
 // Deploy Commands Script
 // Registers slash commands with Discord for immediate use in a specific guild
 
+import 'dotenv/config';
 import { REST } from '@discordjs/rest';
 import { Routes } from 'discord.js';
 import { config } from './src/config/config.js';
