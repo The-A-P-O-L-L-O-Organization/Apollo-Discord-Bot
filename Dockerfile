@@ -1,8 +1,11 @@
-# Dockerfile for John Discord Bot
+# Dockerfile for Apollo Discord Bot
 # Optimized for production use with Node.js
 
 # Use official Node.js image as base
 FROM node:24.14.0-alpine
+
+# Install build dependencies for better-sqlite3
+RUN apk add --no-cache python3 make g++
 
 # Set working directory
 WORKDIR /app
@@ -16,14 +19,17 @@ ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy package files first for better caching
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
 
-# Install dependencies
+# Install dependencies (including native builds)
 RUN pnpm install --frozen-lockfile
 
 # Copy application source code
 COPY src ./src
 COPY deploy-commands.js ./
+
+# Create directories for persistent data
+RUN mkdir -p /app/bot /app/logs
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
@@ -33,8 +39,8 @@ RUN addgroup -g 1001 -S nodejs && \
 # Switch to non-root user
 USER nodejs
 
-# Expose the application port (if needed)
-EXPOSE 3000
+# Expose the dashboard port
+EXPOSE 3001
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
