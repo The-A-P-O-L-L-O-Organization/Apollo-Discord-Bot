@@ -2,7 +2,7 @@
 // Allows admins to set up reaction roles on messages
 
 import { PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { getGuildData, setGuildData } from '../utils/dataStore.js';
+import { getGuildData, setGuildData } from '../utils/db.js';
 
 export default {
     name: 'reactionrole',

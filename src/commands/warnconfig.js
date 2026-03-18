@@ -2,7 +2,7 @@
 // Configure warning thresholds per server
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
-import { getGuildData, setGuildData } from '../utils/dataStore.js';
+import { getGuildData, setGuildData } from '../utils/db.js';
 import { config } from '../config/config.js';
 
 export default {

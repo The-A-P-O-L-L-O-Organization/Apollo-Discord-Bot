@@ -2,7 +2,7 @@
 // Handles button interactions for tickets and other features
 
 import { EmbedBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { getGuildData, setGuildData, generateId, writeToSubDir } from '../utils/dataStore.js';
+import { getGuildData, setGuildData, generateId, writeToSubDir } from '../utils/db.js';
 import { config } from '../config/config.js';
 
 export default {
