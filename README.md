@@ -11,17 +11,20 @@ A feature-rich Discord bot built with discord.js v14 that provides moderation, l
 
 - **Welcome System**: Automatically greets new members when they join the server
 - **Moderation Commands**: Full suite of moderation tools with warning system and auto-punishments
+- **Blacklist System**: Automatically ban blacklisted users when they join the server
 - **Auto-Moderation**: Configurable filters for spam, links, invites, caps, and banned words
 - **Server Logging**: Comprehensive event logging (messages, members, roles, voice)
-- **Ticket System**: Support ticket creation with transcripts saved to JSON
+- **Ticket System**: Support ticket creation with transcripts saved to database
 - **Reaction Roles**: Self-assignable roles via message reactions
 - **Reminders**: Personal reminder system with scheduling
 - **Polls**: Create polls with optional auto-tally when duration ends
+- **Dashboard**: Web-based dashboard for managing bot settings and viewing statistics
+- **SQLite Database**: Persistent data storage with better-sqlite3
 - **Docker Support**: Easy deployment with Docker and Docker Compose
 - **Rich Embeds**: Beautiful, formatted messages for better user experience
 - **Comprehensive Test Suite**: Full test coverage with Vitest for all commands, events, and utilities
 
-## Commands (29 Total)
+## Commands (31 Total)
 
 ### Utility Commands
 
@@ -51,6 +54,7 @@ A feature-rich Discord bot built with discord.js v14 that provides moderation, l
 | `/warn` | Issue a warning to a user (auto-punishments at thresholds) |
 | `/warnings` | View a user's warnings |
 | `/clearwarnings` | Clear warnings for a user |
+| `/blacklist` | Add/remove/list blacklisted users (auto-ban on join) |
 
 ### Admin Commands
 
@@ -64,6 +68,12 @@ A feature-rich Discord bot built with discord.js v14 that provides moderation, l
 | `/ticketsetup` | Configure the ticket system |
 | `/ticket` | Create a support ticket |
 | `/closeticket` | Close a ticket and save transcript |
+
+### Owner Commands
+
+| Command | Description |
+|---------|-------------|
+| `/reload` | Reload a command (bot owner only) |
 
 ## Installation
 
@@ -91,6 +101,9 @@ A feature-rich Discord bot built with discord.js v14 that provides moderation, l
    ```
    DISCORD_TOKEN=your-discord-bot-token-here
    CLIENT_ID=your-bot-client-id
+   DASHBOARD_PORT=3001
+   DASHBOARD_TOKEN=your-secure-random-token-here
+   OWNER_IDS=your-discord-user-id
    ```
 
 4. **Start the bot with Docker Compose**
@@ -103,7 +116,11 @@ A feature-rich Discord bot built with discord.js v14 that provides moderation, l
    docker-compose logs -f
    ```
 
-6. **Stop the bot**
+6. **Access the dashboard** (optional)
+   - Open your browser and go to `http://localhost:3001`
+   - Use the `DASHBOARD_TOKEN` from your `.env` file to authenticate
+
+7. **Stop the bot**
    ```bash
    docker-compose down
    ```
@@ -130,6 +147,9 @@ A feature-rich Discord bot built with discord.js v14 that provides moderation, l
    ```
    DISCORD_TOKEN=your-discord-bot-token-here
    CLIENT_ID=your-bot-client-id
+   DASHBOARD_PORT=3001
+   DASHBOARD_TOKEN=your-secure-random-token-here
+   OWNER_IDS=your-discord-user-id
    ```
 
 4. **Set up your Discord server**
@@ -318,7 +338,10 @@ export const config = {
 | Variable | Description | Required |
 |----------|-------------|----------|
 | DISCORD_TOKEN | Your Discord bot token | Yes |
-| CLIENT_ID | Your Discord application client ID | No |
+| CLIENT_ID | Your Discord application client ID | Yes |
+| DASHBOARD_PORT | Port for the web dashboard (default: 3001) | No |
+| DASHBOARD_TOKEN | Secret token for dashboard authentication | Yes (if using dashboard) |
+| OWNER_IDS | Comma-separated Discord user IDs for bot owners | No |
 | NODE_ENV | Environment mode (development/production) | No |
 
 ## Project Structure
@@ -356,10 +379,12 @@ Apollo-Discord-Bot/
 │   │   ├── remind.js         # Set reminder
 │   │   ├── reminders.js      # List reminders
 │   │   ├── cancelreminder.js # Cancel reminder
-│   │   └── poll.js           # Create polls
+│   │   ├── poll.js           # Create polls
+│   │   ├── blacklist.js      # Blacklist management
+│   │   └── reload.js         # Reload commands (owner only)
 │   ├── events/
 │   │   ├── ready.js          # Ready event
-│   │   ├── guildMemberAdd.js # Welcome + join logging
+│   │   ├── guildMemberAdd.js # Welcome + join logging + blacklist check
 │   │   ├── guildMemberRemove.js # Leave logging
 │   │   ├── guildMemberUpdate.js # Role change logging
 │   │   ├── messageCreate.js  # Auto-moderation
@@ -374,11 +399,13 @@ Apollo-Discord-Bot/
 │   │   └── eventHandler.js   # Dynamic event loading
 │   └── utils/
 │       ├── modLog.js         # Moderation logging
-│       ├── dataStore.js      # JSON data persistence
+│       ├── db.js             # SQLite database utilities
 │       ├── automod.js        # Auto-mod checks
 │       ├── logger.js         # Event logging utility
 │       ├── reminderScheduler.js # Reminder scheduler
 │       └── pollScheduler.js  # Poll auto-tally
+│   └── dashboard/
+│       └── server.js         # Express dashboard server
 ├── tests/                    # Test suite (Vitest)
 │   ├── commands/             # Command tests
 │   ├── events/               # Event tests
@@ -386,7 +413,8 @@ Apollo-Discord-Bot/
 │   ├── mocks/                # Mock Discord.js objects
 │   │   └── discord.js        # Discord.js mocks
 │   └── setup.js              # Test setup
-├── data/                     # Data storage (gitignored)
+├── bot/                      # Bot data storage (SQLite database)
+│   ├── data.db               # Main database file
 │   └── transcripts/          # Ticket transcripts
 ├── deploy-commands.js        # Command deployment script
 ├── vitest.config.js          # Vitest configuration
@@ -443,6 +471,20 @@ Configure with `/setlogchannel` and `/logging`:
 - Create: `/poll question:"Your question" options:"Option 1 | Option 2 | Option 3"`
 - Optional duration: `duration:1h` for auto-tally
 - Results posted automatically when poll ends
+
+### Blacklist System
+- Add user: `/blacklist add @user reason`
+- Remove user: `/blacklist remove @user`
+- List blacklisted users: `/blacklist list`
+- Blacklisted users are automatically banned when they join the server
+- Blacklisted users receive a DM notification before being banned
+
+### Dashboard
+- Access at `http://localhost:3001` (or your configured port)
+- Requires authentication with `DASHBOARD_TOKEN`
+- View bot statistics and server information
+- Manage settings and view logs
+- RESTful API for integration
 
 ## Bot Permissions
 
@@ -514,6 +556,8 @@ This project uses GitHub Actions for continuous integration and deployment:
 
 - **discord.js v14** - Discord API wrapper for Node.js
 - **Node.js** - JavaScript runtime
+- **better-sqlite3** - Fast, synchronous SQLite3 database
+- **Express** - Web framework for dashboard
 - **pnpm** - Fast, disk space efficient package manager
 - **Vitest** - Blazing fast unit test framework
 - **Docker** - Containerization platform
