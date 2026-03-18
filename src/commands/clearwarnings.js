@@ -6,7 +6,7 @@ import {
     getUserData, 
     setUserData,
     removeFromUserArray 
-} from '../utils/dataStore.js';
+} from '../utils/db.js';
 import { sendModLog } from '../utils/modLog.js';
 
 export default {

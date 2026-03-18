@@ -1,7 +1,7 @@
 // Message Reaction Remove Event
 // Handles removing roles when users remove their reaction from reaction role messages
 
-import { getGuildData } from '../utils/dataStore.js';
+import { getGuildData } from '../utils/db.js';
 
 export default {
     name: 'messageReactionRemove',

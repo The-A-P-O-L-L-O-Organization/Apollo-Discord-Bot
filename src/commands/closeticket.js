@@ -2,7 +2,7 @@
 // Closes a ticket, saves the transcript, and deletes the channel
 
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { getGuildData, setGuildData, writeToSubDir } from '../utils/dataStore.js';
+import { getGuildData, setGuildData, writeToSubDir } from '../utils/db.js';
 
 export default {
     data: new SlashCommandBuilder()

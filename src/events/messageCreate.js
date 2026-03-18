@@ -14,7 +14,7 @@ import {
     checkSpam,
     checkAccountAge
 } from '../utils/automod.js';
-import { appendToUserArray, generateId, getUserData, getGuildData } from '../utils/dataStore.js';
+import { appendToUserArray, generateId, getUserData, getGuildData } from '../utils/db.js';
 import { sendModLog } from '../utils/modLog.js';
 import { config } from '../config/config.js';
 

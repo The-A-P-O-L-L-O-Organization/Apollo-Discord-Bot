@@ -4,10 +4,68 @@
 import { EmbedBuilder } from 'discord.js';
 import { config } from '../config/config.js';
 import { logEvent, createMemberJoinEmbed } from '../utils/logger.js';
+import { getGuildData } from '../utils/db.js';
+import { sendModLog } from '../utils/modLog.js';
 
 export default async function guildMemberAddHandler(member) {
     const { guild } = member;
-    
+
+    // --- Blacklist check ---
+    // Skip bots; only check real users
+    if (!member.user.bot) {
+        const guildData = getGuildData('blacklist', guild.id);
+        const entries = guildData.entries || {};
+        const entry = entries[member.id];
+
+        if (entry) {
+            // Attempt to DM the user before banning so Discord can still deliver it
+            try {
+                const dmEmbed = new EmbedBuilder()
+                    .setColor('#FF0000')
+                    .setTitle(`You have been banned from ${guild.name}`)
+                    .setDescription('You are on this server\'s blacklist and have been automatically banned.')
+                    .addFields(
+                        { name: 'Reason', value: entry.reason, inline: false },
+                        { name: 'Blacklisted By', value: entry.moderatorTag, inline: true },
+                        { name: 'Server', value: guild.name, inline: true }
+                    )
+                    .setFooter({ text: 'If you believe this is a mistake, please contact the server staff.' })
+                    .setTimestamp();
+
+                await member.user.send({ embeds: [dmEmbed] });
+            } catch (dmError) {
+                console.log(`[INFO] Could not DM blacklisted user ${member.user.tag}: ${dmError.message}`);
+            }
+
+            // Ban the user
+            try {
+                await guild.bans.create(member.id, {
+                    reason: `Blacklisted: ${entry.reason}`
+                });
+
+                // Send mod log
+                await sendModLog(guild, {
+                    action: 'ban',
+                    target: member.user,
+                    moderator: { tag: entry.moderatorTag, id: entry.moderatorId, displayAvatarURL: () => null },
+                    reason: `Auto-ban (blacklisted): ${entry.reason}`,
+                    extra: {
+                        'Trigger': 'Server join',
+                        'Originally Blacklisted By': entry.moderatorTag
+                    }
+                });
+
+                console.log(`[MODERATION] Blacklisted user ${member.user.tag} was banned on join. Reason: ${entry.reason}`);
+            } catch (banError) {
+                console.error(`[ERROR] Failed to ban blacklisted user ${member.user.tag}:`, banError);
+            }
+
+            // Stop further processing (skip welcome message)
+            return;
+        }
+    }
+    // --- End blacklist check ---
+
     // Log the member join event (if logging is enabled)
     if (!member.user.bot) {
         const logEmbed = createMemberJoinEmbed(member);

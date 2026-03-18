@@ -2,7 +2,7 @@
 // Background task that checks and sends due reminders
 
 import { EmbedBuilder } from 'discord.js';
-import { getData, setData } from './dataStore.js';
+import { getData, setData } from './db.js';
 import { config } from '../config/config.js';
 
 let client = null;

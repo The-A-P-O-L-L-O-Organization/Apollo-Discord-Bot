@@ -2,7 +2,7 @@
 // Allows admins to configure the server's logging channel
 
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType } from 'discord.js';
-import { setGuildData, getGuildData } from '../utils/dataStore.js';
+import { setGuildData, getGuildData } from '../utils/db.js';
 
 export default {
     data: new SlashCommandBuilder()

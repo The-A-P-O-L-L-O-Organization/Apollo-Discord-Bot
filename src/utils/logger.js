@@ -2,7 +2,7 @@
 // Centralized logging function for all server events
 
 import { EmbedBuilder } from 'discord.js';
-import { getGuildData } from './dataStore.js';
+import { getGuildData } from './db.js';
 import { config } from '../config/config.js';
 
 /**

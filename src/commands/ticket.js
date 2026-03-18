@@ -2,7 +2,7 @@
 // Allows users to create a ticket or manage their tickets
 
 import { EmbedBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { getGuildData, setGuildData, generateId } from '../utils/dataStore.js';
+import { getGuildData, setGuildData, generateId } from '../utils/db.js';
 import { config } from '../config/config.js';
 
 export default {
