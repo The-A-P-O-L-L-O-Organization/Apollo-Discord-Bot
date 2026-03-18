@@ -330,8 +330,16 @@ export const config = {
 |----------|-------------|----------|
 | DISCORD_TOKEN | Your Discord bot token | Yes |
 | CLIENT_ID | Your Discord application client ID | Yes |
+| GUILD_ID | Specific server ID for instant command updates (development only) | No |
 | OWNER_IDS | Comma-separated Discord user IDs for bot owners | No |
 | NODE_ENV | Environment mode (development/production) | No |
+
+### About GUILD_ID
+
+- **Leave it unset** (commented out) for production - commands work on all servers
+- **Set it during development** for instant command updates in your test server
+- Global commands (no GUILD_ID) take ~1 hour to sync but work everywhere
+- Guild commands (with GUILD_ID) sync instantly but only work in that one server
 
 ## Project Structure
 
