@@ -18,7 +18,6 @@ A feature-rich Discord bot built with discord.js v14 that provides moderation, l
 - **Reaction Roles**: Self-assignable roles via message reactions
 - **Reminders**: Personal reminder system with scheduling
 - **Polls**: Create polls with optional auto-tally when duration ends
-- **Dashboard**: Web-based dashboard for managing bot settings and viewing statistics
 - **SQLite Database**: Persistent data storage with better-sqlite3
 - **Docker Support**: Easy deployment with Docker and Docker Compose
 - **Rich Embeds**: Beautiful, formatted messages for better user experience
@@ -101,8 +100,6 @@ A feature-rich Discord bot built with discord.js v14 that provides moderation, l
    ```
    DISCORD_TOKEN=your-discord-bot-token-here
    CLIENT_ID=your-bot-client-id
-   DASHBOARD_PORT=3001
-   DASHBOARD_TOKEN=your-secure-random-token-here
    OWNER_IDS=your-discord-user-id
    ```
 
@@ -116,11 +113,7 @@ A feature-rich Discord bot built with discord.js v14 that provides moderation, l
    docker-compose logs -f
    ```
 
-6. **Access the dashboard** (optional)
-   - Open your browser and go to `http://localhost:3001`
-   - Use the `DASHBOARD_TOKEN` from your `.env` file to authenticate
-
-7. **Stop the bot**
+6. **Stop the bot**
    ```bash
    docker-compose down
    ```
@@ -147,8 +140,6 @@ A feature-rich Discord bot built with discord.js v14 that provides moderation, l
    ```
    DISCORD_TOKEN=your-discord-bot-token-here
    CLIENT_ID=your-bot-client-id
-   DASHBOARD_PORT=3001
-   DASHBOARD_TOKEN=your-secure-random-token-here
    OWNER_IDS=your-discord-user-id
    ```
 
@@ -339,8 +330,6 @@ export const config = {
 |----------|-------------|----------|
 | DISCORD_TOKEN | Your Discord bot token | Yes |
 | CLIENT_ID | Your Discord application client ID | Yes |
-| DASHBOARD_PORT | Port for the web dashboard (default: 3001) | No |
-| DASHBOARD_TOKEN | Secret token for dashboard authentication | Yes (if using dashboard) |
 | OWNER_IDS | Comma-separated Discord user IDs for bot owners | No |
 | NODE_ENV | Environment mode (development/production) | No |
 
@@ -404,8 +393,6 @@ Apollo-Discord-Bot/
 │       ├── logger.js         # Event logging utility
 │       ├── reminderScheduler.js # Reminder scheduler
 │       └── pollScheduler.js  # Poll auto-tally
-│   └── dashboard/
-│       └── server.js         # Express dashboard server
 ├── tests/                    # Test suite (Vitest)
 │   ├── commands/             # Command tests
 │   ├── events/               # Event tests
@@ -479,13 +466,6 @@ Configure with `/setlogchannel` and `/logging`:
 - Blacklisted users are automatically banned when they join the server
 - Blacklisted users receive a DM notification before being banned
 
-### Dashboard
-- Access at `http://localhost:3001` (or your configured port)
-- Requires authentication with `DASHBOARD_TOKEN`
-- View bot statistics and server information
-- Manage settings and view logs
-- RESTful API for integration
-
 ## Bot Permissions
 
 When inviting the bot, ensure it has these permissions:
@@ -557,7 +537,6 @@ This project uses GitHub Actions for continuous integration and deployment:
 - **discord.js v14** - Discord API wrapper for Node.js
 - **Node.js** - JavaScript runtime
 - **better-sqlite3** - Fast, synchronous SQLite3 database
-- **Express** - Web framework for dashboard
 - **pnpm** - Fast, disk space efficient package manager
 - **Vitest** - Blazing fast unit test framework
 - **Docker** - Containerization platform
