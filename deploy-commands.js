@@ -69,21 +69,24 @@ async function deployCommands() {
     try {
         console.log('[INFO] Starting command deployment...');
         
-        // Method 1: Deploy to a specific guild (immediate effect)
-        // Uncomment the following lines and replace GUILD_ID with your server ID
-        // await rest.put(
-        //     Routes.applicationGuildCommands(config.CLIENT_ID || 'your-bot-id', 'GUILD_ID'),
-        //     { body: commands }
-        // );
-        // console.log('[SUCCESS] Commands deployed to guild successfully!');
-        
-        // Method 2: Deploy globally (takes up to 1 hour)
-        await rest.put(
-            Routes.applicationCommands(config.CLIENT_ID || 'your-bot-id'),
-            { body: commands }
-        );
-        console.log('[SUCCESS] Commands deployed globally successfully!');
-        console.log('[WARNING] Global commands may take up to 1 hour to appear in all servers');
+        // Check if GUILD_ID is set for development deployment
+        if (config.GUILD_ID) {
+            console.log('[INFO] Deploying to specific guild (development mode)...');
+            await rest.put(
+                Routes.applicationGuildCommands(config.CLIENT_ID, config.GUILD_ID),
+                { body: commands }
+            );
+            console.log(`[SUCCESS] Commands deployed to guild ${config.GUILD_ID} successfully!`);
+            console.log('[INFO] Commands will appear instantly in the specified server');
+        } else {
+            console.log('[INFO] Deploying globally (production mode)...');
+            await rest.put(
+                Routes.applicationCommands(config.CLIENT_ID),
+                { body: commands }
+            );
+            console.log('[SUCCESS] Commands deployed globally successfully!');
+            console.log('[INFO] Global commands may take up to 1 hour to appear in all servers');
+        }
         
         console.log('\n[INFO] Deployed Commands:');
         commands.forEach((cmd, index) => {
