@@ -1,9 +1,12 @@
-# Production Dockerfile for John Discord Bot
+# Production Dockerfile for Apollo Discord Bot
 # Optimized for minimal size and maximum performance
 
 # Use multi-stage build for smaller final image
 # Stage 1: Build stage
 FROM node:24.14.0-alpine AS builder
+
+# Install build dependencies for better-sqlite3
+RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
 
@@ -15,7 +18,7 @@ ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy package files
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
@@ -27,6 +30,9 @@ COPY deploy-commands.js ./
 # Stage 2: Production stage
 FROM node:24.14.0-alpine
 
+# Install runtime dependencies
+RUN apk add --no-cache libstdc++
+
 WORKDIR /app
 
 # Set environment variables
@@ -37,10 +43,16 @@ ENV PATH=$PNPM_HOME:$PATH
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
+# Copy package files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
+
 # Copy from builder stage
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/deploy-commands.js ./
+
+# Create directories for persistent data
+RUN mkdir -p /app/bot /app/logs
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
@@ -49,7 +61,7 @@ RUN addgroup -g 1001 -S nodejs && \
 
 USER nodejs
 
-EXPOSE 3000
+EXPOSE 3001
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD node -e "process.exit(0)" || exit 1
