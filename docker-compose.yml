@@ -15,13 +15,6 @@ services:
     restart: unless-stopped
 
     # Environment variables
-    environment:
-      - NODE_ENV=production
-      - DISCORD_TOKEN=${DISCORD_TOKEN}
-      - CLIENT_ID=${CLIENT_ID}
-      - OWNER_IDS=${OWNER_IDS}
-
-    # Volume mount for environment file
     env_file:
       - .env
 
