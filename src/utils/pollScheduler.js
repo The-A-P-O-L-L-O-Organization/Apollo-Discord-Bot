@@ -2,7 +2,7 @@
 // Background task that checks and tallies completed polls
 
 import { EmbedBuilder } from 'discord.js';
-import { getData, setData } from './dataStore.js';
+import { getData, setData } from './db.js';
 
 let client = null;
 let schedulerInterval = null;

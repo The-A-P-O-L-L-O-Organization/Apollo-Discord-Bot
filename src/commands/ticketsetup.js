@@ -2,7 +2,7 @@
 // Allows admins to configure the ticket system
 
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { getGuildData, setGuildData } from '../utils/dataStore.js';
+import { getGuildData, setGuildData } from '../utils/db.js';
 import { config } from '../config/config.js';
 
 export default {

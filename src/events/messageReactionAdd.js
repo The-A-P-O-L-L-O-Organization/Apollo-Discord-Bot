@@ -1,7 +1,7 @@
 // Message Reaction Add Event
 // Handles giving roles when users react to reaction role messages
 
-import { getGuildData } from '../utils/dataStore.js';
+import { getGuildData } from '../utils/db.js';
 import { config } from '../config/config.js';
 
 export default {

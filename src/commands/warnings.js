@@ -2,7 +2,7 @@
 // Displays all warnings for a user
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
-import { getUserData } from '../utils/dataStore.js';
+import { getUserData } from '../utils/db.js';
 
 export default {
     name: 'warnings',

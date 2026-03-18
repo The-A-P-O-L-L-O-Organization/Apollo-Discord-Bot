@@ -2,7 +2,7 @@
 // Allows admins to enable/disable specific logging events
 
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { setGuildData, getGuildData } from '../utils/dataStore.js';
+import { setGuildData, getGuildData } from '../utils/db.js';
 import { config } from '../config/config.js';
 
 export default {

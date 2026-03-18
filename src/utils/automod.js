@@ -1,7 +1,7 @@
 // Automod Utility
 // Core automod checking functions
 
-import { getGuildData } from './dataStore.js';
+import { getGuildData } from './db.js';
 import { config } from '../config/config.js';
 
 // In-memory spam tracking

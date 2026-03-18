@@ -2,7 +2,7 @@
 // Creates polls with optional duration for auto-tally
 
 import { EmbedBuilder, PermissionFlagsBits } from 'discord.js';
-import { appendToGuildArray, generateId } from '../utils/dataStore.js';
+import { appendToGuildArray, generateId } from '../utils/db.js';
 import { config } from '../config/config.js';
 
 // Emoji options for polls
