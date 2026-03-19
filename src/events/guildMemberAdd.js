@@ -6,9 +6,25 @@ import { config } from '../config/config.js';
 import { logEvent, createMemberJoinEmbed } from '../utils/logger.js';
 import { getGuildData } from '../utils/db.js';
 import { sendModLog } from '../utils/modLog.js';
+import { checkRaidPattern, handleRaidDetected } from '../utils/raidDetection.js';
+import { trackMemberChange } from '../utils/analyticsCollector.js';
 
 export default async function guildMemberAddHandler(member) {
     const { guild } = member;
+
+    // Track member join for analytics
+    trackMemberChange(guild.id, true, guild.memberCount);
+
+    // --- Raid Detection ---
+    // Check for raid patterns (before other checks to prevent spam)
+    if (!member.user.bot) {
+        const isRaid = checkRaidPattern(guild.id, member);
+        if (isRaid) {
+            await handleRaidDetected(guild, member);
+            // Continue with other checks even during raid
+        }
+    }
+    // --- End Raid Detection ---
 
     // --- Blacklist check ---
     // Skip bots; only check real users
