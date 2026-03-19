@@ -11,6 +11,7 @@ import {
 } from '../utils/db.js';
 import { sendModLog, fetchMember } from '../utils/modLog.js';
 import { config } from '../config/config.js';
+import { createModCase } from './case.js';
 
 export default {
     name: 'warn',
@@ -111,6 +112,16 @@ export default {
             const activeWarnings = userWarnings.filter(w => w.active !== false);
             const warningCount = activeWarnings.length;
             
+            // Create mod case
+            const caseId = createModCase(interaction.guild.id, {
+                type: 'warn',
+                targetId: user.id,
+                targetTag: user.tag,
+                moderatorId: interaction.user.id,
+                moderatorTag: interaction.user.tag,
+                reason: reason
+            });
+            
             // Get guild-specific thresholds or use defaults
             const guildSettings = getGuildData('warnings-config', interaction.guild.id);
             const thresholds = guildSettings.thresholds || config.warnings.thresholds;
@@ -182,6 +193,7 @@ export default {
                 .addFields(
                     { name: 'User', value: `${user.tag} (${user.id})`, inline: true },
                     { name: 'Moderator', value: interaction.user.tag, inline: true },
+                    { name: 'Case ID', value: `#${caseId}`, inline: true },
                     { name: 'Reason', value: reason, inline: false },
                     { name: 'Total Warnings', value: `${warningCount}`, inline: true },
                     { name: 'Warning ID', value: warning.id, inline: true },
@@ -221,6 +233,7 @@ export default {
                 extra: {
                     'Warning Count': `${warningCount}`,
                     'Warning ID': warning.id,
+                    'Case ID': `#${caseId}`,
                     'Auto-Punishment': autoPunishment || 'None'
                 }
             });

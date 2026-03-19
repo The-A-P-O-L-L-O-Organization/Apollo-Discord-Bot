@@ -11,6 +11,7 @@ import eventHandler from './handlers/eventHandler.js';
 import { initReminderScheduler, stopReminderScheduler } from './utils/reminderScheduler.js';
 import { initPollScheduler, stopPollScheduler } from './utils/pollScheduler.js';
 import { stopSpamTrackerCleanup } from './utils/automod.js';
+import { initAnalyticsCollector, stopAnalyticsCollector, trackCommand } from './utils/analyticsCollector.js';
 
 // Create a new Client instance with required intents
 const client = new Client({
@@ -22,7 +23,8 @@ const client = new Client({
         GatewayIntentBits.GuildPresences,
         GatewayIntentBits.GuildMessageReactions,
         GatewayIntentBits.GuildVoiceStates,
-        GatewayIntentBits.DirectMessages
+        GatewayIntentBits.DirectMessages,
+        GatewayIntentBits.GuildModeration
     ],
     // Enable partials for better event handling
     partials: [
@@ -58,6 +60,9 @@ client.once('clientReady', async () => {
     // Initialize poll scheduler
     initPollScheduler(client);
     
+    // Initialize analytics collector
+    initAnalyticsCollector(client);
+    
     console.log('[SUCCESS] Bot fully initialized!');
 });
 
@@ -90,6 +95,11 @@ client.on('interactionCreate', async (interaction) => {
         
         // Track command usage
         client.stats.commandsRan++;
+        
+        // Track command for analytics
+        if (interaction.guild) {
+            trackCommand(interaction.guild.id, interaction.commandName, interaction.user.id);
+        }
     } catch (error) {
         console.error(`[ERROR] Error executing /${interaction.commandName}:`, error);
         
@@ -137,6 +147,7 @@ process.on('SIGTERM', () => {
     stopSpamTrackerCleanup();
     stopReminderScheduler();
     stopPollScheduler();
+    stopAnalyticsCollector();
     client.destroy();
     process.exit(0);
 });
@@ -146,6 +157,7 @@ process.on('SIGINT', () => {
     stopSpamTrackerCleanup();
     stopReminderScheduler();
     stopPollScheduler();
+    stopAnalyticsCollector();
     client.destroy();
     process.exit(0);
 });

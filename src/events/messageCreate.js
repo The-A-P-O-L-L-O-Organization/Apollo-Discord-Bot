@@ -12,11 +12,15 @@ import {
     checkMentionSpam,
     checkCapsSpam,
     checkSpam,
-    checkAccountAge
+    checkAccountAge,
+    checkPhishingLinks
 } from '../utils/automod.js';
 import { appendToUserArray, generateId, getUserData, getGuildData } from '../utils/db.js';
 import { sendModLog } from '../utils/modLog.js';
 import { config } from '../config/config.js';
+import { trackMessage, trackViolation } from '../utils/analyticsCollector.js';
+import { checkMessageToxicity } from '../utils/perspectiveApi.js';
+import { checkMessageAttachments } from '../utils/nsfwDetection.js';
 
 export default {
     name: 'messageCreate',
@@ -28,6 +32,9 @@ export default {
         
         // Ignore bot messages
         if (message.author.bot) return;
+        
+        // Track message for analytics
+        trackMessage(message.guild.id, message.channel.id, message.author.id);
         
         // Get automod config
         const cfg = getAutomodConfig(message.guild.id);
@@ -132,6 +139,9 @@ export default {
  */
 async function handleViolation(message, type, reason, client, deleteMessage = false) {
     try {
+        // Track violation for analytics
+        trackViolation(message.guild.id, type);
+        
         // Delete the message if requested
         if (deleteMessage && message.deletable) {
             await message.delete().catch(() => {});

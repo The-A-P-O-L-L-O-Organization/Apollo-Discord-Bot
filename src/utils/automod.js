@@ -251,3 +251,93 @@ export function stopSpamTrackerCleanup() {
         console.log('[INFO] Spam tracker cleanup interval stopped');
     }
 }
+
+// Known phishing domains (Discord nitro scams, etc.)
+const PHISHING_DOMAINS = [
+    'discord-nitro.com',
+    'discordnitro.com',
+    'discord-gift.com',
+    'discordgift.com',
+    'discord-app.com',
+    'discordapp.ru',
+    'discordapp.io',
+    'discordsteam.com',
+    'discord-free.com',
+    'free-discord.com',
+    'steamcommunity.ru',
+    'steampowered.ru',
+    'steam-free.com',
+    'free-steam.com'
+];
+
+// Suspicious patterns in URLs
+const SUSPICIOUS_PATTERNS = [
+    /nitro.*free/i,
+    /free.*nitro/i,
+    /discord.*gift/i,
+    /steam.*free/i,
+    /claim.*nitro/i,
+    /get.*nitro/i
+];
+
+/**
+ * Checks message for phishing links
+ * @param {string} content - Message content
+ * @returns {Object|null} Match info or null
+ */
+export function checkPhishingLinks(content) {
+    // Extract URLs from content
+    const urlRegex = /(https?:\/\/[^\s]+)/gi;
+    const urls = content.match(urlRegex);
+    
+    if (!urls) return null;
+    
+    for (const url of urls) {
+        try {
+            const urlObj = new URL(url);
+            const hostname = urlObj.hostname.toLowerCase();
+            
+            // Check against known phishing domains
+            for (const domain of PHISHING_DOMAINS) {
+                if (hostname === domain || hostname.endsWith('.' + domain)) {
+                    return {
+                        url,
+                        reason: 'Known phishing domain',
+                        domain: hostname
+                    };
+                }
+            }
+            
+            // Check for suspicious patterns in the full URL
+            for (const pattern of SUSPICIOUS_PATTERNS) {
+                if (pattern.test(url)) {
+                    return {
+                        url,
+                        reason: 'Suspicious URL pattern',
+                        domain: hostname
+                    };
+                }
+            }
+            
+            // Check for Discord/Steam impersonation domains
+            if ((hostname.includes('discord') || hostname.includes('steam')) &&
+                !hostname.endsWith('discord.com') && 
+                !hostname.endsWith('discordapp.com') &&
+                !hostname.endsWith('discord.gg') &&
+                !hostname.endsWith('steampowered.com') &&
+                !hostname.endsWith('steamcommunity.com')) {
+                return {
+                    url,
+                    reason: 'Impersonation domain',
+                    domain: hostname
+                };
+            }
+            
+        } catch (e) {
+            // Invalid URL, skip
+            continue;
+        }
+    }
+    
+    return null;
+}

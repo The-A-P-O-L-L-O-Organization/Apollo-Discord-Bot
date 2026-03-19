@@ -1,8 +1,10 @@
 // Unban Command
-// Unbans a previously banned user from the server
+// Unbans a user from the server
 
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog } from '../utils/modLog.js';
+import { createModCase } from './case.js';
+import { removeTempban } from '../utils/tempbanScheduler.js';
 
 export default {
     name: 'unban',
@@ -79,11 +81,24 @@ export default {
             // Unban the user
             await interaction.guild.bans.remove(userId, reason);
             
+            // Remove from tempban scheduler if it exists
+            removeTempban(interaction.guild.id, userId);
+            
+            // Create mod case
+            const caseId = createModCase(interaction.guild.id, {
+                type: 'unban',
+                targetId: userId,
+                targetTag: `User ID: ${userId}`,
+                moderatorId: interaction.user.id,
+                moderatorTag: interaction.user.tag,
+                reason: reason
+            });
+            
             // Create success embed
             const successEmbed = {
                 color: 0x00FF00,
                 title: '[SUCCESS] User Unbanned',
-                description: `${bannedUser.tag} has been unbanned from the server.`,
+                description: `User ID ${userId} has been unbanned from the server.`,
                 fields: [
                     {
                         name: '[INFO] Moderator',
@@ -91,9 +106,14 @@ export default {
                         inline: true
                     },
                     {
+                        name: '[INFO] Case ID',
+                        value: `#${caseId}`,
+                        inline: true
+                    },
+                    {
                         name: '[INFO] Reason',
                         value: reason,
-                        inline: true
+                        inline: false
                     },
                     {
                         name: '[INFO] User ID',
@@ -109,9 +129,12 @@ export default {
             // Send mod log
             await sendModLog(interaction.guild, {
                 action: 'unban',
-                target: bannedUser,
+                target: { tag: `User ID: ${userId}`, id: userId, displayAvatarURL: () => null },
                 moderator: interaction.user,
-                reason: reason
+                reason: reason,
+                extra: {
+                    'Case ID': `#${caseId}`
+                }
             });
             
             // Log the action

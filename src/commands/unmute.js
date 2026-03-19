@@ -3,6 +3,7 @@
 
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog, fetchMember } from '../utils/modLog.js';
+import { getUserData, setUserData } from '../utils/db.js';
 
 export default {
     name: 'unmute',
@@ -105,6 +106,28 @@ export default {
             
             if (muteRole && member.roles.cache.has(muteRole.id)) {
                 await member.roles.remove(muteRole, reason);
+            }
+            
+            // Restore roles that were saved before muting
+            const savedRoles = getUserData('muted-roles', interaction.guild.id, user.id);
+            if (savedRoles && savedRoles.roles && Array.isArray(savedRoles.roles)) {
+                const rolesToRestore = savedRoles.roles.filter(roleId => {
+                    const role = interaction.guild.roles.cache.get(roleId);
+                    // Only restore if role still exists and isn't @everyone
+                    return role && roleId !== interaction.guild.id && role.name !== 'Muted';
+                });
+                
+                if (rolesToRestore.length > 0) {
+                    try {
+                        await member.roles.add(rolesToRestore, 'Restoring roles after unmute');
+                        console.log(`[SUCCESS] Restored ${rolesToRestore.length} roles for ${user.tag}`);
+                    } catch (roleError) {
+                        console.error('[ERROR] Failed to restore some roles:', roleError);
+                    }
+                }
+                
+                // Clear stored roles
+                setUserData('muted-roles', interaction.guild.id, user.id, null);
             }
             
             // Create success embed

@@ -3,6 +3,7 @@
 
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog, fetchMember } from '../utils/modLog.js';
+import { createModCase } from './case.js';
 
 export default {
     name: 'kick',
@@ -81,6 +82,16 @@ export default {
             // Kick the user
             await member.kick(reason);
             
+            // Create mod case
+            const caseId = createModCase(interaction.guild.id, {
+                type: 'kick',
+                targetId: user.id,
+                targetTag: user.tag,
+                moderatorId: interaction.user.id,
+                moderatorTag: interaction.user.tag,
+                reason: reason
+            });
+            
             // Create success embed
             const successEmbed = {
                 color: 0x00FF00,
@@ -93,9 +104,14 @@ export default {
                         inline: true
                     },
                     {
+                        name: '[INFO] Case ID',
+                        value: `#${caseId}`,
+                        inline: true
+                    },
+                    {
                         name: '[INFO] Reason',
                         value: reason,
-                        inline: true
+                        inline: false
                     },
                     {
                         name: '[INFO] User ID',
@@ -113,7 +129,10 @@ export default {
                 action: 'kick',
                 target: user,
                 moderator: interaction.user,
-                reason: reason
+                reason: reason,
+                extra: {
+                    'Case ID': `#${caseId}`
+                }
             });
             
             // Log the action
