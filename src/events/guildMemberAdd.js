@@ -82,6 +82,52 @@ export default async function guildMemberAddHandler(member) {
     }
     // --- End blacklist check ---
 
+    // --- Auto-role assignment ---
+    if (!member.user.bot) {
+        const autoRoleConfig = getGuildData('autorole', guild.id);
+        
+        if (autoRoleConfig && autoRoleConfig.enabled && autoRoleConfig.roleId) {
+            const role = guild.roles.cache.get(autoRoleConfig.roleId);
+            
+            if (role) {
+                try {
+                    await member.roles.add(role, 'Auto-role on join');
+                    console.log(`[SUCCESS] Auto-role ${role.name} assigned to ${member.user.tag}`);
+                } catch (roleError) {
+                    console.error(`[ERROR] Failed to assign auto-role to ${member.user.tag}:`, roleError);
+                }
+            }
+        }
+        
+        // --- Role Persistence: Restore saved roles ---
+        const rolePersistenceConfig = getGuildData('role-persistence', guild.id);
+        
+        if (rolePersistenceConfig && rolePersistenceConfig.enabled && rolePersistenceConfig.savedRoles) {
+            const savedData = rolePersistenceConfig.savedRoles[member.id];
+            
+            if (savedData && savedData.roles && savedData.roles.length > 0) {
+                const validRoles = savedData.roles
+                    .filter(roleId => guild.roles.cache.has(roleId))
+                    .map(roleId => guild.roles.cache.get(roleId));
+                
+                if (validRoles.length > 0) {
+                    try {
+                        await member.roles.add(validRoles, 'Restoring roles from previous session');
+                        console.log(`[SUCCESS] Restored ${validRoles.length} roles for ${member.user.tag}`);
+                        
+                        // Remove from saved roles after restoration
+                        delete rolePersistenceConfig.savedRoles[member.id];
+                        setGuildData('role-persistence', guild.id, rolePersistenceConfig);
+                    } catch (roleError) {
+                        console.error(`[ERROR] Failed to restore roles for ${member.user.tag}:`, roleError);
+                    }
+                }
+            }
+        }
+        // --- End role persistence ---
+    }
+    // --- End auto-role assignment ---
+
     // Log the member join event (if logging is enabled)
     if (!member.user.bot) {
         const logEmbed = createMemberJoinEmbed(member);
