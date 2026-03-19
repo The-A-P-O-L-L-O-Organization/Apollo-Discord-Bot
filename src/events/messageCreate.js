@@ -160,7 +160,7 @@ async function handleViolation(message, type, reason, client, deleteMessage = fa
         // Send warning to user in channel (ephemeral-like, delete after delay)
         const warningEmbed = new EmbedBuilder()
             .setColor('#FFA500')
-            .setTitle('⚠️ Automod Warning')
+            .setTitle('[!] Automod Warning')
             .setDescription(`${message.author}, your message was flagged by automod.`)
             .addFields(
                 { name: 'Reason', value: reason, inline: true },
@@ -173,13 +173,13 @@ async function handleViolation(message, type, reason, client, deleteMessage = fa
         
         // Delete warning message after 10 seconds
         setTimeout(() => {
-            warningMsg.delete().catch(() => {});
+            warningMsg.delete().catch(err => console.error('[WARN] Failed to delete warning message:', err.message));
         }, 10000);
         
         // Check for auto-punishment thresholds
         const guildSettings = getGuildData('warnings-config', message.guild.id);
-        const thresholds = guildSettings.thresholds || config.warnings.thresholds;
-        const muteDuration = guildSettings.muteDuration || config.warnings.muteDuration;
+        const thresholds = guildSettings?.thresholds || config.warnings.thresholds;
+        const muteDuration = guildSettings?.muteDuration || config.warnings.muteDuration;
         
         let autoPunishment = null;
         const member = message.member;

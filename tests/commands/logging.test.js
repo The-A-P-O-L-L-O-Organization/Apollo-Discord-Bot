@@ -11,36 +11,12 @@ import {
 } from '../mocks/discord.js';
 
 // Mock the dataStore module
-vi.mock('../../src/utils/dataStore.js', () => ({
+vi.mock('../../src/utils/db.js', () => ({
     getGuildData: vi.fn(),
     setGuildData: vi.fn()
 }));
 
-// Mock the config
-vi.mock('../../src/config/config.js', () => ({
-    config: {
-        logging: {
-            availableEvents: [
-                'messageDelete',
-                'messageEdit',
-                'memberJoin',
-                'memberLeave',
-                'roleChanges',
-                'voiceChanges'
-            ],
-            defaultEvents: {
-                messageDelete: true,
-                messageEdit: true,
-                memberJoin: true,
-                memberLeave: true,
-                roleChanges: true,
-                voiceChanges: false
-            }
-        }
-    }
-}));
-
-import { getGuildData, setGuildData } from '../../src/utils/dataStore.js';
+import { getGuildData, setGuildData } from '../../src/utils/db.js';
 
 describe('Logging Command', () => {
     let mockInteraction;

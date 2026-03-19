@@ -10,6 +10,7 @@ export default {
     description: 'Create a support ticket',
     category: 'utility',
     dmPermission: false,
+    defaultMemberPermissions: PermissionFlagsBits.ManageChannels,
     options: [
         {
             name: 'reason',
@@ -37,7 +38,7 @@ export default {
         }
 
         // Check if bot has permission to manage channels
-        if (!interaction.guild.members.me.permissions.has('ManageChannels')) {
+        if (!interaction.guild.members.me.permissions.has(PermissionFlagsBits.ManageChannels)) {
             return interaction.reply({
                 content: 'I do not have permission to manage channels.',
                 ephemeral: true
@@ -136,7 +137,6 @@ export default {
                     .setCustomId('close_ticket')
                     .setLabel('Close Ticket')
                     .setStyle(ButtonStyle.Danger)
-                    .setEmoji('🔒')
             );
 
         // Send the welcome message

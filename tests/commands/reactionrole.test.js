@@ -11,13 +11,13 @@ import {
     createMockMessage
 } from '../mocks/discord.js';
 
-// Mock the dataStore module
-vi.mock('../../src/utils/dataStore.js', () => ({
+// Mock the db module
+vi.mock('../../src/utils/db.js', () => ({
     getGuildData: vi.fn(),
     setGuildData: vi.fn()
 }));
 
-import { getGuildData, setGuildData } from '../../src/utils/dataStore.js';
+import { getGuildData, setGuildData } from '../../src/utils/db.js';
 
 describe('ReactionRole Command', () => {
     let mockInteraction;

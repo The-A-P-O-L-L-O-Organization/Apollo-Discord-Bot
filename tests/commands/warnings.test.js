@@ -10,12 +10,12 @@ import {
     createMockClient 
 } from '../mocks/discord.js';
 
-// Mock the dataStore module
-vi.mock('../../src/utils/dataStore.js', () => ({
+// Mock the db module
+vi.mock('../../src/utils/db.js', () => ({
     getUserData: vi.fn().mockReturnValue([])
 }));
 
-import { getUserData } from '../../src/utils/dataStore.js';
+import { getUserData } from '../../src/utils/db.js';
 
 describe('Warnings Command', () => {
     let mockInteraction;

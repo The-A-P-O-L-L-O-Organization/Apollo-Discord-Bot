@@ -67,7 +67,12 @@ const stmts = {
  */
 export function getGuildData(store, guildId) {
     const row = stmts.getGuild.get(store, guildId);
-    return row ? JSON.parse(row.data) : {};
+    try {
+        return row ? JSON.parse(row.data) : {};
+    } catch (e) {
+        console.error('[ERROR] Failed to parse data:', e);
+        return {};
+    }
 }
 
 /**
@@ -124,7 +129,14 @@ export function removeFromGuildArray(store, guildId, key, predicate) {
 export function getAllGuildData(store) {
     return stmts.getAllGuilds.all(store)
         .filter(row => row.guild_id !== '__global__')
-        .map(row => ({ guildId: row.guild_id, data: JSON.parse(row.data) }));
+        .map(row => {
+            try {
+                return { guildId: row.guild_id, data: JSON.parse(row.data) };
+            } catch (e) {
+                console.error('[ERROR] Failed to parse data:', e);
+                return { guildId: row.guild_id, data: {} };
+            }
+        });
 }
 
 // ---------------------------------------------------------------------------
@@ -136,7 +148,12 @@ export function getAllGuildData(store) {
  */
 export function getUserData(store, guildId, userId) {
     const row = stmts.getUser.get(store, guildId, userId);
-    return row ? JSON.parse(row.data) : undefined;
+    try {
+        return row ? JSON.parse(row.data) : undefined;
+    } catch (e) {
+        console.error('[ERROR] Failed to parse data:', e);
+        return undefined;
+    }
 }
 
 /**
@@ -174,10 +191,14 @@ export function removeFromUserArray(store, guildId, userId, predicate) {
  * @returns {{ userId: string, data: any }[]}
  */
 export function getAllUserData(store, guildId) {
-    return stmts.getAllUsers.all(store, guildId).map(row => ({
-        userId: row.user_id,
-        data: JSON.parse(row.data),
-    }));
+    return stmts.getAllUsers.all(store, guildId).map(row => {
+        try {
+            return { userId: row.user_id, data: JSON.parse(row.data) };
+        } catch (e) {
+            console.error('[ERROR] Failed to parse stored data:', e);
+            return { userId: row.user_id, data: [] };
+        }
+    });
 }
 
 // ---------------------------------------------------------------------------
@@ -239,3 +260,9 @@ export function writeToSubDir(subdir, filename, data) {
  * (used by the dashboard API).
  */
 export { db };
+
+export function close() {
+    if (db) {
+        db.close();
+    }
+}
