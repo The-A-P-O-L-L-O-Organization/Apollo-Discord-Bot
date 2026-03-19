@@ -118,32 +118,32 @@ export default {
                     { name: '\u200B', value: '**Event Status**', inline: false },
                     { 
                         name: 'Message Delete', 
-                        value: events.messageDelete ?? config.logging.defaultEvents.messageDelete ? '✅ Enabled' : '❌ Disabled', 
+                        value: events.messageDelete ?? config.logging.defaultEvents.messageDelete ? '[ON] Enabled' : '[OFF] Disabled', 
                         inline: true 
                     },
                     { 
                         name: 'Message Edit', 
-                        value: events.messageEdit ?? config.logging.defaultEvents.messageEdit ? '✅ Enabled' : '❌ Disabled', 
+                        value: events.messageEdit ?? config.logging.defaultEvents.messageEdit ? '[ON] Enabled' : '[OFF] Disabled', 
                         inline: true 
                     },
                     { 
                         name: 'Member Join', 
-                        value: events.memberJoin ?? config.logging.defaultEvents.memberJoin ? '✅ Enabled' : '❌ Disabled', 
+                        value: events.memberJoin ?? config.logging.defaultEvents.memberJoin ? '[ON] Enabled' : '[OFF] Disabled', 
                         inline: true 
                     },
                     { 
                         name: 'Member Leave', 
-                        value: events.memberLeave ?? config.logging.defaultEvents.memberLeave ? '✅ Enabled' : '❌ Disabled', 
+                        value: events.memberLeave ?? config.logging.defaultEvents.memberLeave ? '[ON] Enabled' : '[OFF] Disabled', 
                         inline: true 
                     },
                     { 
                         name: 'Role Changes', 
-                        value: events.roleChanges ?? config.logging.defaultEvents.roleChanges ? '✅ Enabled' : '❌ Disabled', 
+                        value: events.roleChanges ?? config.logging.defaultEvents.roleChanges ? '[ON] Enabled' : '[OFF] Disabled', 
                         inline: true 
                     },
                     { 
                         name: 'Voice Changes', 
-                        value: events.voiceChanges ?? config.logging.defaultEvents.voiceChanges ? '✅ Enabled' : '❌ Disabled', 
+                        value: events.voiceChanges ?? config.logging.defaultEvents.voiceChanges ? '[ON] Enabled' : '[OFF] Disabled', 
                         inline: true 
                     }
                 )

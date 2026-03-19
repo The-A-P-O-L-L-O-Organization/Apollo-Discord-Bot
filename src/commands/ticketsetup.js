@@ -89,7 +89,6 @@ export default {
                         .setCustomId('create_ticket')
                         .setLabel('Create Ticket')
                         .setStyle(ButtonStyle.Primary)
-                        .setEmoji('📩')
                 );
 
             // Send the panel

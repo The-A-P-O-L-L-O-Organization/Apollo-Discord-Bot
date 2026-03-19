@@ -11,14 +11,14 @@ import {
     createMockClient
 } from '../mocks/discord.js';
 
-// Mock the dataStore module
-vi.mock('../../src/utils/dataStore.js', () => ({
+// Mock the db module
+vi.mock('../../src/utils/db.js', () => ({
     getGuildData: vi.fn(),
     setGuildData: vi.fn(),
     writeToSubDir: vi.fn()
 }));
 
-import { getGuildData, setGuildData, writeToSubDir } from '../../src/utils/dataStore.js';
+import { getGuildData, setGuildData, writeToSubDir } from '../../src/utils/db.js';
 
 describe('CloseTicket Command', () => {
     let mockInteraction;

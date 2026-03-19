@@ -8,7 +8,7 @@ let client = null;
 let schedulerInterval = null;
 
 // Emoji options for polls (must match poll.js)
-const POLL_EMOJIS = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
+const POLL_EMOJIS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
 
 /**
  * Initializes the poll scheduler
@@ -23,7 +23,7 @@ export function initPollScheduler(discordClient) {
     console.log('[INFO] Poll scheduler started (checking every 30s)');
     
     // Run an immediate check
-    checkPolls();
+    checkPolls().catch(err => console.error('[ERROR] Poll check failed:', err));
 }
 
 /**
@@ -122,7 +122,7 @@ async function tallyPoll(guildId, poll) {
         // Build results embed
         const embed = new EmbedBuilder()
             .setColor('#9B59B6')
-            .setTitle('📊 Poll Results: ' + poll.question)
+            .setTitle('[Poll] Results: ' + poll.question)
             .setTimestamp()
             .setFooter({ text: `Poll ended • Total votes: ${totalVotes}` });
         
@@ -169,7 +169,7 @@ async function tallyPoll(guildId, poll) {
         // Try to edit the original poll message to show it's closed
         try {
             const originalEmbed = message.embeds[0];
-            if (originalEmbed) {
+            if (originalEmbed && originalEmbed.fields) {
                 const closedEmbed = EmbedBuilder.from(originalEmbed)
                     .setColor('#7F8C8D')
                     .setFooter({ text: 'Poll ended' });

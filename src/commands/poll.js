@@ -6,7 +6,7 @@ import { appendToGuildArray, generateId } from '../utils/db.js';
 import { config } from '../config/config.js';
 
 // Emoji options for polls
-const POLL_EMOJIS = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
+const POLL_EMOJIS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
 
 export default {
     name: 'poll',
@@ -92,7 +92,7 @@ export default {
         // Build the poll embed
         const embed = new EmbedBuilder()
             .setColor('#9B59B6')
-            .setTitle('📊 ' + question)
+            .setTitle('[Poll] ' + question)
             .setFooter({ 
                 text: `Poll by ${interaction.user.tag}${anonymous ? ' • Anonymous voting' : ''}` 
             })

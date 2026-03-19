@@ -10,30 +10,14 @@ import {
     createMockChannel
 } from '../mocks/discord.js';
 
-// Mock the dataStore module
-vi.mock('../../src/utils/dataStore.js', () => ({
+// Mock the db module
+vi.mock('../../src/utils/db.js', () => ({
     getGuildData: vi.fn().mockReturnValue({}),
     setGuildData: vi.fn(),
     updateGuildData: vi.fn()
 }));
 
-// Mock the config
-vi.mock('../../src/config/config.js', () => ({
-    config: {
-        automod: {
-            enabled: false,
-            filterInvites: true,
-            filterLinks: false,
-            maxMentions: 5,
-            maxCapsPercent: 70,
-            minAccountAge: 0,
-            spamThreshold: 5,
-            spamInterval: 5000
-        }
-    }
-}));
-
-import { getGuildData, setGuildData, updateGuildData } from '../../src/utils/dataStore.js';
+import { getGuildData, setGuildData, updateGuildData } from '../../src/utils/db.js';
 
 describe('Automod Command', () => {
     let mockInteraction;
@@ -100,16 +84,16 @@ describe('Automod Command', () => {
     describe('execute - enable subcommand', () => {
         beforeEach(() => {
             mockInteraction.options.getSubcommand.mockReturnValue('enable');
+            getGuildData.mockReturnValue({});
         });
 
         it('should enable automod successfully', async () => {
             await automodCommand.execute(mockInteraction);
             
-            expect(updateGuildData).toHaveBeenCalledWith(
+            expect(setGuildData).toHaveBeenCalledWith(
                 'automod',
                 mockGuild.id,
-                'enabled',
-                true
+                expect.objectContaining({ enabled: true })
             );
         });
 
@@ -125,16 +109,16 @@ describe('Automod Command', () => {
     describe('execute - disable subcommand', () => {
         beforeEach(() => {
             mockInteraction.options.getSubcommand.mockReturnValue('disable');
+            getGuildData.mockReturnValue({});
         });
 
         it('should disable automod successfully', async () => {
             await automodCommand.execute(mockInteraction);
             
-            expect(updateGuildData).toHaveBeenCalledWith(
+            expect(setGuildData).toHaveBeenCalledWith(
                 'automod',
                 mockGuild.id,
-                'enabled',
-                false
+                expect.objectContaining({ enabled: false })
             );
         });
 
@@ -218,7 +202,7 @@ describe('Automod Command', () => {
             
             expect(setGuildData).not.toHaveBeenCalled();
             const replyCall = mockInteraction.reply.mock.calls[0][0];
-            expect(replyCall.embeds[0].title).toContain('Already Banned');
+            expect(replyCall.embeds[0].title).toContain('Word Already Banned');
             expect(replyCall.ephemeral).toBe(true);
         });
     });
@@ -285,14 +269,14 @@ describe('Automod Command', () => {
             mockInteraction.options.getString
                 .mockReturnValueOnce('filterInvites')
                 .mockReturnValueOnce('true');
+            getGuildData.mockReturnValue({});
 
             await automodCommand.execute(mockInteraction);
             
-            expect(updateGuildData).toHaveBeenCalledWith(
+            expect(setGuildData).toHaveBeenCalledWith(
                 'automod',
                 mockGuild.id,
-                'filterInvites',
-                true
+                expect.objectContaining({ filterInvites: true })
             );
         });
 
@@ -300,14 +284,14 @@ describe('Automod Command', () => {
             mockInteraction.options.getString
                 .mockReturnValueOnce('maxMentions')
                 .mockReturnValueOnce('10');
+            getGuildData.mockReturnValue({});
 
             await automodCommand.execute(mockInteraction);
             
-            expect(updateGuildData).toHaveBeenCalledWith(
+            expect(setGuildData).toHaveBeenCalledWith(
                 'automod',
                 mockGuild.id,
-                'maxMentions',
-                10
+                expect.objectContaining({ maxMentions: 10 })
             );
         });
 
@@ -421,7 +405,7 @@ describe('Automod Command', () => {
             await automodCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
-            expect(replyCall.embeds[0].title).toContain('[ERROR]');
+            expect(replyCall.embeds[0].title).toContain('Command Failed');
             expect(replyCall.ephemeral).toBe(true);
         });
     });

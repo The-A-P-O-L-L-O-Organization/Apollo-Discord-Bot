@@ -9,8 +9,8 @@ import {
     createMockGuild 
 } from '../mocks/discord.js';
 
-// Mock the dataStore module
-vi.mock('../../src/utils/dataStore.js', () => ({
+// Mock the db module
+vi.mock('../../src/utils/db.js', () => ({
     getGuildData: vi.fn(),
     setGuildData: vi.fn()
 }));
@@ -29,7 +29,7 @@ vi.mock('../../src/config/config.js', () => ({
     }
 }));
 
-import { getGuildData, setGuildData } from '../../src/utils/dataStore.js';
+import { getGuildData, setGuildData } from '../../src/utils/db.js';
 
 describe('WarnConfig Command', () => {
     let mockInteraction;
