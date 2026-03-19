@@ -12,6 +12,7 @@ import { initReminderScheduler, stopReminderScheduler } from './utils/reminderSc
 import { initPollScheduler, stopPollScheduler } from './utils/pollScheduler.js';
 import { stopSpamTrackerCleanup } from './utils/automod.js';
 import { initAnalyticsCollector, stopAnalyticsCollector, trackCommand } from './utils/analyticsCollector.js';
+import { initTempRolesScheduler, stopTempRolesScheduler } from './utils/tempRolesScheduler.js';
 
 // Create a new Client instance with required intents
 const client = new Client({
@@ -62,6 +63,9 @@ client.once('clientReady', async () => {
     
     // Initialize analytics collector
     initAnalyticsCollector(client);
+    
+    // Initialize temporary roles scheduler
+    initTempRolesScheduler(client);
     
     console.log('[SUCCESS] Bot fully initialized!');
 });
@@ -148,6 +152,7 @@ process.on('SIGTERM', () => {
     stopReminderScheduler();
     stopPollScheduler();
     stopAnalyticsCollector();
+    stopTempRolesScheduler();
     client.destroy();
     process.exit(0);
 });
@@ -158,6 +163,7 @@ process.on('SIGINT', () => {
     stopReminderScheduler();
     stopPollScheduler();
     stopAnalyticsCollector();
+    stopTempRolesScheduler();
     client.destroy();
     process.exit(0);
 });
