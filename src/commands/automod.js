@@ -252,7 +252,7 @@ async function handleStatus(interaction) {
             { name: '[Caps] Max Caps %', value: `${cfg.maxCapsPercent}%`, inline: true },
             { name: '[Date] Min Account Age', value: cfg.minAccountAge > 0 ? `${cfg.minAccountAge} days` : 'Disabled', inline: true },
             { name: '[Spam] Spam Threshold', value: `${cfg.spamThreshold} msgs / ${cfg.spamInterval / 1000}s`, inline: true },
-            { name: '[Ban] Banned Words', value: `${cfg.bannedWords.length} word(s)`, inline: true },
+            { name: '[Ban] Banned Words', value: cfg.bannedWords.length > 0 ? `${cfg.bannedWords.length} word(s)` : 'None configured', inline: true },
             { name: '[Channel] Exempt Channels', value: `${cfg.exemptChannels.length} channel(s)`, inline: true },
             { name: '[Roles] Exempt Roles', value: `${cfg.exemptRoles.length} role(s)`, inline: true }
         )
