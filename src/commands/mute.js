@@ -3,6 +3,8 @@
 
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog, fetchMember } from '../utils/modLog.js';
+import { setUserData } from '../utils/db.js';
+import { createModCase } from './case.js';
 
 export default {
     name: 'mute',
@@ -136,6 +138,13 @@ export default {
                 return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
             }
             
+            // Store user's current roles before muting (for restoration on unmute)
+            const roleIds = Array.from(member.roles.cache.keys()).filter(roleId => roleId !== interaction.guild.id);
+            setUserData('muted-roles', interaction.guild.id, user.id, { 
+                roles: roleIds,
+                mutedAt: Date.now()
+            });
+            
             // Try to use Discord timeout first (more reliable)
             try {
                 await member.timeout(durationMs, reason);
@@ -172,6 +181,17 @@ export default {
                 await member.roles.add(muteRole, reason);
             }
             
+            // Create mod case
+            const caseId = createModCase(interaction.guild.id, {
+                type: 'mute',
+                targetId: user.id,
+                targetTag: user.tag,
+                moderatorId: interaction.user.id,
+                moderatorTag: interaction.user.tag,
+                reason: reason,
+                duration: durationText
+            });
+            
             // Create success embed
             const successEmbed = {
                 color: 0x00FF00,
@@ -189,9 +209,14 @@ export default {
                         inline: true
                     },
                     {
+                        name: '[INFO] Case ID',
+                        value: `#${caseId}`,
+                        inline: true
+                    },
+                    {
                         name: '[INFO] Reason',
                         value: reason,
-                        inline: true
+                        inline: false
                     },
                     {
                         name: '[INFO] User ID',
@@ -210,7 +235,10 @@ export default {
                 target: user,
                 moderator: interaction.user,
                 reason: reason,
-                duration: durationText
+                duration: durationText,
+                extra: {
+                    'Case ID': `#${caseId}`
+                }
             });
             
             // Log the action

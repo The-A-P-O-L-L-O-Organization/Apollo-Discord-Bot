@@ -1,0 +1,217 @@
+// NSFW Detection Utility
+// Scans image attachments for NSFW content using TensorFlow.js
+
+import * as tf from '@tensorflow/tfjs-node';
+import * as nsfwjs from 'nsfwjs';
+import https from 'https';
+import http from 'http';
+import { getGuildData } from './db.js';
+
+let model = null;
+let modelLoaded = false;
+
+/**
+ * Initializes the NSFW detection model
+ * @returns {Promise<boolean>} Whether initialization was successful
+ */
+export async function initializeNsfwModel() {
+    try {
+        console.log('[INFO] Loading NSFW detection model...');
+        model = await nsfwjs.load();
+        modelLoaded = true;
+        console.log('[INFO] NSFW detection model loaded successfully');
+        return true;
+    } catch (error) {
+        console.error('[ERROR] Failed to load NSFW detection model:', error);
+        modelLoaded = false;
+        return false;
+    }
+}
+
+/**
+ * Checks if NSFW detection is available
+ * @returns {boolean} Whether model is loaded
+ */
+export function isNsfwDetectionAvailable() {
+    return modelLoaded && model !== null;
+}
+
+/**
+ * Gets NSFW detection configuration for a guild
+ * @param {string} guildId - The guild ID
+ * @returns {Object} Configuration
+ */
+export function getNsfwConfig(guildId) {
+    const guildConfig = getGuildData('nsfw-config', guildId);
+    return {
+        enabled: guildConfig.enabled ?? false,
+        threshold: guildConfig.threshold ?? 0.6,
+        deleteMessages: guildConfig.deleteMessages ?? true,
+        warnOnDetection: guildConfig.warnOnDetection ?? false,
+        exemptNsfwChannels: guildConfig.exemptNsfwChannels ?? true
+    };
+}
+
+/**
+ * Downloads an image from URL
+ * @param {string} url - Image URL
+ * @returns {Promise<Buffer>} Image buffer
+ */
+function downloadImage(url) {
+    return new Promise((resolve, reject) => {
+        const protocol = url.startsWith('https') ? https : http;
+        
+        protocol.get(url, (response) => {
+            if (response.statusCode !== 200) {
+                reject(new Error(`Failed to download image: ${response.statusCode}`));
+                return;
+            }
+            
+            const chunks = [];
+            response.on('data', (chunk) => chunks.push(chunk));
+            response.on('end', () => resolve(Buffer.concat(chunks)));
+            response.on('error', reject);
+        }).on('error', reject);
+    });
+}
+
+/**
+ * Analyzes an image for NSFW content
+ * @param {string} imageUrl - URL of the image to analyze
+ * @returns {Promise<Object|null>} Analysis result or null
+ */
+export async function analyzeImage(imageUrl) {
+    if (!isNsfwDetectionAvailable()) {
+        return null;
+    }
+    
+    try {
+        // Download image
+        const imageBuffer = await downloadImage(imageUrl);
+        
+        // Decode image using TensorFlow
+        const decodedImage = tf.node.decodeImage(imageBuffer, 3);
+        
+        // Analyze with NSFW model
+        const predictions = await model.classify(decodedImage);
+        
+        // Clean up tensor
+        decodedImage.dispose();
+        
+        // Convert predictions to object
+        const result = {};
+        predictions.forEach(pred => {
+            result[pred.className] = pred.probability;
+        });
+        
+        return result;
+        
+    } catch (error) {
+        console.error('[ERROR] NSFW detection error:', error.message);
+        return null;
+    }
+}
+
+/**
+ * Checks if an image is NSFW based on predictions
+ * @param {Object} predictions - Prediction results
+ * @param {number} threshold - NSFW threshold
+ * @returns {boolean} Whether image is NSFW
+ */
+export function isImageNsfw(predictions, threshold = 0.6) {
+    if (!predictions) return false;
+    
+    // Categories considered NSFW
+    const nsfwCategories = ['Porn', 'Sexy', 'Hentai'];
+    
+    for (const category of nsfwCategories) {
+        if (predictions[category] && predictions[category] >= threshold) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+/**
+ * Checks message attachments for NSFW content
+ * @param {string} guildId - Guild ID
+ * @param {Message} message - Discord message
+ * @returns {Promise<Object|null>} Detection result or null
+ */
+export async function checkMessageAttachments(guildId, message) {
+    const config = getNsfwConfig(guildId);
+    
+    if (!config.enabled || !isNsfwDetectionAvailable()) {
+        return null;
+    }
+    
+    // Skip if channel is NSFW and exemption is enabled
+    if (config.exemptNsfwChannels && message.channel.nsfw) {
+        return null;
+    }
+    
+    // Check if message has image attachments
+    const imageAttachments = message.attachments.filter(att => {
+        const contentType = att.contentType || '';
+        return contentType.startsWith('image/');
+    });
+    
+    if (imageAttachments.size === 0) {
+        return null;
+    }
+    
+    const nsfwImages = [];
+    
+    // Analyze each image
+    for (const [id, attachment] of imageAttachments) {
+        try {
+            const predictions = await analyzeImage(attachment.url);
+            
+            if (predictions && isImageNsfw(predictions, config.threshold)) {
+                nsfwImages.push({
+                    url: attachment.url,
+                    name: attachment.name,
+                    predictions
+                });
+            }
+        } catch (error) {
+            console.error(`[ERROR] Failed to analyze attachment ${attachment.name}:`, error.message);
+        }
+    }
+    
+    if (nsfwImages.length > 0) {
+        return {
+            detected: true,
+            images: nsfwImages,
+            shouldDelete: config.deleteMessages,
+            shouldWarn: config.warnOnDetection
+        };
+    }
+    
+    return null;
+}
+
+/**
+ * Formats NSFW predictions for display
+ * @param {Object} predictions - NSFW predictions
+ * @returns {string} Formatted string
+ */
+export function formatNsfwPredictions(predictions) {
+    return Object.entries(predictions)
+        .map(([category, probability]) => {
+            const percentage = Math.round(probability * 100);
+            return `${category}: ${percentage}%`;
+        })
+        .sort((a, b) => {
+            const aVal = parseInt(a.split(': ')[1]);
+            const bVal = parseInt(b.split(': ')[1]);
+            return bVal - aVal;
+        })
+        .join('\n');
+}
+
+// Initialize model on module load (async)
+initializeNsfwModel().catch(error => {
+    console.error('[ERROR] Failed to initialize NSFW detection:', error);
+});

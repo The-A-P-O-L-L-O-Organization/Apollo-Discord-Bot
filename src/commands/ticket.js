@@ -4,6 +4,7 @@
 import { EmbedBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { getGuildData, setGuildData, generateId } from '../utils/db.js';
 import { config } from '../config/config.js';
+import { getPriorityColor, getPriorityEmoji } from '../utils/slaTracker.js';
 
 export default {
     name: 'ticket',
@@ -17,6 +18,31 @@ export default {
             description: 'Brief reason for opening the ticket',
             type: 3, // STRING type
             required: false
+        },
+        {
+            name: 'category',
+            description: 'Category of the ticket',
+            type: 3, // STRING type
+            required: false,
+            choices: [
+                { name: 'Technical Support', value: 'technical' },
+                { name: 'Billing', value: 'billing' },
+                { name: 'General', value: 'general' },
+                { name: 'Report', value: 'report' },
+                { name: 'Other', value: 'other' }
+            ]
+        },
+        {
+            name: 'priority',
+            description: 'Priority level of the ticket',
+            type: 3, // STRING type
+            required: false,
+            choices: [
+                { name: '🔴 Urgent', value: 'urgent' },
+                { name: '🟠 High', value: 'high' },
+                { name: '🟡 Medium', value: 'medium' },
+                { name: '🔵 Low', value: 'low' }
+            ]
         }
     ],
 
@@ -24,6 +50,8 @@ export default {
         const guildId = interaction.guild.id;
         const userId = interaction.user.id;
         const reason = interaction.options.getString('reason') || 'No reason provided';
+        const category = interaction.options.getString('category') || 'general';
+        const priority = interaction.options.getString('priority') || 'medium';
 
         // Get ticket configuration
         const ticketConfig = getGuildData('tickets', guildId);
@@ -107,7 +135,7 @@ export default {
                 type: ChannelType.GuildText,
                 parent: parent?.id || null,
                 permissionOverwrites,
-                topic: `Ticket #${ticketNumber} | Created by ${interaction.user.tag} | Reason: ${reason}`
+                topic: `${getPriorityEmoji(priority)} Ticket #${ticketNumber} | ${category} | ${priority} priority | Created by ${interaction.user.tag}`
             });
         } catch (error) {
             console.error('[ERROR] Failed to create ticket channel:', error);
@@ -119,20 +147,28 @@ export default {
 
         // Create the ticket embed
         const embed = new EmbedBuilder()
-            .setColor('#3498DB')
-            .setTitle(`Ticket #${ticketNumber}`)
+            .setColor(getPriorityColor(priority))
+            .setTitle(`${getPriorityEmoji(priority)} Ticket #${ticketNumber}`)
             .setDescription(config.tickets.welcomeMessage)
             .addFields(
                 { name: 'Created by', value: `${interaction.user}`, inline: true },
                 { name: 'Ticket ID', value: `#${ticketNumber}`, inline: true },
+                { name: 'Category', value: category.charAt(0).toUpperCase() + category.slice(1), inline: true },
+                { name: 'Priority', value: `${getPriorityEmoji(priority)} ${priority.charAt(0).toUpperCase() + priority.slice(1)}`, inline: true },
+                { name: 'Status', value: 'Open', inline: true },
+                { name: 'Assigned to', value: 'Unassigned', inline: true },
                 { name: 'Reason', value: reason, inline: false }
             )
             .setTimestamp()
             .setFooter({ text: 'Use /closeticket to close this ticket' });
 
-        // Create close button
+        // Create buttons (claim and close)
         const row = new ActionRowBuilder()
             .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('claim_ticket')
+                    .setLabel('Claim Ticket')
+                    .setStyle(ButtonStyle.Success),
                 new ButtonBuilder()
                     .setCustomId('close_ticket')
                     .setLabel('Close Ticket')
@@ -157,6 +193,14 @@ export default {
             channelId: ticketChannel.id,
             userId,
             reason,
+            category,
+            priority,
+            status: 'open',
+            assignedTo: [],
+            claimedBy: null,
+            firstResponseAt: null,
+            participants: [userId],
+            tags: [category, priority],
             createdAt: Date.now()
         });
         ticketConfig.totalTickets = ticketNumber;
