@@ -10,12 +10,12 @@ import {
     createMockMember
 } from '../mocks/discord.js';
 
-// Mock the dataStore module
-vi.mock('../../src/utils/dataStore.js', () => ({
+// Mock the db module
+vi.mock('../../src/utils/db.js', () => ({
     getGuildData: vi.fn().mockReturnValue({ roles: [] })
 }));
 
-import { getGuildData } from '../../src/utils/dataStore.js';
+import { getGuildData } from '../../src/utils/db.js';
 
 describe('MessageReactionRemove Event', () => {
     let mockReaction;

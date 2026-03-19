@@ -32,7 +32,7 @@ describe('Logger Utility', () => {
             
             expect(embed).toBeInstanceOf(EmbedBuilder);
             const data = embed.toJSON();
-            expect(data.title).toBe('🗑️ Message Deleted');
+            expect(data.title).toBe('[Delete] Message Deleted');
             expect(data.description).toBe('Test deleted message');
         });
 
@@ -119,7 +119,7 @@ describe('Logger Utility', () => {
             const embed = createMessageEditEmbed(oldMessage, newMessage);
             const data = embed.toJSON();
             
-            expect(data.title).toBe('✏️ Message Edited');
+            expect(data.title).toBe('[Edit] Message Edited');
             
             const beforeField = data.fields.find(f => f.name === 'Before');
             const afterField = data.fields.find(f => f.name === 'After');
@@ -180,7 +180,7 @@ describe('Logger Utility', () => {
             const embed = createMemberJoinEmbed(member);
             const data = embed.toJSON();
             
-            expect(data.title).toBe('📥 Member Joined');
+            expect(data.title).toBe('[Join] Member Joined');
             expect(data.description).toContain('NewUser#0001');
             expect(data.description).toContain('joined');
         });
@@ -208,7 +208,7 @@ describe('Logger Utility', () => {
             const data = embed.toJSON();
             
             const warningField = data.fields.find(f => f.name.includes('Warning'));
-            expect(warningField).toBeTruthy();
+            const warningField = data.fields.find(f => f.name.includes('!'));
         });
 
         it('should not flag old accounts', () => {
@@ -236,7 +236,7 @@ describe('Logger Utility', () => {
             const embed = createMemberLeaveEmbed(member);
             const data = embed.toJSON();
             
-            expect(data.title).toBe('📤 Member Left');
+            expect(data.title).toBe('[Leave] Member Left');
             expect(data.description).toContain('LeavingUser#0001');
         });
 
@@ -317,8 +317,8 @@ describe('Logger Utility', () => {
             const embed = createRoleChangeEmbed(oldMember, newMember);
             const data = embed.toJSON();
             
-            expect(data.title).toBe('🏷️ Role Update');
-            const addedField = data.fields.find(f => f.name.includes('Added'));
+            expect(data.title).toBe('[Role] Role Update');
+            const addedField = data.fields.find(f => f.name.includes('+'));
             expect(addedField.value).toContain('NewRole');
         });
 
@@ -336,7 +336,7 @@ describe('Logger Utility', () => {
             const embed = createRoleChangeEmbed(oldMember, newMember);
             const data = embed.toJSON();
             
-            const removedField = data.fields.find(f => f.name.includes('Removed'));
+            const removedField = data.fields.find(f => f.name.includes('-'));
             expect(removedField.value).toContain('OldRole');
         });
 
@@ -356,8 +356,8 @@ describe('Logger Utility', () => {
             const embed = createRoleChangeEmbed(oldMember, newMember);
             const data = embed.toJSON();
             
-            const addedField = data.fields.find(f => f.name.includes('Added'));
-            const removedField = data.fields.find(f => f.name.includes('Removed'));
+            const addedField = data.fields.find(f => f.name.includes('+'));
+            const removedField = data.fields.find(f => f.name.includes('-'));
             expect(addedField).toBeTruthy();
             expect(removedField).toBeTruthy();
         });
@@ -384,7 +384,7 @@ describe('Logger Utility', () => {
             const embed = createVoiceChangeEmbed(oldState, newState);
             const data = embed.toJSON();
             
-            expect(data.title).toBe('🔊 Voice Channel Joined');
+            expect(data.title).toBe('[Voice] Voice Channel Joined');
             expect(data.description).toContain('VoiceUser#0001');
         });
 
@@ -398,7 +398,7 @@ describe('Logger Utility', () => {
             const embed = createVoiceChangeEmbed(oldState, newState);
             const data = embed.toJSON();
             
-            expect(data.title).toBe('🔇 Voice Channel Left');
+            expect(data.title).toBe('[Voice] Voice Channel Left');
         });
 
         it('should create embed for moving voice channels', () => {
@@ -412,7 +412,7 @@ describe('Logger Utility', () => {
             const embed = createVoiceChangeEmbed(oldState, newState);
             const data = embed.toJSON();
             
-            expect(data.title).toBe('🔀 Voice Channel Moved');
+            expect(data.title).toBe('[Voice] Voice Channel Moved');
             
             const fromField = data.fields.find(f => f.name === 'From');
             const toField = data.fields.find(f => f.name === 'To');

@@ -11,12 +11,12 @@ import {
 } from '../mocks/discord.js';
 
 // Mock the dataStore module
-vi.mock('../../src/utils/dataStore.js', () => ({
+vi.mock('../../src/utils/db.js', () => ({
     getGuildData: vi.fn(),
     setGuildData: vi.fn()
 }));
 
-import { getGuildData, setGuildData } from '../../src/utils/dataStore.js';
+import { getGuildData, setGuildData } from '../../src/utils/db.js';
 
 describe('SetLogChannel Command', () => {
     let mockInteraction;

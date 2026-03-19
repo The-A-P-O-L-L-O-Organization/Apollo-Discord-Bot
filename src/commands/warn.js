@@ -122,7 +122,7 @@ export default {
                 try {
                     const dmEmbed = new EmbedBuilder()
                         .setColor('#FFA500')
-                        .setTitle(`⚠️ Warning in ${interaction.guild.name}`)
+                        .setTitle(`[!] Warning in ${interaction.guild.name}`)
                         .setDescription(`You have been warned by a moderator.`)
                         .addFields(
                             { name: 'Reason', value: reason, inline: false },
@@ -192,7 +192,7 @@ export default {
             // Add auto-punishment info if applicable
             if (autoPunishment) {
                 successEmbed.addFields({
-                    name: '⚠️ Auto-Punishment Applied',
+                    name: '[!] Auto-Punishment Applied',
                     value: `User has been **${autoPunishment}** for reaching ${warningCount} warnings.`,
                     inline: false
                 });

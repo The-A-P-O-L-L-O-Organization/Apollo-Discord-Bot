@@ -85,7 +85,7 @@ export async function logEvent(guild, eventType, embed) {
 export function createMessageDeleteEmbed(message) {
     const embed = new EmbedBuilder()
         .setColor('#FF6B6B')
-        .setTitle('🗑️ Message Deleted')
+        .setTitle('[Delete] Message Deleted')
         .setDescription(message.content || '*No text content*')
         .addFields(
             { name: 'Author', value: `${message.author?.tag || 'Unknown'} (${message.author?.id || 'Unknown'})`, inline: true },
@@ -122,7 +122,7 @@ export function createMessageDeleteEmbed(message) {
 export function createMessageEditEmbed(oldMessage, newMessage) {
     const embed = new EmbedBuilder()
         .setColor('#FFE66D')
-        .setTitle('✏️ Message Edited')
+        .setTitle('[Edit] Message Edited')
         .addFields(
             { name: 'Author', value: `${newMessage.author?.tag || 'Unknown'} (${newMessage.author?.id || 'Unknown'})`, inline: true },
             { name: 'Channel', value: `<#${newMessage.channel.id}>`, inline: true },
@@ -151,7 +151,7 @@ export function createMemberJoinEmbed(member) {
     
     const embed = new EmbedBuilder()
         .setColor('#4ECDC4')
-        .setTitle('📥 Member Joined')
+        .setTitle('[Join] Member Joined')
         .setDescription(`${member.user.tag} joined the server`)
         .setThumbnail(member.user.displayAvatarURL())
         .addFields(
@@ -167,7 +167,7 @@ export function createMemberJoinEmbed(member) {
     // Flag new accounts
     if (daysOld < 7) {
         embed.addFields({
-            name: '⚠️ New Account Warning',
+            name: '[!] New Account Warning',
             value: `This account is less than 7 days old.`,
             inline: false
         });
@@ -194,7 +194,7 @@ export function createMemberLeaveEmbed(member) {
     
     const embed = new EmbedBuilder()
         .setColor('#FF6B6B')
-        .setTitle('📤 Member Left')
+        .setTitle('[Leave] Member Left')
         .setDescription(`${member.user.tag} left the server`)
         .setThumbnail(member.user.displayAvatarURL())
         .addFields(
@@ -231,7 +231,7 @@ export function createRoleChangeEmbed(oldMember, newMember) {
     
     const embed = new EmbedBuilder()
         .setColor('#9B59B6')
-        .setTitle('🏷️ Role Update')
+        .setTitle('[Role] Role Update')
         .setDescription(`Roles updated for ${newMember.user.tag}`)
         .setThumbnail(newMember.user.displayAvatarURL())
         .addFields(
@@ -243,7 +243,7 @@ export function createRoleChangeEmbed(oldMember, newMember) {
     
     if (addedRoles.length > 0) {
         embed.addFields({
-            name: '➕ Roles Added',
+            name: '+ Roles Added',
             value: addedRoles.map(r => r.name).join(', '),
             inline: false
         });
@@ -251,7 +251,7 @@ export function createRoleChangeEmbed(oldMember, newMember) {
     
     if (removedRoles.length > 0) {
         embed.addFields({
-            name: '➖ Roles Removed',
+            name: '- Roles Removed',
             value: removedRoles.map(r => r.name).join(', '),
             inline: false
         });
@@ -274,17 +274,17 @@ export function createVoiceChangeEmbed(oldState, newState) {
     
     if (!oldState.channel && newState.channel) {
         // Joined voice channel
-        title = '🔊 Voice Channel Joined';
+        title = '[Voice] Voice Channel Joined';
         description = `${member.user.tag} joined a voice channel`;
         color = '#4ECDC4';
     } else if (oldState.channel && !newState.channel) {
         // Left voice channel
-        title = '🔇 Voice Channel Left';
+        title = '[Voice] Voice Channel Left';
         description = `${member.user.tag} left a voice channel`;
         color = '#FF6B6B';
     } else if (oldState.channel && newState.channel && oldState.channel.id !== newState.channel.id) {
         // Moved voice channels
-        title = '🔀 Voice Channel Moved';
+        title = '[Voice] Voice Channel Moved';
         description = `${member.user.tag} moved voice channels`;
         color = '#FFE66D';
     } else {

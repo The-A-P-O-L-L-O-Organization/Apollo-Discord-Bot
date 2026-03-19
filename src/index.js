@@ -8,8 +8,8 @@ import readyHandler from './events/ready.js';
 import guildMemberAddHandler from './events/guildMemberAdd.js';
 import commandHandler from './handlers/commandHandler.js';
 import eventHandler from './handlers/eventHandler.js';
-import { initReminderScheduler } from './utils/reminderScheduler.js';
-import { initPollScheduler } from './utils/pollScheduler.js';
+import { initReminderScheduler, stopReminderScheduler } from './utils/reminderScheduler.js';
+import { initPollScheduler, stopPollScheduler } from './utils/pollScheduler.js';
 import { stopSpamTrackerCleanup } from './utils/automod.js';
 
 // Create a new Client instance with required intents
@@ -135,6 +135,8 @@ process.on('uncaughtException', (error) => {
 process.on('SIGTERM', () => {
     console.log('[INFO] Received SIGTERM, shutting down gracefully...');
     stopSpamTrackerCleanup();
+    stopReminderScheduler();
+    stopPollScheduler();
     client.destroy();
     process.exit(0);
 });
@@ -142,15 +144,15 @@ process.on('SIGTERM', () => {
 process.on('SIGINT', () => {
     console.log('[INFO] Received SIGINT, shutting down gracefully...');
     stopSpamTrackerCleanup();
+    stopReminderScheduler();
+    stopPollScheduler();
     client.destroy();
     process.exit(0);
 });
 
 // Login to Discord with the bot token
+console.log('[INFO] Attempting to log in...');
 client.login(config.DISCORD_TOKEN)
-    .then(() => {
-        console.log('[INFO] Attempting to log in...');
-    })
     .catch((error) => {
         console.error('[ERROR] Failed to log in:', error);
         process.exit(1);

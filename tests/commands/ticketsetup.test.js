@@ -10,8 +10,8 @@ import {
     createMockChannel
 } from '../mocks/discord.js';
 
-// Mock the dataStore module
-vi.mock('../../src/utils/dataStore.js', () => ({
+// Mock the db module
+vi.mock('../../src/utils/db.js', () => ({
     getGuildData: vi.fn().mockReturnValue({}),
     setGuildData: vi.fn()
 }));
@@ -26,7 +26,7 @@ vi.mock('../../src/config/config.js', () => ({
     }
 }));
 
-import { getGuildData, setGuildData } from '../../src/utils/dataStore.js';
+import { getGuildData, setGuildData } from '../../src/utils/db.js';
 
 describe('Ticket Setup Command', () => {
     let mockInteraction;

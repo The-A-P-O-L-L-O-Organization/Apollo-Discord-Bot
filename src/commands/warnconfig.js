@@ -110,22 +110,22 @@ async function handleView(interaction) {
         .setDescription(`Current warning thresholds for ${interaction.guild.name}`)
         .addFields(
             { 
-                name: '🔇 Auto-Mute Threshold', 
+                name: '[Mute] Auto-Mute Threshold', 
                 value: thresholds.mute ? `${thresholds.mute} warnings` : 'Disabled', 
                 inline: true 
             },
             { 
-                name: '👢 Auto-Kick Threshold', 
+                name: '[Kick] Auto-Kick Threshold', 
                 value: thresholds.kick ? `${thresholds.kick} warnings` : 'Disabled', 
                 inline: true 
             },
             { 
-                name: '🔨 Auto-Ban Threshold', 
+                name: '[Ban] Auto-Ban Threshold', 
                 value: thresholds.ban ? `${thresholds.ban} warnings` : 'Disabled', 
                 inline: true 
             },
             { 
-                name: '⏱️ Auto-Mute Duration', 
+                name: '[Time] Auto-Mute Duration', 
                 value: formatDuration(muteDuration), 
                 inline: true 
             }

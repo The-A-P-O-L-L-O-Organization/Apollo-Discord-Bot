@@ -148,7 +148,6 @@ async function handleCreateTicket(interaction) {
                 .setCustomId('close_ticket')
                 .setLabel('Close Ticket')
                 .setStyle(ButtonStyle.Danger)
-                .setEmoji('🔒')
         );
     
     // Send the welcome message
@@ -176,7 +175,7 @@ async function handleCreateTicket(interaction) {
     
     return interaction.editReply({
         content: `Your ticket has been created: ${ticketChannel}`
-    });
+    }).catch(err => console.error('[WARN] Failed to delete message:', err.message));
 }
 
 /**
@@ -192,7 +191,7 @@ async function handleCloseTicket(interaction) {
     // Find the ticket
     const ticketIndex = ticketConfig.openTickets?.findIndex(t => t.channelId === channelId);
     
-    if (ticketIndex === -1 || ticketIndex === undefined) {
+    if (ticketIndex === undefined || ticketIndex === -1) {
         return interaction.reply({
             content: 'This channel is not a ticket channel.',
             ephemeral: true
@@ -332,7 +331,8 @@ async function handleCloseTicket(interaction) {
     // Wait a moment then delete the channel
     setTimeout(async () => {
         try {
-            await interaction.channel.delete(`Ticket closed by ${interaction.user.tag}`);
+            const channel = await client.channels.fetch(channelId);
+            await channel.delete(`Ticket closed by ${interaction.user.tag}`);
         } catch (error) {
             console.error('[ERROR] Failed to delete ticket channel:', error);
         }

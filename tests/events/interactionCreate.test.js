@@ -13,7 +13,7 @@ import {
 } from '../mocks/discord.js';
 
 // Mock the dataStore module
-vi.mock('../../src/utils/dataStore.js', () => ({
+vi.mock('../../src/utils/db.js', () => ({
     getGuildData: vi.fn(),
     setGuildData: vi.fn(),
     generateId: vi.fn().mockReturnValue('test-ticket-id'),
@@ -30,7 +30,7 @@ vi.mock('../../src/config/config.js', () => ({
     }
 }));
 
-import { getGuildData, setGuildData, writeToSubDir } from '../../src/utils/dataStore.js';
+import { getGuildData, setGuildData, writeToSubDir } from '../../src/utils/db.js';
 
 describe('InteractionCreate Event', () => {
     let mockInteraction;

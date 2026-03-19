@@ -12,7 +12,7 @@ import {
 } from '../mocks/discord.js';
 
 // Mock the dependencies
-vi.mock('../../src/utils/dataStore.js', () => ({
+vi.mock('../../src/utils/db.js', () => ({
     getUserData: vi.fn(),
     appendToUserArray: vi.fn(),
     generateId: vi.fn().mockReturnValue('test-warning-id'),
@@ -42,7 +42,7 @@ vi.mock('../../src/config/config.js', () => ({
     }
 }));
 
-import { getUserData, appendToUserArray, generateId, getGuildData } from '../../src/utils/dataStore.js';
+import { getUserData, appendToUserArray, generateId, getGuildData } from '../../src/utils/db.js';
 import { sendModLog, fetchMember } from '../../src/utils/modLog.js';
 
 describe('Warn Command', () => {

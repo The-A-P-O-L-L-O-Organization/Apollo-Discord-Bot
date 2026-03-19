@@ -26,8 +26,8 @@ vi.mock('../../src/utils/automod.js', () => ({
     checkAccountAge: vi.fn().mockReturnValue(false)
 }));
 
-// Mock the dataStore module
-vi.mock('../../src/utils/dataStore.js', () => ({
+// Mock the db module
+vi.mock('../../src/utils/db.js', () => ({
     appendToUserArray: vi.fn(),
     generateId: vi.fn().mockReturnValue('test-warning-id'),
     getUserData: vi.fn().mockReturnValue([]),
@@ -61,7 +61,7 @@ import {
     checkSpam,
     checkAccountAge
 } from '../../src/utils/automod.js';
-import { appendToUserArray, getUserData, getGuildData } from '../../src/utils/dataStore.js';
+import { appendToUserArray, getUserData, getGuildData } from '../../src/utils/db.js';
 import { sendModLog } from '../../src/utils/modLog.js';
 
 describe('MessageCreate Event', () => {

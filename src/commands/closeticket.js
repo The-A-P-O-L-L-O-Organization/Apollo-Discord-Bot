@@ -1,13 +1,14 @@
 // Close Ticket Command
 // Closes a ticket, saves the transcript, and deletes the channel
 
-import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ChannelType } from 'discord.js';
 import { getGuildData, setGuildData, writeToSubDir } from '../utils/db.js';
 
 export default {
     data: new SlashCommandBuilder()
         .setName('closeticket')
         .setDescription('Close the current ticket')
+        .setDMPermission(false)
         .addStringOption(option =>
             option
                 .setName('reason')
@@ -163,13 +164,14 @@ export default {
             
             await ticketCreator.send({ embeds: [dmEmbed] });
         } catch (error) {
-            // User has DMs disabled or couldn't be reached
+            console.error('[ERROR] Failed to DM ticket creator:', error);
         }
 
         // Wait a moment then delete the channel
         setTimeout(async () => {
             try {
-                await interaction.channel.delete(`Ticket closed by ${interaction.user.tag}: ${reason}`);
+                const channel = await interaction.client.channels.fetch(channelId);
+                await channel.delete(`Ticket closed by ${interaction.user.tag}: ${reason}`);
             } catch (error) {
                 console.error('[ERROR] Failed to delete ticket channel:', error);
             }

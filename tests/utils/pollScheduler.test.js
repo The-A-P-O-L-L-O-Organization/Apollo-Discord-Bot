@@ -49,11 +49,11 @@ describe('Poll Scheduler Utility', () => {
 
     describe('Poll Emoji Mapping', () => {
         it('should have correct emoji options', () => {
-            const POLL_EMOJIS = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
+            const POLL_EMOJIS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
             
             expect(POLL_EMOJIS).toHaveLength(10);
-            expect(POLL_EMOJIS[0]).toBe('1️⃣');
-            expect(POLL_EMOJIS[9]).toBe('🔟');
+            expect(POLL_EMOJIS[0]).toBe('1');
+            expect(POLL_EMOJIS[9]).toBe('10');
         });
     });
 

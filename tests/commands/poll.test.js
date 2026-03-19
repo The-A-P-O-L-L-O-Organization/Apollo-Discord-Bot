@@ -10,8 +10,8 @@ import {
     createMockMessage
 } from '../mocks/discord.js';
 
-// Mock the dataStore module
-vi.mock('../../src/utils/dataStore.js', () => ({
+// Mock the db module
+vi.mock('../../src/utils/db.js', () => ({
     appendToGuildArray: vi.fn(),
     generateId: vi.fn().mockReturnValue('poll-123')
 }));
@@ -26,7 +26,7 @@ vi.mock('../../src/config/config.js', () => ({
     }
 }));
 
-import { appendToGuildArray } from '../../src/utils/dataStore.js';
+import { appendToGuildArray } from '../../src/utils/db.js';
 
 describe('Poll Command', () => {
     let mockInteraction;

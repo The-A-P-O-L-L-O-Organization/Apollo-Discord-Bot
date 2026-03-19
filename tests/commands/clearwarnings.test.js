@@ -9,8 +9,8 @@ import {
     createMockGuild 
 } from '../mocks/discord.js';
 
-// Mock the dataStore module
-vi.mock('../../src/utils/dataStore.js', () => ({
+// Mock the db module
+vi.mock('../../src/utils/db.js', () => ({
     getUserData: vi.fn(),
     setUserData: vi.fn(),
     removeFromUserArray: vi.fn()
@@ -21,7 +21,7 @@ vi.mock('../../src/utils/modLog.js', () => ({
     sendModLog: vi.fn().mockResolvedValue(undefined)
 }));
 
-import { getUserData, setUserData } from '../../src/utils/dataStore.js';
+import { getUserData, setUserData } from '../../src/utils/db.js';
 import { sendModLog } from '../../src/utils/modLog.js';
 
 describe('ClearWarnings Command', () => {

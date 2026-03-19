@@ -21,7 +21,7 @@ export function initReminderScheduler(discordClient) {
     console.log(`[INFO] Reminder scheduler started (checking every ${config.reminders.checkInterval / 1000}s)`);
     
     // Run an immediate check
-    checkReminders();
+    checkReminders().catch(err => console.error('[ERROR] Reminder check failed:', err));
 }
 
 /**
@@ -78,7 +78,7 @@ async function sendReminder(reminder) {
         // Create reminder embed
         const embed = new EmbedBuilder()
             .setColor('#0099FF')
-            .setTitle('⏰ Reminder!')
+            .setTitle('[Reminder]')
             .setDescription(reminder.message)
             .addFields({
                 name: 'Set',

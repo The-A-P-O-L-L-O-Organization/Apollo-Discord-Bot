@@ -203,7 +203,9 @@ function getAutomodConfig(guildId) {
 }
 
 async function handleEnable(interaction) {
-    updateGuildData('automod', interaction.guild.id, 'enabled', true);
+    const cfg = getGuildData('automod', interaction.guild.id);
+    cfg.enabled = true;
+    setGuildData('automod', interaction.guild.id, cfg);
     
     const embed = new EmbedBuilder()
         .setColor('#00FF00')
@@ -222,7 +224,9 @@ async function handleEnable(interaction) {
 }
 
 async function handleDisable(interaction) {
-    updateGuildData('automod', interaction.guild.id, 'enabled', false);
+    const cfg = getGuildData('automod', interaction.guild.id);
+    cfg.enabled = false;
+    setGuildData('automod', interaction.guild.id, cfg);
     
     const embed = new EmbedBuilder()
         .setColor('#FF0000')
@@ -240,17 +244,17 @@ async function handleStatus(interaction) {
     const embed = new EmbedBuilder()
         .setColor(cfg.enabled ? '#00FF00' : '#FF0000')
         .setTitle('Automod Configuration')
-        .setDescription(`Status: ${cfg.enabled ? '✅ **Enabled**' : '❌ **Disabled**'}`)
+        .setDescription(`Status: ${cfg.enabled ? '[ON] **Enabled**' : '[OFF] **Disabled**'}`)
         .addFields(
-            { name: '🔗 Filter Invites', value: cfg.filterInvites ? 'Yes' : 'No', inline: true },
-            { name: '🌐 Filter Links', value: cfg.filterLinks ? 'Yes' : 'No', inline: true },
-            { name: '📢 Max Mentions', value: `${cfg.maxMentions}`, inline: true },
-            { name: '🔠 Max Caps %', value: `${cfg.maxCapsPercent}%`, inline: true },
-            { name: '📅 Min Account Age', value: cfg.minAccountAge > 0 ? `${cfg.minAccountAge} days` : 'Disabled', inline: true },
-            { name: '📨 Spam Threshold', value: `${cfg.spamThreshold} msgs / ${cfg.spamInterval / 1000}s`, inline: true },
-            { name: '🚫 Banned Words', value: `${cfg.bannedWords.length} word(s)`, inline: true },
-            { name: '📝 Exempt Channels', value: `${cfg.exemptChannels.length} channel(s)`, inline: true },
-            { name: '👥 Exempt Roles', value: `${cfg.exemptRoles.length} role(s)`, inline: true }
+            { name: '[Link] Filter Invites', value: cfg.filterInvites ? 'Yes' : 'No', inline: true },
+            { name: '[Web] Filter Links', value: cfg.filterLinks ? 'Yes' : 'No', inline: true },
+            { name: '[Mention] Max Mentions', value: `${cfg.maxMentions}`, inline: true },
+            { name: '[Caps] Max Caps %', value: `${cfg.maxCapsPercent}%`, inline: true },
+            { name: '[Date] Min Account Age', value: cfg.minAccountAge > 0 ? `${cfg.minAccountAge} days` : 'Disabled', inline: true },
+            { name: '[Spam] Spam Threshold', value: `${cfg.spamThreshold} msgs / ${cfg.spamInterval / 1000}s`, inline: true },
+            { name: '[Ban] Banned Words', value: `${cfg.bannedWords.length} word(s)`, inline: true },
+            { name: '[Channel] Exempt Channels', value: `${cfg.exemptChannels.length} channel(s)`, inline: true },
+            { name: '[Roles] Exempt Roles', value: `${cfg.exemptRoles.length} role(s)`, inline: true }
         )
         .setTimestamp()
         .setFooter({ text: 'Use /automod set to modify settings' });
@@ -400,7 +404,9 @@ async function handleSet(interaction) {
         }
     }
     
-    updateGuildData('automod', interaction.guild.id, setting, value);
+    const cfg = getGuildData('automod', interaction.guild.id);
+    cfg[setting] = value;
+    setGuildData('automod', interaction.guild.id, cfg);
     
     const embed = new EmbedBuilder()
         .setColor('#00FF00')
