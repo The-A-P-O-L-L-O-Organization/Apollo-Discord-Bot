@@ -22,8 +22,22 @@ vi.mock('../../src/config/config.js', () => ({
         welcome: {
             channelName: 'welcome',
             message: 'Welcome {user} to {server}!'
+        },
+        moderation: {
+            moderationLogChannel: 'mod-log'
         }
     }
+}));
+
+// Mock the raidDetection module
+vi.mock('../../src/utils/raidDetection.js', () => ({
+    checkRaidPattern: vi.fn().mockReturnValue(false),
+    handleRaidDetected: vi.fn()
+}));
+
+// Mock analytics
+vi.mock('../../src/utils/analyticsCollector.js', () => ({
+    trackMemberChange: vi.fn()
 }));
 
 import { logEvent, createMemberJoinEmbed } from '../../src/utils/logger.js';
