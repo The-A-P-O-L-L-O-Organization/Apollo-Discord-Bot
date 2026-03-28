@@ -207,8 +207,7 @@ describe('Logger Utility', () => {
             const embed = createMemberJoinEmbed(member);
             const data = embed.toJSON();
             
-            const warningField = data.fields.find(f => f.name.includes('Warning'));
-            const warningField = data.fields.find(f => f.name.includes('!'));
+            const warningField = data.fields.find(f => f.name.includes('Warning') || f.name.includes('!'));
         });
 
         it('should not flag old accounts', () => {

@@ -108,7 +108,7 @@ describe('Unban Command', () => {
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             const embed = replyCall.embeds[0];
             
-            expect(embed.description).toContain('BannedUser#0001');
+            expect(embed.description).toContain('111222333444555666');
             expect(embed.fields.some(f => f.name.includes('Reason'))).toBe(true);
             expect(embed.fields.some(f => f.name.includes('Moderator'))).toBe(true);
             expect(embed.fields.some(f => f.name.includes('User ID'))).toBe(true);
@@ -121,7 +121,10 @@ describe('Unban Command', () => {
                 mockGuild,
                 expect.objectContaining({
                     action: 'unban',
-                    target: bannedUser,
+                    target: expect.objectContaining({
+                        id: '111222333444555666',
+                        tag: 'User ID: 111222333444555666'
+                    }),
                     moderator: mockInteraction.user,
                     reason: 'Appeal accepted'
                 })
