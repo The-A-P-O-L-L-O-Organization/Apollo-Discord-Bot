@@ -26,6 +26,17 @@ vi.mock('../../src/utils/automod.js', () => ({
     checkAccountAge: vi.fn().mockReturnValue(false)
 }));
 
+// Mock nsfwDetection to avoid TensorFlow loading
+vi.mock('../../src/utils/nsfwDetection.js', () => ({
+    checkMessageAttachments: vi.fn().mockResolvedValue(null),
+    isNsfwDetectionAvailable: vi.fn().mockReturnValue(false)
+}));
+
+// Mock perspectiveApi to avoid external API calls
+vi.mock('../../src/utils/perspectiveApi.js', () => ({
+    checkMessageToxicity: vi.fn().mockResolvedValue(null)
+}));
+
 // Mock the db module
 vi.mock('../../src/utils/db.js', () => ({
     appendToUserArray: vi.fn(),
@@ -63,6 +74,8 @@ import {
 } from '../../src/utils/automod.js';
 import { appendToUserArray, getUserData, getGuildData } from '../../src/utils/db.js';
 import { sendModLog } from '../../src/utils/modLog.js';
+import { checkMessageAttachments } from '../../src/utils/nsfwDetection.js';
+import { checkMessageToxicity } from '../../src/utils/perspectiveApi.js';
 
 describe('MessageCreate Event', () => {
     let mockMessage;
@@ -82,6 +95,8 @@ describe('MessageCreate Event', () => {
         checkCapsSpam.mockReturnValue(false);
         checkSpam.mockReturnValue(false);
         checkAccountAge.mockReturnValue(false);
+        checkMessageAttachments.mockResolvedValue(null);
+        checkMessageToxicity.mockResolvedValue(null);
         
         mockChannel = createMockChannel({
             id: '111222333',
