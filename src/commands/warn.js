@@ -1,7 +1,7 @@
 // Warn Command
 // Issues a warning to a user with auto-punishment thresholds
 
-import { PermissionsBitField, EmbedBuilder } from 'discord.js';
+import { PermissionsBitField } from 'discord.js';
 import { 
     getUserData, 
     appendToUserArray, 
@@ -131,17 +131,18 @@ export default {
             let dmSent = false;
             if (config.warnings.dmOnWarn) {
                 try {
-                    const dmEmbed = new EmbedBuilder()
-                        .setColor('#FFA500')
-                        .setTitle(`[!] Warning in ${interaction.guild.name}`)
-                        .setDescription(`You have been warned by a moderator.`)
-                        .addFields(
+                    const dmEmbed = {
+                        color: 0xFFA500,
+                        title: `[!] Warning in ${interaction.guild.name}`,
+                        description: `You have been warned by a moderator.`,
+                        fields: [
                             { name: 'Reason', value: reason, inline: false },
                             { name: 'Total Warnings', value: `${warningCount}`, inline: true },
                             { name: 'Warning ID', value: warning.id, inline: true }
-                        )
-                        .setTimestamp()
-                        .setFooter({ text: 'Please follow the server rules to avoid further action.' });
+                        ],
+                        timestamp: new Date().toISOString(),
+                        footer: { text: 'Please follow the server rules to avoid further action.' }
+                    };
                     
                     await user.send({ embeds: [dmEmbed] });
                     dmSent = true;
@@ -186,11 +187,11 @@ export default {
             }
             
             // Create success embed
-            const successEmbed = new EmbedBuilder()
-                .setColor('#FFA500')
-                .setTitle('[SUCCESS] User Warned')
-                .setDescription(`${user.tag} has been warned.`)
-                .addFields(
+            const successEmbed = {
+                color: 0xFFA500,
+                title: '[SUCCESS] User Warned',
+                description: `${user.tag} has been warned.`,
+                fields: [
                     { name: 'User', value: `${user.tag} (${user.id})`, inline: true },
                     { name: 'Moderator', value: interaction.user.tag, inline: true },
                     { name: 'Case ID', value: `#${caseId}`, inline: true },
@@ -198,12 +199,13 @@ export default {
                     { name: 'Total Warnings', value: `${warningCount}`, inline: true },
                     { name: 'Warning ID', value: warning.id, inline: true },
                     { name: 'DM Sent', value: dmSent ? 'Yes' : 'No', inline: true }
-                )
-                .setTimestamp();
+                ],
+                timestamp: new Date().toISOString()
+            };
             
             // Add auto-punishment info if applicable
             if (autoPunishment) {
-                successEmbed.addFields({
+                successEmbed.fields.push({
                     name: '[!] Auto-Punishment Applied',
                     value: `User has been **${autoPunishment}** for reaching ${warningCount} warnings.`,
                     inline: false
@@ -214,7 +216,7 @@ export default {
             if (!autoPunishment) {
                 const nextThreshold = getNextThreshold(warningCount, thresholds);
                 if (nextThreshold) {
-                    successEmbed.addFields({
+                    successEmbed.fields.push({
                         name: 'Next Threshold',
                         value: `${nextThreshold.action} at ${nextThreshold.count} warnings (${nextThreshold.count - warningCount} more)`,
                         inline: false
