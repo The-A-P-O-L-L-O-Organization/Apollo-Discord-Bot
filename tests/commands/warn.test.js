@@ -133,8 +133,7 @@ describe('Warn Command', () => {
             
             expect(mockInteraction.reply).toHaveBeenCalled();
             const replyCall = mockInteraction.reply.mock.calls[0][0];
-            const embedData = replyCall.embeds[0].toJSON();
-            expect(embedData.title).toBe('[SUCCESS] User Warned');
+            expect(replyCall.embeds[0].title).toBe('[SUCCESS] User Warned');
         });
 
         it('should include warning count in response', async () => {
@@ -147,7 +146,7 @@ describe('Warn Command', () => {
             await warnCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
-            const embed = replyCall.embeds[0].toJSON();
+            const embed = replyCall.embeds[0];
             const countField = embed.fields.find(f => f.name === 'Total Warnings');
             expect(countField.value).toBe('3');
         });
@@ -179,11 +178,10 @@ describe('Warn Command', () => {
             
             // Should still succeed
             const replyCall = mockInteraction.reply.mock.calls[0][0];
-            const embedData = replyCall.embeds[0].toJSON();
-            expect(embedData.title).toBe('[SUCCESS] User Warned');
+            expect(replyCall.embeds[0].title).toBe('[SUCCESS] User Warned');
             
             // Should indicate DM was not sent
-            const dmField = embedData.fields.find(f => f.name === 'DM Sent');
+            const dmField = replyCall.embeds[0].fields.find(f => f.name === 'DM Sent');
             expect(dmField.value).toBe('No');
         });
     });
@@ -245,8 +243,7 @@ describe('Warn Command', () => {
             );
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
-            const embedData = replyCall.embeds[0].toJSON();
-            const autoPunishField = embedData.fields.find(
+            const autoPunishField = replyCall.embeds[0].fields.find(
                 f => f.name.includes('Auto-Punishment')
             );
             expect(autoPunishField.value).toContain('muted');
@@ -314,8 +311,7 @@ describe('Warn Command', () => {
             
             // Should still send success response
             const replyCall = mockInteraction.reply.mock.calls[0][0];
-            const embedData = replyCall.embeds[0].toJSON();
-            expect(embedData.title).toBe('[SUCCESS] User Warned');
+            expect(replyCall.embeds[0].title).toBe('[SUCCESS] User Warned');
         });
 
         it('should show next threshold in response', async () => {
@@ -324,8 +320,7 @@ describe('Warn Command', () => {
             await warnCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
-            const embedData = replyCall.embeds[0].toJSON();
-            const thresholdField = embedData.fields.find(
+            const thresholdField = replyCall.embeds[0].fields.find(
                 f => f.name === 'Next Threshold'
             );
             expect(thresholdField).toBeTruthy();
@@ -370,8 +365,7 @@ describe('Warn Command', () => {
             await warnCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
-            const embedData = replyCall.embeds[0].toJSON();
-            const idField = embedData.fields.find(f => f.name === 'Warning ID');
+            const idField = replyCall.embeds[0].fields.find(f => f.name === 'Warning ID');
             expect(idField.value).toBe('test-warning-id');
         });
     });
