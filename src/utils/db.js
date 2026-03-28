@@ -256,8 +256,7 @@ export function writeToSubDir(subdir, filename, data) {
 }
 
 /**
- * Exposes the raw better-sqlite3 Database instance for advanced queries
- * (used by the dashboard API).
+ * Exposes the raw better-sqlite3 Database instance for advanced queries.
  */
 export { db };
 
