@@ -25,6 +25,10 @@ vi.mock('../../src/utils/modLog.js', () => ({
     fetchMember: vi.fn()
 }));
 
+vi.mock('../../src/commands/case.js', () => ({
+    createModCase: vi.fn().mockReturnValue('12345')
+}));
+
 vi.mock('../../src/config/config.js', () => ({
     config: {
         warnings: {
