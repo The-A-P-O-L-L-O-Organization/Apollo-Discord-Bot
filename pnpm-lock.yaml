@@ -15,6 +15,9 @@ importers:
       '@conversationai/perspectiveapi-js-client':
         specifier: ^1.0.1
         version: 1.0.1
+      '@discordjs/builders':
+        specifier: ^1.14.0
+        version: 1.14.0
       '@discordjs/rest':
         specifier: ^2.6.0
         version: 2.6.0
@@ -137,8 +140,8 @@ packages:
   '@conversationai/perspectiveapi-js-client@1.0.1':
     resolution: {integrity: sha512-7po77LuPyBAMG2PWRBidX4aqYLNfAcS9hi4HwaHHcY5mJziyif8GbFUVSeeC6IznHJ9PG6JhHRtr7Y60qK13BQ==}
 
-  '@discordjs/builders@1.13.1':
-    resolution: {integrity: sha512-cOU0UDHc3lp/5nKByDxkmRiNZBpdp0kx55aarbiAfakfKJHlxv/yFW1zmIqCAmwH5CRlrH9iMFKJMpvW4DPB+w==}
+  '@discordjs/builders@1.14.0':
+    resolution: {integrity: sha512-7pVKxVWkeLUtrTo9nTYkjRcJk0Hlms6lYervXAD7E7+K5lil9ms2JrEB1TalMiHvQMh7h1HJZ4fCJa0/vHpl4w==}
     engines: {node: '>=16.11.0'}
 
   '@discordjs/collection@1.5.3':
@@ -2390,7 +2393,7 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  '@discordjs/builders@1.13.1':
+  '@discordjs/builders@1.14.0':
     dependencies:
       '@discordjs/formatters': 0.6.2
       '@discordjs/util': 1.2.0
@@ -3567,7 +3570,7 @@ snapshots:
 
   discord.js@14.25.1:
     dependencies:
-      '@discordjs/builders': 1.13.1
+      '@discordjs/builders': 1.14.0
       '@discordjs/collection': 1.5.3
       '@discordjs/formatters': 0.6.2
       '@discordjs/rest': 2.6.0
