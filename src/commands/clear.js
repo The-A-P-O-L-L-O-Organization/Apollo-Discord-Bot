@@ -34,7 +34,7 @@ export default {
             const amount = interaction.options.getInteger('amount');
             const deleteAll = interaction.options.getBoolean('all');
 
-            if (!channel.isTextBased() || channel.isVoiceOnly()) {
+            if (!channel.isTextBased()) {
                 return interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
@@ -50,7 +50,7 @@ export default {
             }
 
             if (!amount) {
-                return await this.handleDeleteAll(interaction, channel);
+                amount = 5;
             }
 
             await this.deleteMessages(interaction, channel, amount);
