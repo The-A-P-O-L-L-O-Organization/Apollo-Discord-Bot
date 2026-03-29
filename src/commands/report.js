@@ -8,9 +8,9 @@ import { sendModLog } from '../utils/modLog.js';
 
 export default {
     data: new ContextMenuCommandBuilder()
-        .setName('Report Message')
+        .setName('ReportMessage')
         .setType(ApplicationCommandType.Message),
-    name: 'Report Message',
+    name: 'reportmessage',
     description: 'Report a message to the moderators',
     category: 'Utility',
     

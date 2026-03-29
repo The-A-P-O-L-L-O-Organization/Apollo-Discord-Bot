@@ -253,12 +253,3 @@ function generateId() {
     return `ANN-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 }
 
-function getGuildData(store, guildId) {
-    const { getGuildData } = require('../utils/db.js');
-    return getGuildData(store, guildId);
-}
-
-function setGuildData(store, guildId, data) {
-    const { setGuildData } = require('../utils/db.js');
-    return setGuildData(store, guildId, data);
-}
