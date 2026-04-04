@@ -120,20 +120,38 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run OSV Scanner
+        id: osv-scan
         uses: google/osv-scanner-action@v2
+        continue-on-error: true
         with:
           scan-args: |-
             --lockfile=pnpm-lock.yaml
             --format=sarif
             --output=osv-results.sarif
-        continue-on-error: true
+
+      - name: Validate SARIF file
+        id: validate
+        run: |
+          if [ -f "osv-results.sarif" ] && [ -s "osv-results.sarif" ]; then
+            # Check if it's valid JSON and has the required SARIF structure
+            if jq -e '.version and .runs' osv-results.sarif > /dev/null 2>&1; then
+              echo "valid=true" >> $GITHUB_OUTPUT
+              echo "SARIF file is valid"
+            else
+              echo "valid=false" >> $GITHUB_OUTPUT
+              echo "SARIF file exists but is not valid SARIF format"
+            fi
+          else
+            echo "valid=false" >> $GITHUB_OUTPUT
+            echo "SARIF file does not exist or is empty"
+          fi
 
       - name: Upload OSV scan results
+        if: steps.validate.outputs.valid == 'true'
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: osv-results.sarif
           category: osv-scanner
-        if: always()
 
   security-summary:
     name: Security Summary

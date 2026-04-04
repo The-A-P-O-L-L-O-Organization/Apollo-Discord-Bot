@@ -120,7 +120,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Trivy vulnerability scanner
+        id: trivy
         uses: aquasecurity/trivy-action@master
+        continue-on-error: true
         with:
           image-ref: "${{ needs.build.outputs.image }}@${{ needs.build.outputs.digest }}"
           format: sarif
@@ -131,7 +133,21 @@ jobs:
           TRIVY_USERNAME: ${{ github.actor }}
           TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Validate Trivy SARIF
+        id: validate-trivy
+        run: |
+          if [ -f "trivy-results.sarif" ] && [ -s "trivy-results.sarif" ]; then
+            if jq -e '.version and .runs' trivy-results.sarif > /dev/null 2>&1; then
+              echo "valid=true" >> $GITHUB_OUTPUT
+            else
+              echo "valid=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "valid=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Upload Trivy scan results to GitHub Security tab
+        if: steps.validate-trivy.outputs.valid == 'true'
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-results.sarif
