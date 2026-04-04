@@ -320,12 +320,18 @@ export function checkPhishingLinks(content) {
             }
             
             // Check for Discord/Steam impersonation domains
-            if ((hostname.includes('discord') || hostname.includes('steam')) &&
-                !hostname.endsWith('discord.com') && 
-                !hostname.endsWith('discordapp.com') &&
-                !hostname.endsWith('discord.gg') &&
-                !hostname.endsWith('steampowered.com') &&
-                !hostname.endsWith('steamcommunity.com')) {
+            // Use regex with word boundary to prevent bypass via subdomains like "notdiscord.com"
+            const isDiscordMention = /(?:^|[^a-z])discord(?:[^a-z]|$)/i.test(hostname);
+            const isSteamMention = /(?:^|[^a-z])steam(?:[^a-z]|$)/i.test(hostname);
+            
+            // Legitimate domain patterns - must match exactly or be a subdomain
+            const isLegitDiscord = /^([a-z0-9-]+\.)*discord\.com$/i.test(hostname) ||
+                                   /^([a-z0-9-]+\.)*discordapp\.com$/i.test(hostname) ||
+                                   /^([a-z0-9-]+\.)*discord\.gg$/i.test(hostname);
+            const isLegitSteam = /^([a-z0-9-]+\.)*steampowered\.com$/i.test(hostname) ||
+                                 /^([a-z0-9-]+\.)*steamcommunity\.com$/i.test(hostname);
+            
+            if ((isDiscordMention && !isLegitDiscord) || (isSteamMention && !isLegitSteam)) {
                 return {
                     url,
                     reason: 'Impersonation domain',
