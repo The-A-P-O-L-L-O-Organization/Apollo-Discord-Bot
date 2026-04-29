@@ -2,7 +2,7 @@
 # Optimized for production use with Node.js
 
 # Use official Node.js image as base
-FROM node:24.14.0-alpine3.21
+FROM node:24.14-alpine3.23
 
 # Install build dependencies for better-sqlite3
 RUN apk add --no-cache python3 make g++ sqlite-dev
