@@ -4,7 +4,7 @@
 services:
   bot:
     # Pull image from GitHub Container Registry
-    image: ghcr.io/the-a-p-o-l-o-organization/apollo-discord-bot:latest
+    image: ghcr.io/the-a-p-o-l-l-o-organization/apollo-discord-bot:latest
 
     # Container name for easy identification
     container_name: apollo-discord-bot
