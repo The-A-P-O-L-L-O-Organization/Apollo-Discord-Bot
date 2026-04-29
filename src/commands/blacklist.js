@@ -2,7 +2,7 @@
 // Manages the server-wide join blacklist (add, remove, view)
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
-import { getGuildData, setGuildData } from '../utils/db.js';
+import { getGuildData, setGuildData, getData, setData } from '../utils/db.js';
 import { sendModLog } from '../utils/modLog.js';
 
 export default {
@@ -50,6 +50,36 @@ export default {
             description: 'View the current server blacklist',
             type: 1, // SUB_COMMAND
             options: []
+        },
+        {
+            name: 'global',
+            description: 'Manage the global blacklist (applies to all servers)',
+            type: 1, // SUB_COMMAND
+            options: [
+                {
+                    name: 'action',
+                    description: 'Action to perform',
+                    type: 3, // STRING
+                    required: true,
+                    choices: [
+                        { name: 'add', value: 'add' },
+                        { name: 'remove', value: 'remove' },
+                        { name: 'view', value: 'view' }
+                    ]
+                },
+                {
+                    name: 'user',
+                    description: 'The user to blacklist globally (required for add/remove)',
+                    type: 6, // USER
+                    required: false
+                },
+                {
+                    name: 'reason',
+                    description: 'Reason for global blacklist (required for add)',
+                    type: 3, // STRING
+                    required: false
+                }
+            ]
         }
     ],
 
@@ -62,6 +92,8 @@ export default {
             await handleRemove(interaction);
         } else if (subcommand === 'view') {
             await handleView(interaction);
+        } else if (subcommand === 'global') {
+            await handleGlobal(interaction);
         }
     }
 };
@@ -247,6 +279,178 @@ async function handleView(interaction) {
 
     } catch (error) {
         console.error('[ERROR] Blacklist view error:', error);
+        await replyError(interaction, error);
+    }
+}
+
+/**
+ * Handles global blacklist operations (add/remove/view across all servers)
+ * Restricted to bot owner (1068324046422413373)
+ */
+async function handleGlobal(interaction) {
+    try {
+        // Restrict to bot owner only
+        if (interaction.user.id !== '1068324046422413373') {
+            return interaction.reply({
+                embeds: [{
+                    color: 0xFF0000,
+                    title: '[ERROR] Access Denied',
+                    description: 'This command is restricted to the bot owner only.',
+                    timestamp: new Date().toISOString()
+                }],
+                ephemeral: true
+            });
+        }
+
+        const action = interaction.options.getString('action');
+        const user = interaction.options.getUser('user');
+        const reason = interaction.options.getString('reason');
+
+        const globalData = getData('global_blacklist') || { entries: {} };
+        const entries = globalData.entries || {};
+
+        if (action === 'add') {
+            if (!user || !reason) {
+                return interaction.reply({
+                    embeds: [{
+                        color: 0xFF0000,
+                        title: '[ERROR] Missing Arguments',
+                        description: 'Both user and reason are required to add to global blacklist.',
+                        timestamp: new Date().toISOString()
+                    }],
+                    ephemeral: true
+                });
+            }
+
+            if (user.id === interaction.user.id) {
+                return interaction.reply({
+                    embeds: [{
+                        color: 0xFF0000,
+                        title: '[ERROR] Self Action',
+                        description: 'You cannot blacklist yourself globally.',
+                        timestamp: new Date().toISOString()
+                    }],
+                    ephemeral: true
+                });
+            }
+
+            if (entries[user.id]) {
+                return interaction.reply({
+                    embeds: [{
+                        color: 0xFFA500,
+                        title: '[WARNING] Already Blacklisted',
+                        description: `${user.tag} is already on the global blacklist.\nReason: ${entries[user.id].reason}`,
+                        timestamp: new Date().toISOString()
+                    }],
+                    ephemeral: true
+                });
+            }
+
+            entries[user.id] = {
+                userId: user.id,
+                userTag: user.tag,
+                reason: reason,
+                moderatorId: interaction.user.id,
+                moderatorTag: interaction.user.tag,
+                addedAt: Date.now()
+            };
+
+            setData('global_blacklist', { entries });
+
+            const successEmbed = new EmbedBuilder()
+                .setColor('#FF0000')
+                .setTitle('[SUCCESS] User Globally Blacklisted')
+                .setDescription(`${user.tag} has been added to the global blacklist. They will be banned from all servers the bot is in.`)
+                .addFields(
+                    { name: 'User', value: `${user.tag} (\`${user.id}\`)`, inline: true },
+                    { name: 'Moderator', value: interaction.user.tag, inline: true },
+                    { name: 'Reason', value: reason, inline: false }
+                )
+                .setThumbnail(user.displayAvatarURL())
+                .setTimestamp();
+
+            await interaction.reply({ embeds: [successEmbed] });
+            console.log(`[MODERATION] User ${user.tag} globally blacklisted by ${interaction.user.tag}. Reason: ${reason}`);
+
+        } else if (action === 'remove') {
+            if (!user) {
+                return interaction.reply({
+                    embeds: [{
+                        color: 0xFF0000,
+                        title: '[ERROR] Missing Arguments',
+                        description: 'User is required to remove from global blacklist.',
+                        timestamp: new Date().toISOString()
+                    }],
+                    ephemeral: true
+                });
+            }
+
+            if (!entries[user.id]) {
+                return interaction.reply({
+                    embeds: [{
+                        color: 0xFF0000,
+                        title: '[ERROR] Not Blacklisted',
+                        description: `${user.tag} is not on the global blacklist.`,
+                        timestamp: new Date().toISOString()
+                    }],
+                    ephemeral: true
+                });
+            }
+
+            const removedEntry = entries[user.id];
+            delete entries[user.id];
+            setData('global_blacklist', { entries });
+
+            const successEmbed = new EmbedBuilder()
+                .setColor('#00FF00')
+                .setTitle('[SUCCESS] User Removed from Global Blacklist')
+                .setDescription(`${user.tag} has been removed from the global blacklist.`)
+                .addFields(
+                    { name: 'User', value: `${user.tag} (\`${user.id}\`)`, inline: true },
+                    { name: 'Removed By', value: interaction.user.tag, inline: true },
+                    { name: 'Original Reason', value: removedEntry.reason, inline: false }
+                )
+                .setThumbnail(user.displayAvatarURL())
+                .setTimestamp();
+
+            await interaction.reply({ embeds: [successEmbed] });
+            console.log(`[MODERATION] User ${user.tag} removed from global blacklist by ${interaction.user.tag}`);
+
+        } else if (action === 'view') {
+            const list = Object.values(entries);
+
+            if (list.length === 0) {
+                return interaction.reply({
+                    embeds: [{
+                        color: 0x7289DA,
+                        title: 'Global Blacklist',
+                        description: 'The global blacklist is currently empty.',
+                        timestamp: new Date().toISOString()
+                    }],
+                    ephemeral: true
+                });
+            }
+
+            const PAGE_SIZE = 10;
+            const page = list.slice(0, PAGE_SIZE);
+
+            const fieldLines = page.map((entry, i) => {
+                const added = new Date(entry.addedAt).toLocaleDateString();
+                return `**${i + 1}.** ${entry.userTag} (\`${entry.userId}\`)\nReason: ${entry.reason} — Added by ${entry.moderatorTag} on ${added}`;
+            });
+
+            const embed = new EmbedBuilder()
+                .setColor('#FF0000')
+                .setTitle('Global Blacklist — All Servers')
+                .setDescription(fieldLines.join('\n\n'))
+                .setFooter({ text: `${list.length} total entr${list.length === 1 ? 'y' : 'ies'}${list.length > PAGE_SIZE ? ` (showing first ${PAGE_SIZE})` : ''}` })
+                .setTimestamp();
+
+            await interaction.reply({ embeds: [embed], ephemeral: true });
+        }
+
+    } catch (error) {
+        console.error('[ERROR] Global blacklist error:', error);
         await replyError(interaction, error);
     }
 }
