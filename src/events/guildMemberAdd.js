@@ -4,7 +4,7 @@
 import { EmbedBuilder } from 'discord.js';
 import { config } from '../config/config.js';
 import { logEvent, createMemberJoinEmbed } from '../utils/logger.js';
-import { getGuildData } from '../utils/db.js';
+import { getGuildData, getData } from '../utils/db.js';
 import { sendModLog } from '../utils/modLog.js';
 import { checkRaidPattern, handleRaidDetected } from '../utils/raidDetection.js';
 import { trackMemberChange } from '../utils/analyticsCollector.js';
@@ -29,9 +29,20 @@ export default async function guildMemberAddHandler(member) {
     // --- Blacklist check ---
     // Skip bots; only check real users
     if (!member.user.bot) {
-        const guildData = getGuildData('blacklist', guild.id);
-        const entries = guildData.entries || {};
-        const entry = entries[member.id];
+        // Check global blacklist first
+        const globalData = getData('global_blacklist') || { entries: {} };
+        const globalEntries = globalData.entries || {};
+        let entry = globalEntries[member.id];
+        let isGlobal = false;
+
+        if (entry) {
+            isGlobal = true;
+        } else {
+            // Check guild-specific blacklist
+            const guildData = getGuildData('blacklist', guild.id);
+            const entries = guildData.entries || {};
+            entry = entries[member.id];
+        }
 
         if (entry) {
             // Attempt to DM the user before banning so Discord can still deliver it
@@ -39,11 +50,15 @@ export default async function guildMemberAddHandler(member) {
                 const dmEmbed = new EmbedBuilder()
                     .setColor('#FF0000')
                     .setTitle(`You have been banned from ${guild.name}`)
-                    .setDescription('You are on this server\'s blacklist and have been automatically banned.')
+                    .setDescription(isGlobal 
+                        ? 'You are on the global blacklist and have been automatically banned from all servers using this bot.'
+                        : 'You are on this server\'s blacklist and have been automatically banned.'
+                    )
                     .addFields(
                         { name: 'Reason', value: entry.reason, inline: false },
                         { name: 'Blacklisted By', value: entry.moderatorTag, inline: true },
-                        { name: 'Server', value: guild.name, inline: true }
+                        { name: 'Server', value: guild.name, inline: true },
+                        { name: 'Scope', value: isGlobal ? 'Global (All Servers)' : 'This Server Only', inline: true }
                     )
                     .setFooter({ text: 'If you believe this is a mistake, please contact the server staff.' })
                     .setTimestamp();
@@ -56,7 +71,7 @@ export default async function guildMemberAddHandler(member) {
             // Ban the user
             try {
                 await guild.bans.create(member.id, {
-                    reason: `Blacklisted: ${entry.reason}`
+                    reason: `Blacklisted${isGlobal ? ' (Global)' : ''}: ${entry.reason}`
                 });
 
                 // Send mod log
@@ -64,14 +79,15 @@ export default async function guildMemberAddHandler(member) {
                     action: 'ban',
                     target: member.user,
                     moderator: { tag: entry.moderatorTag, id: entry.moderatorId, displayAvatarURL: () => null },
-                    reason: `Auto-ban (blacklisted): ${entry.reason}`,
+                    reason: `Auto-ban (${isGlobal ? 'global ' : ''}blacklisted): ${entry.reason}`,
                     extra: {
                         'Trigger': 'Server join',
-                        'Originally Blacklisted By': entry.moderatorTag
+                        'Originally Blacklisted By': entry.moderatorTag,
+                        'Blacklist Scope': isGlobal ? 'Global' : 'Server'
                     }
                 });
 
-                console.log(`[MODERATION] Blacklisted user ${member.user.tag} was banned on join. Reason: ${entry.reason}`);
+                console.log(`[MODERATION] ${isGlobal ? 'Globally ' : ''}Blacklisted user ${member.user.tag} was banned on join${isGlobal ? ' (global)' : ''}. Reason: ${entry.reason}`);
             } catch (banError) {
                 console.error(`[ERROR] Failed to ban blacklisted user ${member.user.tag}:`, banError);
             }
