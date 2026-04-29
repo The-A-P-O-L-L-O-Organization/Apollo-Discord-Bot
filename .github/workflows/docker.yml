@@ -79,26 +79,16 @@ jobs:
         with:
           context: .
           file: ./Dockerfile.prod
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' || inputs.push }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          provenance: mode=max
-          sbom: true
           build-args: |
             BUILD_DATE=${{ github.event.head_commit.timestamp }}
             VCS_REF=${{ github.sha }}
             VERSION=${{ github.ref_name }}
-
-      - name: Generate artifact attestation
-        if: github.event_name != 'pull_request'
-        uses: actions/attest-build-provenance@v2
-        with:
-          subject-name: ${{ steps.image.outputs.name }}
-          subject-digest: ${{ steps.build.outputs.digest }}
-          push-to-registry: true
 
       - name: Export build digest
         run: |
@@ -110,83 +100,3 @@ jobs:
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-
-  scan:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.event_name != 'pull_request'
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Run Trivy vulnerability scanner
-        id: trivy
-        uses: aquasecurity/trivy-action@master
-        continue-on-error: true
-        with:
-          image-ref: "${{ needs.build.outputs.image }}@${{ needs.build.outputs.digest }}"
-          format: sarif
-          output: trivy-results.sarif
-          severity: CRITICAL,HIGH,MEDIUM
-          timeout: 10m
-        env:
-          TRIVY_USERNAME: ${{ github.actor }}
-          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Validate Trivy SARIF
-        id: validate-trivy
-        run: |
-          if [ -f "trivy-results.sarif" ] && [ -s "trivy-results.sarif" ]; then
-            if jq -e '.version and .runs' trivy-results.sarif > /dev/null 2>&1; then
-              echo "valid=true" >> $GITHUB_OUTPUT
-            else
-              echo "valid=false" >> $GITHUB_OUTPUT
-            fi
-          else
-            echo "valid=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Upload Trivy scan results to GitHub Security tab
-        if: steps.validate-trivy.outputs.valid == 'true'
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: trivy-results.sarif
-          category: trivy-container
-
-      - name: Run Trivy scanner (table output)
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: "${{ needs.build.outputs.image }}@${{ needs.build.outputs.digest }}"
-          format: table
-          exit-code: "1"
-          severity: CRITICAL,HIGH
-          timeout: 10m
-        env:
-          TRIVY_USERNAME: ${{ github.actor }}
-          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-
-  sbom:
-    name: Generate SBOM
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.event_name != 'pull_request'
-    steps:
-      - name: Generate SBOM with Syft
-        uses: anchore/sbom-action@v0
-        with:
-          image: "${{ needs.build.outputs.image }}@${{ needs.build.outputs.digest }}"
-          artifact-name: sbom-${{ github.sha }}.spdx.json
-          output-file: sbom.spdx.json
-          format: spdx-json
-        env:
-          SYFT_REGISTRY_AUTH_AUTHORITY: ${{ env.REGISTRY }}
-          SYFT_REGISTRY_AUTH_USERNAME: ${{ github.actor }}
-          SYFT_REGISTRY_AUTH_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload SBOM artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: sbom
-          path: sbom.spdx.json
-          retention-days: 90

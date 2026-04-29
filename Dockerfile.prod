@@ -24,7 +24,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
 RUN pnpm config set enable-pre-post-scripts true && \
     pnpm install --frozen-lockfile && \
     cd node_modules/better-sqlite3 && \
-    npm run build-release
+    pnpm run build-release
 
 # Copy source code
 COPY src ./src
