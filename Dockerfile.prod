@@ -3,7 +3,7 @@
 
 # Use multi-stage build for smaller final image
 # Stage 1: Build stage
-FROM node:24.14.0-alpine AS builder
+FROM node:24.14.0-alpine3.21 AS builder
 
 # Install build dependencies for better-sqlite3
 RUN apk add --no-cache python3 make g++
@@ -31,7 +31,7 @@ COPY src ./src
 COPY deploy-commands.js ./
 
 # Stage 2: Production stage
-FROM node:24.14.0-alpine
+FROM node:24.14.0-alpine3.21
 
 # Install runtime dependencies
 RUN apk add --no-cache libstdc++
