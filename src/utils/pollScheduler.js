@@ -6,6 +6,13 @@ import { getData, setData } from './db.js';
 
 let client = null;
 let schedulerInterval = null;
+let performanceStats = {
+    checksPerformed: 0,
+    pollsTallied: 0,
+    totalCheckTime: 0,
+    lastCheckTime: 0,
+    errors: 0
+};
 
 // Emoji options for polls (must match poll.js)
 const POLL_EMOJIS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
@@ -43,9 +50,16 @@ export function stopPollScheduler() {
 async function checkPolls() {
     if (!client) return;
     
+    const startTime = Date.now();
+    
     try {
         const data = getData('polls');
-        if (!data) return;
+        if (!data) {
+            performanceStats.checksPerformed++;
+            performanceStats.lastCheckTime = Date.now() - startTime;
+            performanceStats.totalCheckTime += performanceStats.lastCheckTime;
+            return;
+        }
         
         const now = Date.now();
         let tallyCount = 0;
@@ -65,12 +79,19 @@ async function checkPolls() {
             guildData.active = guildData.active.filter(p => p.endTime > now);
         }
         
+        // Update performance stats
+        performanceStats.checksPerformed++;
+        performanceStats.pollsTallied += tallyCount;
+        performanceStats.lastCheckTime = Date.now() - startTime;
+        performanceStats.totalCheckTime += performanceStats.lastCheckTime;
+        
         if (tallyCount > 0) {
             setData('polls', data);
-            console.log(`[INFO] Tallied ${tallyCount} poll(s)`);
+            console.log(`[INFO] Tallied ${tallyCount} poll(s) in ${performanceStats.lastCheckTime}ms`);
         }
         
     } catch (error) {
+        performanceStats.errors++;
         console.error('[ERROR] Poll scheduler error:', error);
     }
 }
@@ -194,4 +215,20 @@ function generateProgressBar(percentage) {
     const filled = Math.round(percentage / 10);
     const empty = 10 - filled;
     return '█'.repeat(filled) + '░'.repeat(empty);
+}
+
+/**
+ * Gets performance statistics for the poll scheduler
+ * @returns {Object} Performance stats
+ */
+export function getPollSchedulerStats() {
+    const avgCheckTime = performanceStats.checksPerformed > 0 
+        ? performanceStats.totalCheckTime / performanceStats.checksPerformed 
+        : 0;
+    
+    return {
+        ...performanceStats,
+        averageCheckTime: Math.round(avgCheckTime),
+        uptime: schedulerInterval ? Date.now() - (performanceStats.checksPerformed * 30000) : 0
+    };
 }

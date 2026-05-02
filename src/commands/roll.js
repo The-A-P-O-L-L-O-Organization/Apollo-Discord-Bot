@@ -20,6 +20,19 @@ export default {
         try {
             const diceStr = interaction.options.getString('dice') || '1d6';
             
+            // Validate input length to prevent abuse
+            if (diceStr.length > 10) {
+                return interaction.reply({
+                    embeds: [{
+                        color: 0xFF0000,
+                        title: '[ERROR] Invalid Dice',
+                        description: 'Dice notation is too long. Please use format like "2d6" or "1d20".',
+                        timestamp: new Date().toISOString()
+                    }],
+                    ephemeral: true
+                });
+            }
+            
             // Parse dice notation (e.g., "2d6", "1d20")
             const diceMatch = diceStr.toLowerCase().match(/^(\d+)d(\d+)$/);
             
@@ -28,7 +41,7 @@ export default {
                     embeds: [{
                         color: 0xFF0000,
                         title: '[ERROR] Invalid Dice',
-                        description: 'Please use dice notation (e.g., 2d6, 1d20).',
+                        description: 'Please use dice notation (e.g., 2d6, 1d20). Maximum 10 dice with up to 100 sides each.',
                         timestamp: new Date().toISOString()
                     }],
                     ephemeral: true
@@ -38,17 +51,46 @@ export default {
             const numDice = Math.min(parseInt(diceMatch[1]), 10); // Max 10 dice
             const sides = Math.min(parseInt(diceMatch[2]), 100); // Max 100 sides
             
+            // Additional validation
+            if (numDice < 1) {
+                return interaction.reply({
+                    embeds: [{
+                        color: 0xFF0000,
+                        title: '[ERROR] Invalid Dice',
+                        description: 'You must roll at least 1 die.',
+                        timestamp: new Date().toISOString()
+                    }],
+                    ephemeral: true
+                });
+            }
+            
+            if (sides < 2) {
+                return interaction.reply({
+                    embeds: [{
+                        color: 0xFF0000,
+                        title: '[ERROR] Invalid Dice',
+                        description: 'Dice must have at least 2 sides.',
+                        timestamp: new Date().toISOString()
+                    }],
+                    ephemeral: true
+                });
+            }
+            
             const rolls = [];
-            for (let i = 0; i < numDice; i++) {
+            for (let _i = 0; _i < numDice; _i++) {
                 rolls.push(Math.floor(Math.random() * sides) + 1);
             }
             
             const total = rolls.reduce((sum, roll) => sum + roll, 0);
-            const rollsStr = rolls.map((r, i) => {
+            const rollsStr = rolls.map((r, _i) => {
                 const isMax = r === sides;
                 const isMin = r === 1;
-                if (isMax) return `**${r}** 🎉`; // Critical success
-                if (isMin) return `**${r}** 😱`; // Critical fail
+                if (isMax) {
+                    return `**${r}** 🎉`;
+                }
+                if (isMin) {
+                    return `**${r}** 😱`;
+                }
                 return `**${r}**`;
             }).join(', ');
             
@@ -82,8 +124,6 @@ export default {
             await interaction.reply({ embeds: [diceEmbed] });
             
         } catch (error) {
-            console.error('[ERROR] Roll command error:', error);
-            
             const errorEmbed = {
                 color: 0xFF0000,
                 title: '[ERROR] Command Failed',
