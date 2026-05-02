@@ -18,6 +18,17 @@ let batchIntervalId = null;
 // Data retention period (90 days)
 const RETENTION_DAYS = 90;
 
+// Performance stats
+let performanceStats = {
+    flushesPerformed: 0,
+    cleanupsPerformed: 0,
+    totalFlushTime: 0,
+    totalCleanupTime: 0,
+    recordsProcessed: 0,
+    recordsDeleted: 0,
+    errors: 0
+};
+
 /**
  * Initializes the analytics collector
  * @param {Client} client - Discord client
@@ -174,101 +185,120 @@ export function trackMemberChange(guildId, isJoin, totalMembers) {
  * Flushes the analytics cache to the database
  */
 function flushAnalyticsCache() {
-    const now = Date.now();
-    const hour = getHourString(now);
-    const date = getDateString(now);
+    const startTime = Date.now();
     
-    // Flush command analytics
-    for (const [guildId, guildCommands] of analyticsCache.commands) {
-        const data = getGuildData('analytics-commands', guildId);
+    try {
+        const now = Date.now();
+        const hour = getHourString(now);
+        const date = getDateString(now);
+        let recordsProcessed = 0;
         
-        for (const [commandName, users] of guildCommands) {
-            for (const [userId, count] of users) {
-                const key = `${date}:${commandName}:${userId}`;
+        // Flush command analytics
+        for (const [guildId, guildCommands] of analyticsCache.commands) {
+            const data = getGuildData('analytics-commands', guildId);
+            
+            for (const [commandName, users] of guildCommands) {
+                for (const [userId, count] of users) {
+                    const key = `${date}:${commandName}:${userId}`;
+                    if (!data[key]) {
+                        data[key] = {
+                            date,
+                            commandName,
+                            userId,
+                            count: 0
+                        };
+                    }
+                    data[key].count += count;
+                    recordsProcessed++;
+                }
+            }
+            
+            setGuildData('analytics-commands', guildId, data);
+        }
+        analyticsCache.commands.clear();
+        
+        // Flush message analytics (hourly aggregation)
+        for (const [guildId, guildMessages] of analyticsCache.messages) {
+            const data = getGuildData('analytics-messages', guildId);
+            
+            for (const [channelId, users] of guildMessages) {
+                for (const [userId, count] of users) {
+                    const key = `${hour}:${channelId}:${userId}`;
+                    if (!data[key]) {
+                        data[key] = {
+                            hour,
+                            channelId,
+                            userId,
+                            count: 0
+                        };
+                    }
+                    data[key].count += count;
+                    recordsProcessed++;
+                }
+            }
+            
+            setGuildData('analytics-messages', guildId, data);
+        }
+        analyticsCache.messages.clear();
+        
+        // Flush violation analytics (daily aggregation)
+        for (const [guildId, violations] of analyticsCache.violations) {
+            const data = getGuildData('analytics-violations', guildId);
+            
+            for (const [type, count] of violations) {
+                const key = `${date}:${type}`;
                 if (!data[key]) {
                     data[key] = {
                         date,
-                        commandName,
-                        userId,
+                        type,
                         count: 0
                     };
                 }
                 data[key].count += count;
+                recordsProcessed++;
             }
+            
+            setGuildData('analytics-violations', guildId, data);
         }
+        analyticsCache.violations.clear();
         
-        setGuildData('analytics-commands', guildId, data);
-    }
-    analyticsCache.commands.clear();
-    
-    // Flush message analytics (hourly aggregation)
-    for (const [guildId, guildMessages] of analyticsCache.messages) {
-        const data = getGuildData('analytics-messages', guildId);
-        
-        for (const [channelId, users] of guildMessages) {
-            for (const [userId, count] of users) {
-                const key = `${hour}:${channelId}:${userId}`;
-                if (!data[key]) {
-                    data[key] = {
-                        hour,
-                        channelId,
-                        userId,
-                        count: 0
-                    };
+        // Flush mod action analytics (daily aggregation)
+        for (const [guildId, guildModActions] of analyticsCache.modActions) {
+            const data = getGuildData('analytics-modactions', guildId);
+            
+            for (const [moderatorId, actions] of guildModActions) {
+                for (const [action, count] of actions) {
+                    const key = `${date}:${moderatorId}:${action}`;
+                    if (!data[key]) {
+                        data[key] = {
+                            date,
+                            moderatorId,
+                            action,
+                            count: 0
+                        };
+                    }
+                    data[key].count += count;
+                    recordsProcessed++;
                 }
-                data[key].count += count;
             }
+            
+            setGuildData('analytics-modactions', guildId, data);
+        }
+        analyticsCache.modActions.clear();
+        
+        // Update performance stats
+        const flushTime = Date.now() - startTime;
+        performanceStats.flushesPerformed++;
+        performanceStats.totalFlushTime += flushTime;
+        performanceStats.recordsProcessed += recordsProcessed;
+        
+        if (now % (5 * 60 * 1000) < BATCH_INTERVAL) {
+            console.log(`[ANALYTICS] Flushed ${recordsProcessed} records in ${flushTime}ms`);
         }
         
-        setGuildData('analytics-messages', guildId, data);
-    }
-    analyticsCache.messages.clear();
-    
-    // Flush violation analytics (daily aggregation)
-    for (const [guildId, violations] of analyticsCache.violations) {
-        const data = getGuildData('analytics-violations', guildId);
-        
-        for (const [type, count] of violations) {
-            const key = `${date}:${type}`;
-            if (!data[key]) {
-                data[key] = {
-                    date,
-                    type,
-                    count: 0
-                };
-            }
-            data[key].count += count;
-        }
-        
-        setGuildData('analytics-violations', guildId, data);
-    }
-    analyticsCache.violations.clear();
-    
-    // Flush mod action analytics (daily aggregation)
-    for (const [guildId, guildModActions] of analyticsCache.modActions) {
-        const data = getGuildData('analytics-modactions', guildId);
-        
-        for (const [moderatorId, actions] of guildModActions) {
-            for (const [action, count] of actions) {
-                const key = `${date}:${moderatorId}:${action}`;
-                if (!data[key]) {
-                    data[key] = {
-                        date,
-                        moderatorId,
-                        action,
-                        count: 0
-                    };
-                }
-                data[key].count += count;
-            }
-        }
-        
-        setGuildData('analytics-modactions', guildId, data);
-    }
-    analyticsCache.modActions.clear();
-    
-    if (now % (5 * 60 * 1000) < BATCH_INTERVAL) {
-        console.log('[ANALYTICS] Flushed analytics cache to database');
+    } catch (error) {
+        performanceStats.errors++;
+        console.error('[ANALYTICS] Error flushing analytics cache:', error);
     }
 }
 
@@ -277,70 +307,84 @@ function flushAnalyticsCache() {
  * @param {Client} client - Discord client
  */
 function cleanupOldAnalytics(client) {
-    const cutoffDate = Date.now() - (RETENTION_DAYS * 24 * 60 * 60 * 1000);
-    const cutoffDateStr = getDateString(cutoffDate);
-    const cutoffHourStr = getHourString(cutoffDate);
+    const startTime = Date.now();
     
-    console.log(`[ANALYTICS] Cleaning up analytics older than ${cutoffDateStr}...`);
-    
-    let totalDeleted = 0;
-    
-    // Clean up each guild's analytics
-    for (const guild of client.guilds.cache.values()) {
-        const guildId = guild.id;
+    try {
+        const cutoffDate = Date.now() - (RETENTION_DAYS * 24 * 60 * 60 * 1000);
+        const cutoffDateStr = getDateString(cutoffDate);
+        const cutoffHourStr = getHourString(cutoffDate);
         
-        // Clean commands
-        const commands = getGuildData('analytics-commands', guildId);
-        for (const key in commands) {
-            if (commands[key].date < cutoffDateStr) {
-                delete commands[key];
-                totalDeleted++;
-            }
-        }
-        setGuildData('analytics-commands', guildId, commands);
+        console.log(`[ANALYTICS] Cleaning up analytics older than ${cutoffDateStr}...`);
         
-        // Clean messages
-        const messages = getGuildData('analytics-messages', guildId);
-        for (const key in messages) {
-            if (messages[key].hour < cutoffHourStr) {
-                delete messages[key];
-                totalDeleted++;
-            }
-        }
-        setGuildData('analytics-messages', guildId, messages);
+        let totalDeleted = 0;
         
-        // Clean violations
-        const violations = getGuildData('analytics-violations', guildId);
-        for (const key in violations) {
-            if (violations[key].date < cutoffDateStr) {
-                delete violations[key];
-                totalDeleted++;
+        // Clean up each guild's analytics
+        for (const guild of client.guilds.cache.values()) {
+            const guildId = guild.id;
+            
+            // Clean commands
+            const commands = getGuildData('analytics-commands', guildId);
+            for (const key in commands) {
+                if (commands[key].date < cutoffDateStr) {
+                    delete commands[key];
+                    totalDeleted++;
+                }
             }
+            setGuildData('analytics-commands', guildId, commands);
+            
+            // Clean messages
+            const messages = getGuildData('analytics-messages', guildId);
+            for (const key in messages) {
+                if (messages[key].hour < cutoffHourStr) {
+                    delete messages[key];
+                    totalDeleted++;
+                }
+            }
+            setGuildData('analytics-messages', guildId, messages);
+            
+            // Clean violations
+            const violations = getGuildData('analytics-violations', guildId);
+            for (const key in violations) {
+                if (violations[key].date < cutoffDateStr) {
+                    delete violations[key];
+                    totalDeleted++;
+                }
+            }
+            setGuildData('analytics-violations', guildId, violations);
+            
+            // Clean mod actions
+            const modActions = getGuildData('analytics-modactions', guildId);
+            for (const key in modActions) {
+                if (modActions[key].date < cutoffDateStr) {
+                    delete modActions[key];
+                    totalDeleted++;
+                }
+            }
+            setGuildData('analytics-modactions', guildId, modActions);
+            
+            // Clean members (keep all member data, it's already daily)
+            const members = getGuildData('analytics-members', guildId);
+            for (const key in members) {
+                if (key < cutoffDateStr) {
+                    delete members[key];
+                    totalDeleted++;
+                }
+            }
+            setGuildData('analytics-members', guildId, members);
         }
-        setGuildData('analytics-violations', guildId, violations);
         
-        // Clean mod actions
-        const modActions = getGuildData('analytics-modactions', guildId);
-        for (const key in modActions) {
-            if (modActions[key].date < cutoffDateStr) {
-                delete modActions[key];
-                totalDeleted++;
-            }
-        }
-        setGuildData('analytics-modactions', guildId, modActions);
+        // Update performance stats
+        const cleanupTime = Date.now() - startTime;
+        performanceStats.cleanupsPerformed++;
+        performanceStats.totalCleanupTime += cleanupTime;
+        performanceStats.recordsDeleted += totalDeleted;
         
-        // Clean members (keep all member data, it's already daily)
-        const members = getGuildData('analytics-members', guildId);
-        for (const key in members) {
-            if (key < cutoffDateStr) {
-                delete members[key];
-                totalDeleted++;
-            }
-        }
-        setGuildData('analytics-members', guildId, members);
+        console.log(`[ANALYTICS] Cleanup complete. Deleted ${totalDeleted} old records in ${cleanupTime}ms.`);
+        
+    } catch (error) {
+        performanceStats.errors++;
+        console.error('[ANALYTICS] Error during analytics cleanup:', error);
     }
-    
-    console.log(`[ANALYTICS] Cleanup complete. Deleted ${totalDeleted} old records.`);
 }
 
 /**
@@ -525,4 +569,24 @@ export function getMemberGrowthStats(guildId, days = 30) {
     }
     
     return growth.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/**
+ * Gets performance statistics for the analytics collector
+ * @returns {Object} Performance stats
+ */
+export function getAnalyticsCollectorStats() {
+    const avgFlushTime = performanceStats.flushesPerformed > 0 
+        ? performanceStats.totalFlushTime / performanceStats.flushesPerformed 
+        : 0;
+    const avgCleanupTime = performanceStats.cleanupsPerformed > 0 
+        ? performanceStats.totalCleanupTime / performanceStats.cleanupsPerformed 
+        : 0;
+    
+    return {
+        ...performanceStats,
+        averageFlushTime: Math.round(avgFlushTime),
+        averageCleanupTime: Math.round(avgCleanupTime),
+        uptime: batchIntervalId ? Date.now() - (performanceStats.flushesPerformed * BATCH_INTERVAL) : 0
+    };
 }
