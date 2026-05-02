@@ -210,7 +210,7 @@ docker run -d \
 
 ### Running Tests
 
-This project includes a comprehensive test suite using Vitest. All commands, events, and utilities are tested to ensure reliability.
+This project includes a comprehensive test suite using Vitest. Commands, events, and utilities are tested to ensure reliability.
 
 ```bash
 # Run all tests once
@@ -226,12 +226,12 @@ pnpm test:coverage
 pnpm test:ui
 ```
 
-**Test Coverage:**
-- ✅ All 29 commands have unit tests
-- ✅ All 11 event handlers have unit tests
-- ✅ All utility functions have unit tests
+**Current Test Coverage:**
+- ✅ All tested commands and utilities have unit tests
+- ✅ All event handlers have unit tests  
 - ✅ Mock Discord.js objects for isolated testing
-- ✅ 100+ test cases covering edge cases and error handling
+- ✅ 810+ test cases covering edge cases and error handling
+- 📊 **33% overall coverage** (ongoing improvement)
 
 ### Development Mode
 
