@@ -7,6 +7,13 @@ import { config } from '../config/config.js';
 
 let client = null;
 let schedulerInterval = null;
+let performanceStats = {
+    checksPerformed: 0,
+    remindersSent: 0,
+    totalCheckTime: 0,
+    lastCheckTime: 0,
+    errors: 0
+};
 
 /**
  * Initializes the reminder scheduler
@@ -41,6 +48,8 @@ export function stopReminderScheduler() {
 async function checkReminders() {
     if (!client) return;
     
+    const startTime = Date.now();
+    
     try {
         const data = getData('reminders');
         const reminders = data.reminders || [];
@@ -49,7 +58,12 @@ async function checkReminders() {
         // Find due reminders
         const dueReminders = reminders.filter(r => r.remindAt <= now);
         
-        if (dueReminders.length === 0) return;
+        if (dueReminders.length === 0) {
+            performanceStats.checksPerformed++;
+            performanceStats.lastCheckTime = Date.now() - startTime;
+            performanceStats.totalCheckTime += performanceStats.lastCheckTime;
+            return;
+        }
         
         // Process each due reminder
         for (const reminder of dueReminders) {
@@ -60,11 +74,18 @@ async function checkReminders() {
         data.reminders = reminders.filter(r => r.remindAt > now);
         setData('reminders', data);
         
+        // Update performance stats
+        performanceStats.checksPerformed++;
+        performanceStats.remindersSent += dueReminders.length;
+        performanceStats.lastCheckTime = Date.now() - startTime;
+        performanceStats.totalCheckTime += performanceStats.lastCheckTime;
+        
         if (dueReminders.length > 0) {
-            console.log(`[INFO] Sent ${dueReminders.length} reminder(s)`);
+            console.log(`[INFO] Sent ${dueReminders.length} reminder(s) in ${performanceStats.lastCheckTime}ms`);
         }
         
     } catch (error) {
+        performanceStats.errors++;
         console.error('[ERROR] Reminder scheduler error:', error);
     }
 }
@@ -166,6 +187,22 @@ export function cancelReminder(reminderId, userId) {
     setData('reminders', data);
     
     return true;
+}
+
+/**
+ * Gets performance statistics for the reminder scheduler
+ * @returns {Object} Performance stats
+ */
+export function getReminderSchedulerStats() {
+    const avgCheckTime = performanceStats.checksPerformed > 0 
+        ? performanceStats.totalCheckTime / performanceStats.checksPerformed 
+        : 0;
+    
+    return {
+        ...performanceStats,
+        averageCheckTime: Math.round(avgCheckTime),
+        uptime: schedulerInterval ? Date.now() - (performanceStats.checksPerformed * config.reminders.checkInterval) : 0
+    };
 }
 
 /**
