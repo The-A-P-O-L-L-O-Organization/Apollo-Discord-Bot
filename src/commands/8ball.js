@@ -36,7 +36,7 @@ export default {
                 { text: 'Better not tell you now.', color: 0xFFA500 },
                 { text: 'Cannot predict now.', color: 0xFFA500 },
                 { text: 'Concentrate and ask again.', color: 0xFFA500 },
-                { text: "Don't count on it.", color: 0xFF0000 },
+                { text: 'Don\'t count on it.', color: 0xFF0000 },
                 { text: 'My reply is no.', color: 0xFF0000 },
                 { text: 'My sources say no.', color: 0xFF0000 },
                 { text: 'Outlook not so good.', color: 0xFF0000 },
@@ -62,8 +62,6 @@ export default {
             await interaction.reply({ embeds: [ballEmbed] });
             
         } catch (error) {
-            console.error('[ERROR] 8ball command error:', error);
-            
             const errorEmbed = {
                 color: 0xFF0000,
                 title: '[ERROR] Command Failed',
