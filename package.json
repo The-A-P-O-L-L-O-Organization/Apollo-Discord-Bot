@@ -22,7 +22,7 @@
     "@discordjs/rest": "^2.6.1",
     "@tensorflow/tfjs-node": "^4.22.0",
     "better-sqlite3": "^12.9.0",
-    "discord.js": "^14.26.3",
+    "discord.js": "^14.26.4",
     "dotenv": "^17.4.2",
     "nsfwjs": "^4.3.0"
   },
