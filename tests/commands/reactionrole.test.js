@@ -95,13 +95,13 @@ describe('ReactionRole Command', () => {
         beforeEach(() => {
             mockInteraction.options.getSubcommand.mockReturnValue('add');
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'message_id') return '777888999';
-                if (name === 'emoji') return '👍';
+                if (name === 'message_id') {return '777888999';}
+                if (name === 'emoji') {return '👍';}
                 return null;
             });
         });
 
-        it('should add reaction role successfully', async () => {
+        it('should add reaction role successfully', async() => {
             await reactionRoleCommand.execute(mockInteraction);
             
             expect(mockMessage.react).toHaveBeenCalledWith('👍');
@@ -112,7 +112,7 @@ describe('ReactionRole Command', () => {
             expect(setCall[2].roles[0].roleId).toBe(mockRole.id);
         });
 
-        it('should reply with success message', async () => {
+        it('should reply with success message', async() => {
             await reactionRoleCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -120,7 +120,7 @@ describe('ReactionRole Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should use specified channel', async () => {
+        it('should use specified channel', async() => {
             const otherChannel = createMockChannel({ id: '999888777' });
             otherChannel.messages = {
                 fetch: vi.fn().mockResolvedValue(mockMessage)
@@ -132,7 +132,7 @@ describe('ReactionRole Command', () => {
             expect(otherChannel.messages.fetch).toHaveBeenCalledWith('777888999');
         });
 
-        it('should reject role higher than bot', async () => {
+        it('should reject role higher than bot', async() => {
             mockRole.position = 15; // Higher than bot's highest (10)
 
             await reactionRoleCommand.execute(mockInteraction);
@@ -142,7 +142,7 @@ describe('ReactionRole Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject @everyone role', async () => {
+        it('should reject @everyone role', async() => {
             mockRole.id = '987654321'; // Same as guild ID
 
             await reactionRoleCommand.execute(mockInteraction);
@@ -152,7 +152,7 @@ describe('ReactionRole Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should handle message not found', async () => {
+        it('should handle message not found', async() => {
             mockChannel.messages.fetch.mockRejectedValue(new Error('Not found'));
 
             await reactionRoleCommand.execute(mockInteraction);
@@ -162,10 +162,10 @@ describe('ReactionRole Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should handle invalid emoji', async () => {
+        it('should handle invalid emoji', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'message_id') return '777888999';
-                if (name === 'emoji') return '';
+                if (name === 'message_id') {return '777888999';}
+                if (name === 'emoji') {return '';}
                 return null;
             });
 
@@ -175,7 +175,7 @@ describe('ReactionRole Command', () => {
             expect(replyCall.content).toContain('Invalid emoji');
         });
 
-        it('should update existing reaction role', async () => {
+        it('should update existing reaction role', async() => {
             getGuildData.mockReturnValue({
                 roles: [{
                     messageId: '777888999',
@@ -196,13 +196,13 @@ describe('ReactionRole Command', () => {
         beforeEach(() => {
             mockInteraction.options.getSubcommand.mockReturnValue('remove');
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'message_id') return '777888999';
-                if (name === 'emoji') return '👍';
+                if (name === 'message_id') {return '777888999';}
+                if (name === 'emoji') {return '👍';}
                 return null;
             });
         });
 
-        it('should remove reaction role successfully', async () => {
+        it('should remove reaction role successfully', async() => {
             getGuildData.mockReturnValue({
                 roles: [{
                     messageId: '777888999',
@@ -219,7 +219,7 @@ describe('ReactionRole Command', () => {
             expect(setCall[2].roles).toHaveLength(0);
         });
 
-        it('should handle no reaction roles configured', async () => {
+        it('should handle no reaction roles configured', async() => {
             getGuildData.mockReturnValue({ roles: [] });
 
             await reactionRoleCommand.execute(mockInteraction);
@@ -229,7 +229,7 @@ describe('ReactionRole Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should handle reaction role not found', async () => {
+        it('should handle reaction role not found', async() => {
             getGuildData.mockReturnValue({
                 roles: [{
                     messageId: '999999999', // Different message
@@ -250,7 +250,7 @@ describe('ReactionRole Command', () => {
             mockInteraction.options.getSubcommand.mockReturnValue('list');
         });
 
-        it('should list all reaction roles', async () => {
+        it('should list all reaction roles', async() => {
             getGuildData.mockReturnValue({
                 roles: [
                     { messageId: '111', channelId: '222', emoji: '👍', emojiDisplay: '👍', roleId: '333' },
@@ -266,7 +266,7 @@ describe('ReactionRole Command', () => {
             expect(replyCall.embeds[0].description).toContain('2');
         });
 
-        it('should handle no reaction roles', async () => {
+        it('should handle no reaction roles', async() => {
             getGuildData.mockReturnValue({ roles: [] });
 
             await reactionRoleCommand.execute(mockInteraction);
@@ -282,7 +282,7 @@ describe('ReactionRole Command', () => {
             mockInteraction.options.getString.mockReturnValue('777888999');
         });
 
-        it('should clear all reaction roles from message', async () => {
+        it('should clear all reaction roles from message', async() => {
             getGuildData.mockReturnValue({
                 roles: [
                     { messageId: '777888999', channelId: '111222333', emoji: '👍', roleId: '333' },
@@ -299,7 +299,7 @@ describe('ReactionRole Command', () => {
             expect(setCall[2].roles[0].messageId).toBe('999999999');
         });
 
-        it('should reply with count of cleared roles', async () => {
+        it('should reply with count of cleared roles', async() => {
             getGuildData.mockReturnValue({
                 roles: [
                     { messageId: '777888999', channelId: '111222333', emoji: '👍', roleId: '333' },
@@ -313,7 +313,7 @@ describe('ReactionRole Command', () => {
             expect(replyCall.content).toContain('2');
         });
 
-        it('should handle no reaction roles on message', async () => {
+        it('should handle no reaction roles on message', async() => {
             getGuildData.mockReturnValue({
                 roles: [
                     { messageId: '999999999', emoji: '👍', roleId: '333' }
@@ -332,10 +332,10 @@ describe('ReactionRole Command', () => {
             mockInteraction.options.getSubcommand.mockReturnValue('add');
         });
 
-        it('should handle custom emoji format', async () => {
+        it('should handle custom emoji format', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'message_id') return '777888999';
-                if (name === 'emoji') return '<:custom:123456789>';
+                if (name === 'message_id') {return '777888999';}
+                if (name === 'emoji') {return '<:custom:123456789>';}
                 return null;
             });
 
@@ -344,10 +344,10 @@ describe('ReactionRole Command', () => {
             expect(mockMessage.react).toHaveBeenCalledWith('123456789');
         });
 
-        it('should handle animated emoji format', async () => {
+        it('should handle animated emoji format', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'message_id') return '777888999';
-                if (name === 'emoji') return '<a:animated:987654321>';
+                if (name === 'message_id') {return '777888999';}
+                if (name === 'emoji') {return '<a:animated:987654321>';}
                 return null;
             });
 
@@ -356,10 +356,10 @@ describe('ReactionRole Command', () => {
             expect(mockMessage.react).toHaveBeenCalledWith('987654321');
         });
 
-        it('should handle emoji ID only', async () => {
+        it('should handle emoji ID only', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'message_id') return '777888999';
-                if (name === 'emoji') return '123456789012345678';
+                if (name === 'message_id') {return '777888999';}
+                if (name === 'emoji') {return '123456789012345678';}
                 return null;
             });
 

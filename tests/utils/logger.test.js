@@ -1,7 +1,7 @@
 // Logger Utility Tests
 // Tests for the event logging functions
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { EmbedBuilder } from 'discord.js';
 import {
     createMessageDeleteEmbed,
@@ -206,8 +206,8 @@ describe('Logger Utility', () => {
 
             const embed = createMemberJoinEmbed(member);
             const data = embed.toJSON();
-            
-            const warningField = data.fields.find(f => f.name.includes('Warning') || f.name.includes('!'));
+
+            data.fields.find(f => f.name.includes('Warning') || f.name.includes('!'));
         });
 
         it('should not flag old accounts', () => {

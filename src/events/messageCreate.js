@@ -28,10 +28,10 @@ export default {
     
     async execute(message, client) {
         // Ignore DMs
-        if (!message.guild) return;
+        if (!message.guild) {return;}
         
         // Ignore bot messages
-        if (message.author.bot) return;
+        if (message.author.bot) {return;}
         
         // Track message for analytics
         trackMessage(message.guild.id, message.channel.id, message.author.id);
@@ -40,16 +40,16 @@ export default {
         const cfg = getAutomodConfig(message.guild.id);
         
         // Check if automod is enabled
-        if (!cfg.enabled) return;
+        if (!cfg.enabled) {return;}
         
         // Check if channel is exempt
-        if (isChannelExempt(message.channel.id, cfg)) return;
+        if (isChannelExempt(message.channel.id, cfg)) {return;}
         
         // Get member and check if exempt
         const member = message.member;
-        if (!member) return;
+        if (!member) {return;}
         
-        if (isExempt(member, cfg)) return;
+        if (isExempt(member, cfg)) {return;}
         
         // Run all checks
         try {
@@ -68,7 +68,7 @@ export default {
                 const matchedWord = checkBannedWords(message.content, cfg.bannedWords);
                 if (matchedWord) {
                     await handleViolation(message, 'banned_word', 
-                        `Used banned word`, client, true);
+                        'Used banned word', client, true);
                     return;
                 }
             }

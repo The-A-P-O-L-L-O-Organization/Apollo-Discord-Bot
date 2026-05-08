@@ -39,10 +39,10 @@ export function getAutomodConfig(guildId) {
  */
 export function isExempt(member, cfg) {
     // Bots are exempt
-    if (member.user.bot) return true;
+    if (member.user.bot) {return true;}
     
     // Admins are exempt
-    if (member.permissions.has('Administrator')) return true;
+    if (member.permissions.has('Administrator')) {return true;}
     
     // Check exempt roles
     if (cfg.exemptRoles.some(roleId => member.roles.cache.has(roleId))) {
@@ -69,7 +69,7 @@ export function isChannelExempt(channelId, cfg) {
  * @returns {string|null} The matched word or null
  */
 export function checkBannedWords(content, bannedWords) {
-    if (!bannedWords.length) return null;
+    if (!bannedWords.length) {return null;}
     
     const lowerContent = content.toLowerCase();
     
@@ -131,11 +131,11 @@ export function checkMentionSpam(message, maxMentions) {
  */
 export function checkCapsSpam(content, maxPercent, minLength = 10) {
     // Only check messages longer than minimum length
-    if (content.length < minLength) return false;
+    if (content.length < minLength) {return false;}
     
     // Remove non-alphabetic characters
     const letters = content.replace(/[^a-zA-Z]/g, '');
-    if (letters.length < minLength) return false;
+    if (letters.length < minLength) {return false;}
     
     // Count uppercase letters
     const upperCount = (content.match(/[A-Z]/g) || []).length;
@@ -197,7 +197,7 @@ export function checkSpam(message, threshold, interval) {
  * @returns {boolean} Whether account is too new
  */
 export function checkAccountAge(user, minDays) {
-    if (minDays <= 0) return false;
+    if (minDays <= 0) {return false;}
     
     const accountAge = Date.now() - user.createdTimestamp;
     const minAge = minDays * 24 * 60 * 60 * 1000;
@@ -290,7 +290,7 @@ export function checkPhishingLinks(content) {
     const urlRegex = /(https?:\/\/[^\s]+)/gi;
     const urls = content.match(urlRegex);
     
-    if (!urls) return null;
+    if (!urls) {return null;}
     
     for (const url of urls) {
         try {

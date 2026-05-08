@@ -3,15 +3,14 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import purgeCommand from '../../src/commands/purge.js';
-import { 
-    createMockInteraction, 
+import {
+    createMockInteraction,
     createMockUser,
     createMockGuild,
     createMockChannel,
     createMockClient,
     MockCollection
 } from '../mocks/discord.js';
-import { PermissionsBitField } from 'discord.js';
 
 // Mock the modLog module
 vi.mock('../../src/utils/modLog.js', () => ({
@@ -96,14 +95,14 @@ describe('Purge Command', () => {
     });
 
     describe('execute - Success Cases', () => {
-        it('should delete messages successfully', async () => {
+        it('should delete messages successfully', async() => {
             await purgeCommand.execute(mockInteraction);
             
             expect(mockChannel.messages.fetch).toHaveBeenCalledWith({ limit: 10 });
             expect(mockChannel.bulkDelete).toHaveBeenCalled();
         });
 
-        it('should reply with success embed', async () => {
+        it('should reply with success embed', async() => {
             await purgeCommand.execute(mockInteraction);
             
             expect(mockInteraction.reply).toHaveBeenCalled();
@@ -112,7 +111,7 @@ describe('Purge Command', () => {
             expect(replyCall.embeds[0].description).toContain('10');
         });
 
-        it('should send mod log', async () => {
+        it('should send mod log', async() => {
             await purgeCommand.execute(mockInteraction);
             
             expect(sendModLog).toHaveBeenCalledWith(
@@ -124,7 +123,7 @@ describe('Purge Command', () => {
             );
         });
 
-        it('should include channel info in response', async () => {
+        it('should include channel info in response', async() => {
             await purgeCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -134,7 +133,7 @@ describe('Purge Command', () => {
     });
 
     describe('execute - Filter by User', () => {
-        it('should filter messages by specific user', async () => {
+        it('should filter messages by specific user', async() => {
             const targetUser = createMockUser({ id: '123456789', tag: 'Target#0001' });
             mockInteraction.options.getUser.mockReturnValue(targetUser);
 
@@ -153,7 +152,7 @@ describe('Purge Command', () => {
             expect([...deleteCall.values()].every(m => m.author.id === '123456789')).toBe(true);
         });
 
-        it('should show filtered user in response', async () => {
+        it('should show filtered user in response', async() => {
             const targetUser = createMockUser({ id: '123456789', tag: 'Target#0001' });
             mockInteraction.options.getUser.mockReturnValue(targetUser);
 
@@ -166,7 +165,7 @@ describe('Purge Command', () => {
     });
 
     describe('execute - Error Cases', () => {
-        it('should handle no messages found', async () => {
+        it('should handle no messages found', async() => {
             mockChannel.messages.fetch.mockResolvedValue(new Map());
 
             await purgeCommand.execute(mockInteraction);
@@ -176,7 +175,7 @@ describe('Purge Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should handle no messages from filtered user', async () => {
+        it('should handle no messages from filtered user', async() => {
             const targetUser = createMockUser({ id: '999888777', tag: 'NoMessages#0001' });
             mockInteraction.options.getUser.mockReturnValue(targetUser);
 
@@ -192,7 +191,7 @@ describe('Purge Command', () => {
             expect(replyCall.embeds[0].description).toContain('NoMessages#0001');
         });
 
-        it('should handle missing bot permissions', async () => {
+        it('should handle missing bot permissions', async() => {
             mockChannel.permissionsFor.mockReturnValue({
                 has: vi.fn().mockReturnValue(false)
             });
@@ -204,7 +203,7 @@ describe('Purge Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should handle bulk delete error', async () => {
+        it('should handle bulk delete error', async() => {
             mockChannel.bulkDelete.mockRejectedValue(new Error('Bulk delete failed'));
 
             await purgeCommand.execute(mockInteraction);
@@ -214,7 +213,7 @@ describe('Purge Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject invalid amount', async () => {
+        it('should reject invalid amount', async() => {
             mockInteraction.options.getInteger.mockReturnValue(0);
 
             await purgeCommand.execute(mockInteraction);
@@ -223,7 +222,7 @@ describe('Purge Command', () => {
             expect(replyCall.embeds[0].title).toContain('Invalid Amount');
         });
 
-        it('should reject amount over 100', async () => {
+        it('should reject amount over 100', async() => {
             mockInteraction.options.getInteger.mockReturnValue(150);
 
             await purgeCommand.execute(mockInteraction);
@@ -234,7 +233,7 @@ describe('Purge Command', () => {
     });
 
     describe('execute - Reason Handling', () => {
-        it('should use provided reason', async () => {
+        it('should use provided reason', async() => {
             mockInteraction.options.getString.mockReturnValue('Cleaning up spam');
 
             await purgeCommand.execute(mockInteraction);
@@ -247,7 +246,7 @@ describe('Purge Command', () => {
             );
         });
 
-        it('should use default reason when none provided', async () => {
+        it('should use default reason when none provided', async() => {
             mockInteraction.options.getString.mockReturnValue(null);
 
             await purgeCommand.execute(mockInteraction);

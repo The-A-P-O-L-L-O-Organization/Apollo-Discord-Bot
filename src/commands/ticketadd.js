@@ -50,7 +50,7 @@ export default {
         }
 
         // Check if user is already in the ticket
-        if (!ticket.participants) ticket.participants = [ticket.userId];
+        if (!ticket.participants) {ticket.participants = [ticket.userId];}
         
         if (ticket.participants.includes(addUser.id)) {
             return interaction.reply({

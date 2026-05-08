@@ -16,9 +16,7 @@ import {
 } from '../utils/analyticsCollector.js';
 import {
     createBarChart,
-    createPercentageBar,
     createSparkline,
-    createTrendIndicator,
     formatDuration,
     formatNumber
 } from '../utils/charts.js';
@@ -136,18 +134,18 @@ export default {
         const subcommand = interaction.options.getSubcommand();
 
         switch (subcommand) {
-            case 'server':
-                return handleServerStats(interaction);
-            case 'commands':
-                return handleCommandStats(interaction);
-            case 'activity':
-                return handleActivityStats(interaction);
-            case 'moderation':
-                return handleModerationStats(interaction);
-            case 'user':
-                return handleUserStats(interaction);
-            case 'export':
-                return handleExport(interaction);
+        case 'server':
+            return handleServerStats(interaction);
+        case 'commands':
+            return handleCommandStats(interaction);
+        case 'activity':
+            return handleActivityStats(interaction);
+        case 'moderation':
+            return handleModerationStats(interaction);
+        case 'user':
+            return handleUserStats(interaction);
+        case 'export':
+            return handleExport(interaction);
         }
     }
 };
@@ -167,9 +165,7 @@ async function handleServerStats(interaction) {
     
     // Create sparklines for trends
     const memberCounts = memberGrowth.map(d => d.totalMembers);
-    const joinCounts = memberGrowth.map(d => d.joinCount);
-    const leaveCounts = memberGrowth.map(d => d.leaveCount);
-    
+
     const embed = new EmbedBuilder()
         .setColor('#3498DB')
         .setTitle(`📊 Server Analytics - Last ${days} Days`)
@@ -278,7 +274,7 @@ async function handleCommandStats(interaction) {
     // Top users
     if (stats.byUser.length > 0) {
         const topUsers = stats.byUser.slice(0, 10);
-        const userLines = await Promise.all(topUsers.map(async (u, i) => {
+        const userLines = await Promise.all(topUsers.map(async(u, i) => {
             try {
                 const user = await interaction.client.users.fetch(u.userId);
                 return `${i + 1}. ${user.tag} - ${u.count} commands`;
@@ -347,7 +343,7 @@ async function handleActivityStats(interaction) {
     // Top users
     if (stats.byUser.length > 0) {
         const topUsers = stats.byUser.slice(0, 10);
-        const userLines = await Promise.all(topUsers.map(async (u, i) => {
+        const userLines = await Promise.all(topUsers.map(async(u, i) => {
             try {
                 const user = await interaction.client.users.fetch(u.userId);
                 const percentage = (u.count / totalMessages * 100).toFixed(1);
@@ -438,7 +434,7 @@ async function handleModerationStats(interaction) {
     // Top moderators
     if (modStats.byModerator.length > 0) {
         const topMods = modStats.byModerator.slice(0, 10);
-        const modLines = await Promise.all(topMods.map(async (m, i) => {
+        const modLines = await Promise.all(topMods.map(async(m, i) => {
             try {
                 const user = await interaction.client.users.fetch(m.moderatorId);
                 return `${i + 1}. ${user.tag} - ${m.count} actions`;
@@ -456,7 +452,6 @@ async function handleModerationStats(interaction) {
     
     // Automod violations
     if (violations.length > 0) {
-        const totalViolations = violations.reduce((sum, v) => sum + v.count, 0);
         const violationLines = violations.slice(0, 8).map(v => ({
             label: v.type.replace('_', ' '),
             value: v.count

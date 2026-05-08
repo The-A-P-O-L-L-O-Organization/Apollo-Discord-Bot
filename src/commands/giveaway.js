@@ -2,7 +2,7 @@
 // Create and manage giveaways
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
-import { setGuildData, updateGuildData } from '../utils/db.js';
+import { updateGuildData } from '../utils/db.js';
 
 export default {
     name: 'giveaway',
@@ -156,7 +156,7 @@ async function handleCreate(interaction) {
     };
     
     updateGuildData('giveaways', interaction.guild.id, data => {
-        if (!data.active) data.active = [];
+        if (!data.active) {data.active = [];}
         data.active.push(giveawayData);
         return data;
     });
@@ -227,7 +227,7 @@ async function handleReroll(interaction) {
 
 function parseDuration(str) {
     const match = str.match(/^(\d+)([mhd])$/i);
-    if (!match) return null;
+    if (!match) {return null;}
     
     const value = parseInt(match[1]);
     const unit = match[2].toLowerCase();

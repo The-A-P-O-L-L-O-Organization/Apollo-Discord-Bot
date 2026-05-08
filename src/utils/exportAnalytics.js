@@ -25,21 +25,21 @@ export async function exportAnalytics(guildId, format = 'csv', options = {}) {
     // Collect data for each requested type
     for (const type of types) {
         switch (type) {
-            case 'commands':
-                exportData.commands = exportCommandData(guildId, cutoffDate);
-                break;
-            case 'messages':
-                exportData.messages = exportMessageData(guildId, cutoffDate);
-                break;
-            case 'violations':
-                exportData.violations = exportViolationData(guildId, cutoffDate);
-                break;
-            case 'modactions':
-                exportData.modactions = exportModActionData(guildId, cutoffDate);
-                break;
-            case 'members':
-                exportData.members = exportMemberData(guildId, cutoffDate);
-                break;
+        case 'commands':
+            exportData.commands = exportCommandData(guildId, cutoffDate);
+            break;
+        case 'messages':
+            exportData.messages = exportMessageData(guildId, cutoffDate);
+            break;
+        case 'violations':
+            exportData.violations = exportViolationData(guildId, cutoffDate);
+            break;
+        case 'modactions':
+            exportData.modactions = exportModActionData(guildId, cutoffDate);
+            break;
+        case 'members':
+            exportData.members = exportMemberData(guildId, cutoffDate);
+            break;
         }
     }
     

@@ -73,7 +73,7 @@ export default {
         ticket.claimedBy = transferUser.id;
 
         // Add to participants if not already there
-        if (!ticket.participants) ticket.participants = [ticket.userId];
+        if (!ticket.participants) {ticket.participants = [ticket.userId];}
         if (!ticket.participants.includes(transferUser.id)) {
             ticket.participants.push(transferUser.id);
         }
@@ -131,7 +131,7 @@ export default {
 
         // Try to DM old assignees (if any)
         for (const oldAssigneeId of oldAssignees) {
-            if (oldAssigneeId === transferUser.id) continue;
+            if (oldAssigneeId === transferUser.id) {continue;}
             
             try {
                 const oldAssignee = await interaction.client.users.fetch(oldAssigneeId);

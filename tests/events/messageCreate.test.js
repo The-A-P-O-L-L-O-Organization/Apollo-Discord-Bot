@@ -72,7 +72,7 @@ import {
     checkSpam,
     checkAccountAge
 } from '../../src/utils/automod.js';
-import { appendToUserArray, getUserData, getGuildData } from '../../src/utils/db.js';
+import { appendToUserArray, getUserData } from '../../src/utils/db.js';
 import { sendModLog } from '../../src/utils/modLog.js';
 import { checkMessageAttachments } from '../../src/utils/nsfwDetection.js';
 import { checkMessageToxicity } from '../../src/utils/perspectiveApi.js';
@@ -156,7 +156,7 @@ describe('MessageCreate Event', () => {
     });
 
     describe('Message Filtering', () => {
-        it('should ignore DM messages', async () => {
+        it('should ignore DM messages', async() => {
             mockMessage.guild = null;
             
             await messageCreateEvent.execute(mockMessage, mockClient);
@@ -164,7 +164,7 @@ describe('MessageCreate Event', () => {
             expect(getAutomodConfig).not.toHaveBeenCalled();
         });
 
-        it('should ignore bot messages', async () => {
+        it('should ignore bot messages', async() => {
             mockMessage.author.bot = true;
             
             await messageCreateEvent.execute(mockMessage, mockClient);
@@ -172,7 +172,7 @@ describe('MessageCreate Event', () => {
             expect(getAutomodConfig).not.toHaveBeenCalled();
         });
 
-        it('should skip if automod is disabled', async () => {
+        it('should skip if automod is disabled', async() => {
             automodConfig.enabled = false;
             getAutomodConfig.mockReturnValue(automodConfig);
             
@@ -181,7 +181,7 @@ describe('MessageCreate Event', () => {
             expect(checkBannedWords).not.toHaveBeenCalled();
         });
 
-        it('should skip if channel is exempt', async () => {
+        it('should skip if channel is exempt', async() => {
             isChannelExempt.mockReturnValue(true);
             
             await messageCreateEvent.execute(mockMessage, mockClient);
@@ -189,7 +189,7 @@ describe('MessageCreate Event', () => {
             expect(checkBannedWords).not.toHaveBeenCalled();
         });
 
-        it('should skip if member is exempt', async () => {
+        it('should skip if member is exempt', async() => {
             isExempt.mockReturnValue(true);
             
             await messageCreateEvent.execute(mockMessage, mockClient);
@@ -197,7 +197,7 @@ describe('MessageCreate Event', () => {
             expect(checkBannedWords).not.toHaveBeenCalled();
         });
 
-        it('should skip if member is null', async () => {
+        it('should skip if member is null', async() => {
             mockMessage.member = null;
             
             await messageCreateEvent.execute(mockMessage, mockClient);
@@ -207,7 +207,7 @@ describe('MessageCreate Event', () => {
     });
 
     describe('Banned Words Check', () => {
-        it('should check for banned words when configured', async () => {
+        it('should check for banned words when configured', async() => {
             automodConfig.bannedWords = ['badword'];
             getAutomodConfig.mockReturnValue(automodConfig);
             
@@ -216,7 +216,7 @@ describe('MessageCreate Event', () => {
             expect(checkBannedWords).toHaveBeenCalledWith('Hello world', ['badword']);
         });
 
-        it('should delete message and warn user on banned word', async () => {
+        it('should delete message and warn user on banned word', async() => {
             automodConfig.bannedWords = ['badword'];
             getAutomodConfig.mockReturnValue(automodConfig);
             checkBannedWords.mockReturnValue('badword');
@@ -236,7 +236,7 @@ describe('MessageCreate Event', () => {
             );
         });
 
-        it('should not check banned words when list is empty', async () => {
+        it('should not check banned words when list is empty', async() => {
             automodConfig.bannedWords = [];
             getAutomodConfig.mockReturnValue(automodConfig);
             
@@ -247,7 +247,7 @@ describe('MessageCreate Event', () => {
     });
 
     describe('Invite Links Check', () => {
-        it('should check for invite links when enabled', async () => {
+        it('should check for invite links when enabled', async() => {
             automodConfig.filterInvites = true;
             getAutomodConfig.mockReturnValue(automodConfig);
             
@@ -256,7 +256,7 @@ describe('MessageCreate Event', () => {
             expect(checkInvites).toHaveBeenCalledWith('Hello world');
         });
 
-        it('should delete message on invite link detection', async () => {
+        it('should delete message on invite link detection', async() => {
             automodConfig.filterInvites = true;
             getAutomodConfig.mockReturnValue(automodConfig);
             checkInvites.mockReturnValue(true);
@@ -276,7 +276,7 @@ describe('MessageCreate Event', () => {
     });
 
     describe('External Links Check', () => {
-        it('should check for external links when enabled', async () => {
+        it('should check for external links when enabled', async() => {
             automodConfig.filterLinks = true;
             getAutomodConfig.mockReturnValue(automodConfig);
             
@@ -285,7 +285,7 @@ describe('MessageCreate Event', () => {
             expect(checkLinks).toHaveBeenCalledWith('Hello world');
         });
 
-        it('should delete message on external link detection', async () => {
+        it('should delete message on external link detection', async() => {
             automodConfig.filterLinks = true;
             getAutomodConfig.mockReturnValue(automodConfig);
             checkLinks.mockReturnValue(true);
@@ -297,7 +297,7 @@ describe('MessageCreate Event', () => {
     });
 
     describe('Mention Spam Check', () => {
-        it('should check for mention spam when threshold > 0', async () => {
+        it('should check for mention spam when threshold > 0', async() => {
             automodConfig.maxMentions = 5;
             getAutomodConfig.mockReturnValue(automodConfig);
             
@@ -306,7 +306,7 @@ describe('MessageCreate Event', () => {
             expect(checkMentionSpam).toHaveBeenCalledWith(mockMessage, 5);
         });
 
-        it('should not check mentions when maxMentions is 0', async () => {
+        it('should not check mentions when maxMentions is 0', async() => {
             automodConfig.maxMentions = 0;
             getAutomodConfig.mockReturnValue(automodConfig);
             
@@ -317,7 +317,7 @@ describe('MessageCreate Event', () => {
     });
 
     describe('Caps Spam Check', () => {
-        it('should check for caps spam when threshold < 100', async () => {
+        it('should check for caps spam when threshold < 100', async() => {
             automodConfig.maxCapsPercent = 70;
             getAutomodConfig.mockReturnValue(automodConfig);
             
@@ -326,7 +326,7 @@ describe('MessageCreate Event', () => {
             expect(checkCapsSpam).toHaveBeenCalledWith('Hello world', 70, 10);
         });
 
-        it('should not check caps when maxCapsPercent is 100', async () => {
+        it('should not check caps when maxCapsPercent is 100', async() => {
             automodConfig.maxCapsPercent = 100;
             getAutomodConfig.mockReturnValue(automodConfig);
             
@@ -337,7 +337,7 @@ describe('MessageCreate Event', () => {
     });
 
     describe('Message Spam Check', () => {
-        it('should check for spam when threshold > 0', async () => {
+        it('should check for spam when threshold > 0', async() => {
             automodConfig.spamThreshold = 5;
             getAutomodConfig.mockReturnValue(automodConfig);
             
@@ -346,7 +346,7 @@ describe('MessageCreate Event', () => {
             expect(checkSpam).toHaveBeenCalledWith(mockMessage, 5, 5000);
         });
 
-        it('should not check spam when threshold is 0', async () => {
+        it('should not check spam when threshold is 0', async() => {
             automodConfig.spamThreshold = 0;
             getAutomodConfig.mockReturnValue(automodConfig);
             
@@ -357,7 +357,7 @@ describe('MessageCreate Event', () => {
     });
 
     describe('Account Age Check', () => {
-        it('should check account age when minAccountAge > 0', async () => {
+        it('should check account age when minAccountAge > 0', async() => {
             automodConfig.minAccountAge = 7;
             getAutomodConfig.mockReturnValue(automodConfig);
             
@@ -366,7 +366,7 @@ describe('MessageCreate Event', () => {
             expect(checkAccountAge).toHaveBeenCalledWith(mockMessage.author, 7);
         });
 
-        it('should not check account age when minAccountAge is 0', async () => {
+        it('should not check account age when minAccountAge is 0', async() => {
             automodConfig.minAccountAge = 0;
             getAutomodConfig.mockReturnValue(automodConfig);
             
@@ -377,7 +377,7 @@ describe('MessageCreate Event', () => {
     });
 
     describe('Auto-Punishment Thresholds', () => {
-        it('should auto-mute at mute threshold', async () => {
+        it('should auto-mute at mute threshold', async() => {
             automodConfig.bannedWords = ['badword'];
             getAutomodConfig.mockReturnValue(automodConfig);
             checkBannedWords.mockReturnValue('badword');
@@ -392,7 +392,7 @@ describe('MessageCreate Event', () => {
             expect(mockMessage.member.timeout).toHaveBeenCalled();
         });
 
-        it('should auto-kick at kick threshold', async () => {
+        it('should auto-kick at kick threshold', async() => {
             automodConfig.bannedWords = ['badword'];
             getAutomodConfig.mockReturnValue(automodConfig);
             checkBannedWords.mockReturnValue('badword');
@@ -409,7 +409,7 @@ describe('MessageCreate Event', () => {
             expect(mockMessage.member.kick).toHaveBeenCalled();
         });
 
-        it('should auto-ban at ban threshold', async () => {
+        it('should auto-ban at ban threshold', async() => {
             automodConfig.bannedWords = ['badword'];
             getAutomodConfig.mockReturnValue(automodConfig);
             checkBannedWords.mockReturnValue('badword');
@@ -430,7 +430,7 @@ describe('MessageCreate Event', () => {
     });
 
     describe('Mod Logging', () => {
-        it('should send mod log on violation', async () => {
+        it('should send mod log on violation', async() => {
             automodConfig.bannedWords = ['badword'];
             getAutomodConfig.mockReturnValue(automodConfig);
             checkBannedWords.mockReturnValue('badword');
@@ -449,7 +449,7 @@ describe('MessageCreate Event', () => {
     });
 
     describe('Error Handling', () => {
-        it('should handle errors gracefully', async () => {
+        it('should handle errors gracefully', async() => {
             automodConfig.bannedWords = ['badword'];
             getAutomodConfig.mockReturnValue(automodConfig);
             checkBannedWords.mockImplementation(() => {

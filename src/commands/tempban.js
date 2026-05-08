@@ -80,22 +80,22 @@ export default {
             let durationText;
             
             switch (unit) {
-                case 'm':
-                    durationMs = value * 60000;
-                    durationText = `${value} minute(s)`;
-                    break;
-                case 'h':
-                    durationMs = value * 3600000;
-                    durationText = `${value} hour(s)`;
-                    break;
-                case 'd':
-                    durationMs = value * 86400000;
-                    durationText = `${value} day(s)`;
-                    break;
-                case 'w':
-                    durationMs = value * 604800000;
-                    durationText = `${value} week(s)`;
-                    break;
+            case 'm':
+                durationMs = value * 60000;
+                durationText = `${value} minute(s)`;
+                break;
+            case 'h':
+                durationMs = value * 3600000;
+                durationText = `${value} hour(s)`;
+                break;
+            case 'd':
+                durationMs = value * 86400000;
+                durationText = `${value} day(s)`;
+                break;
+            case 'w':
+                durationMs = value * 604800000;
+                durationText = `${value} week(s)`;
+                break;
             }
             
             // Validate minimum duration (1 minute)

@@ -87,7 +87,7 @@ export default {
 
             // Get template data
             const templates = getGuildData('ticket-templates', guildId);
-            if (!templates.list) templates.list = [];
+            if (!templates.list) {templates.list = [];}
 
             // Check if template already exists
             if (templates.list.find(t => t.name.toLowerCase() === name.toLowerCase())) {
@@ -132,7 +132,7 @@ export default {
 
             // Get template data
             const templates = getGuildData('ticket-templates', guildId);
-            if (!templates.list) templates.list = [];
+            if (!templates.list) {templates.list = [];}
 
             const templateIndex = templates.list.findIndex(t => t.name.toLowerCase() === name.toLowerCase());
 
@@ -182,7 +182,7 @@ export default {
             const name = interaction.options.getString('name');
 
             const templates = getGuildData('ticket-templates', guildId);
-            if (!templates.list) templates.list = [];
+            if (!templates.list) {templates.list = [];}
 
             const template = templates.list.find(t => t.name.toLowerCase() === name.toLowerCase());
 

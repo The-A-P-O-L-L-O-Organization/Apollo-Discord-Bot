@@ -72,7 +72,7 @@ describe('ClearWarnings Command', () => {
     });
 
     describe('execute - Clear All Warnings', () => {
-        it('should clear all active warnings', async () => {
+        it('should clear all active warnings', async() => {
             const warnings = [
                 { id: 'warn-1', reason: 'Reason 1', timestamp: Date.now(), active: true },
                 { id: 'warn-2', reason: 'Reason 2', timestamp: Date.now(), active: true }
@@ -88,7 +88,7 @@ describe('ClearWarnings Command', () => {
             expect(updatedWarnings.every(w => w.active === false)).toBe(true);
         });
 
-        it('should reply with success embed', async () => {
+        it('should reply with success embed', async() => {
             getUserData.mockReturnValue([
                 { id: 'warn-1', reason: 'Reason 1', timestamp: Date.now() }
             ]);
@@ -101,7 +101,7 @@ describe('ClearWarnings Command', () => {
             expect(replyCall.embeds[0].title).toContain('Warnings Cleared');
         });
 
-        it('should send mod log', async () => {
+        it('should send mod log', async() => {
             getUserData.mockReturnValue([
                 { id: 'warn-1', reason: 'Reason 1', timestamp: Date.now() }
             ]);
@@ -121,7 +121,7 @@ describe('ClearWarnings Command', () => {
     });
 
     describe('execute - Clear Specific Warning', () => {
-        it('should clear a specific warning by ID', async () => {
+        it('should clear a specific warning by ID', async() => {
             const warnings = [
                 { id: 'warn-1', reason: 'Reason 1', timestamp: Date.now(), moderatorTag: 'Mod#0001' },
                 { id: 'warn-2', reason: 'Reason 2', timestamp: Date.now(), moderatorTag: 'Mod#0001' }
@@ -147,7 +147,7 @@ describe('ClearWarnings Command', () => {
     });
 
     describe('execute - Error Cases', () => {
-        it('should reject when no user specified', async () => {
+        it('should reject when no user specified', async() => {
             mockInteraction.options.getUser.mockReturnValue(null);
 
             await clearWarningsCommand.execute(mockInteraction);
@@ -158,7 +158,7 @@ describe('ClearWarnings Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should handle user with no warnings', async () => {
+        it('should handle user with no warnings', async() => {
             getUserData.mockReturnValue([]);
 
             await clearWarningsCommand.execute(mockInteraction);
@@ -168,7 +168,7 @@ describe('ClearWarnings Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should handle invalid warning ID', async () => {
+        it('should handle invalid warning ID', async() => {
             getUserData.mockReturnValue([
                 { id: 'warn-1', reason: 'Reason 1', timestamp: Date.now() }
             ]);
@@ -182,7 +182,7 @@ describe('ClearWarnings Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should handle no active warnings when all are cleared', async () => {
+        it('should handle no active warnings when all are cleared', async() => {
             getUserData.mockReturnValue([
                 { id: 'warn-1', reason: 'Reason 1', timestamp: Date.now(), active: false }
             ]);
@@ -195,7 +195,7 @@ describe('ClearWarnings Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should handle errors gracefully', async () => {
+        it('should handle errors gracefully', async() => {
             getUserData.mockImplementation(() => {
                 throw new Error('Database error');
             });
@@ -209,7 +209,7 @@ describe('ClearWarnings Command', () => {
     });
 
     describe('execute - Default Reason', () => {
-        it('should use default reason when none provided', async () => {
+        it('should use default reason when none provided', async() => {
             getUserData.mockReturnValue([
                 { id: 'warn-1', reason: 'Reason 1', timestamp: Date.now() }
             ]);

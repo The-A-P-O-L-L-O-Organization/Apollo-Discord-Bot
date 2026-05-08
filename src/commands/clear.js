@@ -49,11 +49,9 @@ export default {
                 return await this.handleDeleteAll(interaction, channel);
             }
 
-            if (!amount) {
-                amount = 5;
-            }
+            const finalAmount = amount || 5;
 
-            await this.deleteMessages(interaction, channel, amount);
+            await this.deleteMessages(interaction, channel, finalAmount);
 
         } catch (error) {
             console.error('[ERROR] Clear command error:', error);
@@ -142,7 +140,7 @@ export default {
             filter: i => i.user.id === interaction.user.id
         });
 
-        collector.on('collect', async (buttonInteraction) => {
+        collector.on('collect', async(buttonInteraction) => {
             if (buttonInteraction.customId === 'confirm_delete_all') {
                 collector.stop();
                 await buttonInteraction.deferUpdate();
@@ -218,7 +216,7 @@ export default {
             }
         });
 
-        collector.on('end', async (collected, reason) => {
+        collector.on('end', async(collected, reason) => {
             if (reason === 'time') {
                 const timeoutEmbed = new EmbedBuilder()
                     .setColor(0x808080)
@@ -230,7 +228,9 @@ export default {
                         embeds: [timeoutEmbed],
                         components: []
                     });
-                } catch (e) {}
+                } catch {
+                    // Message may have been deleted
+                }
             }
         });
     }

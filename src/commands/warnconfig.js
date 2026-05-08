@@ -16,7 +16,7 @@ export default {
         {
             name: 'view',
             description: 'View current warning configuration',
-            type: 1, // SUB_COMMAND
+            type: 1 // SUB_COMMAND
         },
         {
             name: 'set',
@@ -60,7 +60,7 @@ export default {
         {
             name: 'reset',
             description: 'Reset to default configuration',
-            type: 1, // SUB_COMMAND
+            type: 1 // SUB_COMMAND
         }
     ],
     
@@ -69,18 +69,18 @@ export default {
         
         try {
             switch (subcommand) {
-                case 'view':
-                    await handleView(interaction);
-                    break;
-                case 'set':
-                    await handleSet(interaction);
-                    break;
-                case 'setmuteduration':
-                    await handleSetMuteDuration(interaction);
-                    break;
-                case 'reset':
-                    await handleReset(interaction);
-                    break;
+            case 'view':
+                await handleView(interaction);
+                break;
+            case 'set':
+                await handleSet(interaction);
+                break;
+            case 'setmuteduration':
+                await handleSetMuteDuration(interaction);
+                break;
+            case 'reset':
+                await handleReset(interaction);
+                break;
             }
         } catch (error) {
             console.error('[ERROR] Warn config command error:', error);
@@ -269,7 +269,7 @@ async function handleReset(interaction) {
 
 function parseDuration(str) {
     const match = str.match(/^(\d+)([mhdw])$/i);
-    if (!match) return null;
+    if (!match) {return null;}
     
     const value = parseInt(match[1]);
     const unit = match[2].toLowerCase();
@@ -290,8 +290,8 @@ function formatDuration(ms) {
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
     
-    if (days > 0) return `${days} day(s)`;
-    if (hours > 0) return `${hours} hour(s)`;
-    if (minutes > 0) return `${minutes} minute(s)`;
+    if (days > 0) {return `${days} day(s)`;}
+    if (hours > 0) {return `${hours} hour(s)`;}
+    if (minutes > 0) {return `${minutes} minute(s)`;}
     return `${seconds} second(s)`;
 }

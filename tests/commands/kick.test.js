@@ -3,12 +3,11 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import kickCommand from '../../src/commands/kick.js';
-import { 
-    createMockInteraction, 
-    createMockUser, 
+import {
+    createMockInteraction,
+    createMockUser,
     createMockMember,
-    createMockGuild,
-    createMockClient 
+    createMockGuild
 } from '../mocks/discord.js';
 
 // Mock the modLog module
@@ -90,13 +89,13 @@ describe('Kick Command', () => {
     });
 
     describe('execute - Success Cases', () => {
-        it('should kick user successfully', async () => {
+        it('should kick user successfully', async() => {
             await kickCommand.execute(mockInteraction);
             
             expect(targetMember.kick).toHaveBeenCalledWith('Violating server rules');
         });
 
-        it('should reply with success embed', async () => {
+        it('should reply with success embed', async() => {
             await kickCommand.execute(mockInteraction);
             
             expect(mockInteraction.reply).toHaveBeenCalled();
@@ -104,7 +103,7 @@ describe('Kick Command', () => {
             expect(replyCall.embeds[0].title).toBe('[SUCCESS] User Kicked');
         });
 
-        it('should include correct kick details in response', async () => {
+        it('should include correct kick details in response', async() => {
             await kickCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -116,7 +115,7 @@ describe('Kick Command', () => {
             expect(embed.fields.some(f => f.name.includes('User ID'))).toBe(true);
         });
 
-        it('should send mod log', async () => {
+        it('should send mod log', async() => {
             await kickCommand.execute(mockInteraction);
             
             expect(sendModLog).toHaveBeenCalledWith(
@@ -130,7 +129,7 @@ describe('Kick Command', () => {
             );
         });
 
-        it('should use default reason when none provided', async () => {
+        it('should use default reason when none provided', async() => {
             mockInteraction.options.getString.mockReturnValue(null);
             
             await kickCommand.execute(mockInteraction);
@@ -140,7 +139,7 @@ describe('Kick Command', () => {
     });
 
     describe('execute - Error Cases', () => {
-        it('should reject when no user specified', async () => {
+        it('should reject when no user specified', async() => {
             mockInteraction.options.getUser.mockReturnValue(null);
             
             await kickCommand.execute(mockInteraction);
@@ -152,7 +151,7 @@ describe('Kick Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject self-kick', async () => {
+        it('should reject self-kick', async() => {
             const sameUser = createMockUser({ id: '999888777' });
             mockInteraction.options.getUser.mockReturnValue(sameUser);
             
@@ -163,7 +162,7 @@ describe('Kick Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject when member not found', async () => {
+        it('should reject when member not found', async() => {
             fetchMember.mockResolvedValue(null);
             
             await kickCommand.execute(mockInteraction);
@@ -173,7 +172,7 @@ describe('Kick Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject when member is not kickable', async () => {
+        it('should reject when member is not kickable', async() => {
             targetMember.kickable = false;
             fetchMember.mockResolvedValue(targetMember);
             
@@ -184,7 +183,7 @@ describe('Kick Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should handle kick API error gracefully', async () => {
+        it('should handle kick API error gracefully', async() => {
             targetMember.kick.mockRejectedValue(new Error('API Error'));
             
             await kickCommand.execute(mockInteraction);
@@ -196,7 +195,7 @@ describe('Kick Command', () => {
     });
 
     describe('execute - Edge Cases', () => {
-        it('should handle very long reasons', async () => {
+        it('should handle very long reasons', async() => {
             const longReason = 'x'.repeat(500);
             mockInteraction.options.getString.mockReturnValue(longReason);
             
@@ -205,7 +204,7 @@ describe('Kick Command', () => {
             expect(targetMember.kick).toHaveBeenCalledWith(longReason);
         });
 
-        it('should handle special characters in reason', async () => {
+        it('should handle special characters in reason', async() => {
             const specialReason = 'Breaking rules: <script>alert("xss")</script>';
             mockInteraction.options.getString.mockReturnValue(specialReason);
             

@@ -6,7 +6,7 @@ import { getData, setData } from './db.js';
 
 let client = null;
 let schedulerInterval = null;
-let performanceStats = {
+const performanceStats = {
     checksPerformed: 0,
     pollsTallied: 0,
     totalCheckTime: 0,
@@ -48,7 +48,7 @@ export function stopPollScheduler() {
  * Checks for expired polls and tallies them
  */
 async function checkPolls() {
-    if (!client) return;
+    if (!client) {return;}
     
     const startTime = Date.now();
     
@@ -66,7 +66,7 @@ async function checkPolls() {
         
         // Process each guild's polls
         for (const [guildId, guildData] of Object.entries(data)) {
-            if (!guildData.active || guildData.active.length === 0) continue;
+            if (!guildData.active || guildData.active.length === 0) {continue;}
             
             const expiredPolls = guildData.active.filter(p => p.endTime <= now);
             
@@ -105,11 +105,11 @@ async function tallyPoll(guildId, poll) {
     try {
         // Fetch the guild
         const guild = await client.guilds.fetch(guildId);
-        if (!guild) return;
+        if (!guild) {return;}
         
         // Fetch the channel
         const channel = await guild.channels.fetch(poll.channelId);
-        if (!channel || !channel.isTextBased()) return;
+        if (!channel || !channel.isTextBased()) {return;}
         
         // Fetch the poll message
         let message;

@@ -64,7 +64,7 @@ describe('Logging Command', () => {
             mockInteraction.options.getSubcommand.mockReturnValue('enable');
         });
 
-        it('should enable a specific event', async () => {
+        it('should enable a specific event', async() => {
             mockInteraction.options.getString.mockReturnValue('messageDelete');
 
             await loggingCommand.execute(mockInteraction);
@@ -74,7 +74,7 @@ describe('Logging Command', () => {
             expect(setCall[2].events.messageDelete).toBe(true);
         });
 
-        it('should enable all events', async () => {
+        it('should enable all events', async() => {
             mockInteraction.options.getString.mockReturnValue('all');
 
             await loggingCommand.execute(mockInteraction);
@@ -91,7 +91,7 @@ describe('Logging Command', () => {
             expect(events.voiceChanges).toBe(true);
         });
 
-        it('should reply with success message', async () => {
+        it('should reply with success message', async() => {
             mockInteraction.options.getString.mockReturnValue('messageDelete');
 
             await loggingCommand.execute(mockInteraction);
@@ -107,7 +107,7 @@ describe('Logging Command', () => {
             mockInteraction.options.getSubcommand.mockReturnValue('disable');
         });
 
-        it('should disable a specific event', async () => {
+        it('should disable a specific event', async() => {
             mockInteraction.options.getString.mockReturnValue('messageDelete');
             getGuildData.mockReturnValue({
                 events: { messageDelete: true, messageEdit: true }
@@ -120,7 +120,7 @@ describe('Logging Command', () => {
             expect(setCall[2].events.messageDelete).toBe(false);
         });
 
-        it('should disable all events', async () => {
+        it('should disable all events', async() => {
             mockInteraction.options.getString.mockReturnValue('all');
 
             await loggingCommand.execute(mockInteraction);
@@ -134,7 +134,7 @@ describe('Logging Command', () => {
             expect(events.memberJoin).toBe(false);
         });
 
-        it('should reply with success message', async () => {
+        it('should reply with success message', async() => {
             mockInteraction.options.getString.mockReturnValue('messageDelete');
 
             await loggingCommand.execute(mockInteraction);
@@ -150,7 +150,7 @@ describe('Logging Command', () => {
             mockInteraction.options.getSubcommand.mockReturnValue('status');
         });
 
-        it('should display current configuration', async () => {
+        it('should display current configuration', async() => {
             getGuildData.mockReturnValue({
                 channelId: '111222333',
                 events: {
@@ -166,7 +166,7 @@ describe('Logging Command', () => {
             expect(replyCall.embeds[0].title).toBe('Logging Configuration');
         });
 
-        it('should show log channel status', async () => {
+        it('should show log channel status', async() => {
             getGuildData.mockReturnValue({
                 channelId: '111222333'
             });
@@ -179,7 +179,7 @@ describe('Logging Command', () => {
             expect(channelField.value).toContain('111222333');
         });
 
-        it('should show when channel is not configured', async () => {
+        it('should show when channel is not configured', async() => {
             getGuildData.mockReturnValue({});
 
             await loggingCommand.execute(mockInteraction);
@@ -190,7 +190,7 @@ describe('Logging Command', () => {
             expect(channelField.value).toContain('Not configured');
         });
 
-        it('should show event statuses', async () => {
+        it('should show event statuses', async() => {
             getGuildData.mockReturnValue({
                 events: {
                     messageDelete: true,
@@ -210,7 +210,7 @@ describe('Logging Command', () => {
             expect(editField.value).toContain('Disabled');
         });
 
-        it('should handle channel not found', async () => {
+        it('should handle channel not found', async() => {
             getGuildData.mockReturnValue({
                 channelId: '999999999'
             });

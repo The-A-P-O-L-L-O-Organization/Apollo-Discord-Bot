@@ -96,7 +96,7 @@ describe('Ban Command', () => {
     });
 
     describe('execute - Success Cases', () => {
-        it('should ban user successfully', async () => {
+        it('should ban user successfully', async() => {
             await banCommand.execute(mockInteraction);
             
             expect(mockGuild.bans.create).toHaveBeenCalledWith('111222333', {
@@ -105,7 +105,7 @@ describe('Ban Command', () => {
             });
         });
 
-        it('should reply with success embed', async () => {
+        it('should reply with success embed', async() => {
             await banCommand.execute(mockInteraction);
             
             expect(mockInteraction.reply).toHaveBeenCalled();
@@ -113,7 +113,7 @@ describe('Ban Command', () => {
             expect(replyCall.embeds[0].title).toBe('[SUCCESS] User Banned');
         });
 
-        it('should include correct ban details in response', async () => {
+        it('should include correct ban details in response', async() => {
             await banCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -123,7 +123,7 @@ describe('Ban Command', () => {
             expect(embed.fields.some(f => f.name.includes('Reason'))).toBe(true);
         });
 
-        it('should send mod log', async () => {
+        it('should send mod log', async() => {
             await banCommand.execute(mockInteraction);
             
             expect(sendModLog).toHaveBeenCalledWith(
@@ -137,7 +137,7 @@ describe('Ban Command', () => {
             );
         });
 
-        it('should use default reason when none provided', async () => {
+        it('should use default reason when none provided', async() => {
             mockInteraction.options.getString.mockReturnValue(null);
             
             await banCommand.execute(mockInteraction);
@@ -148,7 +148,7 @@ describe('Ban Command', () => {
             });
         });
 
-        it('should use custom delete days', async () => {
+        it('should use custom delete days', async() => {
             mockInteraction.options.getInteger.mockReturnValue(7);
             
             await banCommand.execute(mockInteraction);
@@ -159,7 +159,7 @@ describe('Ban Command', () => {
             });
         });
 
-        it('should ban user not in server', async () => {
+        it('should ban user not in server', async() => {
             fetchMember.mockResolvedValue(null);
             
             await banCommand.execute(mockInteraction);
@@ -169,7 +169,7 @@ describe('Ban Command', () => {
     });
 
     describe('execute - Error Cases', () => {
-        it('should reject when no user specified', async () => {
+        it('should reject when no user specified', async() => {
             mockInteraction.options.getUser.mockReturnValue(null);
             
             await banCommand.execute(mockInteraction);
@@ -181,7 +181,7 @@ describe('Ban Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject self-ban', async () => {
+        it('should reject self-ban', async() => {
             const sameUser = createMockUser({ id: '999888777' });
             mockInteraction.options.getUser.mockReturnValue(sameUser);
             
@@ -192,7 +192,7 @@ describe('Ban Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject banning the bot', async () => {
+        it('should reject banning the bot', async() => {
             const botUser = createMockUser({ id: 'BOT_ID' });
             mockInteraction.options.getUser.mockReturnValue(botUser);
             
@@ -203,7 +203,7 @@ describe('Ban Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject when member is not bannable', async () => {
+        it('should reject when member is not bannable', async() => {
             targetMember.bannable = false;
             fetchMember.mockResolvedValue(targetMember);
             
@@ -214,7 +214,7 @@ describe('Ban Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should handle ban API error gracefully', async () => {
+        it('should handle ban API error gracefully', async() => {
             mockGuild.bans.create.mockRejectedValue(new Error('API Error'));
             
             await banCommand.execute(mockInteraction);
@@ -226,7 +226,7 @@ describe('Ban Command', () => {
     });
 
     describe('execute - Delete Days Validation', () => {
-        it('should accept 0 delete days', async () => {
+        it('should accept 0 delete days', async() => {
             mockInteraction.options.getInteger.mockReturnValue(0);
             
             await banCommand.execute(mockInteraction);
@@ -234,7 +234,7 @@ describe('Ban Command', () => {
             expect(mockGuild.bans.create).toHaveBeenCalled();
         });
 
-        it('should accept 7 delete days', async () => {
+        it('should accept 7 delete days', async() => {
             mockInteraction.options.getInteger.mockReturnValue(7);
             
             await banCommand.execute(mockInteraction);
@@ -245,7 +245,7 @@ describe('Ban Command', () => {
             });
         });
 
-        it('should reject negative delete days', async () => {
+        it('should reject negative delete days', async() => {
             mockInteraction.options.getInteger.mockReturnValue(-1);
             
             await banCommand.execute(mockInteraction);
@@ -254,7 +254,7 @@ describe('Ban Command', () => {
             expect(replyCall.embeds[0].title).toContain('Invalid Value');
         });
 
-        it('should reject delete days over 7', async () => {
+        it('should reject delete days over 7', async() => {
             mockInteraction.options.getInteger.mockReturnValue(8);
             
             await banCommand.execute(mockInteraction);

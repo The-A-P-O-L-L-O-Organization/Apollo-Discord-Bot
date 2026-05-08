@@ -1,2 +1,6 @@
 packages:
   - bot
+allowBuilds:
+  '@tensorflow/tfjs-node': set this to true or false
+  better-sqlite3: true
+  core-js: set this to true or false

@@ -144,7 +144,7 @@ export default {
                 const priority = ticket.priority || 'medium';
                 const emoji = getPriorityEmoji(priority);
                 
-                let value = [
+                const value = [
                     `Status: ${status}`,
                     `Priority: ${emoji} ${priority}`,
                     `Category: ${ticket.category || 'general'}`,
@@ -217,7 +217,7 @@ export default {
                 time: 300000 // 5 minutes
             });
 
-            collector.on('collect', async (i) => {
+            collector.on('collect', async(i) => {
                 if (i.user.id !== interaction.user.id) {
                     return i.reply({
                         content: 'These buttons are not for you!',

@@ -61,7 +61,7 @@ describe('VoiceStateUpdate Event', () => {
     });
 
     describe('Voice Channel Join', () => {
-        it('should log event when user joins a voice channel', async () => {
+        it('should log event when user joins a voice channel', async() => {
             const oldState = createMockVoiceState({
                 member: mockMember,
                 channel: null,
@@ -84,7 +84,7 @@ describe('VoiceStateUpdate Event', () => {
     });
 
     describe('Voice Channel Leave', () => {
-        it('should log event when user leaves a voice channel', async () => {
+        it('should log event when user leaves a voice channel', async() => {
             const oldState = createMockVoiceState({
                 member: mockMember,
                 channel: voiceChannel1,
@@ -107,7 +107,7 @@ describe('VoiceStateUpdate Event', () => {
     });
 
     describe('Voice Channel Move', () => {
-        it('should log event when user moves between voice channels', async () => {
+        it('should log event when user moves between voice channels', async() => {
             const oldState = createMockVoiceState({
                 member: mockMember,
                 channel: voiceChannel1,
@@ -130,7 +130,7 @@ describe('VoiceStateUpdate Event', () => {
     });
 
     describe('Bot User Handling', () => {
-        it('should not log events for bot users', async () => {
+        it('should not log events for bot users', async() => {
             const botMember = createMockMember({
                 id: 'BOT_ID',
                 user: createMockUser({ 
@@ -161,7 +161,7 @@ describe('VoiceStateUpdate Event', () => {
     });
 
     describe('Insignificant Changes', () => {
-        it('should not log when createVoiceChangeEmbed returns null', async () => {
+        it('should not log when createVoiceChangeEmbed returns null', async() => {
             const oldState = createMockVoiceState({
                 member: mockMember,
                 channel: voiceChannel1,
@@ -195,7 +195,7 @@ describe('VoiceStateUpdate Event', () => {
     });
 
     describe('Guild Resolution', () => {
-        it('should use guild from newState when available', async () => {
+        it('should use guild from newState when available', async() => {
             const oldState = createMockVoiceState({
                 member: mockMember,
                 channel: voiceChannel1,
@@ -215,7 +215,7 @@ describe('VoiceStateUpdate Event', () => {
             expect(logEvent).toHaveBeenCalledWith(mockGuild, 'voiceChanges', expect.anything());
         });
 
-        it('should fall back to guild from oldState when newState guild is null', async () => {
+        it('should fall back to guild from oldState when newState guild is null', async() => {
             const oldGuild = createMockGuild({ id: 'oldGuild' });
             
             const oldState = createMockVoiceState({
@@ -239,7 +239,7 @@ describe('VoiceStateUpdate Event', () => {
     });
 
     describe('Member Resolution', () => {
-        it('should get member from newState when available', async () => {
+        it('should get member from newState when available', async() => {
             const oldState = createMockVoiceState({
                 member: null,
                 channel: null,
@@ -259,7 +259,7 @@ describe('VoiceStateUpdate Event', () => {
             expect(logEvent).toHaveBeenCalled();
         });
 
-        it('should fall back to member from oldState', async () => {
+        it('should fall back to member from oldState', async() => {
             const oldState = createMockVoiceState({
                 member: mockMember,
                 channel: voiceChannel1,

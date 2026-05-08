@@ -3,12 +3,11 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import warnCommand from '../../src/commands/warn.js';
-import { 
-    createMockInteraction, 
-    createMockUser, 
+import {
+    createMockInteraction,
+    createMockUser,
     createMockMember,
-    createMockGuild,
-    createMockClient 
+    createMockGuild
 } from '../mocks/discord.js';
 
 // Mock the dependencies
@@ -116,7 +115,7 @@ describe('Warn Command', () => {
     });
 
     describe('execute - Success Cases', () => {
-        it('should warn user successfully', async () => {
+        it('should warn user successfully', async() => {
             await warnCommand.execute(mockInteraction);
             
             expect(appendToUserArray).toHaveBeenCalledWith(
@@ -132,7 +131,7 @@ describe('Warn Command', () => {
             );
         });
 
-        it('should reply with success embed', async () => {
+        it('should reply with success embed', async() => {
             await warnCommand.execute(mockInteraction);
             
             expect(mockInteraction.reply).toHaveBeenCalled();
@@ -140,7 +139,7 @@ describe('Warn Command', () => {
             expect(replyCall.embeds[0].title).toBe('[SUCCESS] User Warned');
         });
 
-        it('should include warning count in response', async () => {
+        it('should include warning count in response', async() => {
             getUserData.mockReturnValue([
                 { id: '1', active: true },
                 { id: '2', active: true },
@@ -155,7 +154,7 @@ describe('Warn Command', () => {
             expect(countField.value).toBe('3');
         });
 
-        it('should send mod log', async () => {
+        it('should send mod log', async() => {
             await warnCommand.execute(mockInteraction);
             
             expect(sendModLog).toHaveBeenCalledWith(
@@ -169,13 +168,13 @@ describe('Warn Command', () => {
             );
         });
 
-        it('should attempt to DM user', async () => {
+        it('should attempt to DM user', async() => {
             await warnCommand.execute(mockInteraction);
             
             expect(targetUser.send).toHaveBeenCalled();
         });
 
-        it('should handle DM failure gracefully', async () => {
+        it('should handle DM failure gracefully', async() => {
             targetUser.send.mockRejectedValue(new Error('Cannot DM user'));
             
             await warnCommand.execute(mockInteraction);
@@ -191,7 +190,7 @@ describe('Warn Command', () => {
     });
 
     describe('execute - Error Cases', () => {
-        it('should reject when no user specified', async () => {
+        it('should reject when no user specified', async() => {
             mockInteraction.options.getUser.mockReturnValue(null);
             
             await warnCommand.execute(mockInteraction);
@@ -201,7 +200,7 @@ describe('Warn Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject warning bots', async () => {
+        it('should reject warning bots', async() => {
             targetUser.bot = true;
             mockInteraction.options.getUser.mockReturnValue(targetUser);
             
@@ -211,7 +210,7 @@ describe('Warn Command', () => {
             expect(replyCall.embeds[0].title).toContain('Invalid Target');
         });
 
-        it('should reject self-warning', async () => {
+        it('should reject self-warning', async() => {
             const sameUser = createMockUser({ id: '999888777' });
             mockInteraction.options.getUser.mockReturnValue(sameUser);
             
@@ -221,7 +220,7 @@ describe('Warn Command', () => {
             expect(replyCall.embeds[0].title).toContain('Self Action');
         });
 
-        it('should reject when member not found', async () => {
+        it('should reject when member not found', async() => {
             fetchMember.mockResolvedValue(null);
             
             await warnCommand.execute(mockInteraction);
@@ -232,7 +231,7 @@ describe('Warn Command', () => {
     });
 
     describe('execute - Auto Punishment', () => {
-        it('should auto-mute at 3 warnings', async () => {
+        it('should auto-mute at 3 warnings', async() => {
             getUserData.mockReturnValue([
                 { id: '1', active: true },
                 { id: '2', active: true },
@@ -253,7 +252,7 @@ describe('Warn Command', () => {
             expect(autoPunishField.value).toContain('muted');
         });
 
-        it('should auto-kick at 5 warnings', async () => {
+        it('should auto-kick at 5 warnings', async() => {
             getUserData.mockReturnValue([
                 { id: '1', active: true },
                 { id: '2', active: true },
@@ -269,7 +268,7 @@ describe('Warn Command', () => {
             );
         });
 
-        it('should auto-ban at 7 warnings', async () => {
+        it('should auto-ban at 7 warnings', async() => {
             getUserData.mockReturnValue([
                 { id: '1', active: true },
                 { id: '2', active: true },
@@ -290,7 +289,7 @@ describe('Warn Command', () => {
             );
         });
 
-        it('should only count active warnings', async () => {
+        it('should only count active warnings', async() => {
             getUserData.mockReturnValue([
                 { id: '1', active: true },
                 { id: '2', active: false }, // Cleared warning
@@ -304,7 +303,7 @@ describe('Warn Command', () => {
             expect(targetMember.timeout).toHaveBeenCalled();
         });
 
-        it('should handle auto-mute failure gracefully', async () => {
+        it('should handle auto-mute failure gracefully', async() => {
             getUserData.mockReturnValue([
                 { id: '1', active: true },
                 { id: '2', active: true }
@@ -318,7 +317,7 @@ describe('Warn Command', () => {
             expect(replyCall.embeds[0].title).toBe('[SUCCESS] User Warned');
         });
 
-        it('should show next threshold in response', async () => {
+        it('should show next threshold in response', async() => {
             getUserData.mockReturnValue([]);
             
             await warnCommand.execute(mockInteraction);
@@ -331,7 +330,7 @@ describe('Warn Command', () => {
             expect(thresholdField.value).toContain('mute');
         });
 
-        it('should respect guild-specific thresholds', async () => {
+        it('should respect guild-specific thresholds', async() => {
             getGuildData.mockReturnValue({
                 thresholds: {
                     mute: 5,
@@ -353,7 +352,7 @@ describe('Warn Command', () => {
     });
 
     describe('execute - Warning ID Generation', () => {
-        it('should generate unique warning ID', async () => {
+        it('should generate unique warning ID', async() => {
             await warnCommand.execute(mockInteraction);
             
             expect(generateId).toHaveBeenCalled();
@@ -365,7 +364,7 @@ describe('Warn Command', () => {
             );
         });
 
-        it('should include warning ID in response', async () => {
+        it('should include warning ID in response', async() => {
             await warnCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];

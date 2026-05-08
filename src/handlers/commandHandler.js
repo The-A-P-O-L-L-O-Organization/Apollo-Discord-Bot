@@ -31,13 +31,13 @@ export default async function commandHandler(client) {
             }
         }
         
-        console.log(`[SUCCESS] All commands loaded successfully!`);
+        console.log('[SUCCESS] All commands loaded successfully!');
         
         // Register commands with Discord (global commands)
         await registerCommands(client);
         
     } catch (error) {
-        console.error(`[ERROR] Error loading commands:`, error);
+        console.error('[ERROR] Error loading commands:', error);
     }
 }
 

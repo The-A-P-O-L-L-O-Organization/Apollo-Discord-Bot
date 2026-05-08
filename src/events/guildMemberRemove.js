@@ -11,7 +11,7 @@ export default {
     
     async execute(member, client) {
         // Ignore bots leaving
-        if (member.user.bot) return;
+        if (member.user.bot) {return;}
         
         // Track member leave for analytics
         trackMemberChange(member.guild.id, false, member.guild.memberCount);
@@ -26,7 +26,7 @@ export default {
             
             if (roleIds.length > 0) {
                 const config = getGuildData('role-persistence', member.guild.id);
-                if (!config.savedRoles) config.savedRoles = {};
+                if (!config.savedRoles) {config.savedRoles = {};}
                 
                 config.savedRoles[member.id] = {
                     roles: roleIds,

@@ -98,7 +98,7 @@ export default {
         tickets.sort((a, b) => {
             const priorityA = priorityOrder[a.priority || 'medium'];
             const priorityB = priorityOrder[b.priority || 'medium'];
-            if (priorityA !== priorityB) return priorityA - priorityB;
+            if (priorityA !== priorityB) {return priorityA - priorityB;}
             return a.createdAt - b.createdAt;
         });
 
@@ -123,7 +123,7 @@ export default {
                 const emoji = getPriorityEmoji(priority);
                 const category = ticket.category || 'general';
                 
-                let value = [
+                const value = [
                     `Priority: ${emoji} ${priority}`,
                     `Category: ${category}`,
                     `Created: <t:${Math.floor(ticket.createdAt / 1000)}:R>`
@@ -134,7 +134,7 @@ export default {
                 } else if (ticket.assignedTo && ticket.assignedTo.length > 0) {
                     value.push(`Assigned: ${ticket.assignedTo.length} staff`);
                 } else {
-                    value.push(`Status: ⚠️ Unassigned`);
+                    value.push('Status: ⚠️ Unassigned');
                 }
 
                 if (!ticket.firstResponseAt) {
@@ -200,7 +200,7 @@ export default {
                 time: 300000 // 5 minutes
             });
 
-            collector.on('collect', async (i) => {
+            collector.on('collect', async(i) => {
                 if (i.user.id !== interaction.user.id) {
                     return i.reply({
                         content: 'These buttons are not for you!',

@@ -2,7 +2,7 @@
 // Configure automatic moderation settings per server
 
 import { PermissionsBitField, EmbedBuilder, ChannelType } from 'discord.js';
-import { getGuildData, setGuildData, updateGuildData } from '../utils/db.js';
+import { getGuildData, setGuildData } from '../utils/db.js';
 import { config } from '../config/config.js';
 
 export default {
@@ -16,17 +16,17 @@ export default {
         {
             name: 'enable',
             description: 'Enable automod for this server',
-            type: 1, // SUB_COMMAND
+            type: 1 // SUB_COMMAND
         },
         {
             name: 'disable',
             description: 'Disable automod for this server',
-            type: 1, // SUB_COMMAND
+            type: 1 // SUB_COMMAND
         },
         {
             name: 'status',
             description: 'View current automod configuration',
-            type: 1, // SUB_COMMAND
+            type: 1 // SUB_COMMAND
         },
         {
             name: 'addword',
@@ -57,7 +57,7 @@ export default {
         {
             name: 'listwords',
             description: 'List all banned words',
-            type: 1, // SUB_COMMAND
+            type: 1 // SUB_COMMAND
         },
         {
             name: 'set',
@@ -140,33 +140,33 @@ export default {
         try {
             const subcommand = interaction.options.getSubcommand();
             switch (subcommand) {
-                case 'enable':
-                    await handleEnable(interaction);
-                    break;
-                case 'disable':
-                    await handleDisable(interaction);
-                    break;
-                case 'status':
-                    await handleStatus(interaction);
-                    break;
-                case 'addword':
-                    await handleAddWord(interaction);
-                    break;
-                case 'removeword':
-                    await handleRemoveWord(interaction);
-                    break;
-                case 'listwords':
-                    await handleListWords(interaction);
-                    break;
-                case 'set':
-                    await handleSet(interaction);
-                    break;
-                case 'exemptchannel':
-                    await handleExemptChannel(interaction);
-                    break;
-                case 'exemptrole':
-                    await handleExemptRole(interaction);
-                    break;
+            case 'enable':
+                await handleEnable(interaction);
+                break;
+            case 'disable':
+                await handleDisable(interaction);
+                break;
+            case 'status':
+                await handleStatus(interaction);
+                break;
+            case 'addword':
+                await handleAddWord(interaction);
+                break;
+            case 'removeword':
+                await handleRemoveWord(interaction);
+                break;
+            case 'listwords':
+                await handleListWords(interaction);
+                break;
+            case 'set':
+                await handleSet(interaction);
+                break;
+            case 'exemptchannel':
+                await handleExemptChannel(interaction);
+                break;
+            case 'exemptrole':
+                await handleExemptRole(interaction);
+                break;
             }
         } catch (error) {
             console.error('[ERROR] Automod command error:', error);
@@ -343,7 +343,7 @@ async function handleListWords(interaction) {
     
     // Censor the words partially for display
     const censoredWords = cfg.bannedWords.map(w => {
-        if (w.length <= 2) return '\\*'.repeat(w.length);
+        if (w.length <= 2) {return '\\*'.repeat(w.length);}
         return w[0] + '\\*'.repeat(w.length - 2) + w[w.length - 1];
     });
     

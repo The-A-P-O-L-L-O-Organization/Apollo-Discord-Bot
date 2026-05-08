@@ -3,8 +3,8 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ticketCommand from '../../src/commands/ticket.js';
-import { 
-    createMockInteraction, 
+import {
+    createMockInteraction,
     createMockUser,
     createMockGuild,
     createMockChannel,
@@ -82,7 +82,7 @@ describe('Ticket Command', () => {
     });
 
     describe('execute - Success Cases', () => {
-        it('should create ticket channel', async () => {
+        it('should create ticket channel', async() => {
             await ticketCommand.execute(mockInteraction);
             
             expect(mockGuild.channels.create).toHaveBeenCalled();
@@ -91,7 +91,7 @@ describe('Ticket Command', () => {
             expect(createCall.name).toContain('testuser');
         });
 
-        it('should reply with ticket link', async () => {
+        it('should reply with ticket link', async() => {
             await ticketCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -99,7 +99,7 @@ describe('Ticket Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should send welcome message in ticket', async () => {
+        it('should send welcome message in ticket', async() => {
             await ticketCommand.execute(mockInteraction);
             
             expect(createdChannel.send).toHaveBeenCalled();
@@ -108,7 +108,7 @@ describe('Ticket Command', () => {
             expect(sendCall.components).toBeDefined();
         });
 
-        it('should increment ticket number', async () => {
+        it('should increment ticket number', async() => {
             getGuildData.mockReturnValue({ totalTickets: 5 });
 
             await ticketCommand.execute(mockInteraction);
@@ -118,7 +118,7 @@ describe('Ticket Command', () => {
             expect(setCall[2].totalTickets).toBe(6);
         });
 
-        it('should save ticket to open tickets', async () => {
+        it('should save ticket to open tickets', async() => {
             await ticketCommand.execute(mockInteraction);
             
             const setCall = setGuildData.mock.calls[0];
@@ -126,7 +126,7 @@ describe('Ticket Command', () => {
             expect(setCall[2].openTickets[0].userId).toBe('123456789');
         });
 
-        it('should use provided reason', async () => {
+        it('should use provided reason', async() => {
             mockInteraction.options.getString.mockReturnValue('Need help with billing');
 
             await ticketCommand.execute(mockInteraction);
@@ -135,7 +135,7 @@ describe('Ticket Command', () => {
             expect(setCall[2].openTickets[0].reason).toBe('Need help with billing');
         });
 
-        it('should use default reason when none provided', async () => {
+        it('should use default reason when none provided', async() => {
             mockInteraction.options.getString.mockReturnValue(null);
 
             await ticketCommand.execute(mockInteraction);
@@ -144,7 +144,7 @@ describe('Ticket Command', () => {
             expect(setCall[2].openTickets[0].reason).toBe('No reason provided');
         });
 
-        it('should use category if configured', async () => {
+        it('should use category if configured', async() => {
             const mockCategory = { id: 'category-123' };
             getGuildData.mockReturnValue({ categoryId: 'category-123' });
             mockGuild.channels.fetch.mockResolvedValue(mockCategory);
@@ -155,7 +155,7 @@ describe('Ticket Command', () => {
             expect(createCall.parent).toBe('category-123');
         });
 
-        it('should mention support role if configured', async () => {
+        it('should mention support role if configured', async() => {
             getGuildData.mockReturnValue({ supportRoleId: '555666777' });
 
             await ticketCommand.execute(mockInteraction);
@@ -166,7 +166,7 @@ describe('Ticket Command', () => {
     });
 
     describe('execute - Error Cases', () => {
-        it('should reject if user has existing ticket', async () => {
+        it('should reject if user has existing ticket', async() => {
             getGuildData.mockReturnValue({
                 openTickets: [{
                     userId: '123456789',
@@ -182,7 +182,7 @@ describe('Ticket Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should handle channel creation failure', async () => {
+        it('should handle channel creation failure', async() => {
             mockGuild.channels.create.mockRejectedValue(new Error('Permission denied'));
 
             await ticketCommand.execute(mockInteraction);
@@ -192,7 +192,7 @@ describe('Ticket Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should handle missing category gracefully', async () => {
+        it('should handle missing category gracefully', async() => {
             getGuildData.mockReturnValue({ categoryId: 'invalid-category' });
             mockGuild.channels.fetch.mockRejectedValue(new Error('Not found'));
 
@@ -206,7 +206,7 @@ describe('Ticket Command', () => {
     });
 
     describe('execute - Permission Overwrites', () => {
-        it('should set correct permissions for ticket channel', async () => {
+        it('should set correct permissions for ticket channel', async() => {
             await ticketCommand.execute(mockInteraction);
             
             const createCall = mockGuild.channels.create.mock.calls[0][0];
@@ -225,7 +225,7 @@ describe('Ticket Command', () => {
             expect(userPerm).toBeDefined();
         });
 
-        it('should add support role permissions if configured', async () => {
+        it('should add support role permissions if configured', async() => {
             getGuildData.mockReturnValue({ supportRoleId: '555666777' });
 
             await ticketCommand.execute(mockInteraction);
@@ -239,7 +239,7 @@ describe('Ticket Command', () => {
     });
 
     describe('execute - Channel Naming', () => {
-        it('should sanitize username in channel name', async () => {
+        it('should sanitize username in channel name', async() => {
             mockInteraction.user.username = 'Test User!@#$';
 
             await ticketCommand.execute(mockInteraction);
@@ -251,7 +251,7 @@ describe('Ticket Command', () => {
             expect(createCall.name).not.toContain('$');
         });
 
-        it('should lowercase channel name', async () => {
+        it('should lowercase channel name', async() => {
             mockInteraction.user.username = 'TESTUSER';
 
             await ticketCommand.execute(mockInteraction);

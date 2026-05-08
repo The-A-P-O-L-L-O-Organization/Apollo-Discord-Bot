@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 
 // Mock the utility functions
 vi.mock('../../src/utils/analyticsCollector.js', () => ({
@@ -159,7 +158,7 @@ describe('Analytics Command', () => {
             interaction.options.getInteger.mockReturnValue(7);
         });
 
-        it('should handle server analytics subcommand', async () => {
+        it('should handle server analytics subcommand', async() => {
             await analyticsCommand.execute(interaction);
 
             expect(interaction.deferReply).toHaveBeenCalled();
@@ -168,7 +167,7 @@ describe('Analytics Command', () => {
             });
         });
 
-        it('should use default days when not specified', async () => {
+        it('should use default days when not specified', async() => {
             interaction.options.getInteger.mockReturnValue(null);
 
             await analyticsCommand.execute(interaction);
@@ -176,7 +175,7 @@ describe('Analytics Command', () => {
             expect(getAnalyticsSummary).toHaveBeenCalledWith('123456789', 7);
         });
 
-        it('should display server statistics correctly', async () => {
+        it('should display server statistics correctly', async() => {
             await analyticsCommand.execute(interaction);
 
             const embed = interaction.editReply.mock.calls[0][0].embeds[0];
@@ -188,7 +187,7 @@ describe('Analytics Command', () => {
             expect(embed.fields.length).toBeGreaterThan(0);
         });
 
-        it('should include member growth trend when data available', async () => {
+        it('should include member growth trend when data available', async() => {
             await analyticsCommand.execute(interaction);
 
             const embed = interaction.editReply.mock.calls[0][0].embeds[0];
@@ -219,21 +218,21 @@ describe('Analytics Command', () => {
 
             createBarChart.mockReturnValue('help     ██████████ 500\nping     ███████    300\nban      ███        100');
 
-            client.users.fetch.mockImplementation(async (id) => {
-                if (id === '111') return { tag: 'User1#1234' };
-                if (id === '222') return { tag: 'User2#5678' };
+            client.users.fetch.mockImplementation(async(id) => {
+                if (id === '111') {return { tag: 'User1#1234' };}
+                if (id === '222') {return { tag: 'User2#5678' };}
                 throw new Error('User not found');
             });
         });
 
-        it('should handle commands analytics subcommand', async () => {
+        it('should handle commands analytics subcommand', async() => {
             await analyticsCommand.execute(interaction);
 
             expect(interaction.deferReply).toHaveBeenCalled();
             expect(getCommandStats).toHaveBeenCalledWith('123456789', 7);
         });
 
-        it('should display command statistics', async () => {
+        it('should display command statistics', async() => {
             await analyticsCommand.execute(interaction);
 
             const embed = interaction.editReply.mock.calls[0][0].embeds[0];
@@ -243,7 +242,7 @@ describe('Analytics Command', () => {
             expect(createBarChart).toHaveBeenCalled();
         });
 
-        it('should handle users with fetch errors gracefully', async () => {
+        it('should handle users with fetch errors gracefully', async() => {
             client.users.fetch.mockRejectedValue(new Error('User not found'));
 
             await analyticsCommand.execute(interaction);
@@ -277,25 +276,25 @@ describe('Analytics Command', () => {
             });
 
             guild.channels.cache.get.mockImplementation((id) => {
-                if (id === 'ch1') return { name: 'general' };
-                if (id === 'ch2') return { name: 'random' };
+                if (id === 'ch1') {return { name: 'general' };}
+                if (id === 'ch2') {return { name: 'random' };}
                 return null;
             });
 
-            client.users.fetch.mockImplementation(async (id) => {
-                if (id === '111') return { tag: 'User1#1234' };
-                if (id === '222') return { tag: 'User2#5678' };
+            client.users.fetch.mockImplementation(async(id) => {
+                if (id === '111') {return { tag: 'User1#1234' };}
+                if (id === '222') {return { tag: 'User2#5678' };}
                 throw new Error('User not found');
             });
         });
 
-        it('should handle activity analytics subcommand', async () => {
+        it('should handle activity analytics subcommand', async() => {
             await analyticsCommand.execute(interaction);
 
             expect(getMessageStats).toHaveBeenCalledWith('123456789', 7);
         });
 
-        it('should display activity statistics', async () => {
+        it('should display activity statistics', async() => {
             await analyticsCommand.execute(interaction);
 
             const embed = interaction.editReply.mock.calls[0][0].embeds[0];
@@ -304,7 +303,7 @@ describe('Analytics Command', () => {
             expect(embed.fields).toBeDefined();
         });
 
-        it('should handle unknown channels gracefully', async () => {
+        it('should handle unknown channels gracefully', async() => {
             guild.channels.cache.get.mockReturnValue(null);
 
             await analyticsCommand.execute(interaction);
@@ -350,21 +349,21 @@ describe('Analytics Command', () => {
                 user2: [{ timestamp: Date.now(), active: false }]
             });
 
-            client.users.fetch.mockImplementation(async (id) => {
-                if (id === 'mod1') return { tag: 'Mod1#1234' };
-                if (id === 'mod2') return { tag: 'Mod2#5678' };
+            client.users.fetch.mockImplementation(async(id) => {
+                if (id === 'mod1') {return { tag: 'Mod1#1234' };}
+                if (id === 'mod2') {return { tag: 'Mod2#5678' };}
                 throw new Error('User not found');
             });
         });
 
-        it('should handle moderation analytics subcommand', async () => {
+        it('should handle moderation analytics subcommand', async() => {
             await analyticsCommand.execute(interaction);
 
             expect(getModActionStats).toHaveBeenCalledWith('123456789', 30);
             expect(getViolationStats).toHaveBeenCalledWith('123456789', 30);
         });
 
-        it('should display moderation statistics', async () => {
+        it('should display moderation statistics', async() => {
             await analyticsCommand.execute(interaction);
 
             const embed = interaction.editReply.mock.calls[0][0].embeds[0];
@@ -373,7 +372,7 @@ describe('Analytics Command', () => {
             expect(embed.fields).toBeDefined();
         });
 
-        it('should calculate and display ticket resolution times', async () => {
+        it('should calculate and display ticket resolution times', async() => {
             await analyticsCommand.execute(interaction);
 
             const embed = interaction.editReply.mock.calls[0][0].embeds[0];
@@ -411,13 +410,13 @@ describe('Analytics Command', () => {
             ]);
         });
 
-        it('should handle user analytics subcommand', async () => {
+        it('should handle user analytics subcommand', async() => {
             await analyticsCommand.execute(interaction);
 
             expect(interaction.options.getUser).toHaveBeenCalledWith('target');
         });
 
-        it('should display user statistics', async () => {
+        it('should display user statistics', async() => {
             await analyticsCommand.execute(interaction);
 
             const embed = interaction.editReply.mock.calls[0][0].embeds[0];
@@ -427,7 +426,7 @@ describe('Analytics Command', () => {
             expect(embed.thumbnail).toBeDefined();
         });
 
-        it('should calculate user rankings correctly', async () => {
+        it('should calculate user rankings correctly', async() => {
             await analyticsCommand.execute(interaction);
 
             const embed = interaction.editReply.mock.calls[0][0].embeds[0];
@@ -453,7 +452,7 @@ describe('Analytics Command', () => {
             readFileSync.mockReturnValue(Buffer.from('test,csv,data'));
         });
 
-        it('should handle export analytics subcommand', async () => {
+        it('should handle export analytics subcommand', async() => {
             await analyticsCommand.execute(interaction);
 
             expect(interaction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
@@ -463,7 +462,7 @@ describe('Analytics Command', () => {
             });
         });
 
-        it('should create and send attachment', async () => {
+        it('should create and send attachment', async() => {
             await analyticsCommand.execute(interaction);
 
             expect(readFileSync).toHaveBeenCalled();
@@ -473,7 +472,7 @@ describe('Analytics Command', () => {
             });
         });
 
-        it('should handle export errors gracefully', async () => {
+        it('should handle export errors gracefully', async() => {
             exportAnalytics.mockRejectedValue(new Error('Export failed'));
 
             await analyticsCommand.execute(interaction);
@@ -483,7 +482,7 @@ describe('Analytics Command', () => {
             });
         });
 
-        it('should schedule file cleanup', async () => {
+        it('should schedule file cleanup', async() => {
             vi.useFakeTimers();
             const setTimeoutSpy = vi.spyOn(global, 'setTimeout');
 
@@ -496,7 +495,7 @@ describe('Analytics Command', () => {
     });
 
     describe('Error Handling', () => {
-        it('should handle unknown subcommands gracefully', async () => {
+        it('should handle unknown subcommands gracefully', async() => {
             interaction.options.getSubcommand.mockReturnValue('unknown');
 
             const result = await analyticsCommand.execute(interaction);
@@ -504,7 +503,7 @@ describe('Analytics Command', () => {
             expect(result).toBeUndefined();
         });
 
-        it('should handle database errors during summary fetch', async () => {
+        it('should handle database errors during summary fetch', async() => {
             interaction.options.getSubcommand.mockReturnValue('server');
             interaction.options.getInteger.mockReturnValue(7);
             
@@ -517,7 +516,7 @@ describe('Analytics Command', () => {
     });
 
     describe('Input Validation', () => {
-        it('should use default days when invalid value provided', async () => {
+        it('should use default days when invalid value provided', async() => {
             // Discord API prevents values below minValue, so test with valid minimum
             interaction.options.getInteger.mockReturnValue(1);
             interaction.options.getSubcommand.mockReturnValue('server');
@@ -527,7 +526,7 @@ describe('Analytics Command', () => {
             expect(getAnalyticsSummary).toHaveBeenCalledWith('123456789', 1);
         });
 
-        it('should handle missing user in user analytics', async () => {
+        it('should handle missing user in user analytics', async() => {
             interaction.options.getSubcommand.mockReturnValue('user');
             interaction.options.getUser.mockReturnValue(null);
 

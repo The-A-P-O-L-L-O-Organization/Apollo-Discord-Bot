@@ -53,9 +53,9 @@ export default async function eventHandler(client) {
             }
         }
         
-        console.log(`[SUCCESS] All events loaded successfully!`);
+        console.log('[SUCCESS] All events loaded successfully!');
         
     } catch (error) {
-        console.error(`[ERROR] Error loading events:`, error);
+        console.error('[ERROR] Error loading events:', error);
     }
 }

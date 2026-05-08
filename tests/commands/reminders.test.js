@@ -38,7 +38,7 @@ describe('Reminders Command', () => {
     });
 
     describe('execute - Success Cases', () => {
-        it('should display reminders list', async () => {
+        it('should display reminders list', async() => {
             const futureTime = Date.now() + 3600000; // 1 hour from now
             getUserReminders.mockReturnValue([
                 { id: 'rem-1', message: 'Reminder 1', remindAt: futureTime },
@@ -53,7 +53,7 @@ describe('Reminders Command', () => {
             expect(replyCall.embeds[0].description).toContain('2');
         });
 
-        it('should sort reminders by time (soonest first)', async () => {
+        it('should sort reminders by time (soonest first)', async() => {
             const now = Date.now();
             getUserReminders.mockReturnValue([
                 { id: 'rem-2', message: 'Later', remindAt: now + 7200000 },
@@ -67,7 +67,7 @@ describe('Reminders Command', () => {
             expect(fields[0].name).toContain('rem-1');
         });
 
-        it('should show reminder ID', async () => {
+        it('should show reminder ID', async() => {
             getUserReminders.mockReturnValue([
                 { id: 'test-reminder-id', message: 'Test', remindAt: Date.now() + 3600000 }
             ]);
@@ -79,7 +79,7 @@ describe('Reminders Command', () => {
             expect(fields[0].name).toContain('test-reminder-id');
         });
 
-        it('should show reminder message', async () => {
+        it('should show reminder message', async() => {
             getUserReminders.mockReturnValue([
                 { id: 'rem-1', message: 'My important reminder', remindAt: Date.now() + 3600000 }
             ]);
@@ -91,7 +91,7 @@ describe('Reminders Command', () => {
             expect(fields[0].value).toContain('My important reminder');
         });
 
-        it('should truncate long messages', async () => {
+        it('should truncate long messages', async() => {
             const longMessage = 'x'.repeat(300);
             getUserReminders.mockReturnValue([
                 { id: 'rem-1', message: longMessage, remindAt: Date.now() + 3600000 }
@@ -105,7 +105,7 @@ describe('Reminders Command', () => {
             expect(fields[0].value.length).toBeLessThan(350);
         });
 
-        it('should include timestamp for each reminder', async () => {
+        it('should include timestamp for each reminder', async() => {
             getUserReminders.mockReturnValue([
                 { id: 'rem-1', message: 'Test', remindAt: Date.now() + 3600000 }
             ]);
@@ -117,7 +117,7 @@ describe('Reminders Command', () => {
             expect(fields[0].value).toContain('<t:');
         });
 
-        it('should limit display to 25 reminders', async () => {
+        it('should limit display to 25 reminders', async() => {
             const reminders = Array(30).fill(null).map((_, i) => ({
                 id: `rem-${i}`,
                 message: `Reminder ${i}`,
@@ -132,7 +132,7 @@ describe('Reminders Command', () => {
             expect(replyCall.embeds[0].fields.length).toBeLessThanOrEqual(26);
         });
 
-        it('should show count of additional reminders when over 25', async () => {
+        it('should show count of additional reminders when over 25', async() => {
             const reminders = Array(30).fill(null).map((_, i) => ({
                 id: `rem-${i}`,
                 message: `Reminder ${i}`,
@@ -147,7 +147,7 @@ describe('Reminders Command', () => {
             expect(lastField.value).toContain('5 more');
         });
 
-        it('should be ephemeral', async () => {
+        it('should be ephemeral', async() => {
             getUserReminders.mockReturnValue([
                 { id: 'rem-1', message: 'Test', remindAt: Date.now() + 3600000 }
             ]);
@@ -160,7 +160,7 @@ describe('Reminders Command', () => {
     });
 
     describe('execute - No Reminders', () => {
-        it('should show message when no reminders', async () => {
+        it('should show message when no reminders', async() => {
             getUserReminders.mockReturnValue([]);
 
             await remindersCommand.execute(mockInteraction);
@@ -170,7 +170,7 @@ describe('Reminders Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should suggest using /remind command', async () => {
+        it('should suggest using /remind command', async() => {
             getUserReminders.mockReturnValue([]);
 
             await remindersCommand.execute(mockInteraction);
@@ -181,7 +181,7 @@ describe('Reminders Command', () => {
     });
 
     describe('execute - Expired Reminders', () => {
-        it('should filter out expired reminders', async () => {
+        it('should filter out expired reminders', async() => {
             getUserReminders.mockReturnValue([
                 { id: 'rem-1', message: 'Expired', remindAt: Date.now() - 3600000 }, // 1 hour ago
                 { id: 'rem-2', message: 'Active', remindAt: Date.now() + 3600000 }   // 1 hour from now
@@ -193,7 +193,7 @@ describe('Reminders Command', () => {
             expect(replyCall.embeds[0].description).toContain('1'); // Only 1 active
         });
 
-        it('should show no reminders if all expired', async () => {
+        it('should show no reminders if all expired', async() => {
             getUserReminders.mockReturnValue([
                 { id: 'rem-1', message: 'Expired', remindAt: Date.now() - 3600000 }
             ]);
@@ -206,7 +206,7 @@ describe('Reminders Command', () => {
     });
 
     describe('execute - Footer', () => {
-        it('should show cancel reminder hint in footer', async () => {
+        it('should show cancel reminder hint in footer', async() => {
             getUserReminders.mockReturnValue([
                 { id: 'rem-1', message: 'Test', remindAt: Date.now() + 3600000 }
             ]);

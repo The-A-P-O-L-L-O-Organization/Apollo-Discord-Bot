@@ -89,8 +89,8 @@ export default {
             const duration = Date.now() - lockInfo.lockedAt;
             const durationMinutes = Math.floor(duration / 60000);
             const durationText = durationMinutes < 1 ? 'Less than 1 minute' : 
-                                durationMinutes === 1 ? '1 minute' : 
-                                `${durationMinutes} minutes`;
+                durationMinutes === 1 ? '1 minute' : 
+                    `${durationMinutes} minutes`;
             
             // Create success embed
             const successEmbed = {

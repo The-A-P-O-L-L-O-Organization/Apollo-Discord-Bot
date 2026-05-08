@@ -119,7 +119,7 @@ export default {
                 const dmEmbed = new EmbedBuilder()
                     .setColor('#FF0000')
                     .setTitle(`[!] Strike Issued in ${interaction.guild.name}`)
-                    .setDescription(`You have been issued a **strike** by a moderator.`)
+                    .setDescription('You have been issued a **strike** by a moderator.')
                     .addFields(
                         { name: 'Reason', value: reason, inline: false },
                         { name: 'Total Strikes', value: `${strikeCount}/${threshold}`, inline: true },

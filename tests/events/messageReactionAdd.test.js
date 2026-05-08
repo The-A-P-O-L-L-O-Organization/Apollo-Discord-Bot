@@ -111,7 +111,7 @@ describe('MessageReactionAdd Event', () => {
     });
 
     describe('User Filtering', () => {
-        it('should ignore bot reactions', async () => {
+        it('should ignore bot reactions', async() => {
             mockUser.bot = true;
             
             await messageReactionAddEvent.execute(mockReaction, mockUser, mockClient);
@@ -121,7 +121,7 @@ describe('MessageReactionAdd Event', () => {
     });
 
     describe('Partial Reaction Handling', () => {
-        it('should fetch partial reactions', async () => {
+        it('should fetch partial reactions', async() => {
             mockReaction.partial = true;
             
             await messageReactionAddEvent.execute(mockReaction, mockUser, mockClient);
@@ -129,7 +129,7 @@ describe('MessageReactionAdd Event', () => {
             expect(mockReaction.fetch).toHaveBeenCalled();
         });
 
-        it('should handle partial fetch error gracefully', async () => {
+        it('should handle partial fetch error gracefully', async() => {
             mockReaction.partial = true;
             mockReaction.fetch.mockRejectedValue(new Error('Cannot fetch'));
             
@@ -140,7 +140,7 @@ describe('MessageReactionAdd Event', () => {
     });
 
     describe('DM Handling', () => {
-        it('should ignore DM reactions', async () => {
+        it('should ignore DM reactions', async() => {
             mockReaction.message.guild = null;
             
             await messageReactionAddEvent.execute(mockReaction, mockUser, mockClient);
@@ -150,13 +150,13 @@ describe('MessageReactionAdd Event', () => {
     });
 
     describe('Reaction Role Assignment', () => {
-        it('should add role when user reacts with correct emoji', async () => {
+        it('should add role when user reacts with correct emoji', async() => {
             await messageReactionAddEvent.execute(mockReaction, mockUser, mockClient);
             
             expect(mockMember.roles.add).toHaveBeenCalledWith('role-123', 'Reaction role');
         });
 
-        it('should not add role if user already has it', async () => {
+        it('should not add role if user already has it', async() => {
             mockMember.roles.cache.has = vi.fn().mockReturnValue(true);
             
             await messageReactionAddEvent.execute(mockReaction, mockUser, mockClient);
@@ -164,7 +164,7 @@ describe('MessageReactionAdd Event', () => {
             expect(mockMember.roles.add).not.toHaveBeenCalled();
         });
 
-        it('should handle custom emoji reactions', async () => {
+        it('should handle custom emoji reactions', async() => {
             mockReaction.emoji = {
                 id: 'emoji-id-123',
                 name: 'custom_emoji'
@@ -177,7 +177,7 @@ describe('MessageReactionAdd Event', () => {
             expect(mockMember.roles.add).toHaveBeenCalledWith('role-123', 'Reaction role');
         });
 
-        it('should not add role for non-matching message', async () => {
+        it('should not add role for non-matching message', async() => {
             reactionRolesConfig.roles[0].messageId = 'different-message-id';
             getGuildData.mockReturnValue(reactionRolesConfig);
             
@@ -186,7 +186,7 @@ describe('MessageReactionAdd Event', () => {
             expect(mockMember.roles.add).not.toHaveBeenCalled();
         });
 
-        it('should not add role for non-matching emoji', async () => {
+        it('should not add role for non-matching emoji', async() => {
             mockReaction.emoji.name = '👎';
             
             await messageReactionAddEvent.execute(mockReaction, mockUser, mockClient);
@@ -196,7 +196,7 @@ describe('MessageReactionAdd Event', () => {
     });
 
     describe('No Reaction Roles Configured', () => {
-        it('should handle empty roles array', async () => {
+        it('should handle empty roles array', async() => {
             reactionRolesConfig.roles = [];
             getGuildData.mockReturnValue(reactionRolesConfig);
             
@@ -205,7 +205,7 @@ describe('MessageReactionAdd Event', () => {
             expect(mockMember.roles.add).not.toHaveBeenCalled();
         });
 
-        it('should handle missing roles property', async () => {
+        it('should handle missing roles property', async() => {
             getGuildData.mockReturnValue({});
             
             await messageReactionAddEvent.execute(mockReaction, mockUser, mockClient);
@@ -215,7 +215,7 @@ describe('MessageReactionAdd Event', () => {
     });
 
     describe('Member Fetch Errors', () => {
-        it('should handle member fetch error', async () => {
+        it('should handle member fetch error', async() => {
             mockGuild.members.fetch.mockRejectedValue(new Error('Member not found'));
             
             await messageReactionAddEvent.execute(mockReaction, mockUser, mockClient);
@@ -225,7 +225,7 @@ describe('MessageReactionAdd Event', () => {
     });
 
     describe('Role Add Errors', () => {
-        it('should handle role add error gracefully', async () => {
+        it('should handle role add error gracefully', async() => {
             mockMember.roles.add.mockRejectedValue(new Error('Missing permissions'));
             
             await expect(
@@ -235,7 +235,7 @@ describe('MessageReactionAdd Event', () => {
     });
 
     describe('Multiple Reaction Roles', () => {
-        it('should find correct role from multiple configured roles', async () => {
+        it('should find correct role from multiple configured roles', async() => {
             reactionRolesConfig.roles = [
                 { messageId: '111', emoji: '❤️', roleId: 'role-1' },
                 { messageId: '777888999', emoji: '👍', roleId: 'role-123' },

@@ -44,8 +44,8 @@ describe('Unban Command', () => {
             client: createMockClient({ user: createMockUser({ id: 'BOT_ID' }) }),
             options: {
                 getString: vi.fn().mockImplementation((name) => {
-                    if (name === 'user-id') return '111222333444555666';
-                    if (name === 'reason') return 'Appeal accepted';
+                    if (name === 'user-id') {return '111222333444555666';}
+                    if (name === 'reason') {return 'Appeal accepted';}
                     return null;
                 })
             }
@@ -85,7 +85,7 @@ describe('Unban Command', () => {
     });
 
     describe('execute - Success Cases', () => {
-        it('should unban user successfully', async () => {
+        it('should unban user successfully', async() => {
             await unbanCommand.execute(mockInteraction);
             
             expect(mockGuild.bans.remove).toHaveBeenCalledWith(
@@ -94,7 +94,7 @@ describe('Unban Command', () => {
             );
         });
 
-        it('should reply with success embed', async () => {
+        it('should reply with success embed', async() => {
             await unbanCommand.execute(mockInteraction);
             
             expect(mockInteraction.reply).toHaveBeenCalled();
@@ -102,7 +102,7 @@ describe('Unban Command', () => {
             expect(replyCall.embeds[0].title).toBe('[SUCCESS] User Unbanned');
         });
 
-        it('should include correct unban details in response', async () => {
+        it('should include correct unban details in response', async() => {
             await unbanCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -114,7 +114,7 @@ describe('Unban Command', () => {
             expect(embed.fields.some(f => f.name.includes('User ID'))).toBe(true);
         });
 
-        it('should send mod log', async () => {
+        it('should send mod log', async() => {
             await unbanCommand.execute(mockInteraction);
             
             expect(sendModLog).toHaveBeenCalledWith(
@@ -131,9 +131,9 @@ describe('Unban Command', () => {
             );
         });
 
-        it('should use default reason when none provided', async () => {
+        it('should use default reason when none provided', async() => {
             mockInteraction.options.getString.mockImplementation((name) => {
-                if (name === 'user-id') return '111222333444555666';
+                if (name === 'user-id') {return '111222333444555666';}
                 return null;
             });
             
@@ -147,7 +147,7 @@ describe('Unban Command', () => {
     });
 
     describe('execute - Error Cases', () => {
-        it('should reject when no user ID specified', async () => {
+        it('should reject when no user ID specified', async() => {
             mockInteraction.options.getString.mockReturnValue(null);
             
             await unbanCommand.execute(mockInteraction);
@@ -159,9 +159,9 @@ describe('Unban Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject invalid user ID format (too short)', async () => {
+        it('should reject invalid user ID format (too short)', async() => {
             mockInteraction.options.getString.mockImplementation((name) => {
-                if (name === 'user-id') return '12345';
+                if (name === 'user-id') {return '12345';}
                 return null;
             });
             
@@ -172,9 +172,9 @@ describe('Unban Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject invalid user ID format (non-numeric)', async () => {
+        it('should reject invalid user ID format (non-numeric)', async() => {
             mockInteraction.options.getString.mockImplementation((name) => {
-                if (name === 'user-id') return 'not-a-valid-id';
+                if (name === 'user-id') {return 'not-a-valid-id';}
                 return null;
             });
             
@@ -184,7 +184,7 @@ describe('Unban Command', () => {
             expect(replyCall.embeds[0].title).toContain('Invalid User ID');
         });
 
-        it('should reject when user is not banned', async () => {
+        it('should reject when user is not banned', async() => {
             mockGuild.bans.fetch.mockResolvedValue(null);
             
             await unbanCommand.execute(mockInteraction);
@@ -194,7 +194,7 @@ describe('Unban Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should handle ban fetch returning null', async () => {
+        it('should handle ban fetch returning null', async() => {
             mockGuild.bans.fetch.mockImplementation(() => Promise.resolve(null));
             
             await unbanCommand.execute(mockInteraction);
@@ -203,7 +203,7 @@ describe('Unban Command', () => {
             expect(replyCall.embeds[0].title).toContain('Not Banned');
         });
 
-        it('should handle unban API error gracefully', async () => {
+        it('should handle unban API error gracefully', async() => {
             mockGuild.bans.remove.mockRejectedValue(new Error('API Error'));
             
             await unbanCommand.execute(mockInteraction);
@@ -216,9 +216,9 @@ describe('Unban Command', () => {
     });
 
     describe('execute - User ID Validation', () => {
-        it('should accept valid 17-digit user ID', async () => {
+        it('should accept valid 17-digit user ID', async() => {
             mockInteraction.options.getString.mockImplementation((name) => {
-                if (name === 'user-id') return '12345678901234567';
+                if (name === 'user-id') {return '12345678901234567';}
                 return null;
             });
             
@@ -229,9 +229,9 @@ describe('Unban Command', () => {
             expect(mockGuild.bans.fetch).toHaveBeenCalledWith('12345678901234567');
         });
 
-        it('should accept valid 18-digit user ID', async () => {
+        it('should accept valid 18-digit user ID', async() => {
             mockInteraction.options.getString.mockImplementation((name) => {
-                if (name === 'user-id') return '123456789012345678';
+                if (name === 'user-id') {return '123456789012345678';}
                 return null;
             });
             
@@ -242,9 +242,9 @@ describe('Unban Command', () => {
             expect(mockGuild.bans.fetch).toHaveBeenCalledWith('123456789012345678');
         });
 
-        it('should accept valid 19-digit user ID', async () => {
+        it('should accept valid 19-digit user ID', async() => {
             mockInteraction.options.getString.mockImplementation((name) => {
-                if (name === 'user-id') return '1234567890123456789';
+                if (name === 'user-id') {return '1234567890123456789';}
                 return null;
             });
             
@@ -255,9 +255,9 @@ describe('Unban Command', () => {
             expect(mockGuild.bans.fetch).toHaveBeenCalledWith('1234567890123456789');
         });
 
-        it('should reject user ID with 20 digits', async () => {
+        it('should reject user ID with 20 digits', async() => {
             mockInteraction.options.getString.mockImplementation((name) => {
-                if (name === 'user-id') return '12345678901234567890';
+                if (name === 'user-id') {return '12345678901234567890';}
                 return null;
             });
             

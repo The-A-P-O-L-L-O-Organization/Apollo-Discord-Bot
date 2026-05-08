@@ -10,7 +10,7 @@ const permissionNames = {
     [PermissionsBitField.Flags.MuteMembers]: 'Mute Members',
     [PermissionsBitField.Flags.ManageMessages]: 'Manage Messages',
     [PermissionsBitField.Flags.Administrator]: 'Administrator',
-    [PermissionsBitField.Flags.ModerateMembers]: 'Moderate Members',
+    [PermissionsBitField.Flags.ModerateMembers]: 'Moderate Members'
 };
 
 /**
@@ -19,7 +19,7 @@ const permissionNames = {
  * @returns {string} Usage string
  */
 function getUsageString(commandName, options = []) {
-    if (!options.length) return `/${commandName}`;
+    if (!options.length) {return `/${commandName}`;}
     
     const optionStrings = options.map(opt => {
         return opt.required ? `<${opt.name}>` : `[${opt.name}]`;
@@ -34,7 +34,7 @@ function getUsageString(commandName, options = []) {
  * @returns {string|null} Permission name or null
  */
 function getPermissionName(permissions) {
-    if (!permissions) return null;
+    if (!permissions) {return null;}
     return permissionNames[permissions] || 'Special Permission';
 }
 
@@ -67,8 +67,8 @@ export default {
         
         // Sort categories (Utility first, then alphabetically)
         const sortedCategories = Object.entries(categories).sort(([a], [b]) => {
-            if (a === 'Utility') return -1;
-            if (b === 'Utility') return 1;
+            if (a === 'Utility') {return -1;}
+            if (b === 'Utility') {return 1;}
             return a.localeCompare(b);
         });
         

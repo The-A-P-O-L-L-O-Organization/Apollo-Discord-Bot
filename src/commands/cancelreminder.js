@@ -36,7 +36,7 @@ export default {
 
         if (!cancelled) {
             return interaction.reply({
-                content: `Failed to cancel the reminder. It may have already been sent or deleted.`,
+                content: 'Failed to cancel the reminder. It may have already been sent or deleted.',
                 ephemeral: true
             });
         }

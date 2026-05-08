@@ -3,8 +3,8 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import setLogChannelCommand from '../../src/commands/setlogchannel.js';
-import { 
-    createMockInteraction, 
+import {
+    createMockInteraction,
     createMockUser,
     createMockGuild,
     createMockChannel
@@ -80,7 +80,7 @@ describe('SetLogChannel Command', () => {
             mockInteraction.options.getSubcommand.mockReturnValue('set');
         });
 
-        it('should set log channel successfully', async () => {
+        it('should set log channel successfully', async() => {
             await setLogChannelCommand.execute(mockInteraction);
             
             expect(setGuildData).toHaveBeenCalled();
@@ -88,7 +88,7 @@ describe('SetLogChannel Command', () => {
             expect(setCall[2].channelId).toBe('111222333');
         });
 
-        it('should reply with success message', async () => {
+        it('should reply with success message', async() => {
             await setLogChannelCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -96,14 +96,14 @@ describe('SetLogChannel Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should suggest using /logging command', async () => {
+        it('should suggest using /logging command', async() => {
             await setLogChannelCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('/logging');
         });
 
-        it('should reject channel without send permissions', async () => {
+        it('should reject channel without send permissions', async() => {
             mockChannel.permissionsFor.mockReturnValue({
                 has: vi.fn().mockReturnValue(false)
             });
@@ -112,11 +112,11 @@ describe('SetLogChannel Command', () => {
             
             expect(setGuildData).not.toHaveBeenCalled();
             const replyCall = mockInteraction.reply.mock.calls[0][0];
-            expect(replyCall.content).toContain("don't have permission");
+            expect(replyCall.content).toContain('don\'t have permission');
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should preserve existing config', async () => {
+        it('should preserve existing config', async() => {
             getGuildData.mockReturnValue({
                 events: { messageDelete: true }
             });
@@ -134,7 +134,7 @@ describe('SetLogChannel Command', () => {
             mockInteraction.options.getSubcommand.mockReturnValue('remove');
         });
 
-        it('should remove log channel successfully', async () => {
+        it('should remove log channel successfully', async() => {
             getGuildData.mockReturnValue({ channelId: '111222333' });
 
             await setLogChannelCommand.execute(mockInteraction);
@@ -144,7 +144,7 @@ describe('SetLogChannel Command', () => {
             expect(setCall[2].channelId).toBeNull();
         });
 
-        it('should reply with success message', async () => {
+        it('should reply with success message', async() => {
             getGuildData.mockReturnValue({ channelId: '111222333' });
 
             await setLogChannelCommand.execute(mockInteraction);
@@ -155,7 +155,7 @@ describe('SetLogChannel Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should handle no channel configured', async () => {
+        it('should handle no channel configured', async() => {
             getGuildData.mockReturnValue({});
 
             await setLogChannelCommand.execute(mockInteraction);
@@ -172,7 +172,7 @@ describe('SetLogChannel Command', () => {
             mockInteraction.options.getSubcommand.mockReturnValue('view');
         });
 
-        it('should show current channel', async () => {
+        it('should show current channel', async() => {
             getGuildData.mockReturnValue({ channelId: '111222333' });
 
             await setLogChannelCommand.execute(mockInteraction);
@@ -182,7 +182,7 @@ describe('SetLogChannel Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should suggest /logging status command', async () => {
+        it('should suggest /logging status command', async() => {
             getGuildData.mockReturnValue({ channelId: '111222333' });
 
             await setLogChannelCommand.execute(mockInteraction);
@@ -191,7 +191,7 @@ describe('SetLogChannel Command', () => {
             expect(replyCall.content).toContain('/logging status');
         });
 
-        it('should handle no channel configured', async () => {
+        it('should handle no channel configured', async() => {
             getGuildData.mockReturnValue({});
 
             await setLogChannelCommand.execute(mockInteraction);
@@ -202,7 +202,7 @@ describe('SetLogChannel Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should handle deleted channel', async () => {
+        it('should handle deleted channel', async() => {
             getGuildData.mockReturnValue({ channelId: '999999999' });
             mockGuild.channels.fetch.mockRejectedValue(new Error('Not found'));
 
@@ -213,7 +213,7 @@ describe('SetLogChannel Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should handle channel returning null', async () => {
+        it('should handle channel returning null', async() => {
             getGuildData.mockReturnValue({ channelId: '999999999' });
             mockGuild.channels.fetch.mockResolvedValue(null);
 

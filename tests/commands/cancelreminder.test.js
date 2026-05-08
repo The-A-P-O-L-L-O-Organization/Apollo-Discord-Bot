@@ -42,7 +42,7 @@ describe('CancelReminder Command', () => {
     });
 
     describe('execute - Success Cases', () => {
-        it('should cancel reminder successfully', async () => {
+        it('should cancel reminder successfully', async() => {
             const mockReminder = {
                 id: 'reminder-123',
                 message: 'Test reminder message',
@@ -64,7 +64,7 @@ describe('CancelReminder Command', () => {
     });
 
     describe('execute - Error Cases', () => {
-        it('should handle reminder not found', async () => {
+        it('should handle reminder not found', async() => {
             getUserReminders.mockReturnValue([]);
 
             await cancelReminderCommand.execute(mockInteraction);
@@ -77,7 +77,7 @@ describe('CancelReminder Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should handle cancellation failure', async () => {
+        it('should handle cancellation failure', async() => {
             const mockReminder = {
                 id: 'reminder-123',
                 message: 'Test reminder message',
@@ -93,7 +93,7 @@ describe('CancelReminder Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should handle reminder belonging to different user', async () => {
+        it('should handle reminder belonging to different user', async() => {
             getUserReminders.mockReturnValue([]); // Returns empty for this user
 
             await cancelReminderCommand.execute(mockInteraction);
@@ -105,7 +105,7 @@ describe('CancelReminder Command', () => {
     });
 
     describe('execute - Edge Cases', () => {
-        it('should handle empty reminder ID', async () => {
+        it('should handle empty reminder ID', async() => {
             mockInteraction.options.getString.mockReturnValue('');
             getUserReminders.mockReturnValue([]);
 
@@ -115,7 +115,7 @@ describe('CancelReminder Command', () => {
             expect(replyCall.content).toContain('Could not find');
         });
 
-        it('should match exact reminder ID', async () => {
+        it('should match exact reminder ID', async() => {
             const mockReminders = [
                 { id: 'reminder-1234', message: 'Other reminder' },
                 { id: 'reminder-123', message: 'Correct reminder' }

@@ -8,7 +8,7 @@ const analyticsCache = {
     commands: new Map(),      // guildId -> Map(commandName -> Map(userId -> count))
     messages: new Map(),      // guildId -> Map(channelId -> Map(userId -> count))
     violations: new Map(),    // guildId -> Map(type -> count)
-    modActions: new Map(),    // guildId -> Map(moderatorId -> Map(action -> count))
+    modActions: new Map()    // guildId -> Map(moderatorId -> Map(action -> count))
 };
 
 // Batch write interval (60 seconds)
@@ -19,7 +19,7 @@ let batchIntervalId = null;
 const RETENTION_DAYS = 90;
 
 // Performance stats
-let performanceStats = {
+const performanceStats = {
     flushesPerformed: 0,
     cleanupsPerformed: 0,
     totalFlushTime: 0,

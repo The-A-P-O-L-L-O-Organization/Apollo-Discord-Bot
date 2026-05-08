@@ -1,7 +1,7 @@
 // Automod Utility Tests
 // Tests for the automod checking functions
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
     checkBannedWords,
     checkInvites,
@@ -11,7 +11,7 @@ import {
     checkAccountAge,
     isChannelExempt
 } from '../../src/utils/automod.js';
-import { createMockMessage, createMockUser, createMockMember } from '../mocks/discord.js';
+import { createMockMessage, createMockUser } from '../mocks/discord.js';
 
 describe('Automod Utility', () => {
     describe('checkBannedWords', () => {
