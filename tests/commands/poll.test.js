@@ -72,10 +72,10 @@ describe('Poll Command', () => {
     });
 
     describe('execute - Success Cases', () => {
-        it('should create poll with two options', async () => {
+        it('should create poll with two options', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'question') return 'What is your favorite color?';
-                if (name === 'options') return 'Red | Blue';
+                if (name === 'question') {return 'What is your favorite color?';}
+                if (name === 'options') {return 'Red | Blue';}
                 return null;
             });
 
@@ -88,10 +88,10 @@ describe('Poll Command', () => {
             expect(editCall.embeds[0].title).toContain('What is your favorite color?');
         });
 
-        it('should add reactions for each option', async () => {
+        it('should add reactions for each option', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'question') return 'Question?';
-                if (name === 'options') return 'A | B | C';
+                if (name === 'question') {return 'Question?';}
+                if (name === 'options') {return 'A | B | C';}
                 return null;
             });
 
@@ -100,11 +100,11 @@ describe('Poll Command', () => {
             expect(mockMessage.react).toHaveBeenCalledTimes(3);
         });
 
-        it('should handle poll with duration', async () => {
+        it('should handle poll with duration', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'question') return 'Question?';
-                if (name === 'options') return 'Yes | No';
-                if (name === 'duration') return '1h';
+                if (name === 'question') {return 'Question?';}
+                if (name === 'options') {return 'Yes | No';}
+                if (name === 'duration') {return '1h';}
                 return null;
             });
 
@@ -116,10 +116,10 @@ describe('Poll Command', () => {
             expect(appendCall[3].endTime).toBeDefined();
         });
 
-        it('should handle anonymous poll option', async () => {
+        it('should handle anonymous poll option', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'question') return 'Question?';
-                if (name === 'options') return 'Yes | No';
+                if (name === 'question') {return 'Question?';}
+                if (name === 'options') {return 'Yes | No';}
                 return null;
             });
             mockInteraction.options.getBoolean.mockReturnValue(true);
@@ -130,10 +130,10 @@ describe('Poll Command', () => {
             expect(editCall.embeds[0].footer.text).toContain('Anonymous');
         });
 
-        it('should not save poll without duration', async () => {
+        it('should not save poll without duration', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'question') return 'Question?';
-                if (name === 'options') return 'Yes | No';
+                if (name === 'question') {return 'Question?';}
+                if (name === 'options') {return 'Yes | No';}
                 return null; // No duration
             });
 
@@ -144,10 +144,10 @@ describe('Poll Command', () => {
     });
 
     describe('execute - Error Cases', () => {
-        it('should reject poll with less than 2 options', async () => {
+        it('should reject poll with less than 2 options', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'question') return 'Question?';
-                if (name === 'options') return 'Only one option';
+                if (name === 'question') {return 'Question?';}
+                if (name === 'options') {return 'Only one option';}
                 return null;
             });
 
@@ -158,11 +158,11 @@ describe('Poll Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject poll with more than max options', async () => {
+        it('should reject poll with more than max options', async() => {
             const options = Array(11).fill('Option').join(' | ');
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'question') return 'Question?';
-                if (name === 'options') return options;
+                if (name === 'question') {return 'Question?';}
+                if (name === 'options') {return options;}
                 return null;
             });
 
@@ -173,11 +173,11 @@ describe('Poll Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject invalid duration format', async () => {
+        it('should reject invalid duration format', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'question') return 'Question?';
-                if (name === 'options') return 'Yes | No';
-                if (name === 'duration') return 'invalid';
+                if (name === 'question') {return 'Question?';}
+                if (name === 'options') {return 'Yes | No';}
+                if (name === 'duration') {return 'invalid';}
                 return null;
             });
 
@@ -188,11 +188,11 @@ describe('Poll Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject duration exceeding max', async () => {
+        it('should reject duration exceeding max', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'question') return 'Question?';
-                if (name === 'options') return 'Yes | No';
-                if (name === 'duration') return '8d'; // Exceeds 7 days
+                if (name === 'question') {return 'Question?';}
+                if (name === 'options') {return 'Yes | No';}
+                if (name === 'duration') {return '8d';} // Exceeds 7 days
                 return null;
             });
 
@@ -205,10 +205,10 @@ describe('Poll Command', () => {
     });
 
     describe('execute - Option Parsing', () => {
-        it('should trim whitespace from options', async () => {
+        it('should trim whitespace from options', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'question') return 'Question?';
-                if (name === 'options') return '  Yes  |  No  ';
+                if (name === 'question') {return 'Question?';}
+                if (name === 'options') {return '  Yes  |  No  ';}
                 return null;
             });
 
@@ -219,10 +219,10 @@ describe('Poll Command', () => {
             expect(editCall.embeds[0].description).toContain('No');
         });
 
-        it('should filter empty options', async () => {
+        it('should filter empty options', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'question') return 'Question?';
-                if (name === 'options') return 'Yes | | No | ';
+                if (name === 'question') {return 'Question?';}
+                if (name === 'options') {return 'Yes | | No | ';}
                 return null;
             });
 
@@ -234,11 +234,11 @@ describe('Poll Command', () => {
     });
 
     describe('execute - Duration Parsing', () => {
-        it('should parse minutes correctly', async () => {
+        it('should parse minutes correctly', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'question') return 'Question?';
-                if (name === 'options') return 'Yes | No';
-                if (name === 'duration') return '30m';
+                if (name === 'question') {return 'Question?';}
+                if (name === 'options') {return 'Yes | No';}
+                if (name === 'duration') {return '30m';}
                 return null;
             });
 
@@ -249,11 +249,11 @@ describe('Poll Command', () => {
             expect(pollData.endTime - Date.now()).toBeCloseTo(30 * 60 * 1000, -4);
         });
 
-        it('should parse hours correctly', async () => {
+        it('should parse hours correctly', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'question') return 'Question?';
-                if (name === 'options') return 'Yes | No';
-                if (name === 'duration') return '2h';
+                if (name === 'question') {return 'Question?';}
+                if (name === 'options') {return 'Yes | No';}
+                if (name === 'duration') {return '2h';}
                 return null;
             });
 
@@ -264,11 +264,11 @@ describe('Poll Command', () => {
             expect(pollData.endTime - Date.now()).toBeCloseTo(2 * 60 * 60 * 1000, -4);
         });
 
-        it('should parse days correctly', async () => {
+        it('should parse days correctly', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'question') return 'Question?';
-                if (name === 'options') return 'Yes | No';
-                if (name === 'duration') return '1d';
+                if (name === 'question') {return 'Question?';}
+                if (name === 'options') {return 'Yes | No';}
+                if (name === 'duration') {return '1d';}
                 return null;
             });
 

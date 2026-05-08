@@ -32,7 +32,7 @@ export default {
             }));
             */
             
-            console.log(`[INFO] Guild data preserved for potential rejoin`);
+            console.log('[INFO] Guild data preserved for potential rejoin');
             console.log(`[INFO] Now serving ${client.guilds.cache.size} servers`);
             
         } catch (error) {

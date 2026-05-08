@@ -45,7 +45,7 @@ describe('8ball Command', () => {
     });
 
     describe('execute', () => {
-        it('should reply with an embed', async () => {
+        it('should reply with an embed', async() => {
             await eightBallCommand.execute(mockInteraction);
 
             expect(mockInteraction.reply).toHaveBeenCalled();
@@ -54,7 +54,7 @@ describe('8ball Command', () => {
             expect(replyCall.embeds).toHaveLength(1);
         });
 
-        it('should include question in embed description', async () => {
+        it('should include question in embed description', async() => {
             const question = 'Is this a test?';
             mockInteraction.options.getString.mockReturnValue(question);
 
@@ -66,7 +66,7 @@ describe('8ball Command', () => {
             expect(embed.description).toContain(question);
         });
 
-        it('should include answer in embed description', async () => {
+        it('should include answer in embed description', async() => {
             await eightBallCommand.execute(mockInteraction);
 
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -75,7 +75,7 @@ describe('8ball Command', () => {
             expect(embed.description).toContain('**Answer:**');
         });
 
-        it('should have correct title', async () => {
+        it('should have correct title', async() => {
             await eightBallCommand.execute(mockInteraction);
 
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -84,7 +84,7 @@ describe('8ball Command', () => {
             expect(embed.title).toBe('🎱 Magic 8-Ball');
         });
 
-        it('should include requester in fields', async () => {
+        it('should include requester in fields', async() => {
             await eightBallCommand.execute(mockInteraction);
 
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -96,7 +96,7 @@ describe('8ball Command', () => {
             expect(embed.fields[0].value).toBe('TestUser#0001');
         });
 
-        it('should include timestamp', async () => {
+        it('should include timestamp', async() => {
             await eightBallCommand.execute(mockInteraction);
 
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -105,7 +105,7 @@ describe('8ball Command', () => {
             expect(embed.timestamp).toBeTruthy();
         });
 
-        it('should have a color based on response type', async () => {
+        it('should have a color based on response type', async() => {
             await eightBallCommand.execute(mockInteraction);
 
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -118,7 +118,7 @@ describe('8ball Command', () => {
     });
 
     describe('Error Handling', () => {
-        it('should handle errors gracefully', async () => {
+        it('should handle errors gracefully', async() => {
             // Simulate an error by making getString throw
             mockInteraction.options.getString.mockImplementation(() => {
                 throw new Error('Mock error');

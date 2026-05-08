@@ -34,7 +34,7 @@ describe('Ready Event', () => {
     });
 
     describe('Success Cases', () => {
-        it('should log successful connection message', async () => {
+        it('should log successful connection message', async() => {
             await readyHandler(mockClient);
             
             expect(consoleSpy).toHaveBeenCalledWith(
@@ -42,7 +42,7 @@ describe('Ready Event', () => {
             );
         });
 
-        it('should log bot tag in connection message', async () => {
+        it('should log bot tag in connection message', async() => {
             await readyHandler(mockClient);
             
             expect(consoleSpy).toHaveBeenCalledWith(
@@ -50,7 +50,7 @@ describe('Ready Event', () => {
             );
         });
 
-        it('should log bot ID', async () => {
+        it('should log bot ID', async() => {
             await readyHandler(mockClient);
             
             expect(consoleSpy).toHaveBeenCalledWith(
@@ -58,7 +58,7 @@ describe('Ready Event', () => {
             );
         });
 
-        it('should log number of servers being served', async () => {
+        it('should log number of servers being served', async() => {
             await readyHandler(mockClient);
             
             expect(consoleSpy).toHaveBeenCalledWith(
@@ -66,7 +66,7 @@ describe('Ready Event', () => {
             );
         });
 
-        it('should set bot activity to watching', async () => {
+        it('should set bot activity to watching', async() => {
             await readyHandler(mockClient);
             
             expect(mockClient.user.setActivity).toHaveBeenCalledWith({
@@ -75,7 +75,7 @@ describe('Ready Event', () => {
             });
         });
 
-        it('should log final success message about watching for members', async () => {
+        it('should log final success message about watching for members', async() => {
             await readyHandler(mockClient);
             
             expect(consoleSpy).toHaveBeenCalledWith(
@@ -85,7 +85,7 @@ describe('Ready Event', () => {
     });
 
     describe('Edge Cases', () => {
-        it('should handle client with no guilds', async () => {
+        it('should handle client with no guilds', async() => {
             mockClient.guilds.cache = new Map();
             
             await readyHandler(mockClient);
@@ -95,7 +95,7 @@ describe('Ready Event', () => {
             );
         });
 
-        it('should handle client with many guilds', async () => {
+        it('should handle client with many guilds', async() => {
             const manyGuilds = new Map();
             for (let i = 0; i < 100; i++) {
                 manyGuilds.set(`guild${i}`, createMockGuild({ id: `guild${i}` }));
@@ -111,7 +111,7 @@ describe('Ready Event', () => {
     });
 
     describe('Console Output Order', () => {
-        it('should log messages in correct order', async () => {
+        it('should log messages in correct order', async() => {
             await readyHandler(mockClient);
             
             const calls = consoleSpy.mock.calls.map(call => call[0]);

@@ -84,7 +84,7 @@ describe('Warnings Command', () => {
     });
 
     describe('execute - No Warnings', () => {
-        it('should display no warnings message', async () => {
+        it('should display no warnings message', async() => {
             getUserData.mockReturnValue([]);
             
             await warningsCommand.execute(mockInteraction);
@@ -95,7 +95,7 @@ describe('Warnings Command', () => {
             expect(replyCall.embeds[0].description).toContain('TargetUser#0001');
         });
 
-        it('should suggest using show-inactive when no active warnings', async () => {
+        it('should suggest using show-inactive when no active warnings', async() => {
             getUserData.mockReturnValue([]);
             mockInteraction.options.getBoolean.mockReturnValue(false);
             
@@ -105,7 +105,7 @@ describe('Warnings Command', () => {
             expect(replyCall.embeds[0].description).toContain('show-inactive:true');
         });
 
-        it('should not suggest show-inactive when already showing inactive', async () => {
+        it('should not suggest show-inactive when already showing inactive', async() => {
             getUserData.mockReturnValue([]);
             mockInteraction.options.getBoolean.mockReturnValue(true);
             
@@ -134,7 +134,7 @@ describe('Warnings Command', () => {
             }
         ];
 
-        it('should display active warnings', async () => {
+        it('should display active warnings', async() => {
             getUserData.mockReturnValue(sampleWarnings);
             
             await warningsCommand.execute(mockInteraction);
@@ -144,7 +144,7 @@ describe('Warnings Command', () => {
             expect(replyCall.embeds[0].fields.length).toBeGreaterThan(0);
         });
 
-        it('should show correct warning count', async () => {
+        it('should show correct warning count', async() => {
             getUserData.mockReturnValue(sampleWarnings);
             
             await warningsCommand.execute(mockInteraction);
@@ -153,7 +153,7 @@ describe('Warnings Command', () => {
             expect(replyCall.embeds[0].description).toContain('Active Warnings:** 2');
         });
 
-        it('should include warning details', async () => {
+        it('should include warning details', async() => {
             getUserData.mockReturnValue(sampleWarnings);
             
             await warningsCommand.execute(mockInteraction);
@@ -165,7 +165,7 @@ describe('Warnings Command', () => {
             expect(fields.some(f => f.value.includes('First warning') || f.value.includes('Second warning'))).toBe(true);
         });
 
-        it('should include moderator information', async () => {
+        it('should include moderator information', async() => {
             getUserData.mockReturnValue(sampleWarnings);
             
             await warningsCommand.execute(mockInteraction);
@@ -195,7 +195,7 @@ describe('Warnings Command', () => {
             }
         ];
 
-        it('should hide inactive warnings by default', async () => {
+        it('should hide inactive warnings by default', async() => {
             getUserData.mockReturnValue(mixedWarnings);
             mockInteraction.options.getBoolean.mockReturnValue(false);
             
@@ -205,7 +205,7 @@ describe('Warnings Command', () => {
             expect(replyCall.embeds[0].description).toContain('Active Warnings:** 1');
         });
 
-        it('should show inactive warnings when requested', async () => {
+        it('should show inactive warnings when requested', async() => {
             getUserData.mockReturnValue(mixedWarnings);
             mockInteraction.options.getBoolean.mockReturnValue(true);
             
@@ -216,7 +216,7 @@ describe('Warnings Command', () => {
             expect(fields.some(f => f.name.includes('[CLEARED]'))).toBe(true);
         });
 
-        it('should show hidden warnings count', async () => {
+        it('should show hidden warnings count', async() => {
             getUserData.mockReturnValue(mixedWarnings);
             mockInteraction.options.getBoolean.mockReturnValue(false);
             
@@ -229,7 +229,7 @@ describe('Warnings Command', () => {
     });
 
     describe('execute - Pagination', () => {
-        it('should limit display to 10 warnings', async () => {
+        it('should limit display to 10 warnings', async() => {
             const manyWarnings = Array.from({ length: 15 }, (_, i) => ({
                 id: `warn-${i + 1}`,
                 reason: `Warning ${i + 1}`,
@@ -246,7 +246,7 @@ describe('Warnings Command', () => {
             expect(warningFields.length).toBeLessThanOrEqual(10);
         });
 
-        it('should show note when more warnings exist', async () => {
+        it('should show note when more warnings exist', async() => {
             const manyWarnings = Array.from({ length: 15 }, (_, i) => ({
                 id: `warn-${i + 1}`,
                 reason: `Warning ${i + 1}`,
@@ -266,7 +266,7 @@ describe('Warnings Command', () => {
     });
 
     describe('execute - Error Cases', () => {
-        it('should reject when no user specified', async () => {
+        it('should reject when no user specified', async() => {
             mockInteraction.options.getUser.mockReturnValue(null);
             
             await warningsCommand.execute(mockInteraction);
@@ -276,7 +276,7 @@ describe('Warnings Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should handle database errors gracefully', async () => {
+        it('should handle database errors gracefully', async() => {
             getUserData.mockImplementation(() => {
                 throw new Error('Database error');
             });
@@ -290,7 +290,7 @@ describe('Warnings Command', () => {
     });
 
     describe('execute - Footer and Metadata', () => {
-        it('should include requester in footer', async () => {
+        it('should include requester in footer', async() => {
             getUserData.mockReturnValue([{
                 id: 'warn-001',
                 reason: 'Test',
@@ -305,7 +305,7 @@ describe('Warnings Command', () => {
             expect(replyCall.embeds[0].footer.text).toContain('Moderator#0001');
         });
 
-        it('should include user thumbnail', async () => {
+        it('should include user thumbnail', async() => {
             getUserData.mockReturnValue([{
                 id: 'warn-001',
                 reason: 'Test',

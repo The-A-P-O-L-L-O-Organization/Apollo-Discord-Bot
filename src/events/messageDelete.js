@@ -9,13 +9,13 @@ export default {
     
     async execute(message, client) {
         // Ignore DMs
-        if (!message.guild) return;
+        if (!message.guild) {return;}
 
         // Ignore uncached messages without author
-        if (!message.author) return;
+        if (!message.author) {return;}
         
         // Ignore bot messages
-        if (message.author?.bot) return;
+        if (message.author?.bot) {return;}
         
         // Ignore partial messages without content we can log
         if (message.partial) {

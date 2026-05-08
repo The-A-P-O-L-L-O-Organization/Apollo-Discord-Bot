@@ -46,9 +46,9 @@ describe('Embed Command', () => {
     });
 
     describe('execute - Success Cases', () => {
-        it('should create embed with title only', async () => {
+        it('should create embed with title only', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'title') return 'Test Title';
+                if (name === 'title') {return 'Test Title';}
                 return null;
             });
 
@@ -62,9 +62,9 @@ describe('Embed Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should create embed with description only', async () => {
+        it('should create embed with description only', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'description') return 'Test Description';
+                if (name === 'description') {return 'Test Description';}
                 return null;
             });
 
@@ -73,7 +73,7 @@ describe('Embed Command', () => {
             expect(mockChannel.send).toHaveBeenCalled();
         });
 
-        it('should create embed with all options', async () => {
+        it('should create embed with all options', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
                 const values = {
                     'title': 'Test Title',
@@ -96,10 +96,10 @@ describe('Embed Command', () => {
             expect(sendCall.embeds).toHaveLength(1);
         });
 
-        it('should handle hex color without hash', async () => {
+        it('should handle hex color without hash', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'title') return 'Test Title';
-                if (name === 'color') return 'FF0000';
+                if (name === 'title') {return 'Test Title';}
+                if (name === 'color') {return 'FF0000';}
                 return null;
             });
 
@@ -108,9 +108,9 @@ describe('Embed Command', () => {
             expect(mockChannel.send).toHaveBeenCalled();
         });
 
-        it('should use default color when none provided', async () => {
+        it('should use default color when none provided', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'title') return 'Test Title';
+                if (name === 'title') {return 'Test Title';}
                 return null;
             });
 
@@ -121,7 +121,7 @@ describe('Embed Command', () => {
     });
 
     describe('execute - Error Cases', () => {
-        it('should reject when no title or description provided', async () => {
+        it('should reject when no title or description provided', async() => {
             mockInteraction.options.getString.mockReturnValue(null);
 
             await embedCommand.execute(mockInteraction);
@@ -133,10 +133,10 @@ describe('Embed Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject invalid hex color', async () => {
+        it('should reject invalid hex color', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'title') return 'Test Title';
-                if (name === 'color') return 'invalid';
+                if (name === 'title') {return 'Test Title';}
+                if (name === 'color') {return 'invalid';}
                 return null;
             });
 
@@ -149,10 +149,10 @@ describe('Embed Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject invalid image URL', async () => {
+        it('should reject invalid image URL', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'title') return 'Test Title';
-                if (name === 'image') return 'not-a-url';
+                if (name === 'title') {return 'Test Title';}
+                if (name === 'image') {return 'not-a-url';}
                 return null;
             });
 
@@ -165,10 +165,10 @@ describe('Embed Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject invalid thumbnail URL', async () => {
+        it('should reject invalid thumbnail URL', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'title') return 'Test Title';
-                if (name === 'thumbnail') return 'not-a-url';
+                if (name === 'title') {return 'Test Title';}
+                if (name === 'thumbnail') {return 'not-a-url';}
                 return null;
             });
 
@@ -181,10 +181,10 @@ describe('Embed Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject invalid title URL', async () => {
+        it('should reject invalid title URL', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'title') return 'Test Title';
-                if (name === 'url') return 'not-a-url';
+                if (name === 'title') {return 'Test Title';}
+                if (name === 'url') {return 'not-a-url';}
                 return null;
             });
 
@@ -197,9 +197,9 @@ describe('Embed Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should handle send failure gracefully', async () => {
+        it('should handle send failure gracefully', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'title') return 'Test Title';
+                if (name === 'title') {return 'Test Title';}
                 return null;
             });
             mockChannel.send.mockRejectedValue(new Error('Permission denied'));
@@ -213,10 +213,10 @@ describe('Embed Command', () => {
     });
 
     describe('execute - Edge Cases', () => {
-        it('should handle very long description', async () => {
+        it('should handle very long description', async() => {
             const longDescription = 'x'.repeat(4000);
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'description') return longDescription;
+                if (name === 'description') {return longDescription;}
                 return null;
             });
 
@@ -225,9 +225,9 @@ describe('Embed Command', () => {
             expect(mockChannel.send).toHaveBeenCalled();
         });
 
-        it('should handle special characters in title', async () => {
+        it('should handle special characters in title', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'title') return 'Test <b>Title</b> & "Special"';
+                if (name === 'title') {return 'Test <b>Title</b> & "Special"';}
                 return null;
             });
 
@@ -236,9 +236,9 @@ describe('Embed Command', () => {
             expect(mockChannel.send).toHaveBeenCalled();
         });
 
-        it('should add timestamp when requested', async () => {
+        it('should add timestamp when requested', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'title') return 'Test Title';
+                if (name === 'title') {return 'Test Title';}
                 return null;
             });
             mockInteraction.options.getBoolean.mockReturnValue(true);

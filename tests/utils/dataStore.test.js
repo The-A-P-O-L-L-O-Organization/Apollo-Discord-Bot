@@ -1,9 +1,8 @@
 // DataStore Utility Tests
 // Tests for the data persistence functions
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
-import path from 'path';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
 
 // Mock the fs module
 vi.mock('fs', () => ({
@@ -17,7 +16,7 @@ vi.mock('fs', () => ({
 let dataStore;
 
 describe('DataStore Utility', () => {
-    beforeEach(async () => {
+    beforeEach(async() => {
         vi.clearAllMocks();
         // Reset the module cache to get fresh imports with mocks
         vi.resetModules();
@@ -184,7 +183,7 @@ describe('DataStore Utility', () => {
     });
 
     describe('removeFromGuildArray', () => {
-        it('should remove items matching predicate', async () => {
+        it('should remove items matching predicate', async() => {
             const existingData = { 
                 'guild123': { 
                     items: [
@@ -211,7 +210,7 @@ describe('DataStore Utility', () => {
             expect(written.guild123.items.every(i => i.name === 'keep')).toBe(true);
         });
 
-        it('should return 0 when guild does not exist', async () => {
+        it('should return 0 when guild does not exist', async() => {
             readFileSync.mockReturnValue('{}');
             
             const removed = await dataStore.removeFromGuildArray(
@@ -225,7 +224,7 @@ describe('DataStore Utility', () => {
             expect(writeFileSync).not.toHaveBeenCalled();
         });
 
-        it('should return 0 when key is not an array', async () => {
+        it('should return 0 when key is not an array', async() => {
             const existingData = { 'guild123': { items: 'not array' } };
             readFileSync.mockReturnValue(JSON.stringify(existingData));
             
@@ -239,7 +238,7 @@ describe('DataStore Utility', () => {
             expect(removed).toBe(0);
         });
 
-        it('should not write if nothing was removed', async () => {
+        it('should not write if nothing was removed', async() => {
             const existingData = { 'guild123': { items: [{ keep: true }] } };
             readFileSync.mockReturnValue(JSON.stringify(existingData));
             
@@ -319,7 +318,7 @@ describe('DataStore Utility', () => {
     });
 
     describe('removeFromUserArray', () => {
-        it('should remove items from user array', async () => {
+        it('should remove items from user array', async() => {
             const existingData = { 
                 'guild123': { 
                     'user456': [{ id: 1 }, { id: 2 }, { id: 3 }]
@@ -340,7 +339,7 @@ describe('DataStore Utility', () => {
             expect(written.guild123.user456).toHaveLength(2);
         });
 
-        it('should return 0 when user array does not exist', async () => {
+        it('should return 0 when user array does not exist', async() => {
             readFileSync.mockReturnValue('{}');
             
             const removed = await dataStore.removeFromUserArray(

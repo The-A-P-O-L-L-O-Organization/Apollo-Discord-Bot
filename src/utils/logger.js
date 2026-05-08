@@ -44,7 +44,7 @@ export function isEventEnabled(guildId, eventName) {
 export async function getLogChannel(guild) {
     const cfg = getLoggingConfig(guild.id);
     
-    if (!cfg.channelId) return null;
+    if (!cfg.channelId) {return null;}
     
     try {
         const channel = await guild.channels.fetch(cfg.channelId);
@@ -65,10 +65,10 @@ export async function getLogChannel(guild) {
  * @param {EmbedBuilder} embed - The embed to send
  */
 export async function logEvent(guild, eventType, embed) {
-    if (!isEventEnabled(guild.id, eventType)) return;
+    if (!isEventEnabled(guild.id, eventType)) {return;}
     
     const logChannel = await getLogChannel(guild);
-    if (!logChannel) return;
+    if (!logChannel) {return;}
     
     try {
         await logChannel.send({ embeds: [embed] });
@@ -168,7 +168,7 @@ export function createMemberJoinEmbed(member) {
     if (daysOld < 7) {
         embed.addFields({
             name: '[!] New Account Warning',
-            value: `This account is less than 7 days old.`,
+            value: 'This account is less than 7 days old.',
             inline: false
         });
     }
@@ -268,7 +268,7 @@ export function createRoleChangeEmbed(oldMember, newMember) {
  */
 export function createVoiceChangeEmbed(oldState, newState) {
     const member = newState.member || oldState.member;
-    if (!member) return null;
+    if (!member) {return null;}
     
     let title, description, color;
     

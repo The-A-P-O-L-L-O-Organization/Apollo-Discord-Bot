@@ -65,9 +65,9 @@ export default {
             // Store original permissions before locking
             const originalPermissions = currentPermissions ? {
                 SendMessages: currentPermissions.allow.has(PermissionsBitField.Flags.SendMessages) ? true : 
-                             currentPermissions.deny.has(PermissionsBitField.Flags.SendMessages) ? false : null,
+                    currentPermissions.deny.has(PermissionsBitField.Flags.SendMessages) ? false : null,
                 AddReactions: currentPermissions.allow.has(PermissionsBitField.Flags.AddReactions) ? true :
-                             currentPermissions.deny.has(PermissionsBitField.Flags.AddReactions) ? false : null
+                    currentPermissions.deny.has(PermissionsBitField.Flags.AddReactions) ? false : null
             } : {
                 SendMessages: null,
                 AddReactions: null

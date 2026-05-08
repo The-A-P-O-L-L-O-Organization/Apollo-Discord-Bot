@@ -119,7 +119,7 @@ export async function analyzeImage(imageUrl) {
  * @returns {boolean} Whether image is NSFW
  */
 export function isImageNsfw(predictions, threshold = 0.6) {
-    if (!predictions) return false;
+    if (!predictions) {return false;}
     
     // Categories considered NSFW
     const nsfwCategories = ['Porn', 'Sexy', 'Hentai'];

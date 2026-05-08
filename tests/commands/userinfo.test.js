@@ -108,7 +108,7 @@ describe('Userinfo Command', () => {
     });
 
     describe('execute - Success Cases', () => {
-        it('should display user info successfully', async () => {
+        it('should display user info successfully', async() => {
             await userinfoCommand.execute(mockInteraction);
             
             expect(mockInteraction.reply).toHaveBeenCalled();
@@ -117,7 +117,7 @@ describe('Userinfo Command', () => {
             expect(replyCall.embeds.length).toBe(1);
         });
 
-        it('should include user information in embed', async () => {
+        it('should include user information in embed', async() => {
             await userinfoCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -126,7 +126,7 @@ describe('Userinfo Command', () => {
             expect(embed.data.title).toContain('User Information');
         });
 
-        it('should display username field', async () => {
+        it('should display username field', async() => {
             await userinfoCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -136,7 +136,7 @@ describe('Userinfo Command', () => {
             expect(usernameField.value).toContain('TestUser');
         });
 
-        it('should display user ID field', async () => {
+        it('should display user ID field', async() => {
             await userinfoCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -146,7 +146,7 @@ describe('Userinfo Command', () => {
             expect(idField.value).toContain('111222333');
         });
 
-        it('should display bot status field', async () => {
+        it('should display bot status field', async() => {
             await userinfoCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -156,7 +156,7 @@ describe('Userinfo Command', () => {
             expect(botField.value).toBe('No');
         });
 
-        it('should display account creation date', async () => {
+        it('should display account creation date', async() => {
             await userinfoCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -166,7 +166,7 @@ describe('Userinfo Command', () => {
             expect(createdField.value).toContain('days ago');
         });
 
-        it('should display server join date', async () => {
+        it('should display server join date', async() => {
             await userinfoCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -176,7 +176,7 @@ describe('Userinfo Command', () => {
             expect(joinedField.value).toContain('days ago');
         });
 
-        it('should display top role', async () => {
+        it('should display top role', async() => {
             await userinfoCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -185,7 +185,7 @@ describe('Userinfo Command', () => {
             expect(roleField).toBeDefined();
         });
 
-        it('should display role count', async () => {
+        it('should display role count', async() => {
             await userinfoCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -195,7 +195,7 @@ describe('Userinfo Command', () => {
             expect(roleCountField.value).toContain('4 role(s)'); // size - 1 for @everyone
         });
 
-        it('should use interaction user when no target specified', async () => {
+        it('should use interaction user when no target specified', async() => {
             mockInteraction.options.getUser.mockReturnValue(null);
             mockGuild.members.cache.set(mockInteraction.user.id, targetMember);
             
@@ -204,14 +204,14 @@ describe('Userinfo Command', () => {
             expect(mockInteraction.reply).toHaveBeenCalled();
         });
 
-        it('should include avatar thumbnail', async () => {
+        it('should include avatar thumbnail', async() => {
             await userinfoCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.embeds[0].data.thumbnail).toBeDefined();
         });
 
-        it('should include footer with requester info', async () => {
+        it('should include footer with requester info', async() => {
             await userinfoCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -220,7 +220,7 @@ describe('Userinfo Command', () => {
     });
 
     describe('execute - Status Indicators', () => {
-        it('should show online status', async () => {
+        it('should show online status', async() => {
             targetMember.presence = { status: 'online' };
             
             await userinfoCommand.execute(mockInteraction);
@@ -229,7 +229,7 @@ describe('Userinfo Command', () => {
             expect(replyCall.embeds[0].data.title).toContain('[ONLINE]');
         });
 
-        it('should show idle status', async () => {
+        it('should show idle status', async() => {
             targetMember.presence = { status: 'idle' };
             
             await userinfoCommand.execute(mockInteraction);
@@ -238,7 +238,7 @@ describe('Userinfo Command', () => {
             expect(replyCall.embeds[0].data.title).toContain('[IDLE]');
         });
 
-        it('should show dnd status', async () => {
+        it('should show dnd status', async() => {
             targetMember.presence = { status: 'dnd' };
             
             await userinfoCommand.execute(mockInteraction);
@@ -247,7 +247,7 @@ describe('Userinfo Command', () => {
             expect(replyCall.embeds[0].data.title).toContain('[DND]');
         });
 
-        it('should show offline status', async () => {
+        it('should show offline status', async() => {
             targetMember.presence = { status: 'offline' };
             
             await userinfoCommand.execute(mockInteraction);
@@ -256,7 +256,7 @@ describe('Userinfo Command', () => {
             expect(replyCall.embeds[0].data.title).toContain('[OFFLINE]');
         });
 
-        it('should show offline when presence is null', async () => {
+        it('should show offline when presence is null', async() => {
             targetMember.presence = null;
             
             await userinfoCommand.execute(mockInteraction);
@@ -267,7 +267,7 @@ describe('Userinfo Command', () => {
     });
 
     describe('execute - Bot Detection', () => {
-        it('should show Yes for bot users', async () => {
+        it('should show Yes for bot users', async() => {
             targetUser.bot = true;
             
             await userinfoCommand.execute(mockInteraction);
@@ -280,7 +280,7 @@ describe('Userinfo Command', () => {
     });
 
     describe('execute - Error Cases', () => {
-        it('should handle member not found', async () => {
+        it('should handle member not found', async() => {
             mockGuild.members.cache.delete(targetUser.id);
             mockGuild.members.fetch.mockResolvedValue(null);
             
@@ -294,7 +294,7 @@ describe('Userinfo Command', () => {
     });
 
     describe('execute - Display Color', () => {
-        it('should use member display color when available', async () => {
+        it('should use member display color when available', async() => {
             targetMember.displayColor = 0x3498db;
             
             await userinfoCommand.execute(mockInteraction);
@@ -304,7 +304,7 @@ describe('Userinfo Command', () => {
             expect(replyCall.embeds[0].data.color).toBeDefined();
         });
 
-        it('should use default color when display color is 0', async () => {
+        it('should use default color when display color is 0', async() => {
             targetMember.displayColor = 0;
             
             await userinfoCommand.execute(mockInteraction);
@@ -316,7 +316,7 @@ describe('Userinfo Command', () => {
     });
 
     describe('execute - Discriminator Handling', () => {
-        it('should show discriminator when not 0', async () => {
+        it('should show discriminator when not 0', async() => {
             targetUser.discriminator = '1234';
             
             await userinfoCommand.execute(mockInteraction);
@@ -327,7 +327,7 @@ describe('Userinfo Command', () => {
             expect(usernameField.value).toContain('#1234');
         });
 
-        it('should not show discriminator when 0', async () => {
+        it('should not show discriminator when 0', async() => {
             targetUser.discriminator = '0';
             
             await userinfoCommand.execute(mockInteraction);

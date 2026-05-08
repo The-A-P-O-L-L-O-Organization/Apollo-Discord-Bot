@@ -80,7 +80,7 @@ describe('GuildMemberUpdate Event', () => {
     });
 
     describe('Success Cases', () => {
-        it('should log role changes for non-bot users', async () => {
+        it('should log role changes for non-bot users', async() => {
             await guildMemberUpdateEvent.execute(oldMember, newMember, mockClient);
             
             expect(createRoleChangeEmbed).toHaveBeenCalledWith(oldMember, newMember);
@@ -91,7 +91,7 @@ describe('GuildMemberUpdate Event', () => {
             );
         });
 
-        it('should pass both old and new member to createRoleChangeEmbed', async () => {
+        it('should pass both old and new member to createRoleChangeEmbed', async() => {
             await guildMemberUpdateEvent.execute(oldMember, newMember, mockClient);
             
             expect(createRoleChangeEmbed).toHaveBeenCalledWith(oldMember, newMember);
@@ -99,7 +99,7 @@ describe('GuildMemberUpdate Event', () => {
     });
 
     describe('No Role Changes', () => {
-        it('should not log when there are no role changes', async () => {
+        it('should not log when there are no role changes', async() => {
             createRoleChangeEmbed.mockReturnValue(null);
             
             await guildMemberUpdateEvent.execute(oldMember, newMember, mockClient);
@@ -110,7 +110,7 @@ describe('GuildMemberUpdate Event', () => {
     });
 
     describe('Bot User Handling', () => {
-        it('should not log updates for bot users', async () => {
+        it('should not log updates for bot users', async() => {
             newMember.user.bot = true;
             
             await guildMemberUpdateEvent.execute(oldMember, newMember, mockClient);
@@ -121,7 +121,7 @@ describe('GuildMemberUpdate Event', () => {
     });
 
     describe('Role Added', () => {
-        it('should detect when a role is added', async () => {
+        it('should detect when a role is added', async() => {
             await guildMemberUpdateEvent.execute(oldMember, newMember, mockClient);
             
             expect(createRoleChangeEmbed).toHaveBeenCalledWith(oldMember, newMember);
@@ -130,7 +130,7 @@ describe('GuildMemberUpdate Event', () => {
     });
 
     describe('Role Removed', () => {
-        it('should detect when a role is removed', async () => {
+        it('should detect when a role is removed', async() => {
             // Swap old and new to simulate role removal
             await guildMemberUpdateEvent.execute(newMember, oldMember, mockClient);
             
@@ -139,7 +139,7 @@ describe('GuildMemberUpdate Event', () => {
     });
 
     describe('Edge Cases', () => {
-        it('should handle member with no roles', async () => {
+        it('should handle member with no roles', async() => {
             const emptyRolesCache = new Map();
             oldMember.roles.cache = emptyRolesCache;
             newMember.roles.cache = emptyRolesCache;
@@ -150,7 +150,7 @@ describe('GuildMemberUpdate Event', () => {
             ).resolves.not.toThrow();
         });
 
-        it('should handle logging errors gracefully', async () => {
+        it('should handle logging errors gracefully', async() => {
             logEvent.mockRejectedValue(new Error('Logging failed'));
             
             await expect(

@@ -2,7 +2,7 @@
 // Schedule announcements to be sent later
 
 import { PermissionsBitField } from 'discord.js';
-import { setGuildData } from '../utils/db.js';
+import { getGuildData, setGuildData } from '../utils/db.js';
 
 export default {
     name: 'announcement',
@@ -235,7 +235,7 @@ async function handleCancel(interaction) {
 
 function parseDelay(str) {
     const match = str.match(/^(\d+)([mhd])$/i);
-    if (!match) return null;
+    if (!match) {return null;}
     
     const value = parseInt(match[1]);
     const unit = match[2].toLowerCase();

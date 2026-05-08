@@ -1,7 +1,7 @@
 // Ping Command Tests
 // Tests for the ping command functionality
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import pingCommand from '../../src/commands/ping.js';
 import { createMockInteraction, createMockClient, createMockUser } from '../mocks/discord.js';
 
@@ -32,13 +32,13 @@ describe('Ping Command', () => {
     });
 
     describe('execute', () => {
-        it('should defer reply first', async () => {
+        it('should defer reply first', async() => {
             await pingCommand.execute(mockInteraction);
             
             expect(mockInteraction.deferReply).toHaveBeenCalled();
         });
 
-        it('should edit reply with embed', async () => {
+        it('should edit reply with embed', async() => {
             await pingCommand.execute(mockInteraction);
             
             expect(mockInteraction.editReply).toHaveBeenCalled();
@@ -47,7 +47,7 @@ describe('Ping Command', () => {
             expect(replyCall.embeds).toHaveLength(1);
         });
 
-        it('should include latency information in embed', async () => {
+        it('should include latency information in embed', async() => {
             await pingCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.editReply.mock.calls[0][0];
@@ -62,7 +62,7 @@ describe('Ping Command', () => {
             expect(latencyField.value).toContain('ms');
         });
 
-        it('should include API latency', async () => {
+        it('should include API latency', async() => {
             mockInteraction.client.ws.ping = 75;
             await pingCommand.execute(mockInteraction);
             
@@ -74,7 +74,7 @@ describe('Ping Command', () => {
             expect(apiField.value).toBe('75ms');
         });
 
-        it('should show EXCELLENT status for low latency', async () => {
+        it('should show EXCELLENT status for low latency', async() => {
             mockInteraction.createdTimestamp = Date.now() - 50; // 50ms
             await pingCommand.execute(mockInteraction);
             
@@ -85,7 +85,7 @@ describe('Ping Command', () => {
             expect(statusField.value).toBe('[EXCELLENT]');
         });
 
-        it('should show GOOD status for moderate latency', async () => {
+        it('should show GOOD status for moderate latency', async() => {
             mockInteraction.createdTimestamp = Date.now() - 150; // 150ms
             await pingCommand.execute(mockInteraction);
             
@@ -96,7 +96,7 @@ describe('Ping Command', () => {
             expect(statusField.value).toBe('[GOOD]');
         });
 
-        it('should show MODERATE status for higher latency', async () => {
+        it('should show MODERATE status for higher latency', async() => {
             mockInteraction.createdTimestamp = Date.now() - 300; // 300ms
             await pingCommand.execute(mockInteraction);
             
@@ -107,7 +107,7 @@ describe('Ping Command', () => {
             expect(statusField.value).toBe('[MODERATE]');
         });
 
-        it('should show POOR status for high latency', async () => {
+        it('should show POOR status for high latency', async() => {
             mockInteraction.createdTimestamp = Date.now() - 500; // 500ms
             await pingCommand.execute(mockInteraction);
             
@@ -118,7 +118,7 @@ describe('Ping Command', () => {
             expect(statusField.value).toBe('[POOR]');
         });
 
-        it('should include requester in footer', async () => {
+        it('should include requester in footer', async() => {
             mockInteraction.user.tag = 'RequesterUser#9999';
             await pingCommand.execute(mockInteraction);
             
@@ -128,7 +128,7 @@ describe('Ping Command', () => {
             expect(embedData.footer.text).toContain('RequesterUser#9999');
         });
 
-        it('should include timestamp', async () => {
+        it('should include timestamp', async() => {
             await pingCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.editReply.mock.calls[0][0];

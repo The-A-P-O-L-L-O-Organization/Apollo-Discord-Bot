@@ -48,8 +48,8 @@ export class MockCollection extends Map {
 }
 
 function toMockCollection(value) {
-    if (value instanceof MockCollection) return value;
-    if (value instanceof Map || Array.isArray(value)) return new MockCollection(value);
+    if (value instanceof MockCollection) {return value;}
+    if (value instanceof Map || Array.isArray(value)) {return new MockCollection(value);}
     return new MockCollection();
 }
 

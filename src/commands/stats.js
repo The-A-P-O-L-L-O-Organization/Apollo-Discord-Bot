@@ -99,10 +99,10 @@ function formatUptime(ms) {
 
     const parts = [];
     
-    if (days > 0) parts.push(`${days}d`);
-    if (hours % 24 > 0) parts.push(`${hours % 24}h`);
-    if (minutes % 60 > 0) parts.push(`${minutes % 60}m`);
-    if (seconds % 60 > 0 || parts.length === 0) parts.push(`${seconds % 60}s`);
+    if (days > 0) {parts.push(`${days}d`);}
+    if (hours % 24 > 0) {parts.push(`${hours % 24}h`);}
+    if (minutes % 60 > 0) {parts.push(`${minutes % 60}m`);}
+    if (seconds % 60 > 0 || parts.length === 0) {parts.push(`${seconds % 60}s`);}
 
     return parts.join(' ');
 }

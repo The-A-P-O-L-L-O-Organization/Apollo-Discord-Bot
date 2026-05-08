@@ -91,7 +91,7 @@ describe('WarnConfig Command', () => {
             mockInteraction.options.getSubcommand.mockReturnValue('view');
         });
 
-        it('should display current configuration', async () => {
+        it('should display current configuration', async() => {
             getGuildData.mockReturnValue({
                 thresholds: { mute: 3, kick: 5, ban: 7 },
                 muteDuration: 3600000
@@ -104,7 +104,7 @@ describe('WarnConfig Command', () => {
             expect(replyCall.embeds[0].data.title).toBe('Warning Configuration');
         });
 
-        it('should show default config when none is set', async () => {
+        it('should show default config when none is set', async() => {
             getGuildData.mockReturnValue({});
 
             await warnconfigCommand.execute(mockInteraction);
@@ -117,7 +117,7 @@ describe('WarnConfig Command', () => {
             expect(muteField.value).toContain('3');
         });
 
-        it('should display disabled thresholds as Disabled', async () => {
+        it('should display disabled thresholds as Disabled', async() => {
             getGuildData.mockReturnValue({
                 thresholds: { mute: null, kick: 5, ban: null }
             });
@@ -131,7 +131,7 @@ describe('WarnConfig Command', () => {
             expect(muteField.value).toBe('Disabled');
         });
 
-        it('should include server name in description', async () => {
+        it('should include server name in description', async() => {
             await warnconfigCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -145,7 +145,7 @@ describe('WarnConfig Command', () => {
             mockInteraction.options.getSubcommand.mockReturnValue('set');
         });
 
-        it('should set mute threshold', async () => {
+        it('should set mute threshold', async() => {
             mockInteraction.options.getString.mockReturnValue('mute');
             mockInteraction.options.getInteger.mockReturnValue(4);
             getGuildData.mockReturnValue({});
@@ -161,7 +161,7 @@ describe('WarnConfig Command', () => {
             );
         });
 
-        it('should set kick threshold', async () => {
+        it('should set kick threshold', async() => {
             mockInteraction.options.getString.mockReturnValue('kick');
             mockInteraction.options.getInteger.mockReturnValue(6);
             getGuildData.mockReturnValue({
@@ -179,7 +179,7 @@ describe('WarnConfig Command', () => {
             );
         });
 
-        it('should set ban threshold', async () => {
+        it('should set ban threshold', async() => {
             mockInteraction.options.getString.mockReturnValue('ban');
             mockInteraction.options.getInteger.mockReturnValue(10);
             getGuildData.mockReturnValue({
@@ -197,7 +197,7 @@ describe('WarnConfig Command', () => {
             );
         });
 
-        it('should disable threshold when set to 0', async () => {
+        it('should disable threshold when set to 0', async() => {
             mockInteraction.options.getString.mockReturnValue('mute');
             mockInteraction.options.getInteger.mockReturnValue(0);
             getGuildData.mockReturnValue({
@@ -218,7 +218,7 @@ describe('WarnConfig Command', () => {
             expect(replyCall.embeds[0].data.description).toContain('disabled');
         });
 
-        it('should reply with success embed', async () => {
+        it('should reply with success embed', async() => {
             mockInteraction.options.getString.mockReturnValue('mute');
             mockInteraction.options.getInteger.mockReturnValue(4);
             getGuildData.mockReturnValue({});
@@ -229,7 +229,7 @@ describe('WarnConfig Command', () => {
             expect(replyCall.embeds[0].data.title).toContain('[SUCCESS]');
         });
 
-        it('should reject mute >= kick threshold', async () => {
+        it('should reject mute >= kick threshold', async() => {
             mockInteraction.options.getString.mockReturnValue('mute');
             mockInteraction.options.getInteger.mockReturnValue(5);
             getGuildData.mockReturnValue({
@@ -244,7 +244,7 @@ describe('WarnConfig Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject kick >= ban threshold', async () => {
+        it('should reject kick >= ban threshold', async() => {
             mockInteraction.options.getString.mockReturnValue('kick');
             mockInteraction.options.getInteger.mockReturnValue(8);
             getGuildData.mockReturnValue({
@@ -259,7 +259,7 @@ describe('WarnConfig Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject mute >= ban threshold', async () => {
+        it('should reject mute >= ban threshold', async() => {
             mockInteraction.options.getString.mockReturnValue('mute');
             mockInteraction.options.getInteger.mockReturnValue(8);
             getGuildData.mockReturnValue({
@@ -280,7 +280,7 @@ describe('WarnConfig Command', () => {
             mockInteraction.options.getSubcommand.mockReturnValue('setmuteduration');
         });
 
-        it('should set mute duration in minutes', async () => {
+        it('should set mute duration in minutes', async() => {
             mockInteraction.options.getString.mockReturnValue('30m');
             getGuildData.mockReturnValue({});
 
@@ -295,7 +295,7 @@ describe('WarnConfig Command', () => {
             );
         });
 
-        it('should set mute duration in hours', async () => {
+        it('should set mute duration in hours', async() => {
             mockInteraction.options.getString.mockReturnValue('2h');
             getGuildData.mockReturnValue({});
 
@@ -310,7 +310,7 @@ describe('WarnConfig Command', () => {
             );
         });
 
-        it('should set mute duration in days', async () => {
+        it('should set mute duration in days', async() => {
             mockInteraction.options.getString.mockReturnValue('1d');
             getGuildData.mockReturnValue({});
 
@@ -325,7 +325,7 @@ describe('WarnConfig Command', () => {
             );
         });
 
-        it('should set mute duration in weeks', async () => {
+        it('should set mute duration in weeks', async() => {
             mockInteraction.options.getString.mockReturnValue('1w');
             getGuildData.mockReturnValue({});
 
@@ -340,7 +340,7 @@ describe('WarnConfig Command', () => {
             );
         });
 
-        it('should reply with success embed', async () => {
+        it('should reply with success embed', async() => {
             mockInteraction.options.getString.mockReturnValue('1h');
             getGuildData.mockReturnValue({});
 
@@ -351,7 +351,7 @@ describe('WarnConfig Command', () => {
             expect(replyCall.embeds[0].data.description).toContain('1 hour');
         });
 
-        it('should reject invalid duration format', async () => {
+        it('should reject invalid duration format', async() => {
             mockInteraction.options.getString.mockReturnValue('invalid');
             getGuildData.mockReturnValue({});
 
@@ -363,7 +363,7 @@ describe('WarnConfig Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject duration without unit', async () => {
+        it('should reject duration without unit', async() => {
             mockInteraction.options.getString.mockReturnValue('30');
             getGuildData.mockReturnValue({});
 
@@ -379,7 +379,7 @@ describe('WarnConfig Command', () => {
             mockInteraction.options.getSubcommand.mockReturnValue('reset');
         });
 
-        it('should reset configuration to defaults', async () => {
+        it('should reset configuration to defaults', async() => {
             getGuildData.mockReturnValue({
                 thresholds: { mute: 10, kick: 15, ban: 20 },
                 muteDuration: 86400000
@@ -394,7 +394,7 @@ describe('WarnConfig Command', () => {
             );
         });
 
-        it('should reply with success embed showing defaults', async () => {
+        it('should reply with success embed showing defaults', async() => {
             await warnconfigCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -402,7 +402,7 @@ describe('WarnConfig Command', () => {
             expect(replyCall.embeds[0].data.description).toContain('reset to defaults');
         });
 
-        it('should display default threshold values in response', async () => {
+        it('should display default threshold values in response', async() => {
             await warnconfigCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -419,7 +419,7 @@ describe('WarnConfig Command', () => {
     });
 
     describe('execute - Error Handling', () => {
-        it('should handle errors gracefully', async () => {
+        it('should handle errors gracefully', async() => {
             mockInteraction.options.getSubcommand.mockReturnValue('view');
             getGuildData.mockImplementation(() => {
                 throw new Error('Database error');
@@ -432,7 +432,7 @@ describe('WarnConfig Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should include error message in response', async () => {
+        it('should include error message in response', async() => {
             mockInteraction.options.getSubcommand.mockReturnValue('view');
             getGuildData.mockImplementation(() => {
                 throw new Error('Custom error message');

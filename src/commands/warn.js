@@ -134,7 +134,7 @@ export default {
                     const dmEmbed = {
                         color: 0xFFA500,
                         title: `[!] Warning in ${interaction.guild.name}`,
-                        description: `You have been warned by a moderator.`,
+                        description: 'You have been warned by a moderator.',
                         fields: [
                             { name: 'Reason', value: reason, inline: false },
                             { name: 'Total Warnings', value: `${warningCount}`, inline: true },

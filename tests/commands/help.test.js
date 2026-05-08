@@ -3,8 +3,8 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import helpCommand from '../../src/commands/help.js';
-import { 
-    createMockInteraction, 
+import {
+    createMockInteraction,
     createMockUser,
     createMockClient
 } from '../mocks/discord.js';
@@ -66,7 +66,7 @@ describe('Help Command', () => {
     });
 
     describe('execute - Success Cases', () => {
-        it('should display help embed', async () => {
+        it('should display help embed', async() => {
             await helpCommand.execute(mockInteraction);
             
             expect(mockInteraction.reply).toHaveBeenCalled();
@@ -75,7 +75,7 @@ describe('Help Command', () => {
             expect(replyCall.embeds[0].title).toBe('Bot Help Menu');
         });
 
-        it('should group commands by category', async () => {
+        it('should group commands by category', async() => {
             await helpCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -87,7 +87,7 @@ describe('Help Command', () => {
             expect(fieldNames.some(n => n.includes('Moderation'))).toBe(true);
         });
 
-        it('should show total command count in footer', async () => {
+        it('should show total command count in footer', async() => {
             await helpCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -95,7 +95,7 @@ describe('Help Command', () => {
             expect(embed.footer.text).toContain('3'); // Total commands
         });
 
-        it('should show command usage format', async () => {
+        it('should show command usage format', async() => {
             await helpCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -107,7 +107,7 @@ describe('Help Command', () => {
             expect(moderationField.value).toContain('<user>');
         });
 
-        it('should show required vs optional parameters', async () => {
+        it('should show required vs optional parameters', async() => {
             await helpCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -118,7 +118,7 @@ describe('Help Command', () => {
             expect(moderationField.value).toContain('[reason]'); // Optional
         });
 
-        it('should include legend for parameters', async () => {
+        it('should include legend for parameters', async() => {
             await helpCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -130,7 +130,7 @@ describe('Help Command', () => {
             expect(legendField.value).toContain('[param]');
         });
 
-        it('should include usage guide', async () => {
+        it('should include usage guide', async() => {
             await helpCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -140,7 +140,7 @@ describe('Help Command', () => {
             expect(usageField).toBeDefined();
         });
 
-        it('should not be ephemeral', async () => {
+        it('should not be ephemeral', async() => {
             await helpCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -149,7 +149,7 @@ describe('Help Command', () => {
     });
 
     describe('execute - Edge Cases', () => {
-        it('should handle empty commands collection', async () => {
+        it('should handle empty commands collection', async() => {
             mockClient.commands = new Map();
             
             await helpCommand.execute(mockInteraction);
@@ -159,7 +159,7 @@ describe('Help Command', () => {
             expect(replyCall.embeds[0].footer.text).toContain('0');
         });
 
-        it('should handle commands without category', async () => {
+        it('should handle commands without category', async() => {
             mockCommands.set('nocategory', {
                 name: 'nocategory',
                 description: 'No category command',
@@ -175,7 +175,7 @@ describe('Help Command', () => {
             expect(uncategorizedField).toBeDefined();
         });
 
-        it('should handle commands without options', async () => {
+        it('should handle commands without options', async() => {
             await helpCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -185,7 +185,7 @@ describe('Help Command', () => {
             expect(utilityField.value).toContain('/ping');
         });
 
-        it('should show permission requirements for commands', async () => {
+        it('should show permission requirements for commands', async() => {
             await helpCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -197,7 +197,7 @@ describe('Help Command', () => {
     });
 
     describe('execute - Sorting', () => {
-        it('should sort Utility category first', async () => {
+        it('should sort Utility category first', async() => {
             await helpCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];

@@ -3,9 +3,9 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ticketsetupCommand from '../../src/commands/ticketsetup.js';
-import { 
-    createMockInteraction, 
-    createMockUser, 
+import {
+    createMockInteraction,
+    createMockUser,
     createMockGuild,
     createMockChannel
 } from '../mocks/discord.js';
@@ -124,7 +124,7 @@ describe('Ticket Setup Command', () => {
             mockInteraction.options.getSubcommand.mockReturnValue('panel');
         });
 
-        it('should create ticket panel successfully', async () => {
+        it('should create ticket panel successfully', async() => {
             await ticketsetupCommand.execute(mockInteraction);
             
             expect(mockChannel.send).toHaveBeenCalled();
@@ -133,7 +133,7 @@ describe('Ticket Setup Command', () => {
             expect(sendCall.components).toBeDefined();
         });
 
-        it('should save panel message ID to data store', async () => {
+        it('should save panel message ID to data store', async() => {
             await ticketsetupCommand.execute(mockInteraction);
             
             expect(setGuildData).toHaveBeenCalledWith(
@@ -146,7 +146,7 @@ describe('Ticket Setup Command', () => {
             );
         });
 
-        it('should reply with success message', async () => {
+        it('should reply with success message', async() => {
             await ticketsetupCommand.execute(mockInteraction);
             
             expect(mockInteraction.reply).toHaveBeenCalled();
@@ -155,9 +155,9 @@ describe('Ticket Setup Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should use custom title when provided', async () => {
+        it('should use custom title when provided', async() => {
             mockInteraction.options.getString.mockImplementation((name) => {
-                if (name === 'title') return 'Custom Support';
+                if (name === 'title') {return 'Custom Support';}
                 return null;
             });
             
@@ -167,9 +167,9 @@ describe('Ticket Setup Command', () => {
             expect(sendCall.embeds[0].data.title).toBe('Custom Support');
         });
 
-        it('should use custom description when provided', async () => {
+        it('should use custom description when provided', async() => {
             mockInteraction.options.getString.mockImplementation((name) => {
-                if (name === 'description') return 'Custom description text';
+                if (name === 'description') {return 'Custom description text';}
                 return null;
             });
             
@@ -179,7 +179,7 @@ describe('Ticket Setup Command', () => {
             expect(sendCall.embeds[0].data.description).toBe('Custom description text');
         });
 
-        it('should use default title and description when not provided', async () => {
+        it('should use default title and description when not provided', async() => {
             await ticketsetupCommand.execute(mockInteraction);
             
             const sendCall = mockChannel.send.mock.calls[0][0];
@@ -187,7 +187,7 @@ describe('Ticket Setup Command', () => {
             expect(sendCall.embeds[0].data.description).toContain('Click the button below');
         });
 
-        it('should handle channel send error gracefully', async () => {
+        it('should handle channel send error gracefully', async() => {
             mockChannel.send.mockRejectedValue(new Error('Missing permissions'));
             
             await ticketsetupCommand.execute(mockInteraction);
@@ -205,7 +205,7 @@ describe('Ticket Setup Command', () => {
             mockInteraction.options.getChannel.mockReturnValue(mockCategory);
         });
 
-        it('should set ticket category successfully', async () => {
+        it('should set ticket category successfully', async() => {
             await ticketsetupCommand.execute(mockInteraction);
             
             expect(setGuildData).toHaveBeenCalledWith(
@@ -217,7 +217,7 @@ describe('Ticket Setup Command', () => {
             );
         });
 
-        it('should reply with confirmation', async () => {
+        it('should reply with confirmation', async() => {
             await ticketsetupCommand.execute(mockInteraction);
             
             expect(mockInteraction.reply).toHaveBeenCalled();
@@ -233,7 +233,7 @@ describe('Ticket Setup Command', () => {
             mockInteraction.options.getSubcommand.mockReturnValue('supportrole');
         });
 
-        it('should set support role successfully', async () => {
+        it('should set support role successfully', async() => {
             await ticketsetupCommand.execute(mockInteraction);
             
             expect(setGuildData).toHaveBeenCalledWith(
@@ -245,7 +245,7 @@ describe('Ticket Setup Command', () => {
             );
         });
 
-        it('should reply with confirmation', async () => {
+        it('should reply with confirmation', async() => {
             await ticketsetupCommand.execute(mockInteraction);
             
             expect(mockInteraction.reply).toHaveBeenCalled();
@@ -260,7 +260,7 @@ describe('Ticket Setup Command', () => {
             mockInteraction.options.getSubcommand.mockReturnValue('status');
         });
 
-        it('should display configuration status with no config', async () => {
+        it('should display configuration status with no config', async() => {
             getGuildData.mockReturnValue({});
             
             await ticketsetupCommand.execute(mockInteraction);
@@ -271,7 +271,7 @@ describe('Ticket Setup Command', () => {
             expect(replyCall.embeds[0].data.title).toBe('Ticket System Configuration');
         });
 
-        it('should display configured category', async () => {
+        it('should display configured category', async() => {
             getGuildData.mockReturnValue({
                 categoryId: 'category123'
             });
@@ -284,7 +284,7 @@ describe('Ticket Setup Command', () => {
             expect(categoryField.value).toBe('Support Tickets');
         });
 
-        it('should display configured support role', async () => {
+        it('should display configured support role', async() => {
             getGuildData.mockReturnValue({
                 supportRoleId: 'role123'
             });
@@ -297,7 +297,7 @@ describe('Ticket Setup Command', () => {
             expect(roleField.value).toBe('Support Team');
         });
 
-        it('should display panel link when configured', async () => {
+        it('should display panel link when configured', async() => {
             getGuildData.mockReturnValue({
                 panelMessageId: 'msg123',
                 panelChannelId: 'channel123'
@@ -311,7 +311,7 @@ describe('Ticket Setup Command', () => {
             expect(panelField.value).toContain('Jump to panel');
         });
 
-        it('should handle category not found', async () => {
+        it('should handle category not found', async() => {
             getGuildData.mockReturnValue({
                 categoryId: 'deleted-category'
             });
@@ -325,7 +325,7 @@ describe('Ticket Setup Command', () => {
             expect(categoryField.value).toContain('not found');
         });
 
-        it('should handle role not found', async () => {
+        it('should handle role not found', async() => {
             getGuildData.mockReturnValue({
                 supportRoleId: 'deleted-role'
             });
@@ -339,7 +339,7 @@ describe('Ticket Setup Command', () => {
             expect(roleField.value).toContain('not found');
         });
 
-        it('should be ephemeral', async () => {
+        it('should be ephemeral', async() => {
             await ticketsetupCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];

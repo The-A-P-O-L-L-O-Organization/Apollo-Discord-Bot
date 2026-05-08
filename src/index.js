@@ -49,7 +49,7 @@ client.stats = {
 };
 
 // Event: Bot is ready and logged in
-client.once('clientReady', async () => {
+client.once('clientReady', async() => {
     console.log('Bot is ready, loading commands and events...');
     await readyHandler(client);
     await commandHandler(client);
@@ -74,7 +74,7 @@ client.once('clientReady', async () => {
 client.on('guildMemberAdd', (member) => guildMemberAddHandler(member));
 
 // Event: Handle slash commands
-client.on('interactionCreate', async (interaction) => {
+client.on('interactionCreate', async(interaction) => {
     // Handle button interactions
     if (interaction.isButton()) {
         // Button handling will be added by specific features
@@ -82,7 +82,7 @@ client.on('interactionCreate', async (interaction) => {
     }
     
     // Check if the interaction is a command
-    if (!interaction.isChatInputCommand()) return;
+    if (!interaction.isChatInputCommand()) {return;}
     
     // Get the command
     const command = client.commands.get(interaction.commandName);

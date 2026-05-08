@@ -22,7 +22,7 @@ export const DEFAULT_SLA_THRESHOLDS = {
 export function recordFirstResponse(guildId, ticketId, timestamp) {
     const ticketConfig = getGuildData('tickets', guildId);
     
-    if (!ticketConfig.openTickets) return;
+    if (!ticketConfig.openTickets) {return;}
     
     const ticket = ticketConfig.openTickets.find(t => t.id === ticketId);
     if (ticket && !ticket.firstResponseAt) {
@@ -38,7 +38,7 @@ export function recordFirstResponse(guildId, ticketId, timestamp) {
  * @returns {boolean}
  */
 export function hasBreachedSLA(ticket, slaThresholds = DEFAULT_SLA_THRESHOLDS) {
-    if (ticket.firstResponseAt) return false; // Already responded
+    if (ticket.firstResponseAt) {return false;} // Already responded
     
     const threshold = slaThresholds[ticket.priority] || DEFAULT_SLA_THRESHOLDS.medium;
     const elapsed = Date.now() - ticket.createdAt;
@@ -52,7 +52,7 @@ export function hasBreachedSLA(ticket, slaThresholds = DEFAULT_SLA_THRESHOLDS) {
  * @returns {number|null}
  */
 export function getResponseTime(ticket) {
-    if (!ticket.firstResponseAt) return null;
+    if (!ticket.firstResponseAt) {return null;}
     return ticket.firstResponseAt - ticket.createdAt;
 }
 
@@ -62,7 +62,7 @@ export function getResponseTime(ticket) {
  * @returns {number|null}
  */
 export function getResolutionTime(ticket) {
-    if (!ticket.closedAt) return null;
+    if (!ticket.closedAt) {return null;}
     return ticket.closedAt - ticket.createdAt;
 }
 
@@ -89,8 +89,8 @@ export function calculateSLAMetrics(guildId) {
     };
     
     // Calculate for closed tickets
-    let responseTimes = [];
-    let resolutionTimes = [];
+    const responseTimes = [];
+    const resolutionTimes = [];
     
     closedTickets.forEach(ticket => {
         // Response time metrics
@@ -176,16 +176,16 @@ export function calculateSLAMetrics(guildId) {
  * @returns {string}
  */
 export function formatTime(ms) {
-    if (ms === null || ms === undefined) return 'N/A';
+    if (ms === null || ms === undefined) {return 'N/A';}
     
     const seconds = Math.floor(ms / 1000);
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
     
-    if (days > 0) return `${days}d ${hours % 24}h`;
-    if (hours > 0) return `${hours}h ${minutes % 60}m`;
-    if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+    if (days > 0) {return `${days}d ${hours % 24}h`;}
+    if (hours > 0) {return `${hours}h ${minutes % 60}m`;}
+    if (minutes > 0) {return `${minutes}m ${seconds % 60}s`;}
     return `${seconds}s`;
 }
 

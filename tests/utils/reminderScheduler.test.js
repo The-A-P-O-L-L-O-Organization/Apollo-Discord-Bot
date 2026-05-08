@@ -1,7 +1,7 @@
 // Reminder Scheduler Tests
 // Tests for the reminder utility functions
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { parseTimeString } from '../../src/utils/reminderScheduler.js';
 
 describe('Reminder Scheduler Utility', () => {

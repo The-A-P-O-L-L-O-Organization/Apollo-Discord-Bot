@@ -133,7 +133,7 @@ export default {
                 await message.react(emoji.reaction);
             } catch (error) {
                 return interaction.reply({
-                    content: `Failed to react to the message. Make sure I have permission to add reactions and the emoji is valid.`,
+                    content: 'Failed to react to the message. Make sure I have permission to add reactions and the emoji is valid.',
                     ephemeral: true
                 });
             }

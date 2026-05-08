@@ -11,7 +11,7 @@ export default {
     
     async execute(interaction, client) {
         // Only handle button interactions
-        if (!interaction.isButton()) return;
+        if (!interaction.isButton()) {return;}
         
         const customId = interaction.customId;
         
@@ -229,13 +229,13 @@ async function handleCloseTicket(interaction) {
             }
             
             const messages = await interaction.channel.messages.fetch(options);
-            if (messages.size === 0) break;
+            if (messages.size === 0) {break;}
             
             allMessages = allMessages.concat(Array.from(messages.values()));
             lastMessageId = messages.last().id;
             
             // Safety limit - max 1000 messages
-            if (allMessages.length >= 1000) break;
+            if (allMessages.length >= 1000) {break;}
         }
     } catch (error) {
         console.error('[ERROR] Failed to fetch messages for transcript:', error);
@@ -329,7 +329,7 @@ async function handleCloseTicket(interaction) {
     }
     
     // Wait a moment then delete the channel
-    setTimeout(async () => {
+    setTimeout(async() => {
         try {
             const channel = await client.channels.fetch(channelId);
             await channel.delete(`Ticket closed by ${interaction.user.tag}`);

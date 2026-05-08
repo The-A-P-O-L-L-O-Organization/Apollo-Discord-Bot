@@ -6,8 +6,8 @@ import { sendModLog } from '../utils/modLog.js';
 
 export async function handleReportSubmission(interaction, client) {
     try {
-        if (!interaction.isModalSubmit()) return false;
-        if (interaction.customId !== 'report_reason_modal') return false;
+        if (!interaction.isModalSubmit()) {return false;}
+        if (interaction.customId !== 'report_reason_modal') {return false;}
         
         const reason = interaction.fields.getTextInputValue('reason');
         const messageId = interaction.message?.reference?.messageId;
@@ -59,7 +59,7 @@ export async function handleReportSubmission(interaction, client) {
         
         // Save report to database
         updateGuildData('reports', interaction.guild.id, data => {
-            if (!data.reports) data.reports = [];
+            if (!data.reports) {data.reports = [];}
             data.reports.push(reportData);
             return data;
         });

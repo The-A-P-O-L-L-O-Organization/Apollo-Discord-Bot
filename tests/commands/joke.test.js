@@ -38,7 +38,7 @@ describe('Joke Command', () => {
     });
 
     describe('execute', () => {
-        it('should reply with an embed', async () => {
+        it('should reply with an embed', async() => {
             await jokeCommand.execute(mockInteraction);
 
             expect(mockInteraction.reply).toHaveBeenCalled();
@@ -47,7 +47,7 @@ describe('Joke Command', () => {
             expect(replyCall.embeds).toHaveLength(1);
         });
 
-        it('should include joke setup and punchline in embed description', async () => {
+        it('should include joke setup and punchline in embed description', async() => {
             await jokeCommand.execute(mockInteraction);
 
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -57,7 +57,7 @@ describe('Joke Command', () => {
             expect(embed.description).toContain('\n\n');
         });
 
-        it('should have correct title', async () => {
+        it('should have correct title', async() => {
             await jokeCommand.execute(mockInteraction);
 
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -66,7 +66,7 @@ describe('Joke Command', () => {
             expect(embed.title).toBe('😂 Random Joke');
         });
 
-        it('should include requester in fields', async () => {
+        it('should include requester in fields', async() => {
             await jokeCommand.execute(mockInteraction);
 
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -78,7 +78,7 @@ describe('Joke Command', () => {
             expect(embed.fields[0].value).toBe('TestUser#0001');
         });
 
-        it('should include timestamp', async () => {
+        it('should include timestamp', async() => {
             await jokeCommand.execute(mockInteraction);
 
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -87,7 +87,7 @@ describe('Joke Command', () => {
             expect(embed.timestamp).toBeTruthy();
         });
 
-        it('should have blue color', async () => {
+        it('should have blue color', async() => {
             await jokeCommand.execute(mockInteraction);
 
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -98,7 +98,7 @@ describe('Joke Command', () => {
     });
 
     describe('Error Handling', () => {
-        it('should handle errors gracefully', async () => {
+        it('should handle errors gracefully', async() => {
             // Mock Math.random to throw an error
             const originalRandom = Math.random;
             Math.random = vi.fn(() => {

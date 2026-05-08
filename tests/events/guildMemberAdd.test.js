@@ -69,7 +69,7 @@ describe('GuildMemberAdd Event', () => {
         
         // Override channels.cache.find to return welcome channel
         mockGuild.channels.cache.find = vi.fn().mockImplementation(fn => {
-            if (fn(welcomeChannel)) return welcomeChannel;
+            if (fn(welcomeChannel)) {return welcomeChannel;}
             return null;
         });
         mockGuild.channels.cache.first = vi.fn().mockReturnValue(welcomeChannel);
@@ -87,7 +87,7 @@ describe('GuildMemberAdd Event', () => {
     });
 
     describe('Success Cases', () => {
-        it('should log member join event for non-bot users', async () => {
+        it('should log member join event for non-bot users', async() => {
             await guildMemberAddHandler(mockMember);
             
             expect(logEvent).toHaveBeenCalledWith(
@@ -98,7 +98,7 @@ describe('GuildMemberAdd Event', () => {
             expect(createMemberJoinEmbed).toHaveBeenCalledWith(mockMember);
         });
 
-        it('should send welcome message to welcome channel', async () => {
+        it('should send welcome message to welcome channel', async() => {
             await guildMemberAddHandler(mockMember);
             
             expect(welcomeChannel.send).toHaveBeenCalled();
@@ -107,7 +107,7 @@ describe('GuildMemberAdd Event', () => {
             expect(sendCall.embeds).toHaveLength(1);
         });
 
-        it('should include correct embed content', async () => {
+        it('should include correct embed content', async() => {
             await guildMemberAddHandler(mockMember);
             
             const sendCall = welcomeChannel.send.mock.calls[0][0];
@@ -118,7 +118,7 @@ describe('GuildMemberAdd Event', () => {
             expect(embedData.color).toBe(0x00FF00);
         });
 
-        it('should include member details in embed fields', async () => {
+        it('should include member details in embed fields', async() => {
             await guildMemberAddHandler(mockMember);
             
             const sendCall = welcomeChannel.send.mock.calls[0][0];
@@ -130,7 +130,7 @@ describe('GuildMemberAdd Event', () => {
             expect(memberField.value).toBe('NewUser#0001');
         });
 
-        it('should use system channel when welcome channel not found', async () => {
+        it('should use system channel when welcome channel not found', async() => {
             mockGuild.channels.cache.find = vi.fn().mockReturnValue(null);
             const systemChannel = createMockChannel({
                 id: '999888777',
@@ -144,7 +144,7 @@ describe('GuildMemberAdd Event', () => {
             expect(systemChannel.send).toHaveBeenCalled();
         });
 
-        it('should use first available channel when no welcome or system channel', async () => {
+        it('should use first available channel when no welcome or system channel', async() => {
             mockGuild.channels.cache.find = vi.fn().mockReturnValue(null);
             mockGuild.systemChannel = null;
             const fallbackChannel = createMockChannel({
@@ -161,7 +161,7 @@ describe('GuildMemberAdd Event', () => {
     });
 
     describe('Bot User Handling', () => {
-        it('should not log join event for bot users', async () => {
+        it('should not log join event for bot users', async() => {
             mockMember.user.bot = true;
             
             await guildMemberAddHandler(mockMember);
@@ -170,7 +170,7 @@ describe('GuildMemberAdd Event', () => {
             expect(createMemberJoinEmbed).not.toHaveBeenCalled();
         });
 
-        it('should still send welcome message for bot users', async () => {
+        it('should still send welcome message for bot users', async() => {
             mockMember.user.bot = true;
             
             await guildMemberAddHandler(mockMember);
@@ -180,7 +180,7 @@ describe('GuildMemberAdd Event', () => {
     });
 
     describe('Error Handling', () => {
-        it('should handle no available channel gracefully', async () => {
+        it('should handle no available channel gracefully', async() => {
             mockGuild.channels.cache.find = vi.fn().mockReturnValue(null);
             mockGuild.systemChannel = null;
             mockGuild.channels.cache.first = vi.fn().mockReturnValue(null);
@@ -188,7 +188,7 @@ describe('GuildMemberAdd Event', () => {
             await expect(guildMemberAddHandler(mockMember)).resolves.not.toThrow();
         });
 
-        it('should handle send message error gracefully', async () => {
+        it('should handle send message error gracefully', async() => {
             welcomeChannel.send.mockRejectedValue(new Error('Permission denied'));
             
             await expect(guildMemberAddHandler(mockMember)).resolves.not.toThrow();
@@ -196,7 +196,7 @@ describe('GuildMemberAdd Event', () => {
     });
 
     describe('Welcome Message Formatting', () => {
-        it('should replace {user} placeholder in welcome message', async () => {
+        it('should replace {user} placeholder in welcome message', async() => {
             await guildMemberAddHandler(mockMember);
             
             const sendCall = welcomeChannel.send.mock.calls[0][0];
@@ -206,7 +206,7 @@ describe('GuildMemberAdd Event', () => {
             expect(embedData.description).toContain('<@123456789>');
         });
 
-        it('should replace {server} placeholder in welcome message', async () => {
+        it('should replace {server} placeholder in welcome message', async() => {
             await guildMemberAddHandler(mockMember);
             
             const sendCall = welcomeChannel.send.mock.calls[0][0];
@@ -216,7 +216,7 @@ describe('GuildMemberAdd Event', () => {
             expect(embedData.description).toContain('Test Server');
         });
 
-        it('should include member count in footer', async () => {
+        it('should include member count in footer', async() => {
             await guildMemberAddHandler(mockMember);
             
             const sendCall = welcomeChannel.send.mock.calls[0][0];
