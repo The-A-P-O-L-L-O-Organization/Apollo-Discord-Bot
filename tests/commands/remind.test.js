@@ -58,10 +58,10 @@ describe('Remind Command', () => {
     });
 
     describe('execute - Success Cases', () => {
-        it('should create reminder successfully', async () => {
+        it('should create reminder successfully', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'time') return '1h';
-                if (name === 'message') return 'Test reminder';
+                if (name === 'time') {return '1h';}
+                if (name === 'message') {return 'Test reminder';}
                 return null;
             });
             parseTimeString.mockReturnValue(60 * 60 * 1000); // 1 hour
@@ -75,10 +75,10 @@ describe('Remind Command', () => {
             expect(reminderArg.channelId).toBe('111222333');
         });
 
-        it('should reply with confirmation', async () => {
+        it('should reply with confirmation', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'time') return '1h';
-                if (name === 'message') return 'Test reminder';
+                if (name === 'time') {return '1h';}
+                if (name === 'message') {return 'Test reminder';}
                 return null;
             });
             parseTimeString.mockReturnValue(60 * 60 * 1000);
@@ -91,10 +91,10 @@ describe('Remind Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should include reminder ID in response', async () => {
+        it('should include reminder ID in response', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'time') return '1h';
-                if (name === 'message') return 'Test reminder';
+                if (name === 'time') {return '1h';}
+                if (name === 'message') {return 'Test reminder';}
                 return null;
             });
             parseTimeString.mockReturnValue(60 * 60 * 1000);
@@ -105,10 +105,10 @@ describe('Remind Command', () => {
             expect(replyCall.content).toContain('Reminder ID');
         });
 
-        it('should include timestamp in response', async () => {
+        it('should include timestamp in response', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'time') return '1h';
-                if (name === 'message') return 'Test reminder';
+                if (name === 'time') {return '1h';}
+                if (name === 'message') {return 'Test reminder';}
                 return null;
             });
             parseTimeString.mockReturnValue(60 * 60 * 1000);
@@ -121,10 +121,10 @@ describe('Remind Command', () => {
     });
 
     describe('execute - Error Cases', () => {
-        it('should reject invalid time format', async () => {
+        it('should reject invalid time format', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'time') return 'invalid';
-                if (name === 'message') return 'Test reminder';
+                if (name === 'time') {return 'invalid';}
+                if (name === 'message') {return 'Test reminder';}
                 return null;
             });
             parseTimeString.mockReturnValue(null);
@@ -137,10 +137,10 @@ describe('Remind Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject zero duration', async () => {
+        it('should reject zero duration', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'time') return '0m';
-                if (name === 'message') return 'Test reminder';
+                if (name === 'time') {return '0m';}
+                if (name === 'message') {return 'Test reminder';}
                 return null;
             });
             parseTimeString.mockReturnValue(0);
@@ -152,10 +152,10 @@ describe('Remind Command', () => {
             expect(replyCall.content).toContain('Invalid time format');
         });
 
-        it('should reject negative duration', async () => {
+        it('should reject negative duration', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'time') return '-1h';
-                if (name === 'message') return 'Test reminder';
+                if (name === 'time') {return '-1h';}
+                if (name === 'message') {return 'Test reminder';}
                 return null;
             });
             parseTimeString.mockReturnValue(-3600000);
@@ -167,10 +167,10 @@ describe('Remind Command', () => {
             expect(replyCall.content).toContain('Invalid time format');
         });
 
-        it('should reject duration exceeding max', async () => {
+        it('should reject duration exceeding max', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'time') return '60d';
-                if (name === 'message') return 'Test reminder';
+                if (name === 'time') {return '60d';}
+                if (name === 'message') {return 'Test reminder';}
                 return null;
             });
             parseTimeString.mockReturnValue(60 * 24 * 60 * 60 * 1000); // 60 days
@@ -185,10 +185,10 @@ describe('Remind Command', () => {
     });
 
     describe('execute - Time Parsing', () => {
-        it('should pass time string to parser', async () => {
+        it('should pass time string to parser', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'time') return '2h30m';
-                if (name === 'message') return 'Test';
+                if (name === 'time') {return '2h30m';}
+                if (name === 'message') {return 'Test';}
                 return null;
             });
             parseTimeString.mockReturnValue(9000000);
@@ -200,10 +200,10 @@ describe('Remind Command', () => {
     });
 
     describe('execute - Guild Context', () => {
-        it('should use guild ID when in server', async () => {
+        it('should use guild ID when in server', async() => {
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'time') return '1h';
-                if (name === 'message') return 'Test';
+                if (name === 'time') {return '1h';}
+                if (name === 'message') {return 'Test';}
                 return null;
             });
             parseTimeString.mockReturnValue(3600000);
@@ -214,11 +214,11 @@ describe('Remind Command', () => {
             expect(reminderArg.guildId).toBe('987654321');
         });
 
-        it('should use "dm" when not in server', async () => {
+        it('should use "dm" when not in server', async() => {
             mockInteraction.guild = null;
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'time') return '1h';
-                if (name === 'message') return 'Test';
+                if (name === 'time') {return '1h';}
+                if (name === 'message') {return 'Test';}
                 return null;
             });
             parseTimeString.mockReturnValue(3600000);

@@ -48,7 +48,7 @@ export default {
         }
 
         // Check if user is already assigned
-        if (!ticket.assignedTo) ticket.assignedTo = [];
+        if (!ticket.assignedTo) {ticket.assignedTo = [];}
         
         if (ticket.assignedTo.includes(assignUser.id)) {
             return interaction.reply({
@@ -61,7 +61,7 @@ export default {
         ticket.assignedTo.push(assignUser.id);
 
         // Update participants
-        if (!ticket.participants) ticket.participants = [ticket.userId];
+        if (!ticket.participants) {ticket.participants = [ticket.userId];}
         if (!ticket.participants.includes(assignUser.id)) {
             ticket.participants.push(assignUser.id);
         }
@@ -109,7 +109,7 @@ export default {
                 .setTimestamp();
 
             await assignUser.send({ embeds: [dmEmbed] });
-        } catch (error) {
+        } catch {
             // User has DMs disabled
         }
     }

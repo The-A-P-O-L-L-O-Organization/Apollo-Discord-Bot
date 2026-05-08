@@ -74,7 +74,7 @@ describe('MessageUpdate Event', () => {
     });
 
     describe('Message Filtering', () => {
-        it('should ignore DM messages', async () => {
+        it('should ignore DM messages', async() => {
             newMessage.guild = null;
             
             await messageUpdateEvent.execute(oldMessage, newMessage, mockClient);
@@ -82,7 +82,7 @@ describe('MessageUpdate Event', () => {
             expect(logEvent).not.toHaveBeenCalled();
         });
 
-        it('should ignore bot messages', async () => {
+        it('should ignore bot messages', async() => {
             newMessage.author.bot = true;
             
             await messageUpdateEvent.execute(oldMessage, newMessage, mockClient);
@@ -90,7 +90,7 @@ describe('MessageUpdate Event', () => {
             expect(logEvent).not.toHaveBeenCalled();
         });
 
-        it('should ignore when content has not changed', async () => {
+        it('should ignore when content has not changed', async() => {
             newMessage.content = 'Original message';
             
             await messageUpdateEvent.execute(oldMessage, newMessage, mockClient);
@@ -98,7 +98,7 @@ describe('MessageUpdate Event', () => {
             expect(logEvent).not.toHaveBeenCalled();
         });
 
-        it('should ignore when both old and new content are empty', async () => {
+        it('should ignore when both old and new content are empty', async() => {
             oldMessage.content = '';
             newMessage.content = '';
             
@@ -107,7 +107,7 @@ describe('MessageUpdate Event', () => {
             expect(logEvent).not.toHaveBeenCalled();
         });
 
-        it('should ignore when author is null', async () => {
+        it('should ignore when author is null', async() => {
             newMessage.author = null;
             
             await messageUpdateEvent.execute(oldMessage, newMessage, mockClient);
@@ -117,7 +117,7 @@ describe('MessageUpdate Event', () => {
     });
 
     describe('Partial Message Handling', () => {
-        it('should fetch partial old message', async () => {
+        it('should fetch partial old message', async() => {
             oldMessage.partial = true;
             oldMessage.fetch = vi.fn().mockResolvedValue({
                 ...oldMessage,
@@ -130,7 +130,7 @@ describe('MessageUpdate Event', () => {
             expect(oldMessage.fetch).toHaveBeenCalled();
         });
 
-        it('should fetch partial new message', async () => {
+        it('should fetch partial new message', async() => {
             newMessage.partial = true;
             newMessage.fetch = vi.fn().mockResolvedValue({
                 ...newMessage,
@@ -143,7 +143,7 @@ describe('MessageUpdate Event', () => {
             expect(newMessage.fetch).toHaveBeenCalled();
         });
 
-        it('should use placeholder when old message fetch fails', async () => {
+        it('should use placeholder when old message fetch fails', async() => {
             oldMessage.partial = true;
             oldMessage.fetch = vi.fn().mockRejectedValue(new Error('Cannot fetch'));
             
@@ -152,7 +152,7 @@ describe('MessageUpdate Event', () => {
             expect(createMessageEditEmbed).toHaveBeenCalled();
         });
 
-        it('should return early when new message fetch fails', async () => {
+        it('should return early when new message fetch fails', async() => {
             newMessage.partial = true;
             newMessage.fetch = vi.fn().mockRejectedValue(new Error('Cannot fetch'));
             
@@ -163,13 +163,13 @@ describe('MessageUpdate Event', () => {
     });
 
     describe('Logging', () => {
-        it('should create message edit embed', async () => {
+        it('should create message edit embed', async() => {
             await messageUpdateEvent.execute(oldMessage, newMessage, mockClient);
             
             expect(createMessageEditEmbed).toHaveBeenCalledWith(oldMessage, newMessage);
         });
 
-        it('should send log event', async () => {
+        it('should send log event', async() => {
             await messageUpdateEvent.execute(oldMessage, newMessage, mockClient);
             
             expect(logEvent).toHaveBeenCalledWith(
@@ -179,7 +179,7 @@ describe('MessageUpdate Event', () => {
             );
         });
 
-        it('should log when content changes from empty to non-empty', async () => {
+        it('should log when content changes from empty to non-empty', async() => {
             oldMessage.content = '';
             newMessage.content = 'Now has content';
             
@@ -188,7 +188,7 @@ describe('MessageUpdate Event', () => {
             expect(logEvent).toHaveBeenCalled();
         });
 
-        it('should log when content changes from non-empty to empty', async () => {
+        it('should log when content changes from non-empty to empty', async() => {
             oldMessage.content = 'Had content';
             newMessage.content = '';
             
@@ -199,7 +199,7 @@ describe('MessageUpdate Event', () => {
     });
 
     describe('Edge Cases', () => {
-        it('should handle embed-only updates (no content change)', async () => {
+        it('should handle embed-only updates (no content change)', async() => {
             // Both have same content, just embed changed
             oldMessage.content = 'Same content';
             newMessage.content = 'Same content';
@@ -209,7 +209,7 @@ describe('MessageUpdate Event', () => {
             expect(logEvent).not.toHaveBeenCalled();
         });
 
-        it('should handle messages with special characters', async () => {
+        it('should handle messages with special characters', async() => {
             oldMessage.content = 'Hello <@123456789> @everyone';
             newMessage.content = 'Edited <@123456789> @everyone !';
             
@@ -218,7 +218,7 @@ describe('MessageUpdate Event', () => {
             expect(logEvent).toHaveBeenCalled();
         });
 
-        it('should handle very long messages', async () => {
+        it('should handle very long messages', async() => {
             oldMessage.content = 'a'.repeat(2000);
             newMessage.content = 'b'.repeat(2000);
             

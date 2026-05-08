@@ -9,7 +9,7 @@ export default {
     
     async execute(reaction, user, client) {
         // Ignore bot reactions
-        if (user.bot) return;
+        if (user.bot) {return;}
         
         // Handle partial reactions
         if (reaction.partial) {
@@ -22,7 +22,7 @@ export default {
         }
         
         // Ignore DMs
-        if (!reaction.message.guild) return;
+        if (!reaction.message.guild) {return;}
         
         const guild = reaction.message.guild;
         const guildId = guild.id;
@@ -35,14 +35,14 @@ export default {
         
         // Check if this is a reaction role
         const reactionRoles = getGuildData('reactionroles', guildId);
-        if (!reactionRoles.roles || reactionRoles.roles.length === 0) return;
+        if (!reactionRoles.roles || reactionRoles.roles.length === 0) {return;}
         
         const reactionRole = reactionRoles.roles.find(
             rr => rr.messageId === messageId && 
                   (rr.emoji === emojiIdentifier || rr.emoji === reaction.emoji.name || rr.emoji === reaction.emoji.id)
         );
         
-        if (!reactionRole) return;
+        if (!reactionRole) {return;}
         
         // Fetch the member
         let member;

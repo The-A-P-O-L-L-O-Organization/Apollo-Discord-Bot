@@ -87,7 +87,7 @@ describe('Automod Command', () => {
             getGuildData.mockReturnValue({});
         });
 
-        it('should enable automod successfully', async () => {
+        it('should enable automod successfully', async() => {
             await automodCommand.execute(mockInteraction);
             
             expect(setGuildData).toHaveBeenCalledWith(
@@ -97,7 +97,7 @@ describe('Automod Command', () => {
             );
         });
 
-        it('should reply with success message', async () => {
+        it('should reply with success message', async() => {
             await automodCommand.execute(mockInteraction);
             
             expect(mockInteraction.reply).toHaveBeenCalled();
@@ -112,7 +112,7 @@ describe('Automod Command', () => {
             getGuildData.mockReturnValue({});
         });
 
-        it('should disable automod successfully', async () => {
+        it('should disable automod successfully', async() => {
             await automodCommand.execute(mockInteraction);
             
             expect(setGuildData).toHaveBeenCalledWith(
@@ -122,7 +122,7 @@ describe('Automod Command', () => {
             );
         });
 
-        it('should reply with success message', async () => {
+        it('should reply with success message', async() => {
             await automodCommand.execute(mockInteraction);
             
             expect(mockInteraction.reply).toHaveBeenCalled();
@@ -136,7 +136,7 @@ describe('Automod Command', () => {
             mockInteraction.options.getSubcommand.mockReturnValue('status');
         });
 
-        it('should display current configuration', async () => {
+        it('should display current configuration', async() => {
             getGuildData.mockReturnValue({
                 enabled: true,
                 bannedWords: ['badword1', 'badword2'],
@@ -150,7 +150,7 @@ describe('Automod Command', () => {
             expect(replyCall.embeds[0].title).toBe('Automod Configuration');
         });
 
-        it('should show enabled status when enabled', async () => {
+        it('should show enabled status when enabled', async() => {
             getGuildData.mockReturnValue({ enabled: true });
 
             await automodCommand.execute(mockInteraction);
@@ -159,7 +159,7 @@ describe('Automod Command', () => {
             expect(replyCall.embeds[0].description).toContain('Enabled');
         });
 
-        it('should show disabled status when disabled', async () => {
+        it('should show disabled status when disabled', async() => {
             getGuildData.mockReturnValue({ enabled: false });
 
             await automodCommand.execute(mockInteraction);
@@ -175,7 +175,7 @@ describe('Automod Command', () => {
             mockInteraction.options.getString.mockReturnValue('badword');
         });
 
-        it('should add a new banned word', async () => {
+        it('should add a new banned word', async() => {
             getGuildData.mockReturnValue({ bannedWords: [] });
 
             await automodCommand.execute(mockInteraction);
@@ -185,7 +185,7 @@ describe('Automod Command', () => {
             expect(setCall[2].bannedWords).toContain('badword');
         });
 
-        it('should convert word to lowercase', async () => {
+        it('should convert word to lowercase', async() => {
             mockInteraction.options.getString.mockReturnValue('BadWord');
             getGuildData.mockReturnValue({ bannedWords: [] });
 
@@ -195,7 +195,7 @@ describe('Automod Command', () => {
             expect(setCall[2].bannedWords).toContain('badword');
         });
 
-        it('should reject duplicate words', async () => {
+        it('should reject duplicate words', async() => {
             getGuildData.mockReturnValue({ bannedWords: ['badword'] });
 
             await automodCommand.execute(mockInteraction);
@@ -213,7 +213,7 @@ describe('Automod Command', () => {
             mockInteraction.options.getString.mockReturnValue('badword');
         });
 
-        it('should remove an existing banned word', async () => {
+        it('should remove an existing banned word', async() => {
             getGuildData.mockReturnValue({ bannedWords: ['badword', 'other'] });
 
             await automodCommand.execute(mockInteraction);
@@ -223,7 +223,7 @@ describe('Automod Command', () => {
             expect(setCall[2].bannedWords).not.toContain('badword');
         });
 
-        it('should reject removing non-existent word', async () => {
+        it('should reject removing non-existent word', async() => {
             getGuildData.mockReturnValue({ bannedWords: ['other'] });
 
             await automodCommand.execute(mockInteraction);
@@ -240,7 +240,7 @@ describe('Automod Command', () => {
             mockInteraction.options.getSubcommand.mockReturnValue('listwords');
         });
 
-        it('should list all banned words', async () => {
+        it('should list all banned words', async() => {
             getGuildData.mockReturnValue({ bannedWords: ['word1', 'word2'] });
 
             await automodCommand.execute(mockInteraction);
@@ -250,7 +250,7 @@ describe('Automod Command', () => {
             expect(replyCall.embeds[0].description).toContain('2');
         });
 
-        it('should handle empty banned words list', async () => {
+        it('should handle empty banned words list', async() => {
             getGuildData.mockReturnValue({ bannedWords: [] });
 
             await automodCommand.execute(mockInteraction);
@@ -265,7 +265,7 @@ describe('Automod Command', () => {
             mockInteraction.options.getSubcommand.mockReturnValue('set');
         });
 
-        it('should set boolean settings', async () => {
+        it('should set boolean settings', async() => {
             mockInteraction.options.getString
                 .mockReturnValueOnce('filterInvites')
                 .mockReturnValueOnce('true');
@@ -280,7 +280,7 @@ describe('Automod Command', () => {
             );
         });
 
-        it('should set numeric settings', async () => {
+        it('should set numeric settings', async() => {
             mockInteraction.options.getString
                 .mockReturnValueOnce('maxMentions')
                 .mockReturnValueOnce('10');
@@ -295,7 +295,7 @@ describe('Automod Command', () => {
             );
         });
 
-        it('should reject invalid number values', async () => {
+        it('should reject invalid number values', async() => {
             mockInteraction.options.getString
                 .mockReturnValueOnce('maxMentions')
                 .mockReturnValueOnce('invalid');
@@ -308,7 +308,7 @@ describe('Automod Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject invalid maxCapsPercent range', async () => {
+        it('should reject invalid maxCapsPercent range', async() => {
             mockInteraction.options.getString
                 .mockReturnValueOnce('maxCapsPercent')
                 .mockReturnValueOnce('150');
@@ -330,7 +330,7 @@ describe('Automod Command', () => {
             mockInteraction.options.getChannel.mockReturnValue(mockChannel);
         });
 
-        it('should add channel exemption', async () => {
+        it('should add channel exemption', async() => {
             mockInteraction.options.getString.mockReturnValue('add');
             getGuildData.mockReturnValue({ exemptChannels: [] });
 
@@ -341,7 +341,7 @@ describe('Automod Command', () => {
             expect(setCall[2].exemptChannels).toContain(mockChannel.id);
         });
 
-        it('should remove channel exemption', async () => {
+        it('should remove channel exemption', async() => {
             mockInteraction.options.getString.mockReturnValue('remove');
             getGuildData.mockReturnValue({ exemptChannels: ['111222333'] });
 
@@ -352,7 +352,7 @@ describe('Automod Command', () => {
             expect(setCall[2].exemptChannels).not.toContain(mockChannel.id);
         });
 
-        it('should reject adding already exempt channel', async () => {
+        it('should reject adding already exempt channel', async() => {
             mockInteraction.options.getString.mockReturnValue('add');
             getGuildData.mockReturnValue({ exemptChannels: ['111222333'] });
 
@@ -373,7 +373,7 @@ describe('Automod Command', () => {
             mockInteraction.options.getRole.mockReturnValue(mockRole);
         });
 
-        it('should add role exemption', async () => {
+        it('should add role exemption', async() => {
             mockInteraction.options.getString.mockReturnValue('add');
             getGuildData.mockReturnValue({ exemptRoles: [] });
 
@@ -384,7 +384,7 @@ describe('Automod Command', () => {
             expect(setCall[2].exemptRoles).toContain(mockRole.id);
         });
 
-        it('should remove role exemption', async () => {
+        it('should remove role exemption', async() => {
             mockInteraction.options.getString.mockReturnValue('remove');
             getGuildData.mockReturnValue({ exemptRoles: ['444555666'] });
 
@@ -397,7 +397,7 @@ describe('Automod Command', () => {
     });
 
     describe('execute - Error Handling', () => {
-        it('should handle errors gracefully', async () => {
+        it('should handle errors gracefully', async() => {
             mockInteraction.options.getSubcommand.mockImplementation(() => {
                 throw new Error('Test error');
             });

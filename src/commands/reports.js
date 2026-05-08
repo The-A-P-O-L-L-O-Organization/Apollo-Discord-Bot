@@ -196,7 +196,7 @@ export default {
                 
                 // Update report status
                 updateGuildData('reports', interaction.guild.id, (data) => {
-                    if (!data.entries) data.entries = [];
+                    if (!data.entries) {data.entries = [];}
                     if (data.entries[reportIndex]) {
                         data.entries[reportIndex].status = 'dismissed';
                         data.entries[reportIndex].resolvedBy = interaction.user.id;

@@ -55,7 +55,7 @@ describe('GuildMemberRemove Event', () => {
     });
 
     describe('Success Cases', () => {
-        it('should log member leave event for non-bot users', async () => {
+        it('should log member leave event for non-bot users', async() => {
             await guildMemberRemoveEvent.execute(mockMember, mockClient);
             
             expect(createMemberLeaveEmbed).toHaveBeenCalledWith(mockMember);
@@ -66,7 +66,7 @@ describe('GuildMemberRemove Event', () => {
             );
         });
 
-        it('should pass the correct guild to logEvent', async () => {
+        it('should pass the correct guild to logEvent', async() => {
             await guildMemberRemoveEvent.execute(mockMember, mockClient);
             
             expect(logEvent).toHaveBeenCalledWith(
@@ -78,7 +78,7 @@ describe('GuildMemberRemove Event', () => {
     });
 
     describe('Bot User Handling', () => {
-        it('should not log leave event for bot users', async () => {
+        it('should not log leave event for bot users', async() => {
             mockMember.user.bot = true;
             
             await guildMemberRemoveEvent.execute(mockMember, mockClient);
@@ -89,7 +89,7 @@ describe('GuildMemberRemove Event', () => {
     });
 
     describe('Edge Cases', () => {
-        it('should handle member with minimal data', async () => {
+        it('should handle member with minimal data', async() => {
             const minimalMember = createMockMember({
                 id: '111222333',
                 user: createMockUser({ bot: false }),
@@ -101,7 +101,7 @@ describe('GuildMemberRemove Event', () => {
             ).resolves.not.toThrow();
         });
 
-        it('should handle logging errors gracefully', async () => {
+        it('should handle logging errors gracefully', async() => {
             logEvent.mockRejectedValue(new Error('Logging failed'));
             
             await expect(

@@ -68,7 +68,7 @@ export async function sendModLog(guild, options) {
             )
             .setTimestamp()
             .setFooter({
-                text: `Case logged at`,
+                text: 'Case logged at',
                 iconURL: guild.iconURL({ dynamic: true })
             });
 

@@ -108,13 +108,13 @@ describe('Unmute Command', () => {
     });
 
     describe('execute - Success Cases', () => {
-        it('should unmute user with timeout successfully', async () => {
+        it('should unmute user with timeout successfully', async() => {
             await unmuteCommand.execute(mockInteraction);
             
             expect(targetMember.timeout).toHaveBeenCalledWith(null, 'Timeout served');
         });
 
-        it('should reply with success embed', async () => {
+        it('should reply with success embed', async() => {
             await unmuteCommand.execute(mockInteraction);
             
             expect(mockInteraction.reply).toHaveBeenCalled();
@@ -122,7 +122,7 @@ describe('Unmute Command', () => {
             expect(replyCall.embeds[0].title).toBe('[SUCCESS] User Unmuted');
         });
 
-        it('should include correct unmute details in response', async () => {
+        it('should include correct unmute details in response', async() => {
             await unmuteCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -133,7 +133,7 @@ describe('Unmute Command', () => {
             expect(embed.fields.some(f => f.name.includes('Moderator'))).toBe(true);
         });
 
-        it('should send mod log', async () => {
+        it('should send mod log', async() => {
             await unmuteCommand.execute(mockInteraction);
             
             expect(sendModLog).toHaveBeenCalledWith(
@@ -147,7 +147,7 @@ describe('Unmute Command', () => {
             );
         });
 
-        it('should use default reason when none provided', async () => {
+        it('should use default reason when none provided', async() => {
             mockInteraction.options.getString.mockReturnValue(null);
             
             await unmuteCommand.execute(mockInteraction);
@@ -160,7 +160,7 @@ describe('Unmute Command', () => {
             );
         });
 
-        it('should remove mute role if exists', async () => {
+        it('should remove mute role if exists', async() => {
             mockGuild.roles.cache.find.mockReturnValue(muteRole);
             targetMember.roles.cache.has.mockReturnValue(true);
             targetMember.isCommunicationDisabled.mockReturnValue(false);
@@ -171,7 +171,7 @@ describe('Unmute Command', () => {
             expect(targetMember.roles.remove).toHaveBeenCalledWith(muteRole, 'Timeout served');
         });
 
-        it('should remove both timeout and mute role', async () => {
+        it('should remove both timeout and mute role', async() => {
             mockGuild.roles.cache.find.mockReturnValue(muteRole);
             targetMember.roles.cache.has.mockReturnValue(true);
             
@@ -183,7 +183,7 @@ describe('Unmute Command', () => {
     });
 
     describe('execute - Error Cases', () => {
-        it('should reject when no user specified', async () => {
+        it('should reject when no user specified', async() => {
             mockInteraction.options.getUser.mockReturnValue(null);
             
             await unmuteCommand.execute(mockInteraction);
@@ -195,7 +195,7 @@ describe('Unmute Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject when member not found', async () => {
+        it('should reject when member not found', async() => {
             fetchMember.mockResolvedValue(null);
             
             await unmuteCommand.execute(mockInteraction);
@@ -205,7 +205,7 @@ describe('Unmute Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject when member is not moderatable', async () => {
+        it('should reject when member is not moderatable', async() => {
             targetMember.moderatable = false;
             fetchMember.mockResolvedValue(targetMember);
             
@@ -216,7 +216,7 @@ describe('Unmute Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject self-unmute', async () => {
+        it('should reject self-unmute', async() => {
             const sameUser = createMockUser({ id: '999888777' });
             mockInteraction.options.getUser.mockReturnValue(sameUser);
             fetchMember.mockResolvedValue(createMockMember({ 
@@ -232,7 +232,7 @@ describe('Unmute Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject when user is not muted', async () => {
+        it('should reject when user is not muted', async() => {
             targetMember.isCommunicationDisabled.mockReturnValue(false);
             targetMember.roles.cache.some.mockReturnValue(false);
             fetchMember.mockResolvedValue(targetMember);
@@ -244,7 +244,7 @@ describe('Unmute Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should handle API error gracefully', async () => {
+        it('should handle API error gracefully', async() => {
             targetMember.timeout.mockRejectedValue(new Error('API Error'));
             targetMember.isCommunicationDisabled.mockReturnValue(true);
             
@@ -257,7 +257,7 @@ describe('Unmute Command', () => {
     });
 
     describe('execute - Mute Detection', () => {
-        it('should detect user muted via timeout', async () => {
+        it('should detect user muted via timeout', async() => {
             targetMember.isCommunicationDisabled.mockReturnValue(true);
             targetMember.roles.cache.some.mockReturnValue(false);
             
@@ -267,7 +267,7 @@ describe('Unmute Command', () => {
             expect(replyCall.embeds[0].title).toBe('[SUCCESS] User Unmuted');
         });
 
-        it('should detect user muted via role', async () => {
+        it('should detect user muted via role', async() => {
             targetMember.isCommunicationDisabled.mockReturnValue(false);
             targetMember.roles.cache.some.mockImplementation((fn) => {
                 return fn({ name: 'Muted' });

@@ -150,7 +150,7 @@ export default {
 
         if (topStaff.length > 0) {
             const staffList = await Promise.all(
-                topStaff.map(async ([staffId, data]) => {
+                topStaff.map(async([staffId, data]) => {
                     const user = await interaction.client.users.fetch(staffId).catch(() => null);
                     const avgTime = data.responseTimes.length > 0
                         ? data.responseTimes.reduce((a, b) => a + b, 0) / data.responseTimes.length

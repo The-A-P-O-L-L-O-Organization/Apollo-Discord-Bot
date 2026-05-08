@@ -8,7 +8,7 @@ export default {
     once: false,
     async execute(messages, channel, client) {
         try {
-            if (!channel.guild) return; // Ignore DM channels
+            if (!channel.guild) {return;} // Ignore DM channels
             
             const guild = channel.guild;
             const messageCount = messages.size;

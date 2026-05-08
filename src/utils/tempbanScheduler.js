@@ -38,7 +38,7 @@ export function stopTempbanScheduler() {
  * Checks for expired tempbans and unbans users
  */
 async function checkTempbans() {
-    if (!client) return;
+    if (!client) {return;}
     
     try {
         const data = getData('tempbans');
@@ -48,7 +48,7 @@ async function checkTempbans() {
         // Find expired tempbans
         const expiredBans = tempbans.filter(t => t.unbanAt <= now);
         
-        if (expiredBans.length === 0) return;
+        if (expiredBans.length === 0) {return;}
         
         // Process each expired tempban
         for (const tempban of expiredBans) {
@@ -167,13 +167,13 @@ export function addTempban(tempbanData) {
  */
 export function removeTempban(guildId, userId) {
     const data = getData('tempbans');
-    if (!data.tempbans) return false;
+    if (!data.tempbans) {return false;}
     
     const index = data.tempbans.findIndex(
         t => t.guildId === guildId && t.userId === userId
     );
     
-    if (index === -1) return false;
+    if (index === -1) {return false;}
     
     data.tempbans.splice(index, 1);
     setData('tempbans', data);

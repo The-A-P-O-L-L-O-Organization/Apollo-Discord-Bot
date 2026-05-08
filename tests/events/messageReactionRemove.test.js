@@ -70,7 +70,7 @@ describe('MessageReactionRemove Event', () => {
     });
 
     describe('Filtering', () => {
-        it('should ignore bot reactions', async () => {
+        it('should ignore bot reactions', async() => {
             mockUser.bot = true;
             
             await messageReactionRemoveEvent.execute(mockReaction, mockUser, mockClient);
@@ -78,7 +78,7 @@ describe('MessageReactionRemove Event', () => {
             expect(getGuildData).not.toHaveBeenCalled();
         });
 
-        it('should ignore DM reactions', async () => {
+        it('should ignore DM reactions', async() => {
             mockReaction.message.guild = null;
             
             await messageReactionRemoveEvent.execute(mockReaction, mockUser, mockClient);
@@ -86,7 +86,7 @@ describe('MessageReactionRemove Event', () => {
             expect(getGuildData).not.toHaveBeenCalled();
         });
 
-        it('should handle partial reactions', async () => {
+        it('should handle partial reactions', async() => {
             mockReaction.partial = true;
             mockReaction.fetch = vi.fn().mockResolvedValue(mockReaction);
             
@@ -95,7 +95,7 @@ describe('MessageReactionRemove Event', () => {
             expect(mockReaction.fetch).toHaveBeenCalled();
         });
 
-        it('should return early if partial reaction fetch fails', async () => {
+        it('should return early if partial reaction fetch fails', async() => {
             mockReaction.partial = true;
             mockReaction.fetch = vi.fn().mockRejectedValue(new Error('Fetch failed'));
             
@@ -116,7 +116,7 @@ describe('MessageReactionRemove Event', () => {
             ]
         };
 
-        it('should remove role when reaction role is configured', async () => {
+        it('should remove role when reaction role is configured', async() => {
             getGuildData.mockReturnValue(reactionRoleConfig);
             
             await messageReactionRemoveEvent.execute(mockReaction, mockUser, mockClient);
@@ -124,7 +124,7 @@ describe('MessageReactionRemove Event', () => {
             expect(mockMember.roles.remove).toHaveBeenCalledWith('role-123', 'Reaction role removed');
         });
 
-        it('should not remove role when message is not a reaction role message', async () => {
+        it('should not remove role when message is not a reaction role message', async() => {
             getGuildData.mockReturnValue({
                 roles: [
                     {
@@ -140,7 +140,7 @@ describe('MessageReactionRemove Event', () => {
             expect(mockMember.roles.remove).not.toHaveBeenCalled();
         });
 
-        it('should not remove role when emoji does not match', async () => {
+        it('should not remove role when emoji does not match', async() => {
             getGuildData.mockReturnValue({
                 roles: [
                     {
@@ -156,7 +156,7 @@ describe('MessageReactionRemove Event', () => {
             expect(mockMember.roles.remove).not.toHaveBeenCalled();
         });
 
-        it('should handle custom emoji identifiers', async () => {
+        it('should handle custom emoji identifiers', async() => {
             mockReaction.emoji = { name: 'custom', id: '999888777' };
             getGuildData.mockReturnValue({
                 roles: [
@@ -173,7 +173,7 @@ describe('MessageReactionRemove Event', () => {
             expect(mockMember.roles.remove).toHaveBeenCalledWith('role-123', 'Reaction role removed');
         });
 
-        it('should not remove role if member does not have it', async () => {
+        it('should not remove role if member does not have it', async() => {
             getGuildData.mockReturnValue(reactionRoleConfig);
             mockMember.roles.cache.has = vi.fn().mockReturnValue(false);
             
@@ -182,7 +182,7 @@ describe('MessageReactionRemove Event', () => {
             expect(mockMember.roles.remove).not.toHaveBeenCalled();
         });
 
-        it('should do nothing when no reaction roles are configured', async () => {
+        it('should do nothing when no reaction roles are configured', async() => {
             getGuildData.mockReturnValue({ roles: [] });
             
             await messageReactionRemoveEvent.execute(mockReaction, mockUser, mockClient);
@@ -190,7 +190,7 @@ describe('MessageReactionRemove Event', () => {
             expect(mockMember.roles.remove).not.toHaveBeenCalled();
         });
 
-        it('should do nothing when roles config is undefined', async () => {
+        it('should do nothing when roles config is undefined', async() => {
             getGuildData.mockReturnValue({});
             
             await messageReactionRemoveEvent.execute(mockReaction, mockUser, mockClient);
@@ -210,7 +210,7 @@ describe('MessageReactionRemove Event', () => {
             ]
         };
 
-        it('should handle member fetch errors gracefully', async () => {
+        it('should handle member fetch errors gracefully', async() => {
             getGuildData.mockReturnValue(reactionRoleConfig);
             mockGuild.members.fetch = vi.fn().mockRejectedValue(new Error('Member not found'));
             
@@ -219,7 +219,7 @@ describe('MessageReactionRemove Event', () => {
             ).resolves.not.toThrow();
         });
 
-        it('should handle role remove errors gracefully', async () => {
+        it('should handle role remove errors gracefully', async() => {
             getGuildData.mockReturnValue(reactionRoleConfig);
             mockMember.roles.remove = vi.fn().mockRejectedValue(new Error('Missing permissions'));
             
@@ -230,7 +230,7 @@ describe('MessageReactionRemove Event', () => {
     });
 
     describe('Emoji Matching', () => {
-        it('should match by emoji name', async () => {
+        it('should match by emoji name', async() => {
             mockReaction.emoji = { name: 'thumbsup', id: null };
             getGuildData.mockReturnValue({
                 roles: [
@@ -247,7 +247,7 @@ describe('MessageReactionRemove Event', () => {
             expect(mockMember.roles.remove).toHaveBeenCalled();
         });
 
-        it('should match by emoji ID', async () => {
+        it('should match by emoji ID', async() => {
             mockReaction.emoji = { name: 'custom', id: '999888777' };
             getGuildData.mockReturnValue({
                 roles: [

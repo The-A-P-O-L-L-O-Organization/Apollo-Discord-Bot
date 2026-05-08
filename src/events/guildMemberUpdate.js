@@ -9,7 +9,7 @@ export default {
     
     async execute(oldMember, newMember, client) {
         // Ignore bots
-        if (newMember.user.bot) return;
+        if (newMember.user.bot) {return;}
         
         // Create the role change embed (returns null if no role changes)
         const embed = createRoleChangeEmbed(oldMember, newMember);

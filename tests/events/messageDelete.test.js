@@ -55,7 +55,7 @@ describe('MessageDelete Event', () => {
     });
 
     describe('Success Cases', () => {
-        it('should log deleted message for non-bot users', async () => {
+        it('should log deleted message for non-bot users', async() => {
             await messageDeleteEvent.execute(mockMessage, mockClient);
             
             expect(createMessageDeleteEmbed).toHaveBeenCalledWith(mockMessage);
@@ -66,7 +66,7 @@ describe('MessageDelete Event', () => {
             );
         });
 
-        it('should pass correct guild to logEvent', async () => {
+        it('should pass correct guild to logEvent', async() => {
             await messageDeleteEvent.execute(mockMessage, mockClient);
             
             expect(logEvent).toHaveBeenCalledWith(
@@ -78,7 +78,7 @@ describe('MessageDelete Event', () => {
     });
 
     describe('Message Filtering', () => {
-        it('should ignore DM messages', async () => {
+        it('should ignore DM messages', async() => {
             mockMessage.guild = null;
             
             await messageDeleteEvent.execute(mockMessage, mockClient);
@@ -87,7 +87,7 @@ describe('MessageDelete Event', () => {
             expect(createMessageDeleteEmbed).not.toHaveBeenCalled();
         });
 
-        it('should ignore bot messages', async () => {
+        it('should ignore bot messages', async() => {
             mockMessage.author.bot = true;
             
             await messageDeleteEvent.execute(mockMessage, mockClient);
@@ -96,7 +96,7 @@ describe('MessageDelete Event', () => {
             expect(createMessageDeleteEmbed).not.toHaveBeenCalled();
         });
 
-        it('should ignore messages with no author', async () => {
+        it('should ignore messages with no author', async() => {
             mockMessage.author = null;
             
             await messageDeleteEvent.execute(mockMessage, mockClient);
@@ -106,7 +106,7 @@ describe('MessageDelete Event', () => {
     });
 
     describe('Partial Message Handling', () => {
-        it('should fetch partial messages', async () => {
+        it('should fetch partial messages', async() => {
             mockMessage.partial = true;
             mockMessage.fetch = vi.fn().mockResolvedValue(mockMessage);
             
@@ -115,7 +115,7 @@ describe('MessageDelete Event', () => {
             expect(mockMessage.fetch).toHaveBeenCalled();
         });
 
-        it('should skip logging if partial message fetch fails', async () => {
+        it('should skip logging if partial message fetch fails', async() => {
             mockMessage.partial = true;
             mockMessage.fetch = vi.fn().mockRejectedValue(new Error('Cannot fetch'));
             
@@ -126,7 +126,7 @@ describe('MessageDelete Event', () => {
     });
 
     describe('Edge Cases', () => {
-        it('should handle message with empty content', async () => {
+        it('should handle message with empty content', async() => {
             mockMessage.content = '';
             
             await messageDeleteEvent.execute(mockMessage, mockClient);
@@ -135,7 +135,7 @@ describe('MessageDelete Event', () => {
             expect(logEvent).toHaveBeenCalled();
         });
 
-        it('should handle message with attachments', async () => {
+        it('should handle message with attachments', async() => {
             const attachments = new Map();
             attachments.set('123', { url: 'https://example.com/image.png' });
             mockMessage.attachments = attachments;
@@ -145,7 +145,7 @@ describe('MessageDelete Event', () => {
             expect(createMessageDeleteEmbed).toHaveBeenCalledWith(mockMessage);
         });
 
-        it('should handle logging errors gracefully', async () => {
+        it('should handle logging errors gracefully', async() => {
             logEvent.mockRejectedValue(new Error('Logging failed'));
             
             await expect(

@@ -61,9 +61,9 @@ export default {
                     messages: data.data.messages || 0
                 }))
                 .sort((a, b) => {
-                    if (type === 'level') return b.level - a.level;
-                    if (type === 'xp') return b.xp - a.xp;
-                    if (type === 'messages') return b.messages - a.messages;
+                    if (type === 'level') {return b.level - a.level;}
+                    if (type === 'xp') {return b.xp - a.xp;}
+                    if (type === 'messages') {return b.messages - a.messages;}
                     return 0;
                 })
                 .slice(0, limit);
@@ -85,8 +85,8 @@ export default {
                 const user = userMap.get(entry.userId);
                 const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
                 const value = type === 'level' ? `Level ${entry.level}` :
-                             type === 'xp' ? `${formatNumber(entry.xp)} XP` :
-                             `${formatNumber(entry.messages)} messages`;
+                    type === 'xp' ? `${formatNumber(entry.xp)} XP` :
+                        `${formatNumber(entry.messages)} messages`;
                 
                 return {
                     name: `${medal} ${user ? user.tag : 'Unknown User'}`,

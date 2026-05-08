@@ -187,7 +187,7 @@ function isValidUrl(string) {
     try {
         new URL(string);
         return true;
-    } catch (error) {
+    } catch {
         return false;
     }
 }

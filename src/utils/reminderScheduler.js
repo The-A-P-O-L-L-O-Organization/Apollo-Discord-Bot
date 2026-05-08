@@ -7,7 +7,7 @@ import { config } from '../config/config.js';
 
 let client = null;
 let schedulerInterval = null;
-let performanceStats = {
+const performanceStats = {
     checksPerformed: 0,
     remindersSent: 0,
     totalCheckTime: 0,
@@ -46,7 +46,7 @@ export function stopReminderScheduler() {
  * Checks for due reminders and sends them
  */
 async function checkReminders() {
-    if (!client) return;
+    if (!client) {return;}
     
     const startTime = Date.now();
     
@@ -175,13 +175,13 @@ export function getUserReminders(userId) {
  */
 export function cancelReminder(reminderId, userId) {
     const data = getData('reminders');
-    if (!data.reminders) return false;
+    if (!data.reminders) {return false;}
     
     const index = data.reminders.findIndex(
         r => r.id === reminderId && r.userId === userId
     );
     
-    if (index === -1) return false;
+    if (index === -1) {return false;}
     
     data.reminders.splice(index, 1);
     setData('reminders', data);
@@ -212,7 +212,7 @@ export function getReminderSchedulerStats() {
  */
 export function parseTimeString(timeStr) {
     const match = timeStr.match(/^(\d+)([smhdw])$/i);
-    if (!match) return null;
+    if (!match) {return null;}
     
     const value = parseInt(match[1]);
     const unit = match[2].toLowerCase();

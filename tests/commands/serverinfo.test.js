@@ -3,10 +3,9 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import serverInfoCommand from '../../src/commands/serverinfo.js';
-import { 
-    createMockInteraction, 
+import {
+    createMockInteraction,
     createMockUser,
-    createMockGuild,
     createMockMember
 } from '../mocks/discord.js';
 import { ChannelType } from 'discord.js';
@@ -99,7 +98,7 @@ describe('ServerInfo Command', () => {
     });
 
     describe('execute - Success Cases', () => {
-        it('should display server information', async () => {
+        it('should display server information', async() => {
             await serverInfoCommand.execute(mockInteraction);
             
             expect(mockInteraction.reply).toHaveBeenCalled();
@@ -108,19 +107,19 @@ describe('ServerInfo Command', () => {
             expect(replyCall.embeds[0].title).toBe('Test Server');
         });
 
-        it('should fetch latest guild data', async () => {
+        it('should fetch latest guild data', async() => {
             await serverInfoCommand.execute(mockInteraction);
             
             expect(mockGuild.fetch).toHaveBeenCalled();
         });
 
-        it('should fetch owner information', async () => {
+        it('should fetch owner information', async() => {
             await serverInfoCommand.execute(mockInteraction);
             
             expect(mockGuild.fetchOwner).toHaveBeenCalled();
         });
 
-        it('should show member counts', async () => {
+        it('should show member counts', async() => {
             await serverInfoCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -132,7 +131,7 @@ describe('ServerInfo Command', () => {
             expect(membersField.value).toContain('Bots');
         });
 
-        it('should show channel counts', async () => {
+        it('should show channel counts', async() => {
             await serverInfoCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -144,7 +143,7 @@ describe('ServerInfo Command', () => {
             expect(channelsField.value).toContain('Voice');
         });
 
-        it('should show boost status', async () => {
+        it('should show boost status', async() => {
             await serverInfoCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -156,7 +155,7 @@ describe('ServerInfo Command', () => {
             expect(boostField.value).toContain('2');
         });
 
-        it('should show security settings', async () => {
+        it('should show security settings', async() => {
             await serverInfoCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -168,7 +167,7 @@ describe('ServerInfo Command', () => {
             expect(securityField.value).toContain('Content Filter');
         });
 
-        it('should show owner information', async () => {
+        it('should show owner information', async() => {
             await serverInfoCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -178,7 +177,7 @@ describe('ServerInfo Command', () => {
             expect(generalField.value).toContain('Owner#0001');
         });
 
-        it('should show creation date', async () => {
+        it('should show creation date', async() => {
             await serverInfoCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -188,7 +187,7 @@ describe('ServerInfo Command', () => {
             expect(generalField.value).toContain('<t:');
         });
 
-        it('should show role and emoji counts', async () => {
+        it('should show role and emoji counts', async() => {
             await serverInfoCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -202,7 +201,7 @@ describe('ServerInfo Command', () => {
     });
 
     describe('execute - Optional Features', () => {
-        it('should show description if available', async () => {
+        it('should show description if available', async() => {
             await serverInfoCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -210,7 +209,7 @@ describe('ServerInfo Command', () => {
             expect(embed.description).toBe('A test server');
         });
 
-        it('should not show description if not set', async () => {
+        it('should not show description if not set', async() => {
             mockGuild.description = null;
 
             await serverInfoCommand.execute(mockInteraction);
@@ -220,7 +219,7 @@ describe('ServerInfo Command', () => {
             expect(embed.description).toBeFalsy();
         });
 
-        it('should show banner if available', async () => {
+        it('should show banner if available', async() => {
             mockGuild.bannerURL.mockReturnValue('https://example.com/banner.png');
 
             await serverInfoCommand.execute(mockInteraction);
@@ -230,7 +229,7 @@ describe('ServerInfo Command', () => {
             expect(embed.image).toBeDefined();
         });
 
-        it('should not show banner if not set', async () => {
+        it('should not show banner if not set', async() => {
             mockGuild.bannerURL.mockReturnValue(null);
 
             await serverInfoCommand.execute(mockInteraction);
@@ -242,7 +241,7 @@ describe('ServerInfo Command', () => {
     });
 
     describe('execute - Verification Levels', () => {
-        it('should display correct verification level names', async () => {
+        it('should display correct verification level names', async() => {
             mockGuild.verificationLevel = 4;
 
             await serverInfoCommand.execute(mockInteraction);
@@ -256,7 +255,7 @@ describe('ServerInfo Command', () => {
     });
 
     describe('execute - Content Filter Levels', () => {
-        it('should display correct content filter names', async () => {
+        it('should display correct content filter names', async() => {
             mockGuild.explicitContentFilter = 2;
 
             await serverInfoCommand.execute(mockInteraction);

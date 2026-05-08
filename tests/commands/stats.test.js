@@ -70,7 +70,7 @@ describe('Stats Command', () => {
     });
 
     describe('execute - Success Cases', () => {
-        it('should display stats embed', async () => {
+        it('should display stats embed', async() => {
             await statsCommand.execute(mockInteraction);
             
             expect(mockInteraction.reply).toHaveBeenCalled();
@@ -79,7 +79,7 @@ describe('Stats Command', () => {
             expect(replyCall.embeds[0].title).toBe('Bot Statistics');
         });
 
-        it('should show server count', async () => {
+        it('should show server count', async() => {
             await statsCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -89,7 +89,7 @@ describe('Stats Command', () => {
             expect(generalField.value).toContain('2'); // 2 servers
         });
 
-        it('should show total user count', async () => {
+        it('should show total user count', async() => {
             await statsCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -99,7 +99,7 @@ describe('Stats Command', () => {
             expect(generalField.value).toContain('150'); // 100 + 50 users
         });
 
-        it('should show total channel count', async () => {
+        it('should show total channel count', async() => {
             await statsCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -109,7 +109,7 @@ describe('Stats Command', () => {
             expect(generalField.value).toContain('3'); // 3 channels
         });
 
-        it('should show command count', async () => {
+        it('should show command count', async() => {
             await statsCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -119,7 +119,7 @@ describe('Stats Command', () => {
             expect(generalField.value).toContain('3'); // 3 commands
         });
 
-        it('should show uptime', async () => {
+        it('should show uptime', async() => {
             await statsCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -130,7 +130,7 @@ describe('Stats Command', () => {
             expect(systemField.value).toContain('1m');
         });
 
-        it('should show memory usage', async () => {
+        it('should show memory usage', async() => {
             await statsCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -140,7 +140,7 @@ describe('Stats Command', () => {
             expect(systemField.value).toContain('MB');
         });
 
-        it('should show Node.js version', async () => {
+        it('should show Node.js version', async() => {
             await statsCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -150,7 +150,7 @@ describe('Stats Command', () => {
             expect(systemField.value).toContain('Node.js');
         });
 
-        it('should show Discord.js version', async () => {
+        it('should show Discord.js version', async() => {
             await statsCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -160,7 +160,7 @@ describe('Stats Command', () => {
             expect(systemField.value).toContain('Discord.js');
         });
 
-        it('should show session stats', async () => {
+        it('should show session stats', async() => {
             await statsCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -171,7 +171,7 @@ describe('Stats Command', () => {
             expect(sessionField.value).toContain('50,000'); // Messages processed
         });
 
-        it('should show latency', async () => {
+        it('should show latency', async() => {
             await statsCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -182,7 +182,7 @@ describe('Stats Command', () => {
             expect(latencyField.value).toContain('API Latency');
         });
 
-        it('should show bot ID in footer', async () => {
+        it('should show bot ID in footer', async() => {
             await statsCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -192,7 +192,7 @@ describe('Stats Command', () => {
     });
 
     describe('execute - Edge Cases', () => {
-        it('should handle missing stats object', async () => {
+        it('should handle missing stats object', async() => {
             mockClient.stats = undefined;
 
             await statsCommand.execute(mockInteraction);
@@ -204,7 +204,7 @@ describe('Stats Command', () => {
             expect(sessionField.value).toContain('0');
         });
 
-        it('should handle missing commands collection', async () => {
+        it('should handle missing commands collection', async() => {
             mockClient.commands = undefined;
 
             await statsCommand.execute(mockInteraction);
@@ -216,7 +216,7 @@ describe('Stats Command', () => {
             expect(generalField.value).toContain('0'); // 0 commands
         });
 
-        it('should handle empty guilds', async () => {
+        it('should handle empty guilds', async() => {
             mockClient.guilds.cache = new Map();
 
             await statsCommand.execute(mockInteraction);
@@ -228,7 +228,7 @@ describe('Stats Command', () => {
             expect(generalField.value).toContain('0'); // 0 servers
         });
 
-        it('should format large numbers with commas', async () => {
+        it('should format large numbers with commas', async() => {
             mockClient.stats = {
                 commandsRan: 1234567,
                 messagesProcessed: 9876543
@@ -245,7 +245,7 @@ describe('Stats Command', () => {
     });
 
     describe('execute - Uptime Formatting', () => {
-        it('should format days correctly', async () => {
+        it('should format days correctly', async() => {
             mockClient.uptime = 2 * 24 * 60 * 60 * 1000 + 3600000; // 2 days, 1 hour
 
             await statsCommand.execute(mockInteraction);
@@ -258,7 +258,7 @@ describe('Stats Command', () => {
             expect(systemField.value).toContain('1h');
         });
 
-        it('should format seconds only', async () => {
+        it('should format seconds only', async() => {
             mockClient.uptime = 45000; // 45 seconds
 
             await statsCommand.execute(mockInteraction);

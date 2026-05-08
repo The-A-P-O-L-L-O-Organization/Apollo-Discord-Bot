@@ -2,10 +2,9 @@
 // Clears warnings for a user (single or all)
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
-import { 
-    getUserData, 
-    setUserData,
-    removeFromUserArray 
+import {
+    getUserData,
+    setUserData
 } from '../utils/db.js';
 import { sendModLog } from '../utils/modLog.js';
 

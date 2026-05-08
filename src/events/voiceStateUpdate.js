@@ -12,7 +12,7 @@ export default {
         const member = newState.member || oldState.member;
         
         // Ignore bots
-        if (member?.user?.bot) return;
+        if (member?.user?.bot) {return;}
         
         // Create the voice change embed (returns null for insignificant changes)
         const embed = createVoiceChangeEmbed(oldState, newState);

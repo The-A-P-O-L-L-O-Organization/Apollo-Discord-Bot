@@ -12,7 +12,7 @@ export function initTempRolesScheduler(client) {
         return;
     }
     
-    checkInterval = setInterval(async () => {
+    checkInterval = setInterval(async() => {
         await checkExpiredTempRoles(client);
     }, CHECK_DELAY);
     
@@ -41,7 +41,7 @@ async function checkExpiredTempRoles(client) {
         
         for (const [guildId, tempRoles] of Object.entries(allTempRoles)) {
             const guild = guilds.get(guildId);
-            if (!guild) continue;
+            if (!guild) {continue;}
             
             // Find expired roles
             for (const [userId, tempRole] of Object.entries(tempRoles)) {

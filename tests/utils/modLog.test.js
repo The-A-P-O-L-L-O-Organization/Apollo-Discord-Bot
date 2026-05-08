@@ -49,7 +49,7 @@ describe('ModLog Utility', () => {
             
             // Override channels.cache.find to return log channel
             mockGuild.channels.cache.find = vi.fn().mockImplementation(fn => {
-                if (fn(logChannel)) return logChannel;
+                if (fn(logChannel)) {return logChannel;}
                 return null;
             });
             
@@ -65,7 +65,7 @@ describe('ModLog Utility', () => {
         });
 
         describe('Success Cases', () => {
-            it('should send log embed for kick action', async () => {
+            it('should send log embed for kick action', async() => {
                 await sendModLog(mockGuild, {
                     action: 'kick',
                     target: targetUser,
@@ -78,7 +78,7 @@ describe('ModLog Utility', () => {
                 expect(sendCall.embeds[0].title).toBe('[MODERATION] KICK');
             });
 
-            it('should send log embed for ban action', async () => {
+            it('should send log embed for ban action', async() => {
                 await sendModLog(mockGuild, {
                     action: 'ban',
                     target: targetUser,
@@ -91,7 +91,7 @@ describe('ModLog Utility', () => {
                 expect(sendCall.embeds[0].title).toBe('[MODERATION] BAN');
             });
 
-            it('should send log embed for mute action with duration', async () => {
+            it('should send log embed for mute action with duration', async() => {
                 await sendModLog(mockGuild, {
                     action: 'mute',
                     target: targetUser,
@@ -106,7 +106,7 @@ describe('ModLog Utility', () => {
                 expect(embed.fields.some(f => f.name === 'Duration' && f.value === '1 hour')).toBe(true);
             });
 
-            it('should include target user information', async () => {
+            it('should include target user information', async() => {
                 await sendModLog(mockGuild, {
                     action: 'warn',
                     target: targetUser,
@@ -121,7 +121,7 @@ describe('ModLog Utility', () => {
                 expect(targetField.value).toContain('111222333');
             });
 
-            it('should include moderator information', async () => {
+            it('should include moderator information', async() => {
                 await sendModLog(mockGuild, {
                     action: 'warn',
                     target: targetUser,
@@ -135,7 +135,7 @@ describe('ModLog Utility', () => {
                 expect(modField.value).toContain('Moderator#0001');
             });
 
-            it('should include reason in embed', async () => {
+            it('should include reason in embed', async() => {
                 await sendModLog(mockGuild, {
                     action: 'kick',
                     target: targetUser,
@@ -149,7 +149,7 @@ describe('ModLog Utility', () => {
                 expect(reasonField.value).toBe('Custom reason here');
             });
 
-            it('should use default reason when none provided', async () => {
+            it('should use default reason when none provided', async() => {
                 await sendModLog(mockGuild, {
                     action: 'kick',
                     target: targetUser,
@@ -162,7 +162,7 @@ describe('ModLog Utility', () => {
                 expect(reasonField.value).toBe('No reason provided');
             });
 
-            it('should add extra fields when provided', async () => {
+            it('should add extra fields when provided', async() => {
                 await sendModLog(mockGuild, {
                     action: 'purge',
                     target: targetUser,
@@ -180,7 +180,7 @@ describe('ModLog Utility', () => {
                 expect(embed.fields.some(f => f.name === 'Channel')).toBe(true);
             });
 
-            it('should use correct color for each action type', async () => {
+            it('should use correct color for each action type', async() => {
                 const actions = [
                     { action: 'kick', expectedColor: 0xFFA500 },
                     { action: 'ban', expectedColor: 0xFF0000 },
@@ -205,7 +205,7 @@ describe('ModLog Utility', () => {
         });
 
         describe('Disabled Logging', () => {
-            it('should not send log when logging is disabled', async () => {
+            it('should not send log when logging is disabled', async() => {
                 // Temporarily override config
                 const originalValue = config.moderation.logModerationActions;
                 config.moderation.logModerationActions = false;
@@ -225,7 +225,7 @@ describe('ModLog Utility', () => {
         });
 
         describe('Missing Channel', () => {
-            it('should handle missing log channel gracefully', async () => {
+            it('should handle missing log channel gracefully', async() => {
                 mockGuild.channels.cache.find = vi.fn().mockReturnValue(null);
                 
                 await expect(sendModLog(mockGuild, {
@@ -240,7 +240,7 @@ describe('ModLog Utility', () => {
         });
 
         describe('Error Handling', () => {
-            it('should handle send errors gracefully', async () => {
+            it('should handle send errors gracefully', async() => {
                 logChannel.send.mockRejectedValue(new Error('Permission denied'));
                 
                 await expect(sendModLog(mockGuild, {
@@ -265,7 +265,7 @@ describe('ModLog Utility', () => {
             });
         });
 
-        it('should return member from cache', async () => {
+        it('should return member from cache', async() => {
             const cachedMember = createMockMember({
                 id: '123456789',
                 user: createMockUser({ id: '123456789', tag: 'CachedUser#0001' })
@@ -279,7 +279,7 @@ describe('ModLog Utility', () => {
             expect(mockGuild.members.fetch).not.toHaveBeenCalled();
         });
 
-        it('should fetch member from API when not in cache', async () => {
+        it('should fetch member from API when not in cache', async() => {
             const fetchedMember = createMockMember({
                 id: '123456789',
                 user: createMockUser({ id: '123456789', tag: 'FetchedUser#0001' })
@@ -294,7 +294,7 @@ describe('ModLog Utility', () => {
             expect(mockGuild.members.fetch).toHaveBeenCalledWith('123456789');
         });
 
-        it('should return null when member not found', async () => {
+        it('should return null when member not found', async() => {
             mockGuild.members.cache.get = vi.fn().mockReturnValue(undefined);
             mockGuild.members.fetch = vi.fn().mockRejectedValue(new Error('Unknown Member'));
             
@@ -303,7 +303,7 @@ describe('ModLog Utility', () => {
             expect(result).toBeNull();
         });
 
-        it('should handle fetch errors gracefully', async () => {
+        it('should handle fetch errors gracefully', async() => {
             mockGuild.members.cache.get = vi.fn().mockReturnValue(undefined);
             mockGuild.members.fetch = vi.fn().mockRejectedValue(new Error('API Error'));
             

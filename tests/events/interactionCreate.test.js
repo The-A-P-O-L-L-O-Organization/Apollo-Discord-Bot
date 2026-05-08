@@ -3,9 +3,8 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import interactionCreateEvent from '../../src/events/interactionCreate.js';
-import { 
-    createMockInteraction,
-    createMockUser, 
+import {
+    createMockUser,
     createMockGuild,
     createMockChannel,
     createMockClient,
@@ -122,7 +121,7 @@ describe('InteractionCreate Event', () => {
     });
 
     describe('Non-Button Interactions', () => {
-        it('should ignore non-button interactions', async () => {
+        it('should ignore non-button interactions', async() => {
             mockInteraction.isButton.mockReturnValue(false);
             
             await interactionCreateEvent.execute(mockInteraction, mockClient);
@@ -133,14 +132,14 @@ describe('InteractionCreate Event', () => {
     });
 
     describe('Create Ticket Button', () => {
-        it('should create a new ticket channel', async () => {
+        it('should create a new ticket channel', async() => {
             await interactionCreateEvent.execute(mockInteraction, mockClient);
             
             expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
             expect(mockGuild.channels.create).toHaveBeenCalled();
         });
 
-        it('should save ticket data', async () => {
+        it('should save ticket data', async() => {
             await interactionCreateEvent.execute(mockInteraction, mockClient);
             
             expect(setGuildData).toHaveBeenCalledWith(
@@ -158,7 +157,7 @@ describe('InteractionCreate Event', () => {
             );
         });
 
-        it('should reject if user already has open ticket', async () => {
+        it('should reject if user already has open ticket', async() => {
             ticketConfig.openTickets = [{ 
                 userId: '123456789', 
                 channelId: '999888777' 
@@ -176,7 +175,7 @@ describe('InteractionCreate Event', () => {
             expect(mockGuild.channels.create).not.toHaveBeenCalled();
         });
 
-        it('should increment ticket number', async () => {
+        it('should increment ticket number', async() => {
             ticketConfig.totalTickets = 5;
             getGuildData.mockReturnValue(ticketConfig);
             
@@ -191,7 +190,7 @@ describe('InteractionCreate Event', () => {
             );
         });
 
-        it('should handle channel creation failure', async () => {
+        it('should handle channel creation failure', async() => {
             mockGuild.channels.create.mockRejectedValue(new Error('Permission denied'));
             
             await interactionCreateEvent.execute(mockInteraction, mockClient);
@@ -218,7 +217,7 @@ describe('InteractionCreate Event', () => {
             getGuildData.mockReturnValue(ticketConfig);
         });
 
-        it('should close ticket if user is ticket owner', async () => {
+        it('should close ticket if user is ticket owner', async() => {
             await interactionCreateEvent.execute(mockInteraction, mockClient);
             
             expect(mockInteraction.reply).toHaveBeenCalledWith(
@@ -228,7 +227,7 @@ describe('InteractionCreate Event', () => {
             );
         });
 
-        it('should save transcript before closing', async () => {
+        it('should save transcript before closing', async() => {
             await interactionCreateEvent.execute(mockInteraction, mockClient);
             
             expect(writeToSubDir).toHaveBeenCalledWith(
@@ -241,7 +240,7 @@ describe('InteractionCreate Event', () => {
             );
         });
 
-        it('should reject if channel is not a ticket', async () => {
+        it('should reject if channel is not a ticket', async() => {
             ticketConfig.openTickets = [];
             getGuildData.mockReturnValue(ticketConfig);
             
@@ -255,7 +254,7 @@ describe('InteractionCreate Event', () => {
             );
         });
 
-        it('should reject if user is not authorized to close', async () => {
+        it('should reject if user is not authorized to close', async() => {
             ticketConfig.openTickets[0].userId = 'different-user';
             getGuildData.mockReturnValue(ticketConfig);
             
@@ -269,7 +268,7 @@ describe('InteractionCreate Event', () => {
             );
         });
 
-        it('should allow admin to close any ticket', async () => {
+        it('should allow admin to close any ticket', async() => {
             ticketConfig.openTickets[0].userId = 'different-user';
             mockInteraction.member.permissions.has = vi.fn().mockReturnValue(true);
             getGuildData.mockReturnValue(ticketConfig);
@@ -283,7 +282,7 @@ describe('InteractionCreate Event', () => {
             );
         });
 
-        it('should allow support role to close ticket', async () => {
+        it('should allow support role to close ticket', async() => {
             ticketConfig.openTickets[0].userId = 'different-user';
             ticketConfig.supportRoleId = 'support-role-id';
             mockInteraction.member.roles.cache.has = vi.fn().mockReturnValue(true);
@@ -298,7 +297,7 @@ describe('InteractionCreate Event', () => {
             );
         });
 
-        it('should update ticket config after closing', async () => {
+        it('should update ticket config after closing', async() => {
             await interactionCreateEvent.execute(mockInteraction, mockClient);
             
             expect(setGuildData).toHaveBeenCalledWith(
@@ -318,7 +317,7 @@ describe('InteractionCreate Event', () => {
     });
 
     describe('Unknown Button', () => {
-        it('should ignore unknown button customIds', async () => {
+        it('should ignore unknown button customIds', async() => {
             mockInteraction.customId = 'unknown_button';
             
             await interactionCreateEvent.execute(mockInteraction, mockClient);

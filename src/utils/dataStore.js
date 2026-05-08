@@ -107,7 +107,7 @@ export async function setGuildData(filename, guildId, guildData) {
     }
     
     // Create a new write operation
-    const writeOperation = (async () => {
+    const writeOperation = (async() => {
         const data = getData(filename);
         data[guildId] = guildData;
         setData(filename, data);
@@ -139,7 +139,7 @@ export async function updateGuildData(filename, guildId, key, value) {
         await pendingWrite;
     }
     
-    const writeOperation = (async () => {
+    const writeOperation = (async() => {
         const data = getData(filename);
         if (!data[guildId]) {
             data[guildId] = {};
@@ -173,7 +173,7 @@ export async function appendToGuildArray(filename, guildId, key, item) {
         await pendingWrite;
     }
     
-    const writeOperation = (async () => {
+    const writeOperation = (async() => {
         const data = getData(filename);
         if (!data[guildId]) {
             data[guildId] = {};
@@ -211,7 +211,7 @@ export async function removeFromGuildArray(filename, guildId, key, predicate) {
     }
     
     let removed = 0;
-    const writeOperation = (async () => {
+    const writeOperation = (async() => {
         const data = getData(filename);
         if (!data[guildId] || !Array.isArray(data[guildId][key])) {
             return 0;
@@ -267,7 +267,7 @@ export async function setUserData(filename, guildId, userId, userData) {
         await pendingWrite;
     }
     
-    const writeOperation = (async () => {
+    const writeOperation = (async() => {
         const data = getData(filename);
         if (!data[guildId]) {
             data[guildId] = {};
@@ -301,7 +301,7 @@ export async function appendToUserArray(filename, guildId, userId, item) {
         await pendingWrite;
     }
     
-    const writeOperation = (async () => {
+    const writeOperation = (async() => {
         const data = getData(filename);
         if (!data[guildId]) {
             data[guildId] = {};
@@ -339,7 +339,7 @@ export async function removeFromUserArray(filename, guildId, userId, predicate) 
     }
     
     let removed = 0;
-    const writeOperation = (async () => {
+    const writeOperation = (async() => {
         const data = getData(filename);
         if (!data[guildId] || !Array.isArray(data[guildId][userId])) {
             return 0;

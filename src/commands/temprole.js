@@ -294,7 +294,7 @@ async function handleList(interaction) {
 
 function parseDuration(str) {
     const match = str.match(/^(\d+)([mhdw])$/i);
-    if (!match) return null;
+    if (!match) {return null;}
     
     const value = parseInt(match[1]);
     const unit = match[2].toLowerCase();

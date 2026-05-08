@@ -48,13 +48,13 @@ db.exec(`
 // Prepared statements
 // ---------------------------------------------------------------------------
 const stmts = {
-    getGuild:     db.prepare('SELECT data FROM guild_store WHERE store = ? AND guild_id = ?'),
-    setGuild:     db.prepare('INSERT INTO guild_store (store, guild_id, data) VALUES (?, ?, ?) ON CONFLICT(store, guild_id) DO UPDATE SET data = excluded.data'),
-    getAllGuilds:  db.prepare('SELECT guild_id, data FROM guild_store WHERE store = ?'),
+    getGuild: db.prepare('SELECT data FROM guild_store WHERE store = ? AND guild_id = ?'),
+    setGuild: db.prepare('INSERT INTO guild_store (store, guild_id, data) VALUES (?, ?, ?) ON CONFLICT(store, guild_id) DO UPDATE SET data = excluded.data'),
+    getAllGuilds: db.prepare('SELECT guild_id, data FROM guild_store WHERE store = ?'),
 
-    getUser:     db.prepare('SELECT data FROM guild_user_store WHERE store = ? AND guild_id = ? AND user_id = ?'),
-    setUser:     db.prepare('INSERT INTO guild_user_store (store, guild_id, user_id, data) VALUES (?, ?, ?, ?) ON CONFLICT(store, guild_id, user_id) DO UPDATE SET data = excluded.data'),
-    getAllUsers:  db.prepare('SELECT user_id, data FROM guild_user_store WHERE store = ? AND guild_id = ?'),
+    getUser: db.prepare('SELECT data FROM guild_user_store WHERE store = ? AND guild_id = ? AND user_id = ?'),
+    setUser: db.prepare('INSERT INTO guild_user_store (store, guild_id, user_id, data) VALUES (?, ?, ?, ?) ON CONFLICT(store, guild_id, user_id) DO UPDATE SET data = excluded.data'),
+    getAllUsers: db.prepare('SELECT user_id, data FROM guild_user_store WHERE store = ? AND guild_id = ?')
 };
 
 // ---------------------------------------------------------------------------
@@ -100,7 +100,7 @@ export function updateGuildData(store, guildId, updater) {
  */
 export function appendToGuildArray(store, guildId, key, item) {
     updateGuildData(store, guildId, data => {
-        if (!Array.isArray(data[key])) data[key] = [];
+        if (!Array.isArray(data[key])) {data[key] = [];}
         data[key].push(item);
         return data;
     });
@@ -113,7 +113,7 @@ export function appendToGuildArray(store, guildId, key, item) {
 export function removeFromGuildArray(store, guildId, key, predicate) {
     let removed = 0;
     updateGuildData(store, guildId, data => {
-        if (!Array.isArray(data[key])) return data;
+        if (!Array.isArray(data[key])) {return data;}
         const before = data[key].length;
         data[key] = data[key].filter(item => !predicate(item));
         removed = before - data[key].length;
@@ -179,10 +179,10 @@ export function appendToUserArray(store, guildId, userId, item) {
  */
 export function removeFromUserArray(store, guildId, userId, predicate) {
     const current = getUserData(store, guildId, userId);
-    if (!Array.isArray(current)) return 0;
+    if (!Array.isArray(current)) {return 0;}
     const next    = current.filter(item => !predicate(item));
     const removed = current.length - next.length;
-    if (removed > 0) setUserData(store, guildId, userId, next);
+    if (removed > 0) {setUserData(store, guildId, userId, next);}
     return removed;
 }
 

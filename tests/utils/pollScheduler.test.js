@@ -1,7 +1,7 @@
 // Poll Scheduler Tests
 // Tests for the poll scheduler functions
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 // We need to test the generateProgressBar function which is internal
 // Let's test by inference through behavior

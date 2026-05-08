@@ -2,7 +2,7 @@
 // Professional mod tracking with case IDs for all moderation actions
 
 import { PermissionsBitField } from 'discord.js';
-import { getGuildData, setGuildData, updateGuildData } from '../utils/db.js';
+import { getGuildData, updateGuildData } from '../utils/db.js';
 
 export default {
     name: 'case',
@@ -496,8 +496,8 @@ async function handleListCases(interaction) {
  */
 export function createModCase(guildId, caseInfo) {
     const data = updateGuildData('mod-cases', guildId, current => {
-        if (!current.cases) current.cases = [];
-        if (!current.nextCaseId) current.nextCaseId = 1;
+        if (!current.cases) {current.cases = [];}
+        if (!current.nextCaseId) {current.nextCaseId = 1;}
         
         const caseId = current.nextCaseId++;
         

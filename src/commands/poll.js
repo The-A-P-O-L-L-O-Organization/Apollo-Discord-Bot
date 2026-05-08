@@ -157,7 +157,7 @@ function parseTimeString(timeString) {
     const regex = /^(\d+)(m|h|d|w)$/i;
     const match = timeString.trim().match(regex);
 
-    if (!match) return null;
+    if (!match) {return null;}
 
     const value = parseInt(match[1], 10);
     const unit = match[2].toLowerCase();

@@ -3,12 +3,11 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import muteCommand from '../../src/commands/mute.js';
-import { 
-    createMockInteraction, 
-    createMockUser, 
+import {
+    createMockInteraction,
+    createMockUser,
     createMockMember,
-    createMockGuild,
-    createMockClient 
+    createMockGuild
 } from '../mocks/discord.js';
 
 // Mock the modLog module
@@ -57,8 +56,8 @@ describe('Mute Command', () => {
             options: {
                 getUser: vi.fn().mockReturnValue(targetUser),
                 getString: vi.fn().mockImplementation((name) => {
-                    if (name === 'duration') return '1h';
-                    if (name === 'reason') return 'Spamming in chat';
+                    if (name === 'duration') {return '1h';}
+                    if (name === 'reason') {return 'Spamming in chat';}
                     return null;
                 })
             }
@@ -103,7 +102,7 @@ describe('Mute Command', () => {
     });
 
     describe('execute - Success Cases', () => {
-        it('should mute user successfully with timeout', async () => {
+        it('should mute user successfully with timeout', async() => {
             await muteCommand.execute(mockInteraction);
             
             expect(targetMember.timeout).toHaveBeenCalledWith(
@@ -112,7 +111,7 @@ describe('Mute Command', () => {
             );
         });
 
-        it('should reply with success embed', async () => {
+        it('should reply with success embed', async() => {
             await muteCommand.execute(mockInteraction);
             
             expect(mockInteraction.reply).toHaveBeenCalled();
@@ -120,7 +119,7 @@ describe('Mute Command', () => {
             expect(replyCall.embeds[0].title).toBe('[SUCCESS] User Muted');
         });
 
-        it('should include correct mute details in response', async () => {
+        it('should include correct mute details in response', async() => {
             await muteCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
@@ -131,7 +130,7 @@ describe('Mute Command', () => {
             expect(embed.fields.some(f => f.name.includes('Reason'))).toBe(true);
         });
 
-        it('should send mod log with duration', async () => {
+        it('should send mod log with duration', async() => {
             await muteCommand.execute(mockInteraction);
             
             expect(sendModLog).toHaveBeenCalledWith(
@@ -146,9 +145,9 @@ describe('Mute Command', () => {
             );
         });
 
-        it('should use default 1 hour duration when none provided', async () => {
+        it('should use default 1 hour duration when none provided', async() => {
             mockInteraction.options.getString.mockImplementation((name) => {
-                if (name === 'reason') return 'Test reason';
+                if (name === 'reason') {return 'Test reason';}
                 return null;
             });
             
@@ -160,9 +159,9 @@ describe('Mute Command', () => {
             );
         });
 
-        it('should use default reason when none provided', async () => {
+        it('should use default reason when none provided', async() => {
             mockInteraction.options.getString.mockImplementation((name) => {
-                if (name === 'duration') return '30m';
+                if (name === 'duration') {return '30m';}
                 return null;
             });
             
@@ -176,9 +175,9 @@ describe('Mute Command', () => {
     });
 
     describe('execute - Duration Parsing', () => {
-        it('should parse minutes correctly', async () => {
+        it('should parse minutes correctly', async() => {
             mockInteraction.options.getString.mockImplementation((name) => {
-                if (name === 'duration') return '30m';
+                if (name === 'duration') {return '30m';}
                 return 'Test';
             });
             
@@ -190,9 +189,9 @@ describe('Mute Command', () => {
             );
         });
 
-        it('should parse hours correctly', async () => {
+        it('should parse hours correctly', async() => {
             mockInteraction.options.getString.mockImplementation((name) => {
-                if (name === 'duration') return '2h';
+                if (name === 'duration') {return '2h';}
                 return 'Test';
             });
             
@@ -204,9 +203,9 @@ describe('Mute Command', () => {
             );
         });
 
-        it('should parse days correctly', async () => {
+        it('should parse days correctly', async() => {
             mockInteraction.options.getString.mockImplementation((name) => {
-                if (name === 'duration') return '1d';
+                if (name === 'duration') {return '1d';}
                 return 'Test';
             });
             
@@ -218,9 +217,9 @@ describe('Mute Command', () => {
             );
         });
 
-        it('should parse weeks correctly', async () => {
+        it('should parse weeks correctly', async() => {
             mockInteraction.options.getString.mockImplementation((name) => {
-                if (name === 'duration') return '1w';
+                if (name === 'duration') {return '1w';}
                 return 'Test';
             });
             
@@ -232,9 +231,9 @@ describe('Mute Command', () => {
             );
         });
 
-        it('should reject invalid duration format', async () => {
+        it('should reject invalid duration format', async() => {
             mockInteraction.options.getString.mockImplementation((name) => {
-                if (name === 'duration') return 'invalid';
+                if (name === 'duration') {return 'invalid';}
                 return 'Test';
             });
             
@@ -245,9 +244,9 @@ describe('Mute Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject duration over 28 days', async () => {
+        it('should reject duration over 28 days', async() => {
             mockInteraction.options.getString.mockImplementation((name) => {
-                if (name === 'duration') return '5w';
+                if (name === 'duration') {return '5w';}
                 return 'Test';
             });
             
@@ -260,7 +259,7 @@ describe('Mute Command', () => {
     });
 
     describe('execute - Error Cases', () => {
-        it('should reject when no user specified', async () => {
+        it('should reject when no user specified', async() => {
             mockInteraction.options.getUser.mockReturnValue(null);
             
             await muteCommand.execute(mockInteraction);
@@ -270,7 +269,7 @@ describe('Mute Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject self-mute', async () => {
+        it('should reject self-mute', async() => {
             const sameUser = createMockUser({ id: '999888777' });
             mockInteraction.options.getUser.mockReturnValue(sameUser);
             
@@ -280,7 +279,7 @@ describe('Mute Command', () => {
             expect(replyCall.embeds[0].title).toContain('Self Action');
         });
 
-        it('should reject when member not found', async () => {
+        it('should reject when member not found', async() => {
             fetchMember.mockResolvedValue(null);
             
             await muteCommand.execute(mockInteraction);
@@ -289,7 +288,7 @@ describe('Mute Command', () => {
             expect(replyCall.embeds[0].title).toContain('Member Not Found');
         });
 
-        it('should reject when member is not moderatable', async () => {
+        it('should reject when member is not moderatable', async() => {
             targetMember.moderatable = false;
             fetchMember.mockResolvedValue(targetMember);
             
@@ -299,7 +298,7 @@ describe('Mute Command', () => {
             expect(replyCall.embeds[0].title).toContain('Cannot Mute');
         });
 
-        it('should handle timeout API error gracefully', async () => {
+        it('should handle timeout API error gracefully', async() => {
             targetMember.timeout.mockRejectedValue(new Error('API Error'));
             // Also make roles.add fail so it doesn't fallback
             targetMember.roles.add.mockRejectedValue(new Error('Role API Error'));
@@ -314,7 +313,7 @@ describe('Mute Command', () => {
     });
 
     describe('execute - Fallback to Mute Role', () => {
-        it('should fallback to mute role when timeout fails', async () => {
+        it('should fallback to mute role when timeout fails', async() => {
             targetMember.timeout.mockRejectedValue(new Error('Timeout not supported'));
             
             // Set up existing mute role
@@ -333,7 +332,7 @@ describe('Mute Command', () => {
             );
         });
 
-        it('should create mute role if it does not exist', async () => {
+        it('should create mute role if it does not exist', async() => {
             targetMember.timeout.mockRejectedValue(new Error('Timeout not supported'));
             
             mockGuild.roles = {

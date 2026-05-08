@@ -3,9 +3,9 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import closeTicketCommand from '../../src/commands/closeticket.js';
-import { 
-    createMockInteraction, 
-    createMockUser, 
+import {
+    createMockInteraction,
+    createMockUser,
     createMockGuild,
     createMockChannel,
     createMockClient
@@ -88,7 +88,7 @@ describe('CloseTicket Command', () => {
     });
 
     describe('execute - Success Cases', () => {
-        it('should close ticket successfully as ticket owner', async () => {
+        it('should close ticket successfully as ticket owner', async() => {
             getGuildData.mockReturnValue({
                 openTickets: [{
                     channelId: '111222333',
@@ -106,7 +106,7 @@ describe('CloseTicket Command', () => {
             expect(writeToSubDir).toHaveBeenCalled();
         });
 
-        it('should close ticket as admin', async () => {
+        it('should close ticket as admin', async() => {
             mockMember.permissions.has.mockReturnValue(true); // Is admin
             mockInteraction.user = createMockUser({ id: '999888777', tag: 'Admin#0001' });
 
@@ -128,7 +128,7 @@ describe('CloseTicket Command', () => {
             expect(replyCall.content).toContain('Closing ticket');
         });
 
-        it('should close ticket as support role member', async () => {
+        it('should close ticket as support role member', async() => {
             mockMember.roles.cache.set('555666777', { id: '555666777' });
             mockMember.roles.cache.has = vi.fn().mockReturnValue(true);
             mockInteraction.user = createMockUser({ id: '999888777', tag: 'Support#0001' });
@@ -149,7 +149,7 @@ describe('CloseTicket Command', () => {
             expect(mockInteraction.reply).toHaveBeenCalled();
         });
 
-        it('should save transcript', async () => {
+        it('should save transcript', async() => {
             getGuildData.mockReturnValue({
                 openTickets: [{
                     channelId: '111222333',
@@ -172,7 +172,7 @@ describe('CloseTicket Command', () => {
             );
         });
 
-        it('should include close reason in transcript', async () => {
+        it('should include close reason in transcript', async() => {
             mockInteraction.options.getString.mockReturnValue('Issue resolved');
             
             getGuildData.mockReturnValue({
@@ -198,7 +198,7 @@ describe('CloseTicket Command', () => {
     });
 
     describe('execute - Error Cases', () => {
-        it('should reject when not in a ticket channel', async () => {
+        it('should reject when not in a ticket channel', async() => {
             getGuildData.mockReturnValue({
                 openTickets: [{
                     channelId: '999999999', // Different channel
@@ -213,7 +213,7 @@ describe('CloseTicket Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject when no open tickets exist', async () => {
+        it('should reject when no open tickets exist', async() => {
             getGuildData.mockReturnValue({
                 openTickets: []
             });
@@ -225,7 +225,7 @@ describe('CloseTicket Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should reject when user lacks permission', async () => {
+        it('should reject when user lacks permission', async() => {
             mockInteraction.user = createMockUser({ id: '999888777', tag: 'Random#0001' });
             mockMember.permissions.has.mockReturnValue(false);
             mockMember.roles.cache.has = vi.fn().mockReturnValue(false);
@@ -248,7 +248,7 @@ describe('CloseTicket Command', () => {
     });
 
     describe('execute - Closed Tickets History', () => {
-        it('should add ticket to closed tickets history', async () => {
+        it('should add ticket to closed tickets history', async() => {
             getGuildData.mockReturnValue({
                 openTickets: [{
                     channelId: '111222333',
@@ -268,7 +268,7 @@ describe('CloseTicket Command', () => {
             expect(config.closedTickets.length).toBeGreaterThan(0);
         });
 
-        it('should limit closed tickets history to 100', async () => {
+        it('should limit closed tickets history to 100', async() => {
             const closedTickets = Array(100).fill(null).map((_, i) => ({
                 ticketNumber: i,
                 closedAt: Date.now()

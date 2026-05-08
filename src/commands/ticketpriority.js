@@ -67,7 +67,7 @@ export default {
         ticket.priority = newPriority;
 
         // Update tags
-        if (!ticket.tags) ticket.tags = [];
+        if (!ticket.tags) {ticket.tags = [];}
         ticket.tags = ticket.tags.filter(tag => tag !== oldPriority);
         ticket.tags.push(newPriority);
 

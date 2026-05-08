@@ -9,13 +9,13 @@ export default {
     
     async execute(oldMessage, newMessage, client) {
         // Ignore DMs
-        if (!newMessage.guild) return;
+        if (!newMessage.guild) {return;}
 
         // Ignore uncached messages without author
-        if (!newMessage.author) return;
+        if (!newMessage.author) {return;}
         
         // Ignore bot messages
-        if (newMessage.author?.bot) return;
+        if (newMessage.author?.bot) {return;}
         
         // Handle partial messages
         if (oldMessage.partial) {
@@ -36,10 +36,10 @@ export default {
         }
         
         // Ignore if content hasn't changed (could be embed update, pin, etc.)
-        if (oldMessage.content === newMessage.content) return;
+        if (oldMessage.content === newMessage.content) {return;}
         
         // Ignore empty content (likely an embed-only message)
-        if (!oldMessage.content && !newMessage.content) return;
+        if (!oldMessage.content && !newMessage.content) {return;}
         
         // Create and send the log embed
         const embed = createMessageEditEmbed(oldMessage, newMessage);
