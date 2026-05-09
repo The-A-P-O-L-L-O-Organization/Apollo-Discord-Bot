@@ -1,7 +1,7 @@
 # Modular Bot Architecture Design
 
 **Date:** 2026-05-09
-**Status:** Draft (in-progress)
+**Status:** Approved
 
 ## Overview
 
@@ -242,3 +242,79 @@ Based on the existing 73 command files, grouped into 5 coarse plugins:
 | `ticket:closed` | tickets | automod (logging), utility (stats) | `{ ticketId, guildId, closedBy, rating? }` |
 | `automod:action` | automod | moderation (auto-mute), utility (analytics) | `{ type, userId, guildId, action, reason }` |
 | `guild:setup` | admin | moderation, tickets, automod | `{ guildId }` — triggers one-time init |
+
+### Optional / Remote Plugins
+
+Plugins can be installed on-demand from a remote source. These live outside the bot's container/code in a persistent `data/plugins/` directory.
+
+**Plugin registry manifest** — a JSON file (`data/plugin-registry.json`) mapping plugin IDs to download sources:
+
+```json
+{
+  "plugins": [
+    {
+      "id": "voice-moderation",
+      "name": "Voice Moderation",
+      "description": "Voice channel moderation tools",
+      "version": "1.0.0",
+      "downloadUrl": "https://github.com/example/apollo-voice-mod/archive/main.zip"
+    }
+  ]
+}
+```
+
+**Directory layout:**
+
+```
+data/
+├── plugins/
+│   └── voice-moderation/         # Downloaded and extracted here
+│       ├── plugin.js
+│       ├── commands/
+│       └── events/
+├── plugin-registry.json          # Registry manifest
+└── ... (existing data files)
+```
+
+**Installation flow:**
+1. `/plugin install voice-moderation`
+2. PluginManager looks up `voice-moderation` in the registry manifest
+3. Downloads the archive from `downloadUrl`
+4. Extracts to `data/plugins/voice-moderation/`
+5. Validates `plugin.js` exists and exports a valid Plugin subclass
+6. Loads and enables the plugin
+7. Adds to `enabled` list in config for persistence across restarts
+
+**Uninstallation flow:**
+1. `/plugin uninstall voice-moderation`
+2. PluginManager disables the plugin
+3. Removes `data/plugins/voice-moderation/` from disk
+4. Removes from config's `enabled` list
+
+**Plugin discovery** — `PluginManager.scanPlugins()` scans both `src/plugins/` (built-in) and `data/plugins/` (installed):
+
+```js
+plugins: {
+  enabled: ['moderation', 'tickets', 'automod', 'utility', 'admin'],
+  directory: './src/plugins',
+  optionalDirectory: './data/plugins',
+  registryFile: './data/plugin-registry.json'
+}
+```
+
+**PluginManager additions:**
+
+```js
+class PluginManager {
+  async installPlugin(id)       // Download + extract + load + enable from registry
+  async uninstallPlugin(id)     // Disable + unload + delete from disk
+  searchRegistry(query)         // Search available plugins in registry manifest
+}
+```
+
+**Plugin command additions:**
+
+- `/plugin install <name>` — download and install a plugin from the registry
+- `/plugin uninstall <name>` — remove an installed plugin
+- `/plugin search <query>` — search available plugins in the registry
+- `/plugin update <name>` — re-download and hot-reload an installed plugin
