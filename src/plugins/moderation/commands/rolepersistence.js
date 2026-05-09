@@ -1,0 +1,169 @@
+// Role Persistence Command
+// Configure role persistence to restore roles when users rejoin
+
+import { PermissionsBitField } from 'discord.js';
+import { getGuildData, setGuildData } from '../../../utils/db.js';
+
+export default {
+    name: 'rolepersistence',
+    description: 'Configure role persistence for members who rejoin',
+    category: 'Moderation',
+    
+    defaultMemberPermissions: PermissionsBitField.Flags.ManageRoles,
+    dmPermission: false,
+    options: [
+        {
+            name: 'toggle',
+            description: 'Enable or disable role persistence',
+            type: 1, // SUB_COMMAND
+            options: [
+                {
+                    name: 'enabled',
+                    description: 'Enable or disable',
+                    type: 5, // BOOLEAN
+                    required: true
+                }
+            ]
+        },
+        {
+            name: 'view',
+            description: 'View current settings',
+            type: 1 // SUB_COMMAND
+        },
+        {
+            name: 'clear',
+            description: 'Clear saved roles for a user',
+            type: 1, // SUB_COMMAND
+            options: [
+                {
+                    name: 'user',
+                    description: 'User to clear roles for',
+                    type: 6, // USER
+                    required: true
+                }
+            ]
+        }
+    ],
+    
+    async execute(interaction) {
+        try {
+            const subcommand = interaction.options.getSubcommand();
+            
+            if (subcommand === 'toggle') {
+                await handleToggle(interaction);
+            } else if (subcommand === 'view') {
+                await handleView(interaction);
+            } else if (subcommand === 'clear') {
+                await handleClear(interaction);
+            }
+            
+        } catch (error) {
+            console.error('[ERROR] Rolepersistence command error:', error);
+            
+            const errorEmbed = {
+                color: 0xFF0000,
+                title: '[ERROR] Command Failed',
+                description: 'An error occurred while configuring role persistence.',
+                fields: [
+                    {
+                        name: '[ERROR] Details',
+                        value: error.message,
+                        inline: true
+                    }
+                ],
+                timestamp: new Date().toISOString()
+            };
+            
+            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        }
+    }
+};
+
+async function handleToggle(interaction) {
+    const enabled = interaction.options.getBoolean('enabled');
+    
+    const config = getGuildData('role-persistence', interaction.guild.id) || {};
+    config.enabled = enabled;
+    
+    setGuildData('role-persistence', interaction.guild.id, config);
+    
+    const successEmbed = {
+        color: 0x00FF00,
+        title: '[SUCCESS] Role Persistence Updated',
+        description: `Role persistence has been ${enabled ? 'enabled' : 'disabled'}.`,
+        fields: [
+            {
+                name: '[INFO] Status',
+                value: enabled ? 'Enabled' : 'Disabled',
+                inline: true
+            },
+            {
+                name: '[INFO] How it works',
+                value: 'Roles will be saved when members leave and restored when they rejoin.',
+                inline: false
+            }
+        ],
+        timestamp: new Date().toISOString()
+    };
+    
+    await interaction.reply({ embeds: [successEmbed] });
+    
+    console.log(`[CONFIG] Role persistence ${enabled ? 'enabled' : 'disabled'} in ${interaction.guild.name}`);
+}
+
+async function handleView(interaction) {
+    const config = getGuildData('role-persistence', interaction.guild.id);
+    
+    const viewEmbed = {
+        color: 0x3498DB,
+        title: '[ROLE PERSISTENCE] Configuration',
+        fields: [
+            {
+                name: '[INFO] Status',
+                value: config && config.enabled ? 'Enabled' : 'Disabled',
+                inline: true
+            },
+            {
+                name: '[INFO] How it works',
+                value: 'Roles will be saved when members leave and restored when they rejoin.',
+                inline: false
+            }
+        ],
+        timestamp: new Date().toISOString()
+    };
+    
+    await interaction.reply({ embeds: [viewEmbed], ephemeral: true });
+}
+
+async function handleClear(interaction) {
+    const user = interaction.options.getUser('user');
+    
+    const config = getGuildData('role-persistence', interaction.guild.id);
+    
+    if (!config || !config.savedRoles) {
+        return interaction.reply({
+            embeds: [{
+                color: 0xFFA500,
+                title: '[INFO] No Saved Roles',
+                description: `No roles are saved for ${user.tag}.`,
+                timestamp: new Date().toISOString()
+            }],
+            ephemeral: true
+        });
+    }
+    
+    // Remove saved roles for user
+    delete config.savedRoles[user.id];
+    setGuildData('role-persistence', interaction.guild.id, config);
+    
+    const successEmbed = {
+        color: 0x00FF00,
+        title: '[SUCCESS] Saved Roles Cleared',
+        description: `Saved roles for ${user.tag} have been cleared.`,
+        timestamp: new Date().toISOString()
+    };
+    
+    await interaction.reply({ embeds: [successEmbed] });
+    
+    console.log(`[CONFIG] Saved roles cleared for ${user.tag} in ${interaction.guild.name}`);
+}

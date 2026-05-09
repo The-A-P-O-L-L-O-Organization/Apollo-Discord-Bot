@@ -2,7 +2,7 @@
 // Tests for the guildMemberRemove event handler
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import guildMemberRemoveEvent from '../../src/events/guildMemberRemove.js';
+import guildMemberRemoveEvent from '../../src/plugins/moderation/events/guildMemberRemove.js';
 import { 
     createMockMember, 
     createMockUser, 
