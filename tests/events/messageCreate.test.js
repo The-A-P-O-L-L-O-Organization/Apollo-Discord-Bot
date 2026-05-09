@@ -2,7 +2,7 @@
 // Tests for the messageCreate event handler (automod)
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import messageCreateEvent from '../../src/events/messageCreate.js';
+import messageCreateEvent from '../../src/plugins/automod/events/messageCreate.js';
 import { 
     createMockMessage,
     createMockUser, 
@@ -26,18 +26,15 @@ vi.mock('../../src/utils/automod.js', () => ({
     checkAccountAge: vi.fn().mockReturnValue(false)
 }));
 
-// Mock nsfwDetection to avoid TensorFlow loading
 vi.mock('../../src/utils/nsfwDetection.js', () => ({
     checkMessageAttachments: vi.fn().mockResolvedValue(null),
     isNsfwDetectionAvailable: vi.fn().mockReturnValue(false)
 }));
 
-// Mock perspectiveApi to avoid external API calls
 vi.mock('../../src/utils/perspectiveApi.js', () => ({
     checkMessageToxicity: vi.fn().mockResolvedValue(null)
 }));
 
-// Mock the db module
 vi.mock('../../src/utils/db.js', () => ({
     appendToUserArray: vi.fn(),
     generateId: vi.fn().mockReturnValue('test-warning-id'),
@@ -45,12 +42,10 @@ vi.mock('../../src/utils/db.js', () => ({
     getGuildData: vi.fn().mockReturnValue({})
 }));
 
-// Mock the modLog module
 vi.mock('../../src/utils/modLog.js', () => ({
     sendModLog: vi.fn().mockResolvedValue(undefined)
 }));
 
-// Mock the config
 vi.mock('../../src/config/config.js', () => ({
     config: {
         warnings: {

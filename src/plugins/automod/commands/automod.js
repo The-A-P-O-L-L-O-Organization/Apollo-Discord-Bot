@@ -2,8 +2,8 @@
 // Configure automatic moderation settings per server
 
 import { PermissionsBitField, EmbedBuilder, ChannelType } from 'discord.js';
-import { getGuildData, setGuildData } from '../utils/db.js';
-import { config } from '../config/config.js';
+import { getGuildData, setGuildData } from '../../../utils/db.js';
+import { config } from '../../../config/config.js';
 
 export default {
     name: 'automod',

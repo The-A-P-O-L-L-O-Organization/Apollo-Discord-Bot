@@ -2,7 +2,7 @@
 // Tests for the automod configuration command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import automodCommand from '../../src/commands/automod.js';
+import automodCommand from '../../src/plugins/automod/commands/automod.js';
 import { 
     createMockInteraction, 
     createMockUser, 
@@ -17,7 +17,7 @@ vi.mock('../../src/utils/db.js', () => ({
     updateGuildData: vi.fn()
 }));
 
-import { getGuildData, setGuildData, updateGuildData } from '../../src/utils/db.js';
+import { getGuildData, setGuildData } from '../../src/utils/db.js';
 
 describe('Automod Command', () => {
     let mockInteraction;
@@ -302,7 +302,7 @@ describe('Automod Command', () => {
 
             await automodCommand.execute(mockInteraction);
             
-            expect(updateGuildData).not.toHaveBeenCalled();
+            expect(setGuildData).not.toHaveBeenCalled();
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.embeds[0].title).toContain('Invalid Value');
             expect(replyCall.ephemeral).toBe(true);
@@ -315,7 +315,7 @@ describe('Automod Command', () => {
 
             await automodCommand.execute(mockInteraction);
             
-            expect(updateGuildData).not.toHaveBeenCalled();
+            expect(setGuildData).not.toHaveBeenCalled();
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.embeds[0].title).toContain('Invalid Value');
         });
