@@ -96,4 +96,69 @@ describe('EventBus', () => {
       await expect(bus.call('test.err')).rejects.toThrow('oops');
     });
   });
+
+  describe('shared reactive state', () => {
+    it('should provide state with a default value', () => {
+      bus.provideState('counter', 0, 'plugin-a');
+      expect(bus.getState('counter')).toBe(0);
+    });
+
+    it('should update state via setState', () => {
+      bus.provideState('counter', 0, 'plugin-a');
+      bus.setState('counter', 42);
+      expect(bus.getState('counter')).toBe(42);
+    });
+
+    it('should return undefined for non-existent state key', () => {
+      expect(bus.getState('nothing')).toBeUndefined();
+    });
+
+    it('should notify watchers on state change', () => {
+      const changes = [];
+      bus.provideState('key', 1, 'plugin-a');
+      bus.watchState('key', (newVal, oldVal) => changes.push({ newVal, oldVal }), 'plugin-b');
+      bus.setState('key', 2);
+      expect(changes).toEqual([{ newVal: 2, oldVal: 1 }]);
+    });
+
+    it('should notify multiple watchers', () => {
+      const results = [];
+      bus.provideState('key', 0, 'plugin-a');
+      bus.watchState('key', (n) => results.push('b:' + n), 'plugin-b');
+      bus.watchState('key', (n) => results.push('c:' + n), 'plugin-c');
+      bus.setState('key', 99);
+      expect(results).toContain('b:99');
+      expect(results).toContain('c:99');
+    });
+
+    it('should return unsubscribe function from watchState', () => {
+      const changes = [];
+      bus.provideState('key', 0, 'plugin-a');
+      const unsub = bus.watchState('key', (n) => changes.push(n), 'plugin-b');
+      unsub();
+      bus.setState('key', 1);
+      expect(changes).toEqual([]);
+    });
+
+    it('should throw on re-registering an existing state key', () => {
+      bus.provideState('key', 1, 'plugin-a');
+      expect(() => bus.provideState('key', 2, 'plugin-b')).toThrow('already registered');
+    });
+
+    it('should clean up state keys on removeAll', () => {
+      bus.provideState('key', 1, 'plugin-a');
+      bus.watchState('key', () => {}, 'plugin-b');
+      bus.removeAll('plugin-a');
+      expect(bus.getState('key')).toBeUndefined();
+    });
+
+    it('should stop watchers when owning plugin is removed', () => {
+      const changes = [];
+      bus.provideState('key', 0, 'plugin-a');
+      bus.watchState('key', (n) => changes.push(n), 'plugin-b');
+      bus.removeAll('plugin-b');
+      bus.setState('key', 2);
+      expect(changes).toEqual([]);
+    });
+  });
 });
