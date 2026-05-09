@@ -121,7 +121,7 @@ if (RUN_MODE === 'worker') {
     console.log('[INFO] Cross-pod EventBus enabled');
   }
 
-  const cleanup = async () => {
+  let cleanup = async () => {
     console.log('[INFO] Shutting down...');
     stopSpamTrackerCleanup();
     for (const [id] of pluginManager.plugins) {
@@ -144,12 +144,57 @@ if (RUN_MODE === 'worker') {
   process.on('SIGTERM', () => cleanup());
   process.on('SIGINT', () => cleanup());
 
-  console.log('[INFO] Attempting to log in...');
-  client.login(config.DISCORD_TOKEN)
-    .catch((error) => {
-      console.error('[ERROR] Failed to log in:', error);
-      process.exit(1);
+  async function startGateway() {
+    console.log('[INFO] Attempting to log in...');
+    client.login(config.DISCORD_TOKEN)
+      .catch((error) => {
+        console.error('[ERROR] Failed to log in:', error);
+        process.exit(1);
+      });
+  }
+
+  if (config.queue.enabled) {
+    const { Redis } = await import('ioredis');
+    const { tryAcquireLock, releaseLock, startHeartbeat, stopHeartbeat } = await import('./gateway/leader.js');
+
+    const redis = new Redis({
+      host: config.queue.redis.host,
+      port: config.queue.redis.port,
+      password: config.queue.redis.password || undefined,
     });
+
+    const isLeader = await tryAcquireLock(redis, config.podId);
+
+    if (!isLeader) {
+      console.log('[Gateway] Another pod holds the leader lock. Standing by...');
+      const pollInterval = setInterval(async () => {
+        const canTakeOver = await tryAcquireLock(redis, config.podId);
+        if (canTakeOver) {
+          clearInterval(pollInterval);
+          console.log('[Gateway] Taking over as leader!');
+          startHeartbeat(redis, config.podId);
+          startGateway();
+        }
+      }, 5000);
+
+      process.on('SIGTERM', () => { clearInterval(pollInterval); redis.quit(); cleanup(); });
+      process.on('SIGINT', () => { clearInterval(pollInterval); redis.quit(); cleanup(); });
+    } else {
+      console.log('[Gateway] Elected as leader!');
+      startHeartbeat(redis, config.podId);
+      startGateway();
+
+      const origCleanup = cleanup;
+      cleanup = async () => {
+        stopHeartbeat();
+        await releaseLock(redis, config.podId);
+        await redis.quit();
+        await origCleanup();
+      };
+    }
+  } else {
+    startGateway();
+  }
 }
 
 export default client;
