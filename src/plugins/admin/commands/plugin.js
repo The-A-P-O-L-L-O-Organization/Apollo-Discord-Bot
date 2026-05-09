@@ -52,6 +52,50 @@ export default {
                 type: 3,
                 required: true
             }]
+        },
+        {
+            name: 'install',
+            description: 'Download and install a plugin from the registry',
+            type: 1,
+            options: [{
+                name: 'name',
+                description: 'Plugin name from the registry',
+                type: 3,
+                required: true
+            }]
+        },
+        {
+            name: 'uninstall',
+            description: 'Remove an installed plugin',
+            type: 1,
+            options: [{
+                name: 'name',
+                description: 'Plugin name to remove',
+                type: 3,
+                required: true
+            }]
+        },
+        {
+            name: 'search',
+            description: 'Search available plugins in the registry',
+            type: 1,
+            options: [{
+                name: 'query',
+                description: 'Search term',
+                type: 3,
+                required: true
+            }]
+        },
+        {
+            name: 'update',
+            description: 'Re-download and reload an installed plugin',
+            type: 1,
+            options: [{
+                name: 'name',
+                description: 'Plugin name to update',
+                type: 3,
+                required: true
+            }]
         }
     ],
 
@@ -188,6 +232,98 @@ export default {
                             color: 0xFF0000, title: '[ERROR]', description: err.message
                         }],
                         ephemeral: true
+                    });
+                }
+            }
+
+            case 'install': {
+                const name = interaction.options.getString('name');
+                await interaction.deferReply({ ephemeral: true });
+                try {
+                    await manager.installPlugin(name);
+                    return interaction.editReply({
+                        embeds: [{
+                            color: 0x00FF00,
+                            title: '[SUCCESS] Plugin Installed',
+                            description: '**' + name + '** has been downloaded and enabled.',
+                            timestamp: new Date().toISOString()
+                        }]
+                    });
+                } catch (err) {
+                    return interaction.editReply({
+                        embeds: [{
+                            color: 0xFF0000, title: '[ERROR]', description: err.message
+                        }]
+                    });
+                }
+            }
+
+            case 'uninstall': {
+                const name = interaction.options.getString('name');
+                try {
+                    await manager.uninstallPlugin(name);
+                    return interaction.reply({
+                        embeds: [{
+                            color: 0xFFA500,
+                            title: '[SUCCESS] Plugin Uninstalled',
+                            description: '**' + name + '** has been removed.',
+                            timestamp: new Date().toISOString()
+                        }],
+                        ephemeral: true
+                    });
+                } catch (err) {
+                    return interaction.reply({
+                        embeds: [{
+                            color: 0xFF0000, title: '[ERROR]', description: err.message
+                        }],
+                        ephemeral: true
+                    });
+                }
+            }
+
+            case 'search': {
+                const query = interaction.options.getString('query');
+                const { default: PluginRegistry } = await import('../../../core/PluginRegistry.js');
+                const registry = new PluginRegistry(
+                    interaction.client.config.plugins.registryFile || './data/plugin-registry.json'
+                );
+                const results = registry.search(query);
+                return interaction.reply({
+                    embeds: [{
+                        color: 0x00BFFF,
+                        title: 'Plugin Search: "' + query + '"',
+                        description: results.length
+                            ? results.map(r => '**' + r.id + '** v' + r.version + ' — ' + (r.name || r.id)).join('\n')
+                            : 'No plugins found.',
+                        fields: results.length ? [{
+                            name: 'Install',
+                            value: results.map(r => '`/plugin install ' + r.id + '`').join('\n')
+                        }] : [],
+                        timestamp: new Date().toISOString()
+                    }],
+                    ephemeral: true
+                });
+            }
+
+            case 'update': {
+                const name = interaction.options.getString('name');
+                await interaction.deferReply({ ephemeral: true });
+                try {
+                    await manager.uninstallPlugin(name);
+                    await manager.installPlugin(name);
+                    return interaction.editReply({
+                        embeds: [{
+                            color: 0x00FF00,
+                            title: '[SUCCESS] Plugin Updated',
+                            description: '**' + name + '** has been re-downloaded and reloaded.',
+                            timestamp: new Date().toISOString()
+                        }]
+                    });
+                } catch (err) {
+                    return interaction.editReply({
+                        embeds: [{
+                            color: 0xFF0000, title: '[ERROR]', description: err.message
+                        }]
                     });
                 }
             }

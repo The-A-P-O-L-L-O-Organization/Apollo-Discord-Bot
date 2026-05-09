@@ -13,12 +13,17 @@ describe('Plugin management command', () => {
 
   it('should have subcommands', () => {
     const subcommands = pluginCommand.options.filter(o => o.type === 1);
-    expect(subcommands.length).toBeGreaterThanOrEqual(4);
+    expect(subcommands.length).toBeGreaterThanOrEqual(8);
     const names = subcommands.map(s => s.name);
     expect(names).toContain('list');
     expect(names).toContain('enable');
     expect(names).toContain('disable');
     expect(names).toContain('reload');
+    expect(names).toContain('load');
+    expect(names).toContain('install');
+    expect(names).toContain('uninstall');
+    expect(names).toContain('search');
+    expect(names).toContain('update');
   });
 
   it('should restrict to bot owners', async () => {
