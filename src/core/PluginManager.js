@@ -1,4 +1,4 @@
-import { readdirSync, existsSync } from 'fs';
+import { readdirSync, existsSync, rmSync } from 'fs';
 import path from 'path';
 import { pathToFileURL } from 'url';
 import { Routes } from 'discord.js';
@@ -9,6 +9,7 @@ export default class PluginManager {
     this.bus = bus;
     this.plugins = new Map();
     this._pluginRegistry = new Map();
+    this.installedPlugins = new Map();
     this.config = null;
   }
 
@@ -94,6 +95,14 @@ export default class PluginManager {
     await plugin.onLoad();
     plugin._loaded = true;
     this.plugins.set(id, plugin);
+
+    const optionalDir = this.client.config.plugins?.optionalDirectory || './data/plugins';
+    const isOptional = plugin._dir.startsWith(path.join(process.cwd(), optionalDir));
+    this.installedPlugins.set(id, {
+      origin: isOptional ? 'installed' : 'built-in',
+      dir: plugin._dir
+    });
+
     return plugin;
   }
 
@@ -138,6 +147,74 @@ export default class PluginManager {
     this._pluginRegistry.delete(id);
     await this.loadPlugin(id, this.config?.plugins?.directory);
     await this.enablePlugin(id);
+  }
+
+  async installPlugin(id) {
+    if (this.plugins.has(id)) throw new Error(`Plugin ${id} is already loaded`);
+
+    const { default: PluginRegistry } = await import('./PluginRegistry.js');
+    const registry = new PluginRegistry(
+      this.client.config.plugins.registryFile || './data/plugin-registry.json'
+    );
+
+    const entry = registry.get(id);
+    if (!entry) throw new Error(`Plugin ${id} not found in registry`);
+
+    const { downloadAndExtractPlugin, validatePluginDirectory } = await import('./pluginDownloader.js');
+
+    const destDir = path.join(
+      process.cwd(),
+      this.client.config.plugins.optionalDirectory || './data/plugins',
+      id
+    );
+
+    if (existsSync(destDir)) {
+      throw new Error(`Plugin ${id} is already installed at ${destDir}`);
+    }
+
+    console.log(`[PluginManager] Downloading ${id} from ${entry.downloadUrl}...`);
+    await downloadAndExtractPlugin(entry.downloadUrl, destDir);
+
+    const validation = await validatePluginDirectory(destDir);
+    if (!validation.valid) {
+      rmSync(destDir, { recursive: true, force: true });
+      throw new Error(`Invalid plugin ${id}: ${validation.error}`);
+    }
+
+    const enabled = this.client.config.plugins.enabled;
+    if (!enabled.includes(id)) {
+      enabled.push(id);
+    }
+
+    await this.loadPlugin(id, this.client.config.plugins.optionalDirectory || './data/plugins');
+    await this.enablePlugin(id);
+
+    console.log(`[PluginManager] Successfully installed plugin ${id}`);
+  }
+
+  async uninstallPlugin(id) {
+    if (!this.plugins.has(id)) throw new Error(`Plugin ${id} is not loaded`);
+    const info = this.installedPlugins.get(id);
+    if (!info || info.origin !== 'installed') {
+      throw new Error(`Plugin ${id} is a built-in plugin and cannot be uninstalled`);
+    }
+
+    await this.disablePlugin(id);
+    await this.unloadPlugin(id);
+    this._pluginRegistry.delete(id);
+
+    const destDir = info.dir;
+    if (existsSync(destDir)) {
+      rmSync(destDir, { recursive: true, force: true });
+    }
+
+    this.installedPlugins.delete(id);
+
+    const enabled = this.client.config.plugins.enabled;
+    const idx = enabled.indexOf(id);
+    if (idx !== -1) enabled.splice(idx, 1);
+
+    console.log(`[PluginManager] Successfully uninstalled plugin ${id}`);
   }
 
   getPlugin(id) { return this.plugins.get(id) || null; }
