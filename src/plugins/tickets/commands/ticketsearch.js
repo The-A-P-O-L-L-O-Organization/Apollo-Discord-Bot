@@ -3,6 +3,7 @@ import { getGuildData } from '../../../utils/db.js';
 import { formatTime, getPriorityEmoji } from '../../../utils/slaTracker.js';
 
 export default {
+    name: 'ticketsearch',
     data: new SlashCommandBuilder()
         .setName('ticketsearch')
         .setDescription('Search ticket archive')

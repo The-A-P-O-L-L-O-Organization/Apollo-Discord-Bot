@@ -3,6 +3,7 @@ import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
 
 export default {
+    name: 'ticketsetup',
     data: new SlashCommandBuilder()
         .setName('ticketsetup')
         .setDescription('Configure the ticket system')

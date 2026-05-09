@@ -3,6 +3,7 @@ import { getGuildData } from '../../../utils/db.js';
 import { getPriorityEmoji, formatTime, hasBreachedSLA } from '../../../utils/slaTracker.js';
 
 export default {
+    name: 'ticketlist',
     data: new SlashCommandBuilder()
         .setName('ticketlist')
         .setDescription('List open tickets with optional filters')
