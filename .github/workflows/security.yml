@@ -2,9 +2,9 @@ name: Security
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, experimental]
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, experimental]
   schedule:
     - cron: "0 6 * * 1"  # Every Monday at 6 AM UTC
   workflow_dispatch:
@@ -21,7 +21,6 @@ permissions:
 
 env:
   NODE_VERSION: "24"
-  PNPM_VERSION: "9"
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
@@ -32,28 +31,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
+          cache: npm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm ci
 
-      - name: Run pnpm audit
-        run: pnpm audit --audit-level=moderate || true
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate || true
 
       - name: Generate audit report
         run: |
           echo "## Dependency Audit Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          pnpm audit --json > audit.json || true
+          npm audit --json > audit.json || true
           if [ -f audit.json ]; then
             ADVISORIES=$(cat audit.json | jq '.advisories | length // 0')
             echo "**Total advisories:** $ADVISORIES" >> $GITHUB_STEP_SUMMARY
@@ -101,7 +95,7 @@ jobs:
         continue-on-error: true
         with:
           scan-args: |-
-            --lockfile=pnpm-lock.yaml
+            --lockfile=package-lock.json
             --format=sarif
             --output=osv-results.sarif
 
@@ -109,7 +103,6 @@ jobs:
         id: validate
         run: |
           if [ -f "osv-results.sarif" ] && [ -s "osv-results.sarif" ]; then
-            # Check if it's valid JSON and has the required SARIF structure
             if jq -e '.version and .runs' osv-results.sarif > /dev/null 2>&1; then
               echo "valid=true" >> $GITHUB_OUTPUT
               echo "SARIF file is valid"

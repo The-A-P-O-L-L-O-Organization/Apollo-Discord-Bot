@@ -12,18 +12,12 @@ WORKDIR /app
 
 # Set environment variables
 ENV NODE_ENV=production
-ENV PNPM_HOME=/pnpm
-ENV PATH=$PNPM_HOME:$PATH
-
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy package files first for better caching
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* .npmrc* ./
+COPY package.json package-lock.json* ./
 
 # Install dependencies (including native builds)
-RUN pnpm config set enable-pre-post-scripts true && \
-    pnpm install --frozen-lockfile && \
+RUN npm install && \
     cd node_modules/better-sqlite3 && \
     npm run build-release
 
@@ -47,5 +41,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD node -e "process.exit(0)" || exit 1
 
 # Start the bot
-CMD ["pnpm", "start"]
-
+CMD ["npm", "start"]
