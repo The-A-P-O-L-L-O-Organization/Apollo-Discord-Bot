@@ -3,6 +3,7 @@ import { getGuildData } from '../../../utils/db.js';
 import { formatTime, getPriorityColor, getPriorityEmoji } from '../../../utils/slaTracker.js';
 
 export default {
+    name: 'ticketinfo',
     data: new SlashCommandBuilder()
         .setName('ticketinfo')
         .setDescription('View detailed information about the current ticket or a specific ticket')

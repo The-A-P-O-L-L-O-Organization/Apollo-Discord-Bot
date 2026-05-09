@@ -3,6 +3,7 @@ import { getGuildData } from '../../../utils/db.js';
 import { calculateSLAMetrics, formatTime } from '../../../utils/slaTracker.js';
 
 export default {
+    name: 'ticketstats',
     data: new SlashCommandBuilder()
         .setName('ticketstats')
         .setDescription('View comprehensive ticket statistics')
