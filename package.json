@@ -6,6 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node src/index.js",
+    "start:gateway": "RUN_MODE=gateway node src/index.js",
+    "start:worker": "RUN_MODE=worker node src/index.js",
     "dev": "node --watch src/index.js",
     "deploy": "node deploy-commands.js",
     "postinstall": "pnpm rebuild better-sqlite3",

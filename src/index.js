@@ -3,6 +3,10 @@ import { Client, GatewayIntentBits, Collection, Partials } from 'discord.js';
 import { config } from './config/config.js';
 import PluginManager from './core/PluginManager.js';
 import EventBus from './core/EventBus.js';
+import { closeAll as closeQueues } from './queue/queue.js';
+import registerProcessCommand from './queue/jobs/processCommand.js';
+
+const uuid = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
 
 const client = new Client({
     intents: [
@@ -39,8 +43,6 @@ const pluginManager = new PluginManager(client, bus);
 
 client.manager = pluginManager;
 client.bus = bus;
-
-const { trackCommand } = await import('./utils/analyticsCollector.js');
 
 client.once('ready', async () => {
     console.log('[SUCCESS] Bot is online! Logged in as ' + client.user.tag);
@@ -92,35 +94,62 @@ client.on('interactionCreate', async (interaction) => {
     }
 });
 
-const { stopSpamTrackerCleanup } = await import('./utils/automod.js');
+const RUN_MODE = process.env.RUN_MODE || 'gateway';
 
-const cleanup = () => {
+if (RUN_MODE === 'worker') {
+  console.log('[INFO] Starting in WORKER mode');
+  const { startWorker } = await import('./worker.js');
+  await startWorker();
+} else {
+  const { trackCommand } = await import('./utils/analyticsCollector.js');
+  const { stopSpamTrackerCleanup } = await import('./utils/automod.js');
+
+  if (config.queue.enabled) {
+    registerProcessCommand();
+    const { Redis } = await import('ioredis');
+    const pub = new Redis({
+      host: config.queue.redis.host,
+      port: config.queue.redis.port,
+      password: config.queue.redis.password || undefined,
+    });
+    const sub = new Redis({
+      host: config.queue.redis.host,
+      port: config.queue.redis.port,
+      password: config.queue.redis.password || undefined,
+    });
+    bus.enableCrossPod(pub, sub, uuid);
+    console.log('[INFO] Cross-pod EventBus enabled');
+  }
+
+  const cleanup = async () => {
     console.log('[INFO] Shutting down...');
     stopSpamTrackerCleanup();
     for (const [id] of pluginManager.plugins) {
-        pluginManager.disablePlugin(id).catch(() => {});
+      pluginManager.disablePlugin(id).catch(() => {});
     }
-    client.destroy();
+    if (client && client.destroy) client.destroy();
+    await closeQueues();
     process.exit(0);
-};
+  };
 
-process.on('unhandledRejection', (error) => {
+  process.on('unhandledRejection', (error) => {
     console.error('[ERROR] Unhandled promise rejection:', error);
-});
+  });
 
-process.on('uncaughtException', (error) => {
+  process.on('uncaughtException', (error) => {
     console.error('[ERROR] Uncaught exception:', error);
     process.exit(1);
-});
+  });
 
-process.on('SIGTERM', cleanup);
-process.on('SIGINT', cleanup);
+  process.on('SIGTERM', () => cleanup());
+  process.on('SIGINT', () => cleanup());
 
-console.log('[INFO] Attempting to log in...');
-client.login(config.DISCORD_TOKEN)
+  console.log('[INFO] Attempting to log in...');
+  client.login(config.DISCORD_TOKEN)
     .catch((error) => {
-        console.error('[ERROR] Failed to log in:', error);
-        process.exit(1);
+      console.error('[ERROR] Failed to log in:', error);
+      process.exit(1);
     });
+}
 
 export default client;
