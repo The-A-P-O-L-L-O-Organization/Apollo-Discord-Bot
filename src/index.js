@@ -1,20 +1,9 @@
-// Main Entry Point - Discord Bot
-// This file initializes the bot and sets up all event listeners
-
 import 'dotenv/config';
 import { Client, GatewayIntentBits, Collection, Partials } from 'discord.js';
 import { config } from './config/config.js';
-import readyHandler from './events/ready.js';
-import guildMemberAddHandler from './events/guildMemberAdd.js';
-import commandHandler from './handlers/commandHandler.js';
-import eventHandler from './handlers/eventHandler.js';
-import { initReminderScheduler, stopReminderScheduler } from './utils/reminderScheduler.js';
-import { initPollScheduler, stopPollScheduler } from './utils/pollScheduler.js';
-import { stopSpamTrackerCleanup } from './utils/automod.js';
-import { initAnalyticsCollector, stopAnalyticsCollector, trackCommand } from './utils/analyticsCollector.js';
-import { initTempRolesScheduler, stopTempRolesScheduler } from './utils/tempRolesScheduler.js';
+import PluginManager from './core/PluginManager.js';
+import EventBus from './core/EventBus.js';
 
-// Create a new Client instance with required intents
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -27,7 +16,6 @@ const client = new Client({
         GatewayIntentBits.DirectMessages,
         GatewayIntentBits.GuildModeration
     ],
-    // Enable partials for better event handling
     partials: [
         Partials.Channel,
         Partials.GuildMember,
@@ -37,91 +25,61 @@ const client = new Client({
     ]
 });
 
-// Store commands and other data in client for easy access
 client.commands = new Collection();
 client.config = config;
 
-// Track bot statistics
 client.stats = {
     commandsRan: 0,
     messagesProcessed: 0,
     startTime: Date.now()
 };
 
-// Event: Bot is ready and logged in
-client.once('clientReady', async() => {
-    console.log('Bot is ready, loading commands and events...');
-    await readyHandler(client);
-    await commandHandler(client);
-    await eventHandler(client);
-    
-    // Initialize reminder scheduler
-    initReminderScheduler(client);
-    
-    // Initialize poll scheduler
-    initPollScheduler(client);
-    
-    // Initialize analytics collector
-    initAnalyticsCollector(client);
-    
-    // Initialize temporary roles scheduler
-    initTempRolesScheduler(client);
-    
+const bus = new EventBus();
+const pluginManager = new PluginManager(client, bus);
+
+client.manager = pluginManager;
+client.bus = bus;
+
+const { trackCommand } = await import('./utils/analyticsCollector.js');
+
+client.once('ready', async () => {
+    console.log('[SUCCESS] Bot is online! Logged in as ' + client.user.tag);
+    console.log('[INFO] Bot ID: ' + client.user.id);
+    console.log('[INFO] Serving ' + client.guilds.cache.size + ' server(s)');
+
+    client.user.setActivity({ name: 'for new members join', type: 5 });
+
+    console.log('[INFO] Loading plugins...');
+    await pluginManager.loadAll(config);
     console.log('[SUCCESS] Bot fully initialized!');
 });
 
-// Event: New member joins the server
-client.on('guildMemberAdd', (member) => guildMemberAddHandler(member));
+client.on('interactionCreate', async (interaction) => {
+    if (!interaction.isChatInputCommand()) return;
 
-// Event: Handle slash commands
-client.on('interactionCreate', async(interaction) => {
-    // Handle button interactions
-    if (interaction.isButton()) {
-        // Button handling will be added by specific features
-        return;
-    }
-    
-    // Check if the interaction is a command
-    if (!interaction.isChatInputCommand()) {return;}
-    
-    // Get the command
     const command = client.commands.get(interaction.commandName);
-    
-    // Check if command exists
     if (!command) {
-        console.log(`[ERROR] Command not found: /${interaction.commandName}`);
+        console.log('[ERROR] Command not found: /' + interaction.commandName);
         return;
     }
-    
+
     try {
-        // Execute the command
         await command.execute(interaction);
-        
-        // Track command usage
         client.stats.commandsRan++;
-        
-        // Track command for analytics
         if (interaction.guild) {
             trackCommand(interaction.guild.id, interaction.commandName, interaction.user.id);
         }
     } catch (error) {
-        console.error(`[ERROR] Error executing /${interaction.commandName}:`, error);
-        
-        // Send error message to user
+        console.error('[ERROR] Error executing /' + interaction.commandName + ':', error);
+
         const errorEmbed = {
             color: 0xFF0000,
             title: 'Error',
             description: 'An error occurred while executing this command.',
-            fields: [
-                {
-                    name: 'Error',
-                    value: error.message || 'Unknown error'
-                }
-            ],
+            fields: [{ name: 'Error', value: error.message || 'Unknown error' }],
             timestamp: new Date().toISOString()
         };
-        
-        // Check if reply has already been sent
+
         try {
             if (interaction.deferred || interaction.replied) {
                 await interaction.editReply({ embeds: [errorEmbed] });
@@ -134,41 +92,30 @@ client.on('interactionCreate', async(interaction) => {
     }
 });
 
-// Error handling for unhandled promise rejections
+const { stopSpamTrackerCleanup } = await import('./utils/automod.js');
+
+const cleanup = () => {
+    console.log('[INFO] Shutting down...');
+    stopSpamTrackerCleanup();
+    for (const [id] of pluginManager.plugins) {
+        pluginManager.disablePlugin(id).catch(() => {});
+    }
+    client.destroy();
+    process.exit(0);
+};
+
 process.on('unhandledRejection', (error) => {
     console.error('[ERROR] Unhandled promise rejection:', error);
 });
 
-// Error handling for uncaught exceptions
 process.on('uncaughtException', (error) => {
     console.error('[ERROR] Uncaught exception:', error);
     process.exit(1);
 });
 
-// Graceful shutdown handlers
-process.on('SIGTERM', () => {
-    console.log('[INFO] Received SIGTERM, shutting down gracefully...');
-    stopSpamTrackerCleanup();
-    stopReminderScheduler();
-    stopPollScheduler();
-    stopAnalyticsCollector();
-    stopTempRolesScheduler();
-    client.destroy();
-    process.exit(0);
-});
+process.on('SIGTERM', cleanup);
+process.on('SIGINT', cleanup);
 
-process.on('SIGINT', () => {
-    console.log('[INFO] Received SIGINT, shutting down gracefully...');
-    stopSpamTrackerCleanup();
-    stopReminderScheduler();
-    stopPollScheduler();
-    stopAnalyticsCollector();
-    stopTempRolesScheduler();
-    client.destroy();
-    process.exit(0);
-});
-
-// Login to Discord with the bot token
 console.log('[INFO] Attempting to log in...');
 client.login(config.DISCORD_TOKEN)
     .catch((error) => {
