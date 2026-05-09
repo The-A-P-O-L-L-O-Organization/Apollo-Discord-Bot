@@ -18,6 +18,7 @@ permissions:
 
 env:
   NODE_VERSION: "24"
+  PNPM_VERSION: "9"
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
@@ -30,15 +31,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
+          cache: pnpm
 
       - name: Generate cache key
         id: cache-key
-        run: echo "key=${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}" >> $GITHUB_OUTPUT
+        run: echo "key=${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}" >> $GITHUB_OUTPUT
 
       - name: Restore dependencies cache
         id: cache-restore
@@ -47,13 +53,14 @@ jobs:
           path: |
             node_modules
             **/node_modules
+            ~/.pnpm-store
           key: ${{ steps.cache-key.outputs.key }}
           restore-keys: |
-            ${{ runner.os }}-npm-
+            ${{ runner.os }}-pnpm-
 
       - name: Install dependencies
         if: steps.cache-restore.outputs.cache-hit != 'true'
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Save dependencies cache
         if: steps.cache-restore.outputs.cache-hit != 'true'
@@ -62,6 +69,7 @@ jobs:
           path: |
             node_modules
             **/node_modules
+            ~/.pnpm-store
           key: ${{ steps.cache-key.outputs.key }}
 
   lint:
@@ -72,6 +80,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -83,10 +96,11 @@ jobs:
           path: |
             node_modules
             **/node_modules
+            ~/.pnpm-store
           key: ${{ needs.setup.outputs.cache-key }}
 
-      - name: Run lint
-        run: npm run lint || echo "No lint script configured"
+      - name: Run pnpm lint
+        run: pnpm lint || echo "No lint script configured"
         continue-on-error: true
 
   test:
@@ -97,6 +111,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -108,13 +127,14 @@ jobs:
           path: |
             node_modules
             **/node_modules
+            ~/.pnpm-store
           key: ${{ needs.setup.outputs.cache-key }}
 
       - name: Run tests
-        run: npm test
+        run: pnpm test
 
       - name: Generate coverage report
-        run: npm run test:coverage
+        run: pnpm test:coverage
         continue-on-error: true
 
       - name: Upload coverage to Codecov
@@ -143,6 +163,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -154,10 +179,11 @@ jobs:
           path: |
             node_modules
             **/node_modules
+            ~/.pnpm-store
           key: ${{ needs.setup.outputs.cache-key }}
 
       - name: Run security audit
-        run: npm audit --audit-level=high
+        run: pnpm audit --audit-level=high
         continue-on-error: true
 
   ci-success:
