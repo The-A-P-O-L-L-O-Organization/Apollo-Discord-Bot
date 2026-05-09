@@ -2,7 +2,7 @@
 // Create and manage giveaways
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
-import { updateGuildData } from '../utils/db.js';
+import { updateGuildData } from '../../../utils/db.js';
 
 export default {
     name: 'giveaway',
@@ -242,6 +242,6 @@ function parseDuration(str) {
 }
 
 function getGuildData(store, guildId) {
-    const { getGuildData } = require('../utils/db.js');
+    const { getGuildData } = require('../../../utils/db.js');
     return getGuildData(store, guildId);
 }

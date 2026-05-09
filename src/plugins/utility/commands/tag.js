@@ -2,7 +2,7 @@
 // Create and manage custom text commands
 
 import { PermissionsBitField } from 'discord.js';
-import { setGuildData, getGuildData } from '../utils/db.js';
+import { setGuildData, getGuildData } from '../../../utils/db.js';
 
 export default {
     name: 'tag',

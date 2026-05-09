@@ -7,6 +7,7 @@ export default {
     data: new SlashCommandBuilder()
         .setName('stats')
         .setDescription('Display bot statistics'),
+    name: 'stats',
     category: 'utility',
 
     async execute(interaction) {

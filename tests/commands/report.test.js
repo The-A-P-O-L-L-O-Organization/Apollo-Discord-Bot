@@ -19,7 +19,7 @@ vi.mock('../../src/utils/logger.js', () => ({
 
 import { updateGuildData, generateId } from '../../src/utils/db.js';
 import { getLoggingConfig } from '../../src/utils/logger.js';
-import reportCommand from '../../src/commands/report.js';
+import reportCommand from '../../src/plugins/utility/commands/report.js';
 import { handleReportSubmission } from '../../src/utils/reportHandler.js';
 
 describe('Report Command', () => {

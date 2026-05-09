@@ -3,8 +3,8 @@
 
 import { ContextMenuCommandBuilder } from '@discordjs/builders';
 import { ApplicationCommandType } from 'discord.js';
-import { setGuildData, updateGuildData, generateId } from '../utils/db.js';
-import { sendModLog } from '../utils/modLog.js';
+import { setGuildData, updateGuildData, generateId } from '../../../utils/db.js';
+import { sendModLog } from '../../../utils/modLog.js';
 
 export default {
     data: new ContextMenuCommandBuilder()

@@ -7,6 +7,7 @@ export default {
     data: new SlashCommandBuilder()
         .setName('serverinfo')
         .setDescription('Display information about the server'),
+    name: 'serverinfo',
     category: 'utility',
 
     async execute(interaction) {

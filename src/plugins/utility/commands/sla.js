@@ -2,8 +2,8 @@
 // Displays SLA metrics and response time statistics
 
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { calculateSLAMetrics, formatTime, DEFAULT_SLA_THRESHOLDS } from '../utils/slaTracker.js';
-import { getGuildData } from '../utils/db.js';
+import { calculateSLAMetrics, formatTime, DEFAULT_SLA_THRESHOLDS } from '../../../utils/slaTracker.js';
+import { getGuildData } from '../../../utils/db.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -11,6 +11,7 @@ export default {
         .setDescription('View SLA metrics and response time statistics')
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
         .setDMPermission(false),
+    name: 'sla',
     category: 'utility',
 
     async execute(interaction) {

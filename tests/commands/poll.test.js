@@ -2,7 +2,7 @@
 // Tests for the poll command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import pollCommand from '../../src/commands/poll.js';
+import pollCommand from '../../src/plugins/utility/commands/poll.js';
 import { 
     createMockInteraction, 
     createMockUser,

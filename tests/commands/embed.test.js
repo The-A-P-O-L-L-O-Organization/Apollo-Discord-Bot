@@ -2,7 +2,7 @@
 // Tests for the embed command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import embedCommand from '../../src/commands/embed.js';
+import embedCommand from '../../src/plugins/utility/commands/embed.js';
 import { 
     createMockInteraction, 
     createMockUser,

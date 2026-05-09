@@ -2,7 +2,7 @@
 // Schedule announcements to be sent later
 
 import { PermissionsBitField } from 'discord.js';
-import { getGuildData, setGuildData } from '../utils/db.js';
+import { getGuildData, setGuildData } from '../../../utils/db.js';
 
 export default {
     name: 'announcement',
