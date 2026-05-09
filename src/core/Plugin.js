@@ -20,7 +20,7 @@ export default class Plugin {
 
   static get id() {
     if (this === Plugin) throw new Error('Plugin subclasses must override static id');
-    return 'unnamed';
+    throw new Error(`Plugin class "${this.name}" must override static get id()`);
   }
 
   static get dependencies() { return []; }
@@ -41,12 +41,18 @@ export default class Plugin {
     catch { return; }
 
     for (const file of files) {
-      const filePath = path.join(cmdDir, file);
-      const url = pathToFileURL(filePath).href + '?t=' + Date.now();
-      const mod = await import(url);
-      if (mod.default && mod.default.name) {
-        this.commands.set(mod.default.name, mod.default);
-        this.client.commands.set(mod.default.name, mod.default);
+      try {
+        const filePath = path.join(cmdDir, file);
+        const url = pathToFileURL(filePath).href + '?t=' + Date.now();
+        const mod = await import(url);
+        if (mod.default && mod.default.name) {
+          this.commands.set(mod.default.name, mod.default);
+          if (this.client.commands) {
+            this.client.commands.set(mod.default.name, mod.default);
+          }
+        }
+      } catch (err) {
+        console.error(`[Plugin] Failed to load command ${file}:`, err.message);
       }
     }
   }
@@ -66,15 +72,19 @@ export default class Plugin {
     catch { return; }
 
     for (const file of files) {
-      const filePath = path.join(evtDir, file);
-      const url = pathToFileURL(filePath).href + '?t=' + Date.now();
-      const mod = await import(url);
-      if (!mod.default || !mod.default.name || !mod.default.execute) continue;
+      try {
+        const filePath = path.join(evtDir, file);
+        const url = pathToFileURL(filePath).href + '?t=' + Date.now();
+        const mod = await import(url);
+        if (!mod.default || !mod.default.name || !mod.default.execute) continue;
 
-      const { name, once, execute } = mod.default;
-      const handler = (...args) => execute(...args, this.client);
-      this.client[once ? 'once' : 'on'](name, handler);
-      this.eventHandlers.push({ name, handler, once });
+        const { name, once, execute } = mod.default;
+        const handler = (...args) => execute(...args, this.client);
+        this.client[once ? 'once' : 'on'](name, handler);
+        this.eventHandlers.push({ name, handler, once });
+      } catch (err) {
+        console.error(`[Plugin] Failed to load event ${file}:`, err.message);
+      }
     }
   }
 
