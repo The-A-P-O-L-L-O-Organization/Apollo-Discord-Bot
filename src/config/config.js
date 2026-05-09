@@ -150,5 +150,18 @@ export const config = {
         directory: './src/plugins',
         optionalDirectory: './data/plugins',
         registryFile: './data/plugin-registry.json'
-    }
+    },
+
+    // Database Configuration
+    database: {
+        // Set to 'postgres' or 'sqlite'
+        type: process.env.DB_TYPE || 'sqlite',
+        postgres: {
+            connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/apollo',
+            pool: {
+                min: parseInt(process.env.DB_POOL_MIN || '2', 10),
+                max: parseInt(process.env.DB_POOL_MAX || '10', 10)
+            }
+        }
+    },
 };
