@@ -62,6 +62,7 @@ export default {
                 .setRequired(false)
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+    name: 'embed',
     category: 'utility',
 
     async execute(interaction) {

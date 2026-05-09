@@ -1,7 +1,7 @@
 // Leaderboard Command
 // Show the top users by level/XP
 
-import { getAllUserData } from '../utils/db.js';
+import { getAllUserData } from '../../../utils/db.js';
 
 export default {
     name: 'leaderboard',

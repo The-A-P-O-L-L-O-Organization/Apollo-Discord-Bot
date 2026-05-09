@@ -2,7 +2,7 @@
 // View your current level and experience points
 
 import { PermissionsBitField } from 'discord.js';
-import { getUserData } from '../utils/db.js';
+import { getUserData } from '../../../utils/db.js';
 
 export default {
     name: 'level',

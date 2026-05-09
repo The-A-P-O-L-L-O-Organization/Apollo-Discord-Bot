@@ -52,7 +52,7 @@ import { exportAnalytics, getAnalyticsSummary } from '../../src/utils/exportAnal
 import { getGuildData, getUserData } from '../../src/utils/db.js';
 import { readFileSync } from 'fs';
 
-import analyticsCommand from '../../src/commands/analytics.js';
+import analyticsCommand from '../../src/plugins/utility/commands/analytics.js';
 
 describe('Analytics Command', () => {
     let interaction;

@@ -2,7 +2,7 @@
 // Allows users to cancel a specific reminder
 
 import { SlashCommandBuilder } from 'discord.js';
-import { cancelReminder, getUserReminders } from '../utils/reminderScheduler.js';
+import { cancelReminder, getUserReminders } from '../../../utils/reminderScheduler.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -14,6 +14,7 @@ export default {
                 .setDescription('The reminder ID (use /reminders to see your reminder IDs)')
                 .setRequired(true)
         ),
+    name: 'cancelreminder',
     category: 'utility',
 
     async execute(interaction) {

@@ -2,7 +2,7 @@
 // Tests for the cancel reminder command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import cancelReminderCommand from '../../src/commands/cancelreminder.js';
+import cancelReminderCommand from '../../src/plugins/utility/commands/cancelreminder.js';
 import { createMockInteraction, createMockUser } from '../mocks/discord.js';
 
 // Mock the reminderScheduler module
