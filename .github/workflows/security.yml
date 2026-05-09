@@ -21,7 +21,7 @@ permissions:
 
 env:
   NODE_VERSION: "26"
-  PNPM_VERSION: "9"
+  PNPM_VERSION: "11"
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE26: true
 
 jobs:
