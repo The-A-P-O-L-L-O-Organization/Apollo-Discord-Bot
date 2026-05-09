@@ -16,12 +16,15 @@ export default class EventBus {
   }
 
   once(event, handler, pluginId) {
-    const wrapped = (payload) => {
-      handler(payload);
-      const set = this._handlers.get(event);
-      if (set) {
-        for (const entry of set) {
-          if (entry.handler === wrapped) { set.delete(entry); break; }
+    const wrapped = async (payload) => {
+      try {
+        await handler(payload);
+      } finally {
+        const set = this._handlers.get(event);
+        if (set) {
+          for (const entry of set) {
+            if (entry.handler === wrapped) { set.delete(entry); break; }
+          }
         }
       }
     };
