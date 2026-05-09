@@ -8,7 +8,7 @@
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "deploy": "node deploy-commands.js",
-    "postinstall": "pnpm rebuild better-sqlite3",
+    "postinstall": "npm rebuild better-sqlite3",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -29,17 +29,12 @@
     "dotenv": "^17.4.2",
     "nsfwjs": "^4.3.0"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "better-sqlite3"
-    ],
-    "overrides": {
-      "glob": "11.1.0",
-      "cross-spawn": "7.0.5",
-      "axios": "^1.9.0",
-      "tar": "^7.5.11",
-      "vite": "^8.0.10"
-    }
+  "overrides": {
+    "glob": "11.1.0",
+    "cross-spawn": "7.0.5",
+    "axios": "^1.9.0",
+    "tar": "^7.5.11",
+    "vite": "^8.0.10"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

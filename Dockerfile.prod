@@ -10,21 +10,13 @@ RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
 
-# Set environment variables for pnpm
-ENV PNPM_HOME=/pnpm
-ENV PATH=$PNPM_HOME:$PATH
-
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
 # Copy package files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
+COPY package.json package-lock.json* ./
 
 # Install dependencies
-RUN pnpm config set enable-pre-post-scripts true && \
-    pnpm install --frozen-lockfile && \
+RUN npm install && \
     cd node_modules/better-sqlite3 && \
-    pnpm run build-release
+    npm run build-release
 
 # Copy source code
 COPY src ./src
@@ -40,16 +32,9 @@ WORKDIR /app
 
 # Set environment variables
 ENV NODE_ENV=production
-ENV PNPM_HOME=/pnpm
-ENV PATH=$PNPM_HOME:$PATH
-
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
-# Copy package files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
 
 # Copy from builder stage
+COPY --from=builder /app/package.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/deploy-commands.js ./
@@ -67,5 +52,4 @@ USER nodejs
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD node -e "process.exit(0)" || exit 1
 
-CMD ["pnpm", "start"]
-
+CMD ["npm", "start"]
