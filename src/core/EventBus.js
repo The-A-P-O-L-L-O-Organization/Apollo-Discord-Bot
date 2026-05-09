@@ -3,6 +3,7 @@ export default class EventBus {
     this._handlers = new Map();
     this._apis = new Map();
     this._apiOwners = new Map();
+    this._state = new Map();
   }
 
   on(event, handler, pluginId) {
@@ -61,6 +62,40 @@ export default class EventBus {
     return fn(...args);
   }
 
+  provideState(key, defaultValue, pluginId) {
+    if (this._state.has(key)) {
+      throw new Error(`State key "${key}" is already registered`);
+    }
+    this._state.set(key, { value: defaultValue, watchers: new Set(), owner: pluginId });
+  }
+
+  getState(key) {
+    const entry = this._state.get(key);
+    return entry ? entry.value : undefined;
+  }
+
+  setState(key, value) {
+    const entry = this._state.get(key);
+    if (!entry) throw new Error(`Unknown state key: "${key}"`);
+    const oldValue = entry.value;
+    entry.value = value;
+    for (const w of entry.watchers) {
+      try {
+        w.fn(value, oldValue);
+      } catch (err) {
+        console.error(`[EventBus] Error in state watcher for "${key}":`, err);
+      }
+    }
+  }
+
+  watchState(key, fn, pluginId) {
+    const entry = this._state.get(key);
+    if (!entry) throw new Error(`Unknown state key: "${key}"`);
+    const watcher = { fn, pluginId };
+    entry.watchers.add(watcher);
+    return () => { entry.watchers.delete(watcher); };
+  }
+
   removeAll(pluginId) {
     for (const [, set] of this._handlers) {
       for (const entry of set) {
@@ -71,6 +106,15 @@ export default class EventBus {
       if (pid === pluginId) {
         this._apis.delete(ns);
         this._apiOwners.delete(ns);
+      }
+    }
+    for (const [key, entry] of this._state) {
+      if (entry.owner === pluginId) {
+        this._state.delete(key);
+      } else {
+        for (const w of entry.watchers) {
+          if (w.pluginId === pluginId) entry.watchers.delete(w);
+        }
       }
     }
   }
