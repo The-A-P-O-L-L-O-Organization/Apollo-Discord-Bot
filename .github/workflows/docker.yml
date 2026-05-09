@@ -60,8 +60,8 @@ jobs:
         with:
           images: ${{ steps.image.outputs.name }}
           tags: |
-            type=raw,value=latest,enable={{ is_default_branch }}
-            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.ref_name == 'main' }}
+            type=raw,value=experimental,enable=${{ github.ref_name == 'experimental' }}
             type=ref,event=pr
             type=sha,prefix=sha-
             type=semver,pattern={{version}}
