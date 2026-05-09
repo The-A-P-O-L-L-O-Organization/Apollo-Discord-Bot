@@ -2,6 +2,7 @@ import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.
 import { getGuildData } from '../../../utils/db.js';
 
 export default {
+    name: 'ticketratings',
     data: new SlashCommandBuilder()
         .setName('ticketratings')
         .setDescription('View ticket rating statistics')

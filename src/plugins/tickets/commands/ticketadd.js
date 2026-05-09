@@ -2,6 +2,7 @@ import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 
 export default {
+    name: 'ticketadd',
     data: new SlashCommandBuilder()
         .setName('ticketadd')
         .setDescription('Add a user to the current ticket')

@@ -2,6 +2,7 @@ import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.
 import { getGuildData, setGuildData, writeToSubDir } from '../../../utils/db.js';
 
 export default {
+    name: 'closeticket',
     data: new SlashCommandBuilder()
         .setName('closeticket')
         .setDescription('Close the current ticket')

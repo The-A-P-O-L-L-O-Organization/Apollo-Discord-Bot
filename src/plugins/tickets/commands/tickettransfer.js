@@ -2,6 +2,7 @@ import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 
 export default {
+    name: 'tickettransfer',
     data: new SlashCommandBuilder()
         .setName('tickettransfer')
         .setDescription('Transfer the current ticket to another staff member')

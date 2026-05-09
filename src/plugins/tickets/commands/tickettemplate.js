@@ -2,6 +2,7 @@ import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.
 import { getGuildData, setGuildData, generateId } from '../../../utils/db.js';
 
 export default {
+    name: 'tickettemplate',
     data: new SlashCommandBuilder()
         .setName('tickettemplate')
         .setDescription('Manage ticket templates')

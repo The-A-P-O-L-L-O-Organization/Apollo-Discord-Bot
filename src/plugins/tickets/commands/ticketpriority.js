@@ -3,6 +3,7 @@ import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { getPriorityColor, getPriorityEmoji } from '../../../utils/slaTracker.js';
 
 export default {
+    name: 'ticketpriority',
     data: new SlashCommandBuilder()
         .setName('ticketpriority')
         .setDescription('Change the priority of the current ticket')
