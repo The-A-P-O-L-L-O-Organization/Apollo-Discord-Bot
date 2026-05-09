@@ -2,7 +2,7 @@
 // Tests for the joke command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import jokeCommand from '../../src/commands/joke.js';
+import jokeCommand from '../../src/plugins/utility/commands/joke.js';
 import { createMockInteraction, createMockUser } from '../mocks/discord.js';
 
 describe('Joke Command', () => {

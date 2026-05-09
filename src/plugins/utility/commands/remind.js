@@ -1,8 +1,8 @@
 // Remind Command
 // Allows users to set reminders
 
-import { addReminder, parseTimeString } from '../utils/reminderScheduler.js';
-import { config } from '../config/config.js';
+import { addReminder, parseTimeString } from '../../../utils/reminderScheduler.js';
+import { config } from '../../../config/config.js';
 
 export default {
     name: 'remind',

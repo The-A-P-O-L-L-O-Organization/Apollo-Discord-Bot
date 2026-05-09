@@ -2,7 +2,7 @@
 // Tests for the reminders list command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import remindersCommand from '../../src/commands/reminders.js';
+import remindersCommand from '../../src/plugins/utility/commands/reminders.js';
 import { createMockInteraction, createMockUser } from '../mocks/discord.js';
 
 // Mock the reminderScheduler module

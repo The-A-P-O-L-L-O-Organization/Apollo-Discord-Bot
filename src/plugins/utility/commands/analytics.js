@@ -13,19 +13,19 @@ import {
     getViolationStats,
     getModActionStats,
     getMemberGrowthStats
-} from '../utils/analyticsCollector.js';
+} from '../../../utils/analyticsCollector.js';
 import {
     createBarChart,
     createSparkline,
     formatDuration,
     formatNumber
-} from '../utils/charts.js';
+} from '../../../utils/charts.js';
 import {
     exportAnalytics,
     cleanupExport,
     getAnalyticsSummary
-} from '../utils/exportAnalytics.js';
-import { getGuildData, getUserData } from '../utils/db.js';
+} from '../../../utils/exportAnalytics.js';
+import { getGuildData, getUserData } from '../../../utils/db.js';
 import { readFileSync } from 'fs';
 
 export default {
@@ -128,6 +128,7 @@ export default {
                         .setRequired(false)
                 )
         ),
+    name: 'analytics',
     category: 'analytics',
 
     async execute(interaction) {

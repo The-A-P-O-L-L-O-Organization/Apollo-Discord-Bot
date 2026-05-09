@@ -2,7 +2,7 @@
 // Tests for the help command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import helpCommand from '../../src/commands/help.js';
+import helpCommand from '../../src/plugins/utility/commands/help.js';
 import {
     createMockInteraction,
     createMockUser,

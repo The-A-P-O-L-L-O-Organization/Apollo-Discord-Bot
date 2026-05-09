@@ -2,12 +2,13 @@
 // Lists all active reminders for a user
 
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { getUserReminders } from '../utils/reminderScheduler.js';
+import { getUserReminders } from '../../../utils/reminderScheduler.js';
 
 export default {
     data: new SlashCommandBuilder()
         .setName('reminders')
         .setDescription('List your active reminders'),
+    name: 'reminders',
     category: 'utility',
 
     async execute(interaction) {
