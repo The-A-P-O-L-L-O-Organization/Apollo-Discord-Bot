@@ -21,11 +21,9 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 # Copy package files first for better caching
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* .npmrc* ./
 
-# Install dependencies (including native builds)
+# Install dependencies (postinstall rebuilds better-sqlite3)
 RUN pnpm config set enable-pre-post-scripts true && \
-    pnpm install --frozen-lockfile && \
-    cd node_modules/better-sqlite3 && \
-    npm run build-release
+    pnpm install --frozen-lockfile
 
 # Copy application source code
 COPY src ./src
