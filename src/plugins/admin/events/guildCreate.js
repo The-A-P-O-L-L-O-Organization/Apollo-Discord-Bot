@@ -2,8 +2,8 @@
 // Triggered when the bot joins a new server
 // Initializes default settings for the guild
 
-import { setGuildData } from '../utils/db.js';
-import { config } from '../config/config.js';
+import { setGuildData } from '../../../utils/db.js';
+import { config } from '../../../config/config.js';
 
 export default {
     name: 'guildCreate',
