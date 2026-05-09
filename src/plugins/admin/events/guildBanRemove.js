@@ -1,14 +1,10 @@
-// Guild Ban Remove Event
-// Triggered when a user is unbanned from a guild (manual or bot-initiated)
-
-import { logEvent } from '../utils/logger.js';
+import { logEvent } from '../../../utils/logger.js';
 
 export default {
     name: 'guildBanRemove',
     once: false,
     async execute(ban, client) {
         try {
-            // Fetch the ban to get the user
             const guild = ban.guild;
             const user = ban.user;
             
@@ -17,12 +13,11 @@ export default {
                 return;
             }
             
-            // Try to fetch audit log to get who unbanned the user
             let executor = null;
             
             try {
                 const auditLogs = await guild.fetchAuditLogs({
-                    type: 23, // MEMBER_BAN_REMOVE
+                    type: 23,
                     limit: 1
                 });
                 
@@ -34,9 +29,8 @@ export default {
                 console.log('[INFO] Could not fetch audit log for unban:', auditError.message);
             }
             
-            // Create embed for logging
             const embed = {
-                color: 0x00FF00, // Green
+                color: 0x00FF00,
                 title: '[MODERATION] Member Unbanned',
                 description: `${user.tag} was unbanned from the server.`,
                 fields: [
@@ -57,7 +51,6 @@ export default {
                 timestamp: new Date().toISOString()
             };
             
-            // Log the unban event
             await logEvent(guild, 'unban', embed);
             
             console.log(`[MODERATION] User ${user.tag} was unbanned from ${guild.name}`);
