@@ -165,6 +165,9 @@ export const config = {
         }
     },
 
+    // Instance identity (for leader election)
+    podId: process.env.POD_ID || process.env.HOSTNAME || 'default',
+
     // Queue Configuration
     queue: {
         enabled: process.env.QUEUE_ENABLED === 'true',
