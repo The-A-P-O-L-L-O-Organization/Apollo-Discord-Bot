@@ -1,6 +1,8 @@
 export default class EventBus {
   constructor() {
     this._handlers = new Map();
+    this._apis = new Map();
+    this._apiOwners = new Map();
   }
 
   on(event, handler, pluginId) {
@@ -45,10 +47,30 @@ export default class EventBus {
     }
   }
 
+  provide(namespace, fn, pluginId) {
+    if (this._apis.has(namespace)) {
+      throw new Error(`API "${namespace}" is already registered`);
+    }
+    this._apis.set(namespace, fn);
+    this._apiOwners.set(namespace, pluginId);
+  }
+
+  async call(namespace, ...args) {
+    const fn = this._apis.get(namespace);
+    if (!fn) throw new Error(`Unknown API: "${namespace}"`);
+    return fn(...args);
+  }
+
   removeAll(pluginId) {
     for (const [, set] of this._handlers) {
       for (const entry of set) {
         if (entry.pluginId === pluginId) set.delete(entry);
+      }
+    }
+    for (const [ns, pid] of this._apiOwners) {
+      if (pid === pluginId) {
+        this._apis.delete(ns);
+        this._apiOwners.delete(ns);
       }
     }
   }
