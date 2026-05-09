@@ -164,4 +164,16 @@ export const config = {
             }
         }
     },
+
+    // Queue Configuration
+    queue: {
+        enabled: process.env.QUEUE_ENABLED === 'true',
+        redis: {
+            host: process.env.REDIS_HOST || 'localhost',
+            port: parseInt(process.env.REDIS_PORT || '6379', 10),
+            password: process.env.REDIS_PASSWORD || undefined,
+        },
+        prefix: process.env.QUEUE_PREFIX || 'apollo',
+        stalledInterval: parseInt(process.env.QUEUE_STALLED_INTERVAL || '30000', 10),
+    },
 };
