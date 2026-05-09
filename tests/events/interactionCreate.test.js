@@ -2,7 +2,7 @@
 // Tests for the interactionCreate event handler (ticket system buttons)
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import interactionCreateEvent from '../../src/events/interactionCreate.js';
+import interactionCreateEvent from '../../src/plugins/tickets/events/interactionCreate.js';
 import {
     createMockUser,
     createMockGuild,

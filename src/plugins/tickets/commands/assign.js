@@ -1,10 +1,8 @@
-// Assign Command
-// Allows staff to assign tickets to specific support members
-
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { getGuildData, setGuildData } from '../utils/db.js';
+import { getGuildData, setGuildData } from '../../../utils/db.js';
 
 export default {
+    name: 'assign',
     data: new SlashCommandBuilder()
         .setName('assign')
         .setDescription('Assign the current ticket to a staff member')
@@ -22,10 +20,8 @@ export default {
         const channelId = interaction.channel.id;
         const assignUser = interaction.options.getUser('user');
 
-        // Get ticket configuration
         const ticketConfig = getGuildData('tickets', guildId);
 
-        // Find the ticket
         const ticket = ticketConfig.openTickets?.find(t => t.channelId === channelId);
 
         if (!ticket) {
@@ -35,7 +31,6 @@ export default {
             });
         }
 
-        // Check permissions - support role or admin only
         const member = interaction.member;
         const hasSupport = ticketConfig.supportRoleId && member.roles.cache.has(ticketConfig.supportRoleId);
         const isAdmin = member.permissions.has(PermissionFlagsBits.Administrator);
@@ -47,7 +42,6 @@ export default {
             });
         }
 
-        // Check if user is already assigned
         if (!ticket.assignedTo) {ticket.assignedTo = [];}
         
         if (ticket.assignedTo.includes(assignUser.id)) {
@@ -57,10 +51,8 @@ export default {
             });
         }
 
-        // Assign the user
         ticket.assignedTo.push(assignUser.id);
 
-        // Update participants
         if (!ticket.participants) {ticket.participants = [ticket.userId];}
         if (!ticket.participants.includes(assignUser.id)) {
             ticket.participants.push(assignUser.id);
@@ -68,7 +60,6 @@ export default {
 
         setGuildData('tickets', guildId, ticketConfig);
 
-        // Grant channel permissions to assigned user
         try {
             await interaction.channel.permissionOverwrites.edit(assignUser.id, {
                 ViewChannel: true,
@@ -80,7 +71,6 @@ export default {
             console.error('[ERROR] Failed to update channel permissions:', error);
         }
 
-        // Send assignment notification
         const embed = new EmbedBuilder()
             .setColor('#00FF00')
             .setTitle('Ticket Assigned')
@@ -96,7 +86,6 @@ export default {
             embeds: [embed] 
         });
 
-        // Try to DM the assigned user
         try {
             const dmEmbed = new EmbedBuilder()
                 .setColor('#00FF00')
@@ -110,7 +99,6 @@ export default {
 
             await assignUser.send({ embeds: [dmEmbed] });
         } catch {
-            // User has DMs disabled
         }
     }
 };

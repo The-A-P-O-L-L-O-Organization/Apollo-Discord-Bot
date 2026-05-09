@@ -1,10 +1,7 @@
-// Ticket Command
-// Allows users to create a ticket or manage their tickets
-
 import { EmbedBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { getGuildData, setGuildData, generateId } from '../utils/db.js';
-import { config } from '../config/config.js';
-import { getPriorityColor, getPriorityEmoji } from '../utils/slaTracker.js';
+import { getGuildData, setGuildData, generateId } from '../../../utils/db.js';
+import { config } from '../../../config/config.js';
+import { getPriorityColor, getPriorityEmoji } from '../../../utils/slaTracker.js';
 
 export default {
     name: 'ticket',
@@ -16,13 +13,13 @@ export default {
         {
             name: 'reason',
             description: 'Brief reason for opening the ticket',
-            type: 3, // STRING type
+            type: 3,
             required: false
         },
         {
             name: 'category',
             description: 'Category of the ticket',
-            type: 3, // STRING type
+            type: 3,
             required: false,
             choices: [
                 { name: 'Technical Support', value: 'technical' },
@@ -35,7 +32,7 @@ export default {
         {
             name: 'priority',
             description: 'Priority level of the ticket',
-            type: 3, // STRING type
+            type: 3,
             required: false,
             choices: [
                 { name: '🔴 Urgent', value: 'urgent' },
@@ -53,10 +50,8 @@ export default {
         const category = interaction.options.getString('category') || 'general';
         const priority = interaction.options.getString('priority') || 'medium';
 
-        // Get ticket configuration
         const ticketConfig = getGuildData('tickets', guildId);
 
-        // Check if user already has an open ticket
         const existingTicket = ticketConfig.openTickets?.find(t => t.userId === userId);
         if (existingTicket) {
             return interaction.reply({
@@ -65,7 +60,6 @@ export default {
             });
         }
 
-        // Check if bot has permission to manage channels
         if (!interaction.guild.members.me.permissions.has(PermissionFlagsBits.ManageChannels)) {
             return interaction.reply({
                 content: 'I do not have permission to manage channels.',
@@ -73,29 +67,25 @@ export default {
             });
         }
 
-        // Determine where to create the ticket channel
         let parent = null;
         if (ticketConfig.categoryId) {
             try {
                 parent = await interaction.guild.channels.fetch(ticketConfig.categoryId);
             } catch (error) {
-                // Category doesn't exist, create in no category
             }
         }
 
-        // Generate ticket number
         const ticketNumber = (ticketConfig.totalTickets || 0) + 1;
         const sanitizedUsername = interaction.user.username.substring(0, 20);
         const channelName = `${config.tickets.channelPrefix}${ticketNumber}-${sanitizedUsername}`.toLowerCase().replace(/[^a-z0-9-]/g, '');
 
-        // Create permission overwrites
         const permissionOverwrites = [
             {
-                id: interaction.guild.id, // @everyone
+                id: interaction.guild.id,
                 deny: [PermissionFlagsBits.ViewChannel]
             },
             {
-                id: userId, // Ticket creator
+                id: userId,
                 allow: [
                     PermissionFlagsBits.ViewChannel,
                     PermissionFlagsBits.SendMessages,
@@ -104,7 +94,7 @@ export default {
                 ]
             },
             {
-                id: interaction.client.user.id, // Bot
+                id: interaction.client.user.id,
                 allow: [
                     PermissionFlagsBits.ViewChannel,
                     PermissionFlagsBits.SendMessages,
@@ -114,7 +104,6 @@ export default {
             }
         ];
 
-        // Add support role if configured
         if (ticketConfig.supportRoleId) {
             permissionOverwrites.push({
                 id: ticketConfig.supportRoleId,
@@ -127,7 +116,6 @@ export default {
             });
         }
 
-        // Create the ticket channel
         let ticketChannel;
         try {
             ticketChannel = await interaction.guild.channels.create({
@@ -145,7 +133,6 @@ export default {
             });
         }
 
-        // Create the ticket embed
         const embed = new EmbedBuilder()
             .setColor(getPriorityColor(priority))
             .setTitle(`${getPriorityEmoji(priority)} Ticket #${ticketNumber}`)
@@ -162,7 +149,6 @@ export default {
             .setTimestamp()
             .setFooter({ text: 'Use /closeticket to close this ticket' });
 
-        // Create buttons (claim and close)
         const row = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
@@ -175,14 +161,12 @@ export default {
                     .setStyle(ButtonStyle.Danger)
             );
 
-        // Send the welcome message
         await ticketChannel.send({ 
             content: `${interaction.user} ${ticketConfig.supportRoleId ? `<@&${ticketConfig.supportRoleId}>` : ''}`,
             embeds: [embed],
             components: [row]
         });
 
-        // Save ticket data
         const ticketId = generateId();
         if (!ticketConfig.openTickets) {
             ticketConfig.openTickets = [];

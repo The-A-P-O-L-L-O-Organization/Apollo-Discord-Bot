@@ -1,9 +1,6 @@
-// Ticket Info Command
-// Displays detailed information about a specific ticket
-
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { getGuildData } from '../utils/db.js';
-import { formatTime, getPriorityColor, getPriorityEmoji } from '../utils/slaTracker.js';
+import { getGuildData } from '../../../utils/db.js';
+import { formatTime, getPriorityColor, getPriorityEmoji } from '../../../utils/slaTracker.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -28,11 +25,9 @@ export default {
         let ticket;
 
         if (ticketNumber) {
-            // Search in both open and closed tickets
             ticket = ticketConfig.openTickets?.find(t => t.ticketNumber === ticketNumber) ||
                      ticketConfig.closedTickets?.find(t => t.ticketNumber === ticketNumber);
         } else {
-            // Use current channel's ticket
             ticket = ticketConfig.openTickets?.find(t => t.channelId === channelId);
         }
 
@@ -54,7 +49,6 @@ export default {
             .setTitle(`${getPriorityEmoji(priority)} Ticket #${ticket.ticketNumber} Information`)
             .setTimestamp();
 
-        // Basic info
         const creatorUser = await interaction.client.users.fetch(ticket.userId).catch(() => null);
         embed.addFields(
             { name: 'Creator', value: creatorUser ? `${creatorUser} (${creatorUser.tag})` : `<@${ticket.userId}>`, inline: true },
@@ -68,12 +62,10 @@ export default {
             embed.addFields({ name: 'Channel', value: `<#${ticket.channelId}>`, inline: true });
         }
 
-        // Reason
         if (ticket.reason) {
             embed.addFields({ name: 'Reason', value: ticket.reason, inline: false });
         }
 
-        // Assignment info
         if (ticket.claimedBy) {
             const claimedUser = await interaction.client.users.fetch(ticket.claimedBy).catch(() => null);
             embed.addFields({ 
@@ -101,7 +93,6 @@ export default {
             embed.addFields({ name: 'Assigned Staff', value: 'Unassigned', inline: true });
         }
 
-        // Participants
         if (ticket.participants && ticket.participants.length > 1) {
             embed.addFields({ 
                 name: 'Participants', 
@@ -110,7 +101,6 @@ export default {
             });
         }
 
-        // Response time
         if (ticket.firstResponseAt) {
             const responseTime = ticket.firstResponseAt - ticket.createdAt;
             embed.addFields({ 
@@ -127,7 +117,6 @@ export default {
             });
         }
 
-        // Closed ticket info
         if (ticket.closedAt) {
             embed.addFields({ 
                 name: 'Closed', 
@@ -155,7 +144,6 @@ export default {
                 embed.addFields({ name: 'Close Reason', value: ticket.closeReason, inline: false });
             }
 
-            // Rating
             if (ticket.rating) {
                 const stars = '⭐'.repeat(ticket.rating);
                 embed.addFields({ 
@@ -174,7 +162,6 @@ export default {
             }
         }
 
-        // Tags
         if (ticket.tags && ticket.tags.length > 0) {
             embed.addFields({ 
                 name: 'Tags', 

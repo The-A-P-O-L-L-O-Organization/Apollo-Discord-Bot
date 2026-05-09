@@ -1,8 +1,5 @@
-// Ticket Transfer Command
-// Allows staff to transfer/handoff tickets to other staff members
-
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { getGuildData, setGuildData } from '../utils/db.js';
+import { getGuildData, setGuildData } from '../../../utils/db.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -29,10 +26,8 @@ export default {
         const transferUser = interaction.options.getUser('user');
         const note = interaction.options.getString('note') || 'No note provided';
 
-        // Get ticket configuration
         const ticketConfig = getGuildData('tickets', guildId);
 
-        // Find the ticket
         const ticket = ticketConfig.openTickets?.find(t => t.channelId === channelId);
 
         if (!ticket) {
@@ -42,7 +37,6 @@ export default {
             });
         }
 
-        // Check permissions - must be assigned to ticket or have support role/admin
         const member = interaction.member;
         const isAssigned = ticket.assignedTo && ticket.assignedTo.includes(interaction.user.id);
         const isClaimed = ticket.claimedBy === interaction.user.id;
@@ -56,7 +50,6 @@ export default {
             });
         }
 
-        // Cannot transfer to yourself
         if (transferUser.id === interaction.user.id) {
             return interaction.reply({
                 content: 'You cannot transfer a ticket to yourself.',
@@ -64,15 +57,12 @@ export default {
             });
         }
 
-        // Store old assignee info
         const oldAssignees = [...(ticket.assignedTo || [])];
         const oldClaimed = ticket.claimedBy;
 
-        // Update ticket assignment
         ticket.assignedTo = [transferUser.id];
         ticket.claimedBy = transferUser.id;
 
-        // Add to participants if not already there
         if (!ticket.participants) {ticket.participants = [ticket.userId];}
         if (!ticket.participants.includes(transferUser.id)) {
             ticket.participants.push(transferUser.id);
@@ -80,7 +70,6 @@ export default {
 
         setGuildData('tickets', guildId, ticketConfig);
 
-        // Grant channel permissions to new assignee
         try {
             await interaction.channel.permissionOverwrites.edit(transferUser.id, {
                 ViewChannel: true,
@@ -92,7 +81,6 @@ export default {
             console.error('[ERROR] Failed to update channel permissions:', error);
         }
 
-        // Send transfer notification in channel
         const embed = new EmbedBuilder()
             .setColor('#FFA500')
             .setTitle('Ticket Transferred')
@@ -109,7 +97,6 @@ export default {
             embeds: [embed] 
         });
 
-        // Try to DM the new assignee
         try {
             const dmEmbed = new EmbedBuilder()
                 .setColor('#FFA500')
@@ -126,10 +113,8 @@ export default {
 
             await transferUser.send({ embeds: [dmEmbed] });
         } catch (error) {
-            // User has DMs disabled
         }
 
-        // Try to DM old assignees (if any)
         for (const oldAssigneeId of oldAssignees) {
             if (oldAssigneeId === transferUser.id) {continue;}
             
@@ -147,7 +132,6 @@ export default {
 
                 await oldAssignee.send({ embeds: [dmEmbed] });
             } catch (error) {
-                // User not found or DMs disabled
             }
         }
     }
