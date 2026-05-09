@@ -14,13 +14,13 @@ import {
     checkSpam,
     checkAccountAge,
     checkPhishingLinks
-} from '../utils/automod.js';
-import { appendToUserArray, generateId, getUserData, getGuildData } from '../utils/db.js';
-import { sendModLog } from '../utils/modLog.js';
-import { config } from '../config/config.js';
-import { trackMessage, trackViolation } from '../utils/analyticsCollector.js';
-import { checkMessageToxicity } from '../utils/perspectiveApi.js';
-import { checkMessageAttachments } from '../utils/nsfwDetection.js';
+} from '../../../utils/automod.js';
+import { appendToUserArray, generateId, getUserData, getGuildData } from '../../../utils/db.js';
+import { sendModLog } from '../../../utils/modLog.js';
+import { config } from '../../../config/config.js';
+import { trackMessage, trackViolation } from '../../../utils/analyticsCollector.js';
+import { checkMessageToxicity } from '../../../utils/perspectiveApi.js';
+import { checkMessageAttachments } from '../../../utils/nsfwDetection.js';
 
 export default {
     name: 'messageCreate',
