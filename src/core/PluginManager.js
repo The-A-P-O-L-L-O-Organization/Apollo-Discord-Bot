@@ -18,10 +18,41 @@ export default class PluginManager {
     for (const id of enabled) {
       await this.loadPlugin(id, directory);
     }
-    for (const id of enabled) {
+    const sorted = this._sortByDependencies(enabled);
+    for (const id of sorted) {
       await this.enablePlugin(id);
     }
     await this._syncDiscordCommands();
+  }
+
+  _sortByDependencies(ids) {
+    const idSet = new Set(ids);
+    const visited = new Set();
+    const sorted = [];
+
+    function visit(id, graph, path) {
+      if (path.has(id)) throw new Error(`Circular dependency detected: ${[...path, id].join(' -> ')}`);
+      if (visited.has(id)) return;
+      visited.add(id);
+      path.add(id);
+      for (const dep of graph.get(id) || []) {
+        if (idSet.has(dep)) visit(dep, graph, path);
+      }
+      path.delete(id);
+      sorted.push(id);
+    }
+
+    const graph = new Map();
+    for (const id of ids) {
+      const PluginClass = this._pluginRegistry.get(id);
+      graph.set(id, PluginClass ? PluginClass.dependencies : []);
+    }
+
+    for (const id of ids) {
+      visit(id, graph, new Set());
+    }
+
+    return sorted;
   }
 
   async _syncDiscordCommands() {
