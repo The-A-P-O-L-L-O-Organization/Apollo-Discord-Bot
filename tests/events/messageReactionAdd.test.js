@@ -2,7 +2,7 @@
 // Tests for the messageReactionAdd event handler (reaction roles)
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import messageReactionAddEvent from '../../src/events/messageReactionAdd.js';
+import messageReactionAddEvent from '../../src/plugins/admin/events/messageReactionAdd.js';
 import { 
     createMockUser, 
     createMockGuild,

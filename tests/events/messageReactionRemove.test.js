@@ -2,7 +2,7 @@
 // Tests for the messageReactionRemove event handler
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import messageReactionRemoveEvent from '../../src/events/messageReactionRemove.js';
+import messageReactionRemoveEvent from '../../src/plugins/admin/events/messageReactionRemove.js';
 import { 
     createMockUser, 
     createMockGuild,

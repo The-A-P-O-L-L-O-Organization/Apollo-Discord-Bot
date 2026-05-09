@@ -1,11 +1,9 @@
-// Logging Configuration Command
-// Allows admins to enable/disable specific logging events
-
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { setGuildData, getGuildData } from '../utils/db.js';
-import { config } from '../config/config.js';
+import { setGuildData, getGuildData } from '../../../utils/db.js';
+import { config } from '../../../config/config.js';
 
 export default {
+    name: 'logging',
     data: new SlashCommandBuilder()
         .setName('logging')
         .setDescription('Configure server event logging')
@@ -65,12 +63,10 @@ export default {
             const event = interaction.options.getString('event');
             const enabled = subcommand === 'enable';
 
-            // Get existing config
             const existingConfig = getGuildData('logging', guildId);
             const events = existingConfig.events || { ...config.logging.defaultEvents };
 
             if (event === 'all') {
-                // Enable/disable all events
                 for (const eventName of config.logging.availableEvents) {
                     events[eventName] = enabled;
                 }
@@ -78,7 +74,6 @@ export default {
                 events[event] = enabled;
             }
 
-            // Save updated config
             setGuildData('logging', guildId, {
                 ...existingConfig,
                 events
@@ -94,7 +89,6 @@ export default {
             const loggingConfig = getGuildData('logging', guildId);
             const events = loggingConfig.events || config.logging.defaultEvents;
 
-            // Check if log channel is set
             let channelStatus = 'Not configured';
             if (loggingConfig.channelId) {
                 try {
@@ -155,11 +149,6 @@ export default {
     }
 };
 
-/**
- * Gets the display name for an event
- * @param {string} event - The event key
- * @returns {string} The display name
- */
 function getEventDisplayName(event) {
     const names = {
         messageDelete: 'Message Delete',
