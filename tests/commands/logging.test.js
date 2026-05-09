@@ -2,7 +2,7 @@
 // Tests for the logging configuration command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import loggingCommand from '../../src/commands/logging.js';
+import loggingCommand from '../../src/plugins/admin/commands/logging.js';
 import { 
     createMockInteraction, 
     createMockUser,

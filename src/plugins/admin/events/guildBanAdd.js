@@ -1,14 +1,10 @@
-// Guild Ban Add Event
-// Triggered when a user is banned from a guild (manual or bot-initiated)
-
-import { logEvent } from '../utils/logger.js';
+import { logEvent } from '../../../utils/logger.js';
 
 export default {
     name: 'guildBanAdd',
     once: false,
     async execute(ban, client) {
         try {
-            // Fetch the ban to get the user and reason
             const guild = ban.guild;
             const user = ban.user;
             
@@ -17,13 +13,12 @@ export default {
                 return;
             }
             
-            // Try to fetch audit log to get who banned the user
             let executor = null;
             let reason = ban.reason || 'No reason provided';
             
             try {
                 const auditLogs = await guild.fetchAuditLogs({
-                    type: 22, // MEMBER_BAN_ADD
+                    type: 22,
                     limit: 1
                 });
                 
@@ -36,9 +31,8 @@ export default {
                 console.log('[INFO] Could not fetch audit log for ban:', auditError.message);
             }
             
-            // Create embed for logging
             const embed = {
-                color: 0xFF0000, // Red
+                color: 0xFF0000,
                 title: '[MODERATION] Member Banned',
                 description: `${user.tag} was banned from the server.`,
                 fields: [
@@ -64,7 +58,6 @@ export default {
                 timestamp: new Date().toISOString()
             };
             
-            // Log the ban event
             await logEvent(guild, 'ban', embed);
             
             console.log(`[MODERATION] User ${user.tag} was banned from ${guild.name}`);

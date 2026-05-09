@@ -1,10 +1,8 @@
-// Set Log Channel Command
-// Allows admins to configure the server's logging channel
-
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType } from 'discord.js';
-import { setGuildData, getGuildData } from '../utils/db.js';
+import { setGuildData, getGuildData } from '../../../utils/db.js';
 
 export default {
+    name: 'setlogchannel',
     data: new SlashCommandBuilder()
         .setName('setlogchannel')
         .setDescription('Set the channel for server event logs')
@@ -40,7 +38,6 @@ export default {
         if (subcommand === 'set') {
             const channel = interaction.options.getChannel('channel');
 
-            // Verify bot can send messages to the channel
             const botMember = interaction.guild.members.me;
             const permissions = channel.permissionsFor(botMember);
 
@@ -51,7 +48,6 @@ export default {
                 });
             }
 
-            // Get existing logging config or create new one
             const existingConfig = getGuildData('logging', guildId);
             const newConfig = {
                 ...existingConfig,
@@ -97,7 +93,6 @@ export default {
                 });
             }
 
-            // Try to fetch the channel to verify it still exists
             try {
                 const channel = await interaction.guild.channels.fetch(config.channelId);
                 if (channel) {
@@ -107,7 +102,6 @@ export default {
                     });
                 }
             } catch (error) {
-                // Channel no longer exists
             }
 
             return interaction.reply({

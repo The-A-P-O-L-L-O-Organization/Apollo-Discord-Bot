@@ -1,8 +1,5 @@
-// Reaction Role Command
-// Allows admins to set up reaction roles on messages
-
 import { PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { getGuildData, setGuildData } from '../utils/db.js';
+import { getGuildData, setGuildData } from '../../../utils/db.js';
 
 export default {
     name: 'reactionrole',
@@ -14,30 +11,30 @@ export default {
         {
             name: 'add',
             description: 'Add a reaction role to a message',
-            type: 1, // SUB_COMMAND type
+            type: 1,
             options: [
                 {
                     name: 'message_id',
                     description: 'The ID of the message to add the reaction role to',
-                    type: 3, // STRING type
+                    type: 3,
                     required: true
                 },
                 {
                     name: 'emoji',
                     description: 'The emoji to react with (use emoji or emoji ID for custom)',
-                    type: 3, // STRING type
+                    type: 3,
                     required: true
                 },
                 {
                     name: 'role',
                     description: 'The role to give when the emoji is reacted',
-                    type: 8, // ROLE type
+                    type: 8,
                     required: true
                 },
                 {
                     name: 'channel',
                     description: 'The channel the message is in (defaults to current channel)',
-                    type: 7, // CHANNEL type
+                    type: 7,
                     required: false
                 }
             ]
@@ -45,18 +42,18 @@ export default {
         {
             name: 'remove',
             description: 'Remove a reaction role from a message',
-            type: 1, // SUB_COMMAND type
+            type: 1,
             options: [
                 {
                     name: 'message_id',
                     description: 'The ID of the message',
-                    type: 3, // STRING type
+                    type: 3,
                     required: true
                 },
                 {
                     name: 'emoji',
                     description: 'The emoji to remove',
-                    type: 3, // STRING type
+                    type: 3,
                     required: true
                 }
             ]
@@ -64,17 +61,17 @@ export default {
         {
             name: 'list',
             description: 'List all reaction roles in this server',
-            type: 1 // SUB_COMMAND type
+            type: 1
         },
         {
             name: 'clear',
             description: 'Clear all reaction roles from a message',
-            type: 1, // SUB_COMMAND type
+            type: 1,
             options: [
                 {
                     name: 'message_id',
                     description: 'The ID of the message to clear reaction roles from',
-                    type: 3, // STRING type
+                    type: 3,
                     required: true
                 }
             ]
@@ -91,7 +88,6 @@ export default {
             const role = interaction.options.getRole('role');
             const channel = interaction.options.getChannel('channel') || interaction.channel;
 
-            // Check if bot can manage the role
             const botMember = interaction.guild.members.me;
             if (role.position >= botMember.roles.highest.position) {
                 return interaction.reply({
@@ -100,7 +96,6 @@ export default {
                 });
             }
 
-            // Check if role is @everyone
             if (role.id === interaction.guild.id) {
                 return interaction.reply({
                     content: 'You cannot use the @everyone role for reaction roles.',
@@ -108,7 +103,6 @@ export default {
                 });
             }
 
-            // Try to fetch the message
             let message;
             try {
                 message = await channel.messages.fetch(messageId);
@@ -119,7 +113,6 @@ export default {
                 });
             }
 
-            // Parse the emoji
             const emoji = parseEmoji(emojiInput);
             if (!emoji) {
                 return interaction.reply({
@@ -128,7 +121,6 @@ export default {
                 });
             }
 
-            // Add the reaction to the message
             try {
                 await message.react(emoji.reaction);
             } catch (error) {
@@ -138,22 +130,18 @@ export default {
                 });
             }
 
-            // Save the reaction role configuration
             const reactionRoles = getGuildData('reactionroles', guildId);
             if (!reactionRoles.roles) {
                 reactionRoles.roles = [];
             }
 
-            // Check if this combo already exists
             const existingIndex = reactionRoles.roles.findIndex(
                 rr => rr.messageId === messageId && rr.emoji === emoji.identifier
             );
 
             if (existingIndex !== -1) {
-                // Update existing
                 reactionRoles.roles[existingIndex].roleId = role.id;
             } else {
-                // Add new
                 reactionRoles.roles.push({
                     messageId,
                     channelId: channel.id,
@@ -205,13 +193,11 @@ export default {
             const removed = reactionRoles.roles.splice(index, 1)[0];
             setGuildData('reactionroles', guildId, reactionRoles);
 
-            // Try to remove the bot's reaction
             try {
                 const channel = await interaction.guild.channels.fetch(removed.channelId);
                 const message = await channel.messages.fetch(messageId);
                 await message.reactions.cache.get(emoji.identifier)?.users.remove(interaction.client.user.id);
             } catch (error) {
-                // Ignore - message may have been deleted
             }
 
             return interaction.reply({
@@ -235,7 +221,6 @@ export default {
                 .setDescription(`${reactionRoles.roles.length} reaction role(s) configured`)
                 .setTimestamp();
 
-            // Group by message
             const grouped = {};
             for (const rr of reactionRoles.roles) {
                 const key = `${rr.channelId}-${rr.messageId}`;
@@ -285,7 +270,6 @@ export default {
             reactionRoles.roles = reactionRoles.roles.filter(rr => rr.messageId !== messageId);
             setGuildData('reactionroles', guildId, reactionRoles);
 
-            // Try to clear bot's reactions from the message
             if (toRemove.length > 0) {
                 try {
                     const channel = await interaction.guild.channels.fetch(toRemove[0].channelId);
@@ -294,7 +278,6 @@ export default {
                         await message.reactions.cache.get(rr.emoji)?.users.remove(interaction.client.user.id);
                     }
                 } catch (error) {
-                    // Ignore - message may have been deleted
                 }
             }
 
@@ -306,16 +289,9 @@ export default {
     }
 };
 
-/**
- * Parses an emoji input string into a usable format
- * @param {string} input - The emoji input
- * @returns {Object|null} Emoji object with identifier, display, and reaction properties
- */
 function parseEmoji(input) {
-    // Trim whitespace
     input = input.trim();
 
-    // Check for custom emoji format: <:name:id> or <a:name:id>
     const customMatch = input.match(/^<(a?):(\w+):(\d+)>$/);
     if (customMatch) {
         const animated = customMatch[1] === 'a';
@@ -330,7 +306,6 @@ function parseEmoji(input) {
         };
     }
 
-    // Check if it's just an emoji ID (for custom emojis)
     if (/^\d+$/.test(input)) {
         return {
             identifier: input,
@@ -341,8 +316,6 @@ function parseEmoji(input) {
         };
     }
 
-    // Assume it's a unicode emoji
-    // Basic validation: emojis are typically 1-4 characters but can be longer with modifiers
     if (input.length > 0 && input.length <= 32) {
         return {
             identifier: input,

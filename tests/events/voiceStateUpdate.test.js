@@ -2,7 +2,7 @@
 // Tests for the voiceStateUpdate event handler
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import voiceStateUpdateHandler from '../../src/events/voiceStateUpdate.js';
+import voiceStateUpdateHandler from '../../src/plugins/admin/events/voiceStateUpdate.js';
 import { 
     createMockMember, 
     createMockUser, 

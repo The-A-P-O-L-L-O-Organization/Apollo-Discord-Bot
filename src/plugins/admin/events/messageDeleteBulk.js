@@ -1,25 +1,21 @@
-// Message Delete Bulk Event
-// Triggered when multiple messages are deleted at once (e.g., purge commands, moderation bots)
-
-import { logEvent } from '../utils/logger.js';
+import { logEvent } from '../../../utils/logger.js';
 
 export default {
     name: 'messageDeleteBulk',
     once: false,
     async execute(messages, channel, client) {
         try {
-            if (!channel.guild) {return;} // Ignore DM channels
+            if (!channel.guild) {return;}
             
             const guild = channel.guild;
             const messageCount = messages.size;
             
-            // Try to fetch audit log to get who deleted the messages
             let executor = null;
             let reason = 'Unknown';
             
             try {
                 const auditLogs = await guild.fetchAuditLogs({
-                    type: 73, // MESSAGE_BULK_DELETE
+                    type: 73,
                     limit: 1
                 });
                 
@@ -32,7 +28,6 @@ export default {
                 console.log('[INFO] Could not fetch audit log for bulk delete:', auditError.message);
             }
             
-            // Collect info about deleted messages
             const oldestMessage = messages.reduce((oldest, msg) => 
                 !oldest || msg.createdTimestamp < oldest.createdTimestamp ? msg : oldest
             , null);
@@ -41,9 +36,8 @@ export default {
                 !newest || msg.createdTimestamp > newest.createdTimestamp ? msg : newest
             , null);
             
-            // Create embed for logging
             const embed = {
-                color: 0xFFA500, // Orange
+                color: 0xFFA500,
                 title: '[MODERATION] Bulk Message Deletion',
                 description: `${messageCount} messages were deleted in ${channel}.`,
                 fields: [
@@ -71,7 +65,6 @@ export default {
                 timestamp: new Date().toISOString()
             };
             
-            // Add time range if we have message data
             if (oldestMessage && newestMessage) {
                 const timeRange = `<t:${Math.floor(oldestMessage.createdTimestamp / 1000)}:f> - <t:${Math.floor(newestMessage.createdTimestamp / 1000)}:f>`;
                 embed.fields.push({
@@ -81,7 +74,6 @@ export default {
                 });
             }
             
-            // Log the bulk delete event
             await logEvent(guild, 'messageDeleteBulk', embed);
             
             console.log(`[MODERATION] ${messageCount} messages bulk deleted in #${channel.name} (${guild.name})`);

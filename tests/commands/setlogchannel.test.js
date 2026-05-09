@@ -2,7 +2,7 @@
 // Tests for the set log channel command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import setLogChannelCommand from '../../src/commands/setlogchannel.js';
+import setLogChannelCommand from '../../src/plugins/admin/commands/setlogchannel.js';
 import {
     createMockInteraction,
     createMockUser,
