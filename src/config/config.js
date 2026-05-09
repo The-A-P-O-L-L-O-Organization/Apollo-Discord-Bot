@@ -142,5 +142,13 @@ export const config = {
     },
     
     // Command Prefix (for legacy commands if needed)
-    prefix: '!'
+    prefix: '!',
+
+    // Plugin System Settings
+    plugins: {
+        enabled: ['utility', 'admin', 'moderation', 'tickets', 'automod'],
+        directory: './src/plugins',
+        optionalDirectory: './data/plugins',
+        registryFile: './data/plugin-registry.json'
+    }
 };
