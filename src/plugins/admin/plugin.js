@@ -7,9 +7,11 @@ export default class AdminPlugin extends Plugin {
 
   async onEnable() {
     await this._loadCommands();
+    await this._loadEvents();
   }
 
   async onDisable() {
     this._unloadCommands();
+    this._unloadEvents();
   }
 }
