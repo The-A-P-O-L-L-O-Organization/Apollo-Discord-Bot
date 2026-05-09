@@ -1,8 +1,5 @@
-// Close Ticket Command
-// Closes a ticket, saves the transcript, and deletes the channel
-
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { getGuildData, setGuildData, writeToSubDir } from '../utils/db.js';
+import { getGuildData, setGuildData, writeToSubDir } from '../../../utils/db.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -22,10 +19,8 @@ export default {
         const channelId = interaction.channel.id;
         const reason = interaction.options.getString('reason') || 'No reason provided';
 
-        // Get ticket configuration
         const ticketConfig = getGuildData('tickets', guildId);
 
-        // Find the ticket
         const ticketIndex = ticketConfig.openTickets?.findIndex(t => t.channelId === channelId);
         
         if (ticketIndex === -1 || ticketIndex === undefined) {
@@ -37,7 +32,6 @@ export default {
 
         const ticket = ticketConfig.openTickets[ticketIndex];
 
-        // Check permissions - ticket creator or support role can close
         const member = interaction.member;
         const isTicketOwner = ticket.userId === interaction.user.id;
         const hasSupport = ticketConfig.supportRoleId && member.roles.cache.has(ticketConfig.supportRoleId);
@@ -55,7 +49,6 @@ export default {
             ephemeral: false
         });
 
-        // Fetch all messages for transcript
         let allMessages = [];
         let lastMessageId = null;
         
@@ -72,17 +65,14 @@ export default {
                 allMessages = allMessages.concat(Array.from(messages.values()));
                 lastMessageId = messages.last().id;
                 
-                // Safety limit - max 1000 messages
                 if (allMessages.length >= 1000) {break;}
             }
         } catch (error) {
             console.error('[ERROR] Failed to fetch messages for transcript:', error);
         }
 
-        // Sort messages by timestamp (oldest first)
         allMessages.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
 
-        // Create transcript data
         const transcript = {
             ticketNumber: ticket.ticketNumber,
             guildId,
@@ -120,14 +110,11 @@ export default {
             }))
         };
 
-        // Save transcript to file
         const filename = `ticket-${ticket.ticketNumber}-${guildId}-${Date.now()}.json`;
         writeToSubDir('transcripts', filename, transcript);
 
-        // Remove ticket from open tickets
         ticketConfig.openTickets.splice(ticketIndex, 1);
         
-        // Add to closed tickets history (keep last 100)
         if (!ticketConfig.closedTickets) {
             ticketConfig.closedTickets = [];
         }
@@ -142,14 +129,12 @@ export default {
             transcriptFile: filename
         });
         
-        // Keep only last 100 closed tickets in memory
         if (ticketConfig.closedTickets.length > 100) {
             ticketConfig.closedTickets = ticketConfig.closedTickets.slice(-100);
         }
         
         setGuildData('tickets', guildId, ticketConfig);
 
-        // Try to DM the ticket creator
         try {
             const ticketCreator = await interaction.client.users.fetch(ticket.userId);
             const dmEmbed = new EmbedBuilder()
@@ -167,7 +152,6 @@ export default {
             console.error('[ERROR] Failed to DM ticket creator:', error);
         }
 
-        // Wait a moment then delete the channel
         setTimeout(async() => {
             try {
                 const channel = await interaction.client.channels.fetch(channelId);

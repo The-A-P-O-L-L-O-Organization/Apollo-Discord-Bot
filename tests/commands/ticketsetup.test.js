@@ -2,7 +2,7 @@
 // Tests for the ticketsetup command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import ticketsetupCommand from '../../src/commands/ticketsetup.js';
+import ticketsetupCommand from '../../src/plugins/tickets/commands/ticketsetup.js';
 import {
     createMockInteraction,
     createMockUser,

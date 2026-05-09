@@ -1,9 +1,6 @@
-// Ticket Priority Command
-// Allows staff to change the priority of an existing ticket
-
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { getGuildData, setGuildData } from '../utils/db.js';
-import { getPriorityColor, getPriorityEmoji } from '../utils/slaTracker.js';
+import { getGuildData, setGuildData } from '../../../utils/db.js';
+import { getPriorityColor, getPriorityEmoji } from '../../../utils/slaTracker.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -29,10 +26,8 @@ export default {
         const channelId = interaction.channel.id;
         const newPriority = interaction.options.getString('priority');
 
-        // Get ticket configuration
         const ticketConfig = getGuildData('tickets', guildId);
 
-        // Find the ticket
         const ticket = ticketConfig.openTickets?.find(t => t.channelId === channelId);
 
         if (!ticket) {
@@ -42,7 +37,6 @@ export default {
             });
         }
 
-        // Check permissions - support role or admin only
         const member = interaction.member;
         const hasSupport = ticketConfig.supportRoleId && member.roles.cache.has(ticketConfig.supportRoleId);
         const isAdmin = member.permissions.has(PermissionFlagsBits.Administrator);
@@ -63,17 +57,14 @@ export default {
             });
         }
 
-        // Update the priority
         ticket.priority = newPriority;
 
-        // Update tags
         if (!ticket.tags) {ticket.tags = [];}
         ticket.tags = ticket.tags.filter(tag => tag !== oldPriority);
         ticket.tags.push(newPriority);
 
         setGuildData('tickets', guildId, ticketConfig);
 
-        // Update channel topic
         try {
             const newTopic = `${getPriorityEmoji(newPriority)} Ticket #${ticket.ticketNumber} | ${ticket.category || 'general'} | ${newPriority} priority | Created by ${(await interaction.guild.members.fetch(ticket.userId).catch(() => null))?.user?.tag || 'Unknown'}`;
             await interaction.channel.setTopic(newTopic);
@@ -81,7 +72,6 @@ export default {
             console.error('[ERROR] Failed to update channel topic:', error);
         }
 
-        // Send update message
         const embed = new EmbedBuilder()
             .setColor(getPriorityColor(newPriority))
             .setTitle('Ticket Priority Updated')

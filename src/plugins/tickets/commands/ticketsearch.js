@@ -1,9 +1,6 @@
-// Ticket Search Command
-// Search through ticket archive with various filters
-
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { getGuildData } from '../utils/db.js';
-import { formatTime, getPriorityEmoji } from '../utils/slaTracker.js';
+import { getGuildData } from '../../../utils/db.js';
+import { formatTime, getPriorityEmoji } from '../../../utils/slaTracker.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -120,10 +117,8 @@ export default {
             });
         }
 
-        // Sort by creation date (newest first)
         results.sort((a, b) => b.createdAt - a.createdAt);
 
-        // Paginate results (10 per page)
         const pageSize = 10;
         const totalPages = Math.ceil(results.length / pageSize);
         let currentPage = 0;
@@ -214,7 +209,7 @@ export default {
 
         if (totalPages > 1) {
             const collector = message.createMessageComponentCollector({
-                time: 300000 // 5 minutes
+                time: 300000
             });
 
             collector.on('collect', async(i) => {

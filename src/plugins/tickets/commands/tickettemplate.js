@@ -1,8 +1,5 @@
-// Ticket Template Command
-// Allows admins to create and manage ticket templates
-
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { getGuildData, setGuildData, generateId } from '../utils/db.js';
+import { getGuildData, setGuildData, generateId } from '../../../utils/db.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -85,11 +82,9 @@ export default {
             const response = interaction.options.getString('response');
             const questionsStr = interaction.options.getString('questions');
 
-            // Get template data
             const templates = getGuildData('ticket-templates', guildId);
             if (!templates.list) {templates.list = [];}
 
-            // Check if template already exists
             if (templates.list.find(t => t.name.toLowerCase() === name.toLowerCase())) {
                 return interaction.reply({
                     content: `A template named **${name}** already exists. Delete it first to create a new one with this name.`,
@@ -97,10 +92,8 @@ export default {
                 });
             }
 
-            // Parse questions
             const questions = questionsStr ? questionsStr.split('|').map(q => q.trim()).filter(q => q.length > 0) : [];
 
-            // Create template
             const template = {
                 id: generateId(),
                 name,
@@ -130,7 +123,6 @@ export default {
         } else if (subcommand === 'delete') {
             const name = interaction.options.getString('name');
 
-            // Get template data
             const templates = getGuildData('ticket-templates', guildId);
             if (!templates.list) {templates.list = [];}
 

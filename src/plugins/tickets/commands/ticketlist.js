@@ -1,9 +1,6 @@
-// Ticket List Command
-// Lists all open tickets with optional filters
-
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { getGuildData } from '../utils/db.js';
-import { getPriorityEmoji, formatTime, hasBreachedSLA } from '../utils/slaTracker.js';
+import { getGuildData } from '../../../utils/db.js';
+import { getPriorityEmoji, formatTime, hasBreachedSLA } from '../../../utils/slaTracker.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -67,7 +64,6 @@ export default {
             });
         }
 
-        // Apply filters
         if (filter === 'unassigned') {
             tickets = tickets.filter(t => !t.assignedTo || t.assignedTo.length === 0);
         } else if (filter === 'mine') {
@@ -93,7 +89,6 @@ export default {
             });
         }
 
-        // Sort by priority (urgent first) then by creation date
         const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
         tickets.sort((a, b) => {
             const priorityA = priorityOrder[a.priority || 'medium'];
@@ -102,7 +97,6 @@ export default {
             return a.createdAt - b.createdAt;
         });
 
-        // Paginate results (10 per page)
         const pageSize = 10;
         const totalPages = Math.ceil(tickets.length / pageSize);
         let currentPage = 0;
@@ -141,7 +135,6 @@ export default {
                     const waitingTime = Date.now() - ticket.createdAt;
                     value.push(`Waiting: ${formatTime(waitingTime)}`);
                     
-                    // Check SLA breach
                     if (hasBreachedSLA(ticket, ticketConfig.slaThresholds)) {
                         value.push('🚨 **SLA BREACHED**');
                     }
@@ -197,7 +190,7 @@ export default {
 
         if (totalPages > 1) {
             const collector = message.createMessageComponentCollector({
-                time: 300000 // 5 minutes
+                time: 300000
             });
 
             collector.on('collect', async(i) => {

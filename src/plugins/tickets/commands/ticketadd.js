@@ -1,8 +1,5 @@
-// Ticket Add Command
-// Allows staff to add additional users to an existing ticket
-
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { getGuildData, setGuildData } from '../utils/db.js';
+import { getGuildData, setGuildData } from '../../../utils/db.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -22,10 +19,8 @@ export default {
         const channelId = interaction.channel.id;
         const addUser = interaction.options.getUser('user');
 
-        // Get ticket configuration
         const ticketConfig = getGuildData('tickets', guildId);
 
-        // Find the ticket
         const ticket = ticketConfig.openTickets?.find(t => t.channelId === channelId);
 
         if (!ticket) {
@@ -35,7 +30,6 @@ export default {
             });
         }
 
-        // Check permissions - ticket creator, assigned staff, support role, or admin
         const member = interaction.member;
         const isTicketOwner = ticket.userId === interaction.user.id;
         const isAssigned = ticket.assignedTo && ticket.assignedTo.includes(interaction.user.id);
@@ -49,7 +43,6 @@ export default {
             });
         }
 
-        // Check if user is already in the ticket
         if (!ticket.participants) {ticket.participants = [ticket.userId];}
         
         if (ticket.participants.includes(addUser.id)) {
@@ -59,11 +52,9 @@ export default {
             });
         }
 
-        // Add the user
         ticket.participants.push(addUser.id);
         setGuildData('tickets', guildId, ticketConfig);
 
-        // Grant channel permissions to user
         try {
             await interaction.channel.permissionOverwrites.edit(addUser.id, {
                 ViewChannel: true,
@@ -79,7 +70,6 @@ export default {
             });
         }
 
-        // Send notification
         const embed = new EmbedBuilder()
             .setColor('#3498DB')
             .setTitle('User Added to Ticket')
@@ -95,7 +85,6 @@ export default {
             embeds: [embed] 
         });
 
-        // Try to DM the added user
         try {
             const dmEmbed = new EmbedBuilder()
                 .setColor('#3498DB')
@@ -109,7 +98,6 @@ export default {
 
             await addUser.send({ embeds: [dmEmbed] });
         } catch (error) {
-            // User has DMs disabled
         }
     }
 };

@@ -2,7 +2,7 @@
 // Tests for the close ticket command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import closeTicketCommand from '../../src/commands/closeticket.js';
+import closeTicketCommand from '../../src/plugins/tickets/commands/closeticket.js';
 import {
     createMockInteraction,
     createMockUser,

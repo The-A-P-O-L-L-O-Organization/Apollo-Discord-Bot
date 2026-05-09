@@ -1,9 +1,6 @@
-// Ticket Setup Command
-// Allows admins to configure the ticket system
-
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { getGuildData, setGuildData } from '../utils/db.js';
-import { config } from '../config/config.js';
+import { getGuildData, setGuildData } from '../../../utils/db.js';
+import { config } from '../../../config/config.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -74,7 +71,6 @@ export default {
             const description = interaction.options.getString('description') || 
                 'Click the button below to create a support ticket.\n\nA staff member will assist you shortly.';
 
-            // Create the embed
             const embed = new EmbedBuilder()
                 .setColor('#3498DB')
                 .setTitle(title)
@@ -82,7 +78,6 @@ export default {
                 .setFooter({ text: 'Click the button below to open a ticket' })
                 .setTimestamp();
 
-            // Create the button
             const row = new ActionRowBuilder()
                 .addComponents(
                     new ButtonBuilder()
@@ -91,14 +86,12 @@ export default {
                         .setStyle(ButtonStyle.Primary)
                 );
 
-            // Send the panel
             try {
                 const panelMessage = await channel.send({ 
                     embeds: [embed], 
                     components: [row] 
                 });
 
-                // Save the panel message ID for reference
                 const ticketConfig = getGuildData('tickets', guildId);
                 ticketConfig.panelMessageId = panelMessage.id;
                 ticketConfig.panelChannelId = channel.id;
@@ -148,7 +141,6 @@ export default {
                 .setTitle('Ticket System Configuration')
                 .setTimestamp();
 
-            // Category
             let categoryStatus = 'Not configured';
             if (ticketConfig.categoryId) {
                 try {
@@ -161,7 +153,6 @@ export default {
                 }
             }
 
-            // Support role
             let roleStatus = 'Not configured';
             if (ticketConfig.supportRoleId) {
                 try {
@@ -174,7 +165,6 @@ export default {
                 }
             }
 
-            // Panel
             let panelStatus = 'Not created';
             if (ticketConfig.panelMessageId && ticketConfig.panelChannelId) {
                 panelStatus = `[Jump to panel](https://discord.com/channels/${guildId}/${ticketConfig.panelChannelId}/${ticketConfig.panelMessageId})`;

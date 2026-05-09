@@ -1,8 +1,5 @@
-// Ticket Ratings Command
-// View ticket rating statistics by staff member or category
-
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { getGuildData } from '../utils/db.js';
+import { getGuildData } from '../../../utils/db.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -57,7 +54,6 @@ export default {
         if (subcommand === 'staff') {
             const user = interaction.options.getUser('user');
             
-            // Filter tickets assigned to this staff member
             const staffTickets = closedTickets.filter(t => 
                 t.assignedTo?.includes(user.id) || t.claimedBy === user.id
             );
@@ -68,7 +64,6 @@ export default {
                 });
             }
 
-            // Calculate rating statistics
             const ratedTickets = staffTickets.filter(t => t.rating);
             
             if (ratedTickets.length === 0) {
@@ -97,7 +92,6 @@ export default {
                 )
                 .setTimestamp();
 
-            // Rating distribution
             const distribution = [
                 `⭐⭐⭐⭐⭐: ${ratingCounts[5]} (${((ratingCounts[5] / ratedTickets.length) * 100).toFixed(1)}%)`,
                 `⭐⭐⭐⭐: ${ratingCounts[4]} (${((ratingCounts[4] / ratedTickets.length) * 100).toFixed(1)}%)`,
@@ -108,7 +102,6 @@ export default {
 
             embed.addFields({ name: 'Rating Distribution', value: distribution, inline: false });
 
-            // Recent feedback
             const recentFeedback = ratedTickets
                 .filter(t => t.ratingFeedback)
                 .sort((a, b) => b.closedAt - a.closedAt)
@@ -127,7 +120,6 @@ export default {
         } else if (subcommand === 'category') {
             const category = interaction.options.getString('category');
             
-            // Filter tickets by category
             const categoryTickets = closedTickets.filter(t => t.category === category);
 
             if (categoryTickets.length === 0) {
@@ -136,7 +128,6 @@ export default {
                 });
             }
 
-            // Calculate rating statistics
             const ratedTickets = categoryTickets.filter(t => t.rating);
             
             if (ratedTickets.length === 0) {
@@ -164,7 +155,6 @@ export default {
                 )
                 .setTimestamp();
 
-            // Rating distribution
             const distribution = [
                 `⭐⭐⭐⭐⭐: ${ratingCounts[5]} (${((ratingCounts[5] / ratedTickets.length) * 100).toFixed(1)}%)`,
                 `⭐⭐⭐⭐: ${ratingCounts[4]} (${((ratingCounts[4] / ratedTickets.length) * 100).toFixed(1)}%)`,
@@ -206,7 +196,6 @@ export default {
                 )
                 .setTimestamp();
 
-            // Rating distribution
             const distribution = [
                 `⭐⭐⭐⭐⭐: ${ratingCounts[5]} (${((ratingCounts[5] / ratedTickets.length) * 100).toFixed(1)}%)`,
                 `⭐⭐⭐⭐: ${ratingCounts[4]} (${((ratingCounts[4] / ratedTickets.length) * 100).toFixed(1)}%)`,
@@ -217,7 +206,6 @@ export default {
 
             embed.addFields({ name: 'Rating Distribution', value: distribution, inline: false });
 
-            // Ratings by category
             const categoryRatings = {};
             ratedTickets.forEach(t => {
                 const cat = t.category || 'general';

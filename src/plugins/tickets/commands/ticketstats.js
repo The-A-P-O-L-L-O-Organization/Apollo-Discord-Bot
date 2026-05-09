@@ -1,9 +1,6 @@
-// Ticket Stats Command
-// Shows comprehensive ticket statistics
-
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { getGuildData } from '../utils/db.js';
-import { calculateSLAMetrics, formatTime } from '../utils/slaTracker.js';
+import { getGuildData } from '../../../utils/db.js';
+import { calculateSLAMetrics, formatTime } from '../../../utils/slaTracker.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -29,7 +26,6 @@ export default {
             .setTitle('📊 Ticket System Statistics')
             .setTimestamp();
 
-        // Overall stats
         embed.addFields({
             name: '🎯 Overall Statistics',
             value: [
@@ -42,7 +38,6 @@ export default {
             inline: false
         });
 
-        // Open tickets breakdown
         if (openTickets.length > 0) {
             const unassigned = openTickets.filter(t => !t.assignedTo || t.assignedTo.length === 0).length;
             const awaitingResponse = openTickets.filter(t => !t.firstResponseAt).length;
@@ -68,7 +63,6 @@ export default {
             });
         }
 
-        // Category breakdown (all tickets)
         const allTickets = [...openTickets, ...closedTickets];
         const categoryCounts = {};
         allTickets.forEach(ticket => {
@@ -90,7 +84,6 @@ export default {
             });
         }
 
-        // Rating statistics
         const ratedTickets = closedTickets.filter(t => t.rating);
         if (ratedTickets.length > 0) {
             const avgRating = ratedTickets.reduce((sum, t) => sum + t.rating, 0) / ratedTickets.length;
@@ -114,7 +107,6 @@ export default {
             });
         }
 
-        // SLA compliance
         if (closedTickets.length > 0) {
             const slaRate = ((metrics.slaMet / metrics.totalTickets) * 100).toFixed(1);
             embed.addFields({
@@ -128,7 +120,6 @@ export default {
             });
         }
 
-        // Staff performance (top 5 by tickets handled)
         const staffStats = {};
         closedTickets.forEach(ticket => {
             if (ticket.assignedTo && ticket.assignedTo.length > 0) {
@@ -166,7 +157,6 @@ export default {
             });
         }
 
-        // Recent activity
         const recentClosed = closedTickets
             .sort((a, b) => b.closedAt - a.closedAt)
             .slice(0, 1)[0];
