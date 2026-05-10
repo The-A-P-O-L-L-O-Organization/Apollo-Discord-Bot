@@ -1,5 +1,5 @@
 import { EmbedBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { getGuildData, setGuildData, generateId } from '../../../utils/db.js';
+import { getGuildData, setGuildData, updateGuildData, generateId } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
 import { getPriorityColor, getPriorityEmoji } from '../../../utils/slaTracker.js';
 
@@ -50,7 +50,7 @@ export default {
         const category = interaction.options.getString('category') || 'general';
         const priority = interaction.options.getString('priority') || 'medium';
 
-        const ticketConfig = getGuildData('tickets', guildId);
+        const ticketConfig = await getGuildData('tickets', guildId);
 
         const existingTicket = ticketConfig.openTickets?.find(t => t.userId === userId);
         if (existingTicket) {
@@ -168,27 +168,29 @@ export default {
         });
 
         const ticketId = generateId();
-        if (!ticketConfig.openTickets) {
-            ticketConfig.openTickets = [];
-        }
-        ticketConfig.openTickets.push({
-            id: ticketId,
-            ticketNumber,
-            channelId: ticketChannel.id,
-            userId,
-            reason,
-            category,
-            priority,
-            status: 'open',
-            assignedTo: [],
-            claimedBy: null,
-            firstResponseAt: null,
-            participants: [userId],
-            tags: [category, priority],
-            createdAt: Date.now()
+        await updateGuildData('tickets', guildId, (data) => {
+            if (!data.openTickets) {
+                data.openTickets = [];
+            }
+            data.openTickets.push({
+                id: ticketId,
+                ticketNumber,
+                channelId: ticketChannel.id,
+                userId,
+                reason,
+                category,
+                priority,
+                status: 'open',
+                assignedTo: [],
+                claimedBy: null,
+                firstResponseAt: null,
+                participants: [userId],
+                tags: [category, priority],
+                createdAt: Date.now()
+            });
+            data.totalTickets = ticketNumber;
+            return data;
         });
-        ticketConfig.totalTickets = ticketNumber;
-        setGuildData('tickets', guildId, ticketConfig);
 
         return interaction.reply({
             content: `Your ticket has been created: ${ticketChannel}`,

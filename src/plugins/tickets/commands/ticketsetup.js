@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { getGuildData, setGuildData } from '../../../utils/db.js';
+import { getGuildData, setGuildData, updateGuildData } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
 
 export default {
@@ -93,10 +93,11 @@ export default {
                     components: [row] 
                 });
 
-                const ticketConfig = getGuildData('tickets', guildId);
-                ticketConfig.panelMessageId = panelMessage.id;
-                ticketConfig.panelChannelId = channel.id;
-                setGuildData('tickets', guildId, ticketConfig);
+                await updateGuildData('tickets', guildId, (data) => {
+                    data.panelMessageId = panelMessage.id;
+                    data.panelChannelId = channel.id;
+                    return data;
+                });
 
                 return interaction.reply({
                     content: `Ticket panel created in ${channel}!`,
@@ -113,9 +114,10 @@ export default {
         } else if (subcommand === 'category') {
             const category = interaction.options.getChannel('category');
 
-            const ticketConfig = getGuildData('tickets', guildId);
-            ticketConfig.categoryId = category.id;
-            setGuildData('tickets', guildId, ticketConfig);
+            await updateGuildData('tickets', guildId, (data) => {
+                data.categoryId = category.id;
+                return data;
+            });
 
             return interaction.reply({
                 content: `Ticket category set to **${category.name}**. New tickets will be created in this category.`,
@@ -125,9 +127,10 @@ export default {
         } else if (subcommand === 'supportrole') {
             const role = interaction.options.getRole('role');
 
-            const ticketConfig = getGuildData('tickets', guildId);
-            ticketConfig.supportRoleId = role.id;
-            setGuildData('tickets', guildId, ticketConfig);
+            await updateGuildData('tickets', guildId, (data) => {
+                data.supportRoleId = role.id;
+                return data;
+            });
 
             return interaction.reply({
                 content: `Support role set to ${role}. Members with this role can see all tickets.`,
@@ -135,7 +138,7 @@ export default {
             });
 
         } else if (subcommand === 'status') {
-            const ticketConfig = getGuildData('tickets', guildId);
+            const ticketConfig = await getGuildData('tickets', guildId);
 
             const embed = new EmbedBuilder()
                 .setColor('#3498DB')

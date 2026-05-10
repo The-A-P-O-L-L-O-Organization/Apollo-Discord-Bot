@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { getGuildData, setGuildData } from '../../../utils/db.js';
+import { getGuildData, setGuildData, updateGuildData } from '../../../utils/db.js';
 
 export default {
     name: 'assign',
@@ -20,7 +20,7 @@ export default {
         const channelId = interaction.channel.id;
         const assignUser = interaction.options.getUser('user');
 
-        const ticketConfig = getGuildData('tickets', guildId);
+        const ticketConfig = await getGuildData('tickets', guildId);
 
         const ticket = ticketConfig.openTickets?.find(t => t.channelId === channelId);
 
@@ -51,14 +51,17 @@ export default {
             });
         }
 
-        ticket.assignedTo.push(assignUser.id);
-
-        if (!ticket.participants) {ticket.participants = [ticket.userId];}
-        if (!ticket.participants.includes(assignUser.id)) {
-            ticket.participants.push(assignUser.id);
-        }
-
-        setGuildData('tickets', guildId, ticketConfig);
+        await updateGuildData('tickets', guildId, (data) => {
+            const t = data.openTickets?.find(x => x.channelId === channelId);
+            if (t) {
+                t.assignedTo.push(assignUser.id);
+                if (!t.participants) {t.participants = [t.userId];}
+                if (!t.participants.includes(assignUser.id)) {
+                    t.participants.push(assignUser.id);
+                }
+            }
+            return data;
+        });
 
         try {
             await interaction.channel.permissionOverwrites.edit(assignUser.id, {
