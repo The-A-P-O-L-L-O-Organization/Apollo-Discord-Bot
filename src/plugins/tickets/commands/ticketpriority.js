@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { getGuildData, setGuildData } from '../../../utils/db.js';
+import { getGuildData, setGuildData, updateGuildData } from '../../../utils/db.js';
 import { getPriorityColor, getPriorityEmoji } from '../../../utils/slaTracker.js';
 
 export default {
@@ -27,7 +27,7 @@ export default {
         const channelId = interaction.channel.id;
         const newPriority = interaction.options.getString('priority');
 
-        const ticketConfig = getGuildData('tickets', guildId);
+        const ticketConfig = await getGuildData('tickets', guildId);
 
         const ticket = ticketConfig.openTickets?.find(t => t.channelId === channelId);
 
@@ -58,13 +58,16 @@ export default {
             });
         }
 
-        ticket.priority = newPriority;
-
-        if (!ticket.tags) {ticket.tags = [];}
-        ticket.tags = ticket.tags.filter(tag => tag !== oldPriority);
-        ticket.tags.push(newPriority);
-
-        setGuildData('tickets', guildId, ticketConfig);
+        await updateGuildData('tickets', guildId, (data) => {
+            const t = data.openTickets?.find(x => x.channelId === channelId);
+            if (t) {
+                t.priority = newPriority;
+                if (!t.tags) {t.tags = [];}
+                t.tags = t.tags.filter(tag => tag !== oldPriority);
+                t.tags.push(newPriority);
+            }
+            return data;
+        });
 
         try {
             const newTopic = `${getPriorityEmoji(newPriority)} Ticket #${ticket.ticketNumber} | ${ticket.category || 'general'} | ${newPriority} priority | Created by ${(await interaction.guild.members.fetch(ticket.userId).catch(() => null))?.user?.tag || 'Unknown'}`;

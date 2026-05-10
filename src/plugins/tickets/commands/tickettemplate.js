@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { getGuildData, setGuildData, generateId } from '../../../utils/db.js';
+import { getGuildData, setGuildData, updateGuildData, generateId } from '../../../utils/db.js';
 
 export default {
     name: 'tickettemplate',
@@ -83,7 +83,7 @@ export default {
             const response = interaction.options.getString('response');
             const questionsStr = interaction.options.getString('questions');
 
-            const templates = getGuildData('ticket-templates', guildId);
+            const templates = await getGuildData('ticket-templates', guildId);
             if (!templates.list) {templates.list = [];}
 
             if (templates.list.find(t => t.name.toLowerCase() === name.toLowerCase())) {
@@ -105,8 +105,11 @@ export default {
                 createdAt: Date.now()
             };
 
-            templates.list.push(template);
-            setGuildData('ticket-templates', guildId, templates);
+            await updateGuildData('ticket-templates', guildId, (data) => {
+                if (!data.list) {data.list = [];}
+                data.list.push(template);
+                return data;
+            });
 
             const embed = new EmbedBuilder()
                 .setColor('#00FF00')
@@ -124,7 +127,7 @@ export default {
         } else if (subcommand === 'delete') {
             const name = interaction.options.getString('name');
 
-            const templates = getGuildData('ticket-templates', guildId);
+            const templates = await getGuildData('ticket-templates', guildId);
             if (!templates.list) {templates.list = [];}
 
             const templateIndex = templates.list.findIndex(t => t.name.toLowerCase() === name.toLowerCase());
@@ -137,8 +140,12 @@ export default {
             }
 
             const deletedTemplate = templates.list[templateIndex];
-            templates.list.splice(templateIndex, 1);
-            setGuildData('ticket-templates', guildId, templates);
+            await updateGuildData('ticket-templates', guildId, (data) => {
+                if (data.list) {
+                    data.list = data.list.filter(t => t.id !== deletedTemplate.id);
+                }
+                return data;
+            });
 
             return interaction.reply({
                 content: `Template **${deletedTemplate.name}** has been deleted.`,
@@ -146,7 +153,7 @@ export default {
             });
 
         } else if (subcommand === 'list') {
-            const templates = getGuildData('ticket-templates', guildId);
+            const templates = await getGuildData('ticket-templates', guildId);
             
             if (!templates.list || templates.list.length === 0) {
                 return interaction.reply({
@@ -174,7 +181,7 @@ export default {
         } else if (subcommand === 'view') {
             const name = interaction.options.getString('name');
 
-            const templates = getGuildData('ticket-templates', guildId);
+            const templates = await getGuildData('ticket-templates', guildId);
             if (!templates.list) {templates.list = [];}
 
             const template = templates.list.find(t => t.name.toLowerCase() === name.toLowerCase());

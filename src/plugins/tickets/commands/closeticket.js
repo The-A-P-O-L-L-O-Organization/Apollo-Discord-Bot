@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { getGuildData, setGuildData, writeToSubDir } from '../../../utils/db.js';
+import { getGuildData, setGuildData, updateGuildData, writeToSubDir } from '../../../utils/db.js';
 
 export default {
     name: 'closeticket',
@@ -20,7 +20,7 @@ export default {
         const channelId = interaction.channel.id;
         const reason = interaction.options.getString('reason') || 'No reason provided';
 
-        const ticketConfig = getGuildData('tickets', guildId);
+        const ticketConfig = await getGuildData('tickets', guildId);
 
         const ticketIndex = ticketConfig.openTickets?.findIndex(t => t.channelId === channelId);
         
@@ -114,27 +114,29 @@ export default {
         const filename = `ticket-${ticket.ticketNumber}-${guildId}-${Date.now()}.json`;
         writeToSubDir('transcripts', filename, transcript);
 
-        ticketConfig.openTickets.splice(ticketIndex, 1);
-        
-        if (!ticketConfig.closedTickets) {
-            ticketConfig.closedTickets = [];
-        }
-        ticketConfig.closedTickets.push({
-            ticketNumber: ticket.ticketNumber,
-            userId: ticket.userId,
-            closedBy: interaction.user.id,
-            reason: ticket.reason,
-            closeReason: reason,
-            createdAt: ticket.createdAt,
-            closedAt: Date.now(),
-            transcriptFile: filename
+        await updateGuildData('tickets', guildId, (data) => {
+            data.openTickets.splice(ticketIndex, 1);
+            
+            if (!data.closedTickets) {
+                data.closedTickets = [];
+            }
+            data.closedTickets.push({
+                ticketNumber: ticket.ticketNumber,
+                userId: ticket.userId,
+                closedBy: interaction.user.id,
+                reason: ticket.reason,
+                closeReason: reason,
+                createdAt: ticket.createdAt,
+                closedAt: Date.now(),
+                transcriptFile: filename
+            });
+            
+            if (data.closedTickets.length > 100) {
+                data.closedTickets = data.closedTickets.slice(-100);
+            }
+            
+            return data;
         });
-        
-        if (ticketConfig.closedTickets.length > 100) {
-            ticketConfig.closedTickets = ticketConfig.closedTickets.slice(-100);
-        }
-        
-        setGuildData('tickets', guildId, ticketConfig);
 
         try {
             const ticketCreator = await interaction.client.users.fetch(ticket.userId);
