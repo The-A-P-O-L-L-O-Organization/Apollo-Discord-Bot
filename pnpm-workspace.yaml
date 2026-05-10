@@ -1,10 +1,10 @@
 packages:
   - bot
 allowBuilds:
-  '@tensorflow/tfjs-node': set this to true or false
+  '@tensorflow/tfjs-node': true
   better-sqlite3: true
-  core-js: set this to true or false
-  msgpackr-extract: set this to true or false
+  core-js: true
+  msgpackr-extract: true
 overrides:
   glob: 11.1.0
   cross-spawn: 7.0.5

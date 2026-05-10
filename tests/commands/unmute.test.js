@@ -2,7 +2,7 @@
 // Tests for the unmute command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import unmuteCommand from '../../src/commands/unmute.js';
+import unmuteCommand from '../../src/plugins/moderation/commands/unmute.js';
 import { 
     createMockInteraction, 
     createMockUser, 
@@ -10,6 +10,19 @@ import {
     createMockGuild,
     createMockClient 
 } from '../mocks/discord.js';
+
+// Mock the db module
+vi.mock('../../src/utils/db.js', () => ({
+    getGuildData: vi.fn(),
+    setGuildData: vi.fn(),
+    updateGuildData: vi.fn((store, guildId, updater) => {
+        return Promise.resolve(updater({ nextCaseId: 1 }));
+    }),
+    getData: vi.fn(),
+    setData: vi.fn(),
+    getUserData: vi.fn(),
+    setUserData: vi.fn(),
+}));
 
 // Mock the modLog module
 vi.mock('../../src/utils/modLog.js', () => ({

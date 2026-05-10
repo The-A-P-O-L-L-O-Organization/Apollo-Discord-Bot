@@ -2,13 +2,24 @@
 // Tests for the kick command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import kickCommand from '../../src/commands/kick.js';
+import kickCommand from '../../src/plugins/moderation/commands/kick.js';
 import {
     createMockInteraction,
     createMockUser,
     createMockMember,
     createMockGuild
 } from '../mocks/discord.js';
+
+// Mock the db module
+vi.mock('../../src/utils/db.js', () => ({
+    getGuildData: vi.fn(),
+    setGuildData: vi.fn(),
+    updateGuildData: vi.fn((store, guildId, updater) => {
+        return Promise.resolve(updater({ nextCaseId: 1 }));
+    }),
+    getData: vi.fn(),
+    setData: vi.fn(),
+}));
 
 // Mock the modLog module
 vi.mock('../../src/utils/modLog.js', () => ({

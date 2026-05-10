@@ -7,7 +7,7 @@ vi.mock('../../src/utils/modLog.js', () => ({
 }));
 
 import { sendModLog } from '../../src/utils/modLog.js';
-import clearCommand from '../../src/commands/clear.js';
+import clearCommand from '../../src/plugins/moderation/commands/clear.js';
 
 describe('Clear Command', () => {
     let interaction;

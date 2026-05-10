@@ -2,7 +2,7 @@
 // Tests for the purge command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import purgeCommand from '../../src/commands/purge.js';
+import purgeCommand from '../../src/plugins/moderation/commands/purge.js';
 import {
     createMockInteraction,
     createMockUser,

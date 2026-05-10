@@ -19,6 +19,7 @@ vi.mock('../../src/utils/logger.js', () => ({
 // Mock the config
 vi.mock('../../src/config/config.js', () => ({
     config: {
+        database: { type: 'sqlite' },
         welcome: {
             channelName: 'welcome',
             message: 'Welcome {user} to {server}!'

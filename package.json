@@ -1,7 +1,7 @@
 {
   "name": "@apollo/bot",
-  "version": "1.0.0",
-  "description": "Apollo Discord bot",
+  "version": "2.0.0",
+  "description": "Modular Discord bot with plugin system, multi-instance HA, and Redis-backed queue architecture",
   "main": "src/index.js",
   "type": "module",
   "scripts": {
