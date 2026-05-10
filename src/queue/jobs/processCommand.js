@@ -11,7 +11,7 @@ const rest = new REST({ version: '10' }).setToken(config.DISCORD_TOKEN);
 
 export default function register() {
   registerHandler(JobNames.PROCESS_COMMAND, async (job) => {
-    const { commandName, guildId, userId, interactionToken, options } = job.data;
+    const { commandName, guildId, interactionToken, options } = job.data;
 
     console.log(`[Worker] Executing /${commandName} in guild ${guildId}`);
 
