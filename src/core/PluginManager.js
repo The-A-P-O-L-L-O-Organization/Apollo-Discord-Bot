@@ -16,6 +16,7 @@ export default class PluginManager {
   async loadAll(config) {
     this.config = config;
     const { enabled, directory } = config.plugins;
+    this._rebuildInstalledPlugins();
     for (const id of enabled) {
       await this.loadPlugin(id, directory);
     }
@@ -24,6 +25,23 @@ export default class PluginManager {
       await this.enablePlugin(id);
     }
     await this._syncDiscordCommands();
+  }
+
+  _rebuildInstalledPlugins() {
+    const optionalDir = path.join(
+      process.cwd(),
+      this.config?.plugins?.optionalDirectory || './data/plugins'
+    );
+    if (!existsSync(optionalDir)) return;
+    const entries = readdirSync(optionalDir);
+    for (const entry of entries) {
+      if (!this.installedPlugins.has(entry) && existsSync(path.join(optionalDir, entry, 'plugin.js'))) {
+        this.installedPlugins.set(entry, {
+          origin: 'installed',
+          dir: path.join(optionalDir, entry),
+        });
+      }
+    }
   }
 
   _sortByDependencies(ids) {
@@ -201,22 +219,29 @@ export default class PluginManager {
   }
 
   async uninstallPlugin(id) {
-    if (!this.plugins.has(id)) throw new Error(`Plugin ${id} is not loaded`);
-    const info = this.installedPlugins.get(id);
-    if (!info || info.origin !== 'installed') {
-      throw new Error(`Plugin ${id} is a built-in plugin and cannot be uninstalled`);
+    if (this.plugins.has(id)) {
+      const info = this.installedPlugins.get(id);
+      if (!info || info.origin !== 'installed') {
+        throw new Error(`Plugin ${id} is a built-in plugin and cannot be uninstalled`);
+      }
+      await this.disablePlugin(id);
+      await this.unloadPlugin(id);
+      this._pluginRegistry.delete(id);
+      this.installedPlugins.delete(id);
     }
 
-    await this.disablePlugin(id);
-    await this.unloadPlugin(id);
-    this._pluginRegistry.delete(id);
+    const optionalDir = path.join(
+      process.cwd(),
+      this.client.config.plugins.optionalDirectory || './data/plugins'
+    );
+    const pluginDir = path.join(optionalDir, id);
 
-    const destDir = info.dir;
-    if (existsSync(destDir)) {
-      rmSync(destDir, { recursive: true, force: true });
+    if (existsSync(pluginDir)) {
+      rmSync(pluginDir, { recursive: true, force: true });
+      console.log(`[PluginManager] Removed plugin directory ${pluginDir}`);
+    } else {
+      throw new Error(`Plugin ${id} is not loaded and no install directory found at ${pluginDir}`);
     }
-
-    this.installedPlugins.delete(id);
 
     const enabled = this.client.config.plugins.enabled;
     const idx = enabled.indexOf(id);
