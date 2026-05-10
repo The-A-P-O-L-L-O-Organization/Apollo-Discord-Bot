@@ -2,7 +2,7 @@
 # Optimized for production use with Node.js
 
 # Use official Node.js image as base
-FROM node:24.14-alpine3.23
+FROM node:26-alpine
 
 # Install build dependencies for better-sqlite3
 RUN apk add --no-cache python3 make g++ sqlite-dev
@@ -16,16 +16,13 @@ ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 
 # Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN npm install -g corepack && corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy package files first for better caching
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* .npmrc* ./
 
-# Install dependencies (including native builds)
-RUN pnpm config set enable-pre-post-scripts true && \
-    pnpm install --frozen-lockfile && \
-    cd node_modules/better-sqlite3 && \
-    npm run build-release
+# Install dependencies (postinstall rebuilds better-sqlite3)
+RUN pnpm install --frozen-lockfile
 
 # Copy application source code
 COPY src ./src

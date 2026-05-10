@@ -2,13 +2,26 @@
 // Tests for the mute command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import muteCommand from '../../src/commands/mute.js';
+import muteCommand from '../../src/plugins/moderation/commands/mute.js';
 import {
     createMockInteraction,
     createMockUser,
     createMockMember,
     createMockGuild
 } from '../mocks/discord.js';
+
+// Mock the db module
+vi.mock('../../src/utils/db.js', () => ({
+    getGuildData: vi.fn(),
+    setGuildData: vi.fn(),
+    updateGuildData: vi.fn((store, guildId, updater) => {
+        return Promise.resolve(updater({ nextCaseId: 1 }));
+    }),
+    getData: vi.fn(),
+    setData: vi.fn(),
+    getUserData: vi.fn(),
+    setUserData: vi.fn(),
+}));
 
 // Mock the modLog module
 vi.mock('../../src/utils/modLog.js', () => ({

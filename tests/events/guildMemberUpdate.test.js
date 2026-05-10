@@ -2,7 +2,7 @@
 // Tests for the guildMemberUpdate event handler
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import guildMemberUpdateEvent from '../../src/events/guildMemberUpdate.js';
+import guildMemberUpdateEvent from '../../src/plugins/admin/events/guildMemberUpdate.js';
 import { 
     createMockMember, 
     createMockUser, 

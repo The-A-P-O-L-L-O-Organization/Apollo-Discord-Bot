@@ -50,8 +50,8 @@ export function isPerspectiveApiAvailable() {
  * @param {string} guildId - The guild ID
  * @returns {Object} Configuration
  */
-export function getPerspectiveConfig(guildId) {
-    const guildConfig = getGuildData('perspective-config', guildId);
+export async function getPerspectiveConfig(guildId) {
+    const guildConfig = await getGuildData('perspective-config', guildId);
     return {
         enabled: guildConfig.enabled ?? false,
         toxicityThreshold: guildConfig.toxicityThreshold ?? 0.7,
@@ -128,7 +128,7 @@ export async function analyzeToxicity(content) {
  * @returns {Promise<Object|null>} Detection result or null
  */
 export async function checkMessageToxicity(guildId, content) {
-    const config = getPerspectiveConfig(guildId);
+    const config = await getPerspectiveConfig(guildId);
     
     if (!config.enabled || !isPerspectiveApiAvailable()) {
         return null;

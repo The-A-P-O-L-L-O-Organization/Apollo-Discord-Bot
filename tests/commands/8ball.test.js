@@ -2,7 +2,7 @@
 // Tests for the 8ball command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import eightBallCommand from '../../src/commands/8ball.js';
+import eightBallCommand from '../../src/plugins/utility/commands/8ball.js';
 import { createMockInteraction, createMockUser } from '../mocks/discord.js';
 
 describe('8ball Command', () => {

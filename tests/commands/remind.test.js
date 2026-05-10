@@ -2,7 +2,7 @@
 // Tests for the remind command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import remindCommand from '../../src/commands/remind.js';
+import remindCommand from '../../src/plugins/utility/commands/remind.js';
 import { 
     createMockInteraction, 
     createMockUser,

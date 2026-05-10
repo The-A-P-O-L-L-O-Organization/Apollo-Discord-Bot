@@ -26,19 +26,19 @@ export async function exportAnalytics(guildId, format = 'csv', options = {}) {
     for (const type of types) {
         switch (type) {
         case 'commands':
-            exportData.commands = exportCommandData(guildId, cutoffDate);
+            exportData.commands = await exportCommandData(guildId, cutoffDate);
             break;
         case 'messages':
-            exportData.messages = exportMessageData(guildId, cutoffDate);
+            exportData.messages = await exportMessageData(guildId, cutoffDate);
             break;
         case 'violations':
-            exportData.violations = exportViolationData(guildId, cutoffDate);
+            exportData.violations = await exportViolationData(guildId, cutoffDate);
             break;
         case 'modactions':
-            exportData.modactions = exportModActionData(guildId, cutoffDate);
+            exportData.modactions = await exportModActionData(guildId, cutoffDate);
             break;
         case 'members':
-            exportData.members = exportMemberData(guildId, cutoffDate);
+            exportData.members = await exportMemberData(guildId, cutoffDate);
             break;
         }
     }
@@ -80,8 +80,8 @@ export function cleanupExport(filepath) {
 /**
  * Exports command data
  */
-function exportCommandData(guildId, cutoffDate) {
-    const data = getGuildData('analytics-commands', guildId);
+async function exportCommandData(guildId, cutoffDate) {
+    const data = await getGuildData('analytics-commands', guildId);
     const results = [];
     
     for (const key in data) {
@@ -102,8 +102,8 @@ function exportCommandData(guildId, cutoffDate) {
 /**
  * Exports message data
  */
-function exportMessageData(guildId, cutoffDate) {
-    const data = getGuildData('analytics-messages', guildId);
+async function exportMessageData(guildId, cutoffDate) {
+    const data = await getGuildData('analytics-messages', guildId);
     const cutoffHour = getHourString(Date.now() - (90 * 24 * 60 * 60 * 1000));
     const results = [];
     
@@ -125,8 +125,8 @@ function exportMessageData(guildId, cutoffDate) {
 /**
  * Exports violation data
  */
-function exportViolationData(guildId, cutoffDate) {
-    const data = getGuildData('analytics-violations', guildId);
+async function exportViolationData(guildId, cutoffDate) {
+    const data = await getGuildData('analytics-violations', guildId);
     const results = [];
     
     for (const key in data) {
@@ -146,8 +146,8 @@ function exportViolationData(guildId, cutoffDate) {
 /**
  * Exports mod action data
  */
-function exportModActionData(guildId, cutoffDate) {
-    const data = getGuildData('analytics-modactions', guildId);
+async function exportModActionData(guildId, cutoffDate) {
+    const data = await getGuildData('analytics-modactions', guildId);
     const results = [];
     
     for (const key in data) {
@@ -168,8 +168,8 @@ function exportModActionData(guildId, cutoffDate) {
 /**
  * Exports member data
  */
-function exportMemberData(guildId, cutoffDate) {
-    const data = getGuildData('analytics-members', guildId);
+async function exportMemberData(guildId, cutoffDate) {
+    const data = await getGuildData('analytics-members', guildId);
     const results = [];
     
     for (const key in data) {
@@ -264,11 +264,11 @@ function getHourString(timestamp) {
  * @param {number} days - Number of days to summarize
  * @returns {Object} Analytics summary
  */
-export function getAnalyticsSummary(guildId, days = 7) {
+export async function getAnalyticsSummary(guildId, days = 7) {
     const cutoffDate = getDateString(Date.now() - (days * 24 * 60 * 60 * 1000));
     
     // Count commands
-    const commands = getGuildData('analytics-commands', guildId);
+    const commands = await getGuildData('analytics-commands', guildId);
     let totalCommands = 0;
     for (const key in commands) {
         if (commands[key].date >= cutoffDate) {
@@ -277,7 +277,7 @@ export function getAnalyticsSummary(guildId, days = 7) {
     }
     
     // Count messages
-    const messages = getGuildData('analytics-messages', guildId);
+    const messages = await getGuildData('analytics-messages', guildId);
     let totalMessages = 0;
     const cutoffHour = getHourString(Date.now() - (days * 24 * 60 * 60 * 1000));
     for (const key in messages) {
@@ -287,7 +287,7 @@ export function getAnalyticsSummary(guildId, days = 7) {
     }
     
     // Count violations
-    const violations = getGuildData('analytics-violations', guildId);
+    const violations = await getGuildData('analytics-violations', guildId);
     let totalViolations = 0;
     for (const key in violations) {
         if (violations[key].date >= cutoffDate) {
@@ -296,7 +296,7 @@ export function getAnalyticsSummary(guildId, days = 7) {
     }
     
     // Count mod actions
-    const modActions = getGuildData('analytics-modactions', guildId);
+    const modActions = await getGuildData('analytics-modactions', guildId);
     let totalModActions = 0;
     for (const key in modActions) {
         if (modActions[key].date >= cutoffDate) {
@@ -305,7 +305,7 @@ export function getAnalyticsSummary(guildId, days = 7) {
     }
     
     // Get member changes
-    const members = getGuildData('analytics-members', guildId);
+    const members = await getGuildData('analytics-members', guildId);
     let totalJoins = 0;
     let totalLeaves = 0;
     let latestTotal = 0;

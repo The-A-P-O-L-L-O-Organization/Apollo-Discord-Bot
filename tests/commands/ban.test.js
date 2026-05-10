@@ -2,7 +2,7 @@
 // Tests for the ban command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import banCommand from '../../src/commands/ban.js';
+import banCommand from '../../src/plugins/moderation/commands/ban.js';
 import { 
     createMockInteraction, 
     createMockUser, 
@@ -10,6 +10,17 @@ import {
     createMockGuild,
     createMockClient 
 } from '../mocks/discord.js';
+
+// Mock the db module
+vi.mock('../../src/utils/db.js', () => ({
+    getGuildData: vi.fn(),
+    setGuildData: vi.fn(),
+    updateGuildData: vi.fn((store, guildId, updater) => {
+        return Promise.resolve(updater({ nextCaseId: 1 }));
+    }),
+    getData: vi.fn(),
+    setData: vi.fn(),
+}));
 
 // Mock the modLog module
 vi.mock('../../src/utils/modLog.js', () => ({

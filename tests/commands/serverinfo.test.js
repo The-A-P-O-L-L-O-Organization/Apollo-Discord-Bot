@@ -2,7 +2,7 @@
 // Tests for the server info command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import serverInfoCommand from '../../src/commands/serverinfo.js';
+import serverInfoCommand from '../../src/plugins/utility/commands/serverinfo.js';
 import {
     createMockInteraction,
     createMockUser,

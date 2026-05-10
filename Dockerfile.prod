@@ -3,7 +3,7 @@
 
 # Use multi-stage build for smaller final image
 # Stage 1: Build stage
-FROM node:24.14-alpine3.23 AS builder
+FROM node:26-alpine AS builder
 
 # Install build dependencies for better-sqlite3
 RUN apk add --no-cache python3 make g++
@@ -15,23 +15,20 @@ ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 
 # Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN npm install -g corepack && corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
 
-# Install dependencies
-RUN pnpm config set enable-pre-post-scripts true && \
-    pnpm install --frozen-lockfile && \
-    cd node_modules/better-sqlite3 && \
-    pnpm run build-release
+# Install dependencies (postinstall rebuilds better-sqlite3)
+RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY src ./src
 COPY deploy-commands.js ./
 
 # Stage 2: Production stage
-FROM node:24.14-alpine3.23
+FROM node:26-alpine
 
 # Install runtime dependencies
 RUN apk add --no-cache libstdc++
@@ -44,7 +41,7 @@ ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 
 # Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN npm install -g corepack && corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./

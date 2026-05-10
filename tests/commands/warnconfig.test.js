@@ -2,7 +2,7 @@
 // Tests for the warnconfig command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import warnconfigCommand from '../../src/commands/warnconfig.js';
+import warnconfigCommand from '../../src/plugins/moderation/commands/warnconfig.js';
 import { 
     createMockInteraction, 
     createMockUser, 
@@ -12,7 +12,10 @@ import {
 // Mock the db module
 vi.mock('../../src/utils/db.js', () => ({
     getGuildData: vi.fn(),
-    setGuildData: vi.fn()
+    setGuildData: vi.fn(),
+    updateGuildData: vi.fn((store, guildId, updater) => {
+        return Promise.resolve(updater({ nextCaseId: 1 }));
+    }),
 }));
 
 // Mock the config

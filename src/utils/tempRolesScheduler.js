@@ -2,6 +2,8 @@
 // Automatically removes temporary roles when they expire
 
 import { getGuildData, setGuildData } from './db.js';
+import { config } from '../config/config.js';
+import { getLockRedis, withLock } from './lock.js';
 
 let checkInterval = null;
 const CHECK_DELAY = 60000; // Check every minute
@@ -12,8 +14,13 @@ export function initTempRolesScheduler(client) {
         return;
     }
     
-    checkInterval = setInterval(async() => {
-        await checkExpiredTempRoles(client);
+    checkInterval = setInterval(async () => {
+        const redis = await getLockRedis();
+        if (redis) {
+            await withLock(redis, 'scheduler:temproles', config.podId, () => checkExpiredTempRoles(client), 55000);
+        } else {
+            await checkExpiredTempRoles(client);
+        }
     }, CHECK_DELAY);
     
     console.log('[SUCCESS] Temporary roles scheduler started');
