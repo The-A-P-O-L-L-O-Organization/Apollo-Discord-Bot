@@ -1,7 +1,7 @@
 import { EmbedBuilder } from 'discord.js';
 import { config } from '../../../config/config.js';
 import { logEvent, createMemberJoinEmbed } from '../../../utils/logger.js';
-import { getGuildData, getData } from '../../../utils/db.js';
+import { getGuildData, getData, updateGuildData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { checkRaidPattern, handleRaidDetected } from '../../../utils/raidDetection.js';
 import { trackMemberChange } from '../../../utils/analyticsCollector.js';
@@ -25,7 +25,7 @@ export default {
 
         // --- Blacklist check ---
         if (!member.user.bot) {
-            const globalData = getData('global_blacklist') || { entries: {} };
+            const globalData = await getData('global_blacklist') || { entries: {} };
             const globalEntries = globalData.entries || {};
             let entry = globalEntries[member.id];
             let isGlobal = false;
@@ -33,7 +33,7 @@ export default {
             if (entry) {
                 isGlobal = true;
             } else {
-                const guildData = getGuildData('blacklist', guild.id);
+                const guildData = await getGuildData('blacklist', guild.id);
                 const entries = guildData.entries || {};
                 entry = entries[member.id];
             }
@@ -89,7 +89,7 @@ export default {
 
         // --- Auto-role assignment ---
         if (!member.user.bot) {
-            const autoRoleConfig = getGuildData('autorole', guild.id);
+            const autoRoleConfig = await getGuildData('autorole', guild.id);
 
             if (autoRoleConfig && autoRoleConfig.enabled && autoRoleConfig.roleId) {
                 const role = guild.roles.cache.get(autoRoleConfig.roleId);
@@ -104,7 +104,7 @@ export default {
                 }
             }
 
-            const rolePersistenceConfig = getGuildData('role-persistence', guild.id);
+            const rolePersistenceConfig = await getGuildData('role-persistence', guild.id);
 
             if (rolePersistenceConfig && rolePersistenceConfig.enabled && rolePersistenceConfig.savedRoles) {
                 const savedData = rolePersistenceConfig.savedRoles[member.id];
@@ -119,8 +119,12 @@ export default {
                             await member.roles.add(validRoles, 'Restoring roles from previous session');
                             console.log(`[SUCCESS] Restored ${validRoles.length} roles for ${member.user.tag}`);
 
-                            delete rolePersistenceConfig.savedRoles[member.id];
-                            setGuildData('role-persistence', guild.id, rolePersistenceConfig);
+                            await updateGuildData('role-persistence', guild.id, (data) => {
+                                if (data.savedRoles) {
+                                    delete data.savedRoles[member.id];
+                                }
+                                return data;
+                            });
                         } catch (roleError) {
                             console.error(`[ERROR] Failed to restore roles for ${member.user.tag}:`, roleError);
                         }

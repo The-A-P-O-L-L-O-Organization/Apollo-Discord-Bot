@@ -2,7 +2,7 @@
 // Assign temporary roles that automatically expire
 
 import { PermissionsBitField } from 'discord.js';
-import { setGuildData, getGuildData } from '../../../utils/db.js';
+import { setGuildData, getGuildData, updateGuildData } from '../../../utils/db.js';
 
 export default {
     name: 'temprole',
@@ -169,8 +169,9 @@ async function handleAdd(interaction) {
         assignedAt: Date.now()
     };
     
-    setGuildData('temp-roles', interaction.guild.id, {
-        [user.id]: tempRoleData
+    await updateGuildData('temp-roles', interaction.guild.id, (data) => {
+        data[user.id] = tempRoleData;
+        return data;
     });
     
     const successEmbed = {
@@ -224,7 +225,10 @@ async function handleRemove(interaction) {
         await member.roles.remove(role, 'Temporary role removed early');
         
         // Clear from temp roles
-        setGuildData('temp-roles', interaction.guild.id, {});
+        await updateGuildData('temp-roles', interaction.guild.id, (data) => {
+            delete data[user.id];
+            return data;
+        });
         
         const successEmbed = {
             color: 0x00FF00,
@@ -248,7 +252,7 @@ async function handleRemove(interaction) {
 }
 
 async function handleList(interaction) {
-    const tempRoles = getGuildData('temp-roles', interaction.guild.id);
+    const tempRoles = await getGuildData('temp-roles', interaction.guild.id);
     
     if (!tempRoles || Object.keys(tempRoles).length === 0) {
         return interaction.reply({
