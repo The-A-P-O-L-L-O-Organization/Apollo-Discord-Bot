@@ -2,7 +2,7 @@
 // Tests for the ticket command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import ticketCommand from '../../src/commands/ticket.js';
+import ticketCommand from '../../src/plugins/tickets/commands/ticket.js';
 import {
     createMockInteraction,
     createMockUser,
@@ -14,7 +14,7 @@ import {
 // Mock the dataStore module
 vi.mock('../../src/utils/db.js', () => ({
     getGuildData: vi.fn(),
-    setGuildData: vi.fn(),
+    updateGuildData: vi.fn(),
     generateId: vi.fn().mockReturnValue('ticket-123')
 }));
 
@@ -28,7 +28,7 @@ vi.mock('../../src/config/config.js', () => ({
     }
 }));
 
-import { getGuildData, setGuildData } from '../../src/utils/db.js';
+import { getGuildData, updateGuildData } from '../../src/utils/db.js';
 
 describe('Ticket Command', () => {
     let mockInteraction;
@@ -113,17 +113,21 @@ describe('Ticket Command', () => {
 
             await ticketCommand.execute(mockInteraction);
             
-            expect(setGuildData).toHaveBeenCalled();
-            const setCall = setGuildData.mock.calls[0];
-            expect(setCall[2].totalTickets).toBe(6);
+            expect(updateGuildData).toHaveBeenCalled();
+            const callArgs = updateGuildData.mock.calls[0];
+            expect(callArgs[0]).toBe('tickets');
+            expect(callArgs[1]).toBe('987654321');
+            const result = callArgs[2]({ totalTickets: 5 });
+            expect(result.totalTickets).toBe(6);
         });
 
         it('should save ticket to open tickets', async() => {
             await ticketCommand.execute(mockInteraction);
             
-            const setCall = setGuildData.mock.calls[0];
-            expect(setCall[2].openTickets).toHaveLength(1);
-            expect(setCall[2].openTickets[0].userId).toBe('123456789');
+            const callArgs = updateGuildData.mock.calls[0];
+            const result = callArgs[2]({ openTickets: [] });
+            expect(result.openTickets).toHaveLength(1);
+            expect(result.openTickets[0].userId).toBe('123456789');
         });
 
         it('should use provided reason', async() => {
@@ -131,8 +135,9 @@ describe('Ticket Command', () => {
 
             await ticketCommand.execute(mockInteraction);
             
-            const setCall = setGuildData.mock.calls[0];
-            expect(setCall[2].openTickets[0].reason).toBe('Need help with billing');
+            const callArgs = updateGuildData.mock.calls[0];
+            const result = callArgs[2]({ openTickets: [] });
+            expect(result.openTickets[0].reason).toBe('Need help with billing');
         });
 
         it('should use default reason when none provided', async() => {
@@ -140,8 +145,9 @@ describe('Ticket Command', () => {
 
             await ticketCommand.execute(mockInteraction);
             
-            const setCall = setGuildData.mock.calls[0];
-            expect(setCall[2].openTickets[0].reason).toBe('No reason provided');
+            const callArgs = updateGuildData.mock.calls[0];
+            const result = callArgs[2]({ openTickets: [] });
+            expect(result.openTickets[0].reason).toBe('No reason provided');
         });
 
         it('should use category if configured', async() => {

@@ -58,7 +58,7 @@ export async function handleReportSubmission(interaction, client) {
         };
         
         // Save report to database
-        updateGuildData('reports', interaction.guild.id, data => {
+        await updateGuildData('reports', interaction.guild.id, data => {
             if (!data.reports) {data.reports = [];}
             data.reports.push(reportData);
             return data;

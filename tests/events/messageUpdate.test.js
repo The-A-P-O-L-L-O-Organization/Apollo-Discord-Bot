@@ -2,7 +2,7 @@
 // Tests for the messageUpdate event handler
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import messageUpdateEvent from '../../src/events/messageUpdate.js';
+import messageUpdateEvent from '../../src/plugins/admin/events/messageUpdate.js';
 import { 
     createMockMessage,
     createMockUser, 

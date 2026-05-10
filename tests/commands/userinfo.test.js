@@ -2,7 +2,7 @@
 // Tests for the userinfo command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import userinfoCommand from '../../src/commands/userinfo.js';
+import userinfoCommand from '../../src/plugins/utility/commands/userinfo.js';
 import { 
     createMockInteraction, 
     createMockUser, 

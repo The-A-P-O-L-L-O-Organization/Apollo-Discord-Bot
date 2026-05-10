@@ -8,13 +8,28 @@ import { config } from '../config/config.js';
 // Map<guildId, Map<userId, { messages: timestamp[], lastWarned: timestamp }>>
 const spamTracker = new Map();
 
+// Redis-backed spam tracking functions
+export async function trackMessage(redis, guildId, userId, timestamp) {
+  const key = `spam:${guildId}:${userId}`;
+  await redis.zadd(key, timestamp, `${timestamp}:${userId}`);
+  await redis.expire(key, 60);
+}
+
+export async function checkSpamRedis(redis, guildId, userId, threshold, intervalMs, now = Date.now()) {
+  const key = `spam:${guildId}:${userId}`;
+  const cutoff = now - intervalMs;
+  await redis.zremrangebyscore(key, '-inf', cutoff);
+  const count = await redis.zcount(key, cutoff, '+inf');
+  return count >= threshold;
+}
+
 /**
  * Gets automod configuration for a guild
  * @param {string} guildId - The guild ID
  * @returns {Object} Automod configuration
  */
-export function getAutomodConfig(guildId) {
-    const guildConfig = getGuildData('automod', guildId);
+export async function getAutomodConfig(guildId) {
+    const guildConfig = await getGuildData('automod', guildId);
     return {
         enabled: guildConfig.enabled ?? config.automod.enabled,
         bannedWords: guildConfig.bannedWords || [],

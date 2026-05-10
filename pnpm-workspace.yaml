@@ -1,6 +1,14 @@
 packages:
   - bot
 allowBuilds:
-  '@tensorflow/tfjs-node': set this to true or false
+  '@tensorflow/tfjs-node': true
   better-sqlite3: true
-  core-js: set this to true or false
+  core-js: true
+  msgpackr-extract: true
+enable-pre-post-scripts: true
+overrides:
+  glob: 11.1.0
+  cross-spawn: 7.0.5
+  axios: ^1.9.0
+  tar: ^7.5.11
+  vite: ^8.0.10

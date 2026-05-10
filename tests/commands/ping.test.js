@@ -2,7 +2,7 @@
 // Tests for the ping command functionality
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import pingCommand from '../../src/commands/ping.js';
+import pingCommand from '../../src/plugins/utility/commands/ping.js';
 import { createMockInteraction, createMockClient, createMockUser } from '../mocks/discord.js';
 
 describe('Ping Command', () => {

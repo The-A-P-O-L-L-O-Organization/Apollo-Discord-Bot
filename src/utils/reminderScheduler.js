@@ -4,6 +4,7 @@
 import { EmbedBuilder } from 'discord.js';
 import { getData, setData } from './db.js';
 import { config } from '../config/config.js';
+import { getLockRedis, withLock } from './lock.js';
 
 let client = null;
 let schedulerInterval = null;
@@ -22,8 +23,14 @@ const performanceStats = {
 export function initReminderScheduler(discordClient) {
     client = discordClient;
     
-    // Start the scheduler
-    schedulerInterval = setInterval(checkReminders, config.reminders.checkInterval);
+    schedulerInterval = setInterval(async () => {
+        const redis = await getLockRedis();
+        if (redis) {
+            await withLock(redis, 'scheduler:reminders', config.podId, checkReminders, 25000);
+        } else {
+            await checkReminders();
+        }
+    }, config.reminders.checkInterval);
     
     console.log(`[INFO] Reminder scheduler started (checking every ${config.reminders.checkInterval / 1000}s)`);
     

@@ -2,7 +2,7 @@
 // Tests for the messageDelete event handler
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import messageDeleteEvent from '../../src/events/messageDelete.js';
+import messageDeleteEvent from '../../src/plugins/admin/events/messageDelete.js';
 import { 
     createMockMessage,
     createMockUser, 
