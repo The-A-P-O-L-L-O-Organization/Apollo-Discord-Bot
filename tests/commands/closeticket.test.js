@@ -15,11 +15,10 @@ import {
 vi.mock('../../src/utils/db.js', () => ({
     getGuildData: vi.fn(),
     updateGuildData: vi.fn(),
-    updateGuildData: vi.fn(),
     writeToSubDir: vi.fn()
 }));
 
-import { getGuildData, updateGuildData, updateGuildData, writeToSubDir } from '../../src/utils/db.js';
+import { getGuildData, updateGuildData, writeToSubDir } from '../../src/utils/db.js';
 
 describe('CloseTicket Command', () => {
     let mockInteraction;
