@@ -218,6 +218,7 @@ export default {
                 try {
                     const plugin = await manager.loadPlugin(name);
                     await manager.enablePlugin(name);
+                    await manager._syncDiscordCommands();
                     return interaction.reply({
                         embeds: [{
                             color: 0x00FF00,
