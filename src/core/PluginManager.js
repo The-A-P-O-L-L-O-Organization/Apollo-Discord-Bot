@@ -106,9 +106,22 @@ export default class PluginManager {
 
     let PluginClass = this._pluginRegistry.get(id);
     if (!PluginClass) {
-      const pluginDir = path.join(process.cwd(), baseDir, id);
-      const pluginPath = path.join(pluginDir, 'plugin.js');
-      if (!existsSync(pluginPath)) throw new Error(`Plugin ${id} not found at ${pluginPath}`);
+      let pluginDir = path.join(process.cwd(), baseDir, id);
+      let pluginPath = path.join(pluginDir, 'plugin.js');
+      if (!existsSync(pluginPath)) {
+        const optionalDir = path.join(
+          process.cwd(),
+          this.config?.plugins?.optionalDirectory || './data/plugins',
+          id
+        );
+        const optionalPath = path.join(optionalDir, 'plugin.js');
+        if (existsSync(optionalPath)) {
+          pluginDir = optionalDir;
+          pluginPath = optionalPath;
+        } else {
+          throw new Error(`Plugin ${id} not found at ${pluginPath}`);
+        }
+      }
 
       const url = pathToFileURL(pluginPath).href + `?t=${Date.now()}`;
       const mod = await import(url);
@@ -171,7 +184,11 @@ export default class PluginManager {
     await this.disablePlugin(id);
     await this.unloadPlugin(id);
     this._pluginRegistry.delete(id);
-    await this.loadPlugin(id, this.config?.plugins?.directory);
+    const installed = this.installedPlugins.get(id);
+    const baseDir = installed?.origin === 'installed'
+      ? (this.config?.plugins?.optionalDirectory || './data/plugins')
+      : (this.config?.plugins?.directory || './src/plugins');
+    await this.loadPlugin(id, baseDir);
     await this.enablePlugin(id);
   }
 
