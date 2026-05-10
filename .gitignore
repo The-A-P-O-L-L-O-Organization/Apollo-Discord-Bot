@@ -39,6 +39,8 @@ coverage/
 # Bot Data (user data, transcripts, etc.)
 data/
 
+# Documentation
+docs/
+
 # Superpowers
-docs/superpowers/
 .superpowers/
