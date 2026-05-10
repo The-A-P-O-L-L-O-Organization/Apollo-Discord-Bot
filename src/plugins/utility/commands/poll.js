@@ -143,7 +143,7 @@ export default {
                 endTime
             };
 
-            appendToGuildArray('polls', interaction.guild.id, 'active', pollData);
+            await appendToGuildArray('polls', interaction.guild.id, 'active', pollData);
         }
     }
 };

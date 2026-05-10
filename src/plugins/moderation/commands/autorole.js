@@ -116,14 +116,14 @@ async function handleSetRole(interaction) {
     }
     
     // Get current config
-    const config = getGuildData('autorole', interaction.guild.id) || {};
+    const config = await getGuildData('autorole', interaction.guild.id) || {};
     
     // Set new role
     config.roleId = role.id;
     config.roleName = role.name;
     config.enabled = config.enabled !== undefined ? config.enabled : true;
     
-    setGuildData('autorole', interaction.guild.id, config);
+    await setGuildData('autorole', interaction.guild.id, config);
     
     const successEmbed = {
         color: 0x00FF00,
@@ -150,7 +150,7 @@ async function handleSetRole(interaction) {
 }
 
 async function handleRemoveRole(interaction) {
-    const config = getGuildData('autorole', interaction.guild.id);
+    const config = await getGuildData('autorole', interaction.guild.id);
     
     if (!config || !config.roleId) {
         return interaction.reply({
@@ -168,7 +168,7 @@ async function handleRemoveRole(interaction) {
     config.roleId = null;
     config.roleName = null;
     
-    setGuildData('autorole', interaction.guild.id, config);
+    await setGuildData('autorole', interaction.guild.id, config);
     
     const successEmbed = {
         color: 0x00FF00,
@@ -185,7 +185,7 @@ async function handleRemoveRole(interaction) {
 async function handleToggle(interaction) {
     const enabled = interaction.options.getBoolean('enabled');
     
-    const config = getGuildData('autorole', interaction.guild.id) || {};
+    const config = await getGuildData('autorole', interaction.guild.id) || {};
     
     if (!config.roleId) {
         return interaction.reply({
@@ -200,7 +200,7 @@ async function handleToggle(interaction) {
     }
     
     config.enabled = enabled;
-    setGuildData('autorole', interaction.guild.id, config);
+    await setGuildData('autorole', interaction.guild.id, config);
     
     const successEmbed = {
         color: 0x00FF00,
@@ -225,7 +225,7 @@ async function handleToggle(interaction) {
 }
 
 async function handleView(interaction) {
-    const config = getGuildData('autorole', interaction.guild.id);
+    const config = await getGuildData('autorole', interaction.guild.id);
     
     if (!config || !config.roleId) {
         return interaction.reply({

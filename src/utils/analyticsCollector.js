@@ -157,9 +157,9 @@ export function trackModAction(guildId, moderatorId, action) {
  * @param {boolean} isJoin - True for join, false for leave
  * @param {number} totalMembers - Current total member count
  */
-export function trackMemberChange(guildId, isJoin, totalMembers) {
+export async function trackMemberChange(guildId, isJoin, totalMembers) {
     const today = getDateString(Date.now());
-    const data = getGuildData('analytics-members', guildId);
+    const data = await getGuildData('analytics-members', guildId);
     
     if (!data[today]) {
         data[today] = {
@@ -178,13 +178,13 @@ export function trackMemberChange(guildId, isJoin, totalMembers) {
     
     data[today].totalMembers = totalMembers;
     
-    setGuildData('analytics-members', guildId, data);
+    await setGuildData('analytics-members', guildId, data);
 }
 
 /**
  * Flushes the analytics cache to the database
  */
-function flushAnalyticsCache() {
+async function flushAnalyticsCache() {
     const startTime = Date.now();
     
     try {
@@ -195,7 +195,7 @@ function flushAnalyticsCache() {
         
         // Flush command analytics
         for (const [guildId, guildCommands] of analyticsCache.commands) {
-            const data = getGuildData('analytics-commands', guildId);
+            const data = await getGuildData('analytics-commands', guildId);
             
             for (const [commandName, users] of guildCommands) {
                 for (const [userId, count] of users) {
@@ -213,13 +213,13 @@ function flushAnalyticsCache() {
                 }
             }
             
-            setGuildData('analytics-commands', guildId, data);
+            await setGuildData('analytics-commands', guildId, data);
         }
         analyticsCache.commands.clear();
         
         // Flush message analytics (hourly aggregation)
         for (const [guildId, guildMessages] of analyticsCache.messages) {
-            const data = getGuildData('analytics-messages', guildId);
+            const data = await getGuildData('analytics-messages', guildId);
             
             for (const [channelId, users] of guildMessages) {
                 for (const [userId, count] of users) {
@@ -237,13 +237,13 @@ function flushAnalyticsCache() {
                 }
             }
             
-            setGuildData('analytics-messages', guildId, data);
+            await setGuildData('analytics-messages', guildId, data);
         }
         analyticsCache.messages.clear();
         
         // Flush violation analytics (daily aggregation)
         for (const [guildId, violations] of analyticsCache.violations) {
-            const data = getGuildData('analytics-violations', guildId);
+            const data = await getGuildData('analytics-violations', guildId);
             
             for (const [type, count] of violations) {
                 const key = `${date}:${type}`;
@@ -258,13 +258,13 @@ function flushAnalyticsCache() {
                 recordsProcessed++;
             }
             
-            setGuildData('analytics-violations', guildId, data);
+            await setGuildData('analytics-violations', guildId, data);
         }
         analyticsCache.violations.clear();
         
         // Flush mod action analytics (daily aggregation)
         for (const [guildId, guildModActions] of analyticsCache.modActions) {
-            const data = getGuildData('analytics-modactions', guildId);
+            const data = await getGuildData('analytics-modactions', guildId);
             
             for (const [moderatorId, actions] of guildModActions) {
                 for (const [action, count] of actions) {
@@ -282,7 +282,7 @@ function flushAnalyticsCache() {
                 }
             }
             
-            setGuildData('analytics-modactions', guildId, data);
+            await setGuildData('analytics-modactions', guildId, data);
         }
         analyticsCache.modActions.clear();
         
@@ -306,7 +306,7 @@ function flushAnalyticsCache() {
  * Cleans up analytics data older than retention period
  * @param {Client} client - Discord client
  */
-function cleanupOldAnalytics(client) {
+async function cleanupOldAnalytics(client) {
     const startTime = Date.now();
     
     try {
@@ -323,54 +323,54 @@ function cleanupOldAnalytics(client) {
             const guildId = guild.id;
             
             // Clean commands
-            const commands = getGuildData('analytics-commands', guildId);
+            const commands = await getGuildData('analytics-commands', guildId);
             for (const key in commands) {
                 if (commands[key].date < cutoffDateStr) {
                     delete commands[key];
                     totalDeleted++;
                 }
             }
-            setGuildData('analytics-commands', guildId, commands);
+            await setGuildData('analytics-commands', guildId, commands);
             
             // Clean messages
-            const messages = getGuildData('analytics-messages', guildId);
+            const messages = await getGuildData('analytics-messages', guildId);
             for (const key in messages) {
                 if (messages[key].hour < cutoffHourStr) {
                     delete messages[key];
                     totalDeleted++;
                 }
             }
-            setGuildData('analytics-messages', guildId, messages);
+            await setGuildData('analytics-messages', guildId, messages);
             
             // Clean violations
-            const violations = getGuildData('analytics-violations', guildId);
+            const violations = await getGuildData('analytics-violations', guildId);
             for (const key in violations) {
                 if (violations[key].date < cutoffDateStr) {
                     delete violations[key];
                     totalDeleted++;
                 }
             }
-            setGuildData('analytics-violations', guildId, violations);
+            await setGuildData('analytics-violations', guildId, violations);
             
             // Clean mod actions
-            const modActions = getGuildData('analytics-modactions', guildId);
+            const modActions = await getGuildData('analytics-modactions', guildId);
             for (const key in modActions) {
                 if (modActions[key].date < cutoffDateStr) {
                     delete modActions[key];
                     totalDeleted++;
                 }
             }
-            setGuildData('analytics-modactions', guildId, modActions);
+            await setGuildData('analytics-modactions', guildId, modActions);
             
             // Clean members (keep all member data, it's already daily)
-            const members = getGuildData('analytics-members', guildId);
+            const members = await getGuildData('analytics-members', guildId);
             for (const key in members) {
                 if (key < cutoffDateStr) {
                     delete members[key];
                     totalDeleted++;
                 }
             }
-            setGuildData('analytics-members', guildId, members);
+            await setGuildData('analytics-members', guildId, members);
         }
         
         // Update performance stats
@@ -415,8 +415,8 @@ function getHourString(timestamp) {
  * @param {number} days - Number of days to look back (default: 7)
  * @returns {Object} Command statistics
  */
-export function getCommandStats(guildId, days = 7) {
-    const data = getGuildData('analytics-commands', guildId);
+export async function getCommandStats(guildId, days = 7) {
+    const data = await getGuildData('analytics-commands', guildId);
     const cutoffDate = getDateString(Date.now() - (days * 24 * 60 * 60 * 1000));
     
     const commandCounts = new Map();
@@ -451,8 +451,8 @@ export function getCommandStats(guildId, days = 7) {
  * @param {number} days - Number of days to look back (default: 7)
  * @returns {Object} Message statistics
  */
-export function getMessageStats(guildId, days = 7) {
-    const data = getGuildData('analytics-messages', guildId);
+export async function getMessageStats(guildId, days = 7) {
+    const data = await getGuildData('analytics-messages', guildId);
     const cutoffHour = getHourString(Date.now() - (days * 24 * 60 * 60 * 1000));
     
     const channelCounts = new Map();
@@ -495,8 +495,8 @@ export function getMessageStats(guildId, days = 7) {
  * @param {number} days - Number of days to look back (default: 30)
  * @returns {Array} Violation statistics
  */
-export function getViolationStats(guildId, days = 30) {
-    const data = getGuildData('analytics-violations', guildId);
+export async function getViolationStats(guildId, days = 30) {
+    const data = await getGuildData('analytics-violations', guildId);
     const cutoffDate = getDateString(Date.now() - (days * 24 * 60 * 60 * 1000));
     
     const typeCounts = new Map();
@@ -520,8 +520,8 @@ export function getViolationStats(guildId, days = 30) {
  * @param {number} days - Number of days to look back (default: 30)
  * @returns {Object} Moderator statistics
  */
-export function getModActionStats(guildId, days = 30) {
-    const data = getGuildData('analytics-modactions', guildId);
+export async function getModActionStats(guildId, days = 30) {
+    const data = await getGuildData('analytics-modactions', guildId);
     const cutoffDate = getDateString(Date.now() - (days * 24 * 60 * 60 * 1000));
     
     const moderatorCounts = new Map();
@@ -556,8 +556,8 @@ export function getModActionStats(guildId, days = 30) {
  * @param {number} days - Number of days to look back (default: 30)
  * @returns {Array} Member growth data
  */
-export function getMemberGrowthStats(guildId, days = 30) {
-    const data = getGuildData('analytics-members', guildId);
+export async function getMemberGrowthStats(guildId, days = 30) {
+    const data = await getGuildData('analytics-members', guildId);
     const cutoffDate = getDateString(Date.now() - (days * 24 * 60 * 60 * 1000));
     
     const growth = [];

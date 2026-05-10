@@ -22,7 +22,7 @@ export default {
         const channelId = interaction.channel.id;
         const ticketNumber = interaction.options.getInteger('number');
 
-        const ticketConfig = getGuildData('tickets', guildId);
+        const ticketConfig = await getGuildData('tickets', guildId);
         let ticket;
 
         if (ticketNumber) {

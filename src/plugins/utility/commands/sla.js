@@ -18,8 +18,8 @@ export default {
         await interaction.deferReply({ ephemeral: true });
 
         const guildId = interaction.guild.id;
-        const metrics = calculateSLAMetrics(guildId);
-        const ticketConfig = getGuildData('tickets', guildId);
+        const metrics = await calculateSLAMetrics(guildId);
+        const ticketConfig = await getGuildData('tickets', guildId);
         const slaThresholds = ticketConfig.slaThresholds || DEFAULT_SLA_THRESHOLDS;
 
         const embed = new EmbedBuilder()

@@ -100,15 +100,15 @@ export default {
             };
             
             // Add strike to storage
-            appendToUserArray('strikes', interaction.guild.id, user.id, strike);
+            await appendToUserArray('strikes', interaction.guild.id, user.id, strike);
             
             // Get total strikes count
-            const userStrikes = getUserData('strikes', interaction.guild.id, user.id) || [];
+            const userStrikes = await getUserData('strikes', interaction.guild.id, user.id) || [];
             const activeStrikes = userStrikes.filter(s => s.active !== false);
             const strikeCount = activeStrikes.length;
             
             // Get guild-specific configuration or use defaults
-            const guildSettings = getGuildData('strike-config', interaction.guild.id);
+            const guildSettings = await getGuildData('strike-config', interaction.guild.id);
             const threshold = guildSettings.banThreshold || 3;
             const autoKick = guildSettings.autoKick ?? true;
             const kickThreshold = guildSettings.kickThreshold || 2;
