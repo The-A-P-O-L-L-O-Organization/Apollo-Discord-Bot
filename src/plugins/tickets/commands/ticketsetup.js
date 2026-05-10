@@ -1,6 +1,5 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { getGuildData, setGuildData, updateGuildData } from '../../../utils/db.js';
-import { config } from '../../../config/config.js';
+import { getGuildData, updateGuildData } from '../../../utils/db.js';
 
 export default {
     name: 'ticketsetup',
