@@ -109,7 +109,7 @@ export default {
             }
             
             // Restore roles that were saved before muting
-            const savedRoles = getUserData('muted-roles', interaction.guild.id, user.id);
+            const savedRoles = await getUserData('muted-roles', interaction.guild.id, user.id);
             if (savedRoles && savedRoles.roles && Array.isArray(savedRoles.roles)) {
                 const rolesToRestore = savedRoles.roles.filter(roleId => {
                     const role = interaction.guild.roles.cache.get(roleId);
@@ -127,7 +127,7 @@ export default {
                 }
                 
                 // Clear stored roles
-                setUserData('muted-roles', interaction.guild.id, user.id, null);
+                await setUserData('muted-roles', interaction.guild.id, user.id, null);
             }
             
             // Create success embed

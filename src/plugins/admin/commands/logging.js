@@ -63,7 +63,7 @@ export default {
             const event = interaction.options.getString('event');
             const enabled = subcommand === 'enable';
 
-            const existingConfig = getGuildData('logging', guildId);
+            const existingConfig = await getGuildData('logging', guildId);
             const events = existingConfig.events || { ...config.logging.defaultEvents };
 
             if (event === 'all') {
@@ -74,7 +74,7 @@ export default {
                 events[event] = enabled;
             }
 
-            setGuildData('logging', guildId, {
+            await setGuildData('logging', guildId, {
                 ...existingConfig,
                 events
             });
@@ -86,7 +86,7 @@ export default {
             });
 
         } else if (subcommand === 'status') {
-            const loggingConfig = getGuildData('logging', guildId);
+            const loggingConfig = await getGuildData('logging', guildId);
             const events = loggingConfig.events || config.logging.defaultEvents;
 
             let channelStatus = 'Not configured';

@@ -37,7 +37,7 @@ export default {
             const limit = interaction.options.getInteger('limit') || 10;
             
             // Get all level data for the guild
-            const allLevelData = getAllUserData('levels', interaction.guild.id);
+            const allLevelData = await getAllUserData('levels', interaction.guild.id);
             
             if (allLevelData.length === 0) {
                 return interaction.reply({

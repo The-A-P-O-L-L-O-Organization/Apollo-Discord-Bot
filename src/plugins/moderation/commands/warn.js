@@ -105,10 +105,10 @@ export default {
             };
             
             // Add warning to storage
-            appendToUserArray('warnings', interaction.guild.id, user.id, warning);
+            await appendToUserArray('warnings', interaction.guild.id, user.id, warning);
             
             // Get total warnings count
-            const userWarnings = getUserData('warnings', interaction.guild.id, user.id) || [];
+            const userWarnings = await getUserData('warnings', interaction.guild.id, user.id) || [];
             const activeWarnings = userWarnings.filter(w => w.active !== false);
             const warningCount = activeWarnings.length;
             
@@ -123,7 +123,7 @@ export default {
             });
             
             // Get guild-specific thresholds or use defaults
-            const guildSettings = getGuildData('warnings-config', interaction.guild.id);
+            const guildSettings = await getGuildData('warnings-config', interaction.guild.id);
             const thresholds = guildSettings.thresholds || config.warnings.thresholds;
             const muteDuration = guildSettings.muteDuration || config.warnings.muteDuration;
             

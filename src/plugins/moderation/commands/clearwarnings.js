@@ -56,7 +56,7 @@ export default {
             }
             
             // Get current warnings
-            const warnings = getUserData('warnings', interaction.guild.id, user.id) || [];
+            const warnings = await getUserData('warnings', interaction.guild.id, user.id) || [];
             
             if (warnings.length === 0) {
                 return interaction.reply({
@@ -104,7 +104,7 @@ export default {
                     clearReason: reason
                 };
                 
-                setUserData('warnings', interaction.guild.id, user.id, warnings);
+                await setUserData('warnings', interaction.guild.id, user.id, warnings);
                 clearedCount = 1;
                 
             } else {
@@ -138,7 +138,7 @@ export default {
                     return w;
                 });
                 
-                setUserData('warnings', interaction.guild.id, user.id, updatedWarnings);
+                await setUserData('warnings', interaction.guild.id, user.id, updatedWarnings);
                 clearedCount = activeWarnings.length;
             }
             
@@ -173,7 +173,7 @@ export default {
             }
             
             // Show remaining active warnings
-            const remainingActive = (getUserData('warnings', interaction.guild.id, user.id) || [])
+            const remainingActive = (await getUserData('warnings', interaction.guild.id, user.id) || [])
                 .filter(w => w.active !== false).length;
             
             embed.addFields({

@@ -65,7 +65,7 @@ export default {
             };
             
             // Save report
-            appendToGuildArray('reports', interaction.guild.id, 'entries', report);
+            await appendToGuildArray('reports', interaction.guild.id, 'entries', report);
             
             // Find mod channel
             const modChannel = interaction.guild.channels.cache.find(

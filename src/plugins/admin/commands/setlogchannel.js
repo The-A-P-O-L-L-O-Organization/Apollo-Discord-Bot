@@ -48,13 +48,13 @@ export default {
                 });
             }
 
-            const existingConfig = getGuildData('logging', guildId);
+            const existingConfig = await getGuildData('logging', guildId);
             const newConfig = {
                 ...existingConfig,
                 channelId: channel.id
             };
 
-            setGuildData('logging', guildId, newConfig);
+            await setGuildData('logging', guildId, newConfig);
 
             return interaction.reply({
                 content: `Logging channel has been set to ${channel}.\n\nUse \`/logging\` to configure which events are logged.`,
@@ -62,7 +62,7 @@ export default {
             });
 
         } else if (subcommand === 'remove') {
-            const existingConfig = getGuildData('logging', guildId);
+            const existingConfig = await getGuildData('logging', guildId);
             
             if (!existingConfig.channelId) {
                 return interaction.reply({
@@ -76,7 +76,7 @@ export default {
                 channelId: null
             };
 
-            setGuildData('logging', guildId, newConfig);
+            await setGuildData('logging', guildId, newConfig);
 
             return interaction.reply({
                 content: 'Logging channel has been removed. Server event logging is now disabled.',
@@ -84,7 +84,7 @@ export default {
             });
 
         } else if (subcommand === 'view') {
-            const config = getGuildData('logging', guildId);
+            const config = await getGuildData('logging', guildId);
 
             if (!config.channelId) {
                 return interaction.reply({

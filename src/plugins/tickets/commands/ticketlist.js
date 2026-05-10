@@ -56,7 +56,7 @@ export default {
         const priorityFilter = interaction.options.getString('priority');
         const categoryFilter = interaction.options.getString('category');
 
-        const ticketConfig = getGuildData('tickets', guildId);
+        const ticketConfig = await getGuildData('tickets', guildId);
         let tickets = ticketConfig.openTickets || [];
 
         if (tickets.length === 0) {

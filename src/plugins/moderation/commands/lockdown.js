@@ -51,7 +51,7 @@ export default {
             const currentPermissions = channel.permissionOverwrites.cache.get(everyoneRole.id);
             
             // Check if channel is already locked
-            const lockdownData = getGuildData('channel-lockdowns', interaction.guild.id);
+            const lockdownData = await getGuildData('channel-lockdowns', interaction.guild.id);
             if (lockdownData[channel.id]) {
                 const errorEmbed = {
                     color: 0xFF0000,
@@ -88,7 +88,7 @@ export default {
                 lockedAt: Date.now(),
                 reason: reason
             };
-            setGuildData('channel-lockdowns', interaction.guild.id, lockdownData);
+            await setGuildData('channel-lockdowns', interaction.guild.id, lockdownData);
             
             // Create success embed
             const successEmbed = {

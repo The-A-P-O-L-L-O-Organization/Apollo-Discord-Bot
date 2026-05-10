@@ -45,7 +45,7 @@ export default {
             }
             
             // Get warnings for the user
-            const allWarnings = getUserData('warnings', interaction.guild.id, user.id) || [];
+            const allWarnings = await getUserData('warnings', interaction.guild.id, user.id) || [];
             
             // Filter based on active status
             const warnings = showInactive 

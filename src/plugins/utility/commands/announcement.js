@@ -125,7 +125,7 @@ async function handleSchedule(interaction) {
         sendAt: scheduledTime
     };
     
-    setGuildData('announcements', interaction.guild.id, {
+    await setGuildData('announcements', interaction.guild.id, {
         [announcementId]: announcement
     });
     
@@ -159,7 +159,7 @@ async function handleSchedule(interaction) {
 }
 
 async function handleView(interaction) {
-    const announcements = getGuildData('announcements', interaction.guild.id);
+    const announcements = await getGuildData('announcements', interaction.guild.id);
     
     if (!announcements || Object.keys(announcements).length === 0) {
         return interaction.reply({
@@ -206,7 +206,7 @@ async function handleView(interaction) {
 async function handleCancel(interaction) {
     const id = interaction.options.getString('id');
     
-    const announcements = getGuildData('announcements', interaction.guild.id);
+    const announcements = await getGuildData('announcements', interaction.guild.id);
     
     if (!announcements || !announcements[id]) {
         return interaction.reply({
@@ -221,7 +221,7 @@ async function handleCancel(interaction) {
     }
     
     delete announcements[id];
-    setGuildData('announcements', interaction.guild.id, announcements);
+    await setGuildData('announcements', interaction.guild.id, announcements);
     
     const successEmbed = {
         color: 0x00FF00,

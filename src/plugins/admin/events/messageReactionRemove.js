@@ -26,7 +26,7 @@ export default {
             ? `${reaction.emoji.name}:${reaction.emoji.id}` 
             : reaction.emoji.name;
         
-        const reactionRoles = getGuildData('reactionroles', guildId);
+        const reactionRoles = await getGuildData('reactionroles', guildId);
         if (!reactionRoles.roles || reactionRoles.roles.length === 0) {return;}
         
         const reactionRole = reactionRoles.roles.find(

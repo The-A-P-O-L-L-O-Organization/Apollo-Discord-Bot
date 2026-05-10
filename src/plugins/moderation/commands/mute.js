@@ -140,7 +140,7 @@ export default {
             
             // Store user's current roles before muting (for restoration on unmute)
             const roleIds = Array.from(member.roles.cache.keys()).filter(roleId => roleId !== interaction.guild.id);
-            setUserData('muted-roles', interaction.guild.id, user.id, { 
+            await setUserData('muted-roles', interaction.guild.id, user.id, { 
                 roles: roleIds,
                 mutedAt: Date.now()
             });

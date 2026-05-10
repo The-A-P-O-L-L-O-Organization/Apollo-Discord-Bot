@@ -37,7 +37,7 @@ export default {
         trackMessage(message.guild.id, message.channel.id, message.author.id);
         
         // Get automod config
-        const cfg = getAutomodConfig(message.guild.id);
+        const cfg = await getAutomodConfig(message.guild.id);
         
         // Check if automod is enabled
         if (!cfg.enabled) {return;}
@@ -160,10 +160,10 @@ async function handleViolation(message, type, reason, client, deleteMessage = fa
         };
         
         // Add warning to user
-        appendToUserArray('warnings', message.guild.id, message.author.id, warning);
+        await appendToUserArray('warnings', message.guild.id, message.author.id, warning);
         
         // Get warning count
-        const userWarnings = getUserData('warnings', message.guild.id, message.author.id) || [];
+        const userWarnings = await getUserData('warnings', message.guild.id, message.author.id) || [];
         const activeWarnings = userWarnings.filter(w => w.active !== false);
         const warningCount = activeWarnings.length;
         
@@ -187,7 +187,7 @@ async function handleViolation(message, type, reason, client, deleteMessage = fa
         }, 10000);
         
         // Check for auto-punishment thresholds
-        const guildSettings = getGuildData('warnings-config', message.guild.id);
+        const guildSettings = await getGuildData('warnings-config', message.guild.id);
         const thresholds = guildSettings?.thresholds || config.warnings.thresholds;
         const muteDuration = guildSettings?.muteDuration || config.warnings.muteDuration;
         

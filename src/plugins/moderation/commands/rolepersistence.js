@@ -82,10 +82,10 @@ export default {
 async function handleToggle(interaction) {
     const enabled = interaction.options.getBoolean('enabled');
     
-    const config = getGuildData('role-persistence', interaction.guild.id) || {};
+    const config = await getGuildData('role-persistence', interaction.guild.id) || {};
     config.enabled = enabled;
     
-    setGuildData('role-persistence', interaction.guild.id, config);
+    await setGuildData('role-persistence', interaction.guild.id, config);
     
     const successEmbed = {
         color: 0x00FF00,
@@ -112,7 +112,7 @@ async function handleToggle(interaction) {
 }
 
 async function handleView(interaction) {
-    const config = getGuildData('role-persistence', interaction.guild.id);
+    const config = await getGuildData('role-persistence', interaction.guild.id);
     
     const viewEmbed = {
         color: 0x3498DB,
@@ -138,7 +138,7 @@ async function handleView(interaction) {
 async function handleClear(interaction) {
     const user = interaction.options.getUser('user');
     
-    const config = getGuildData('role-persistence', interaction.guild.id);
+    const config = await getGuildData('role-persistence', interaction.guild.id);
     
     if (!config || !config.savedRoles) {
         return interaction.reply({
@@ -154,7 +154,7 @@ async function handleClear(interaction) {
     
     // Remove saved roles for user
     delete config.savedRoles[user.id];
-    setGuildData('role-persistence', interaction.guild.id, config);
+    await setGuildData('role-persistence', interaction.guild.id, config);
     
     const successEmbed = {
         color: 0x00FF00,

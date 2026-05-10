@@ -10,8 +10,8 @@ import { config } from '../config/config.js';
  * @param {string} guildId - The guild ID
  * @returns {Object} Logging configuration
  */
-export function getLoggingConfig(guildId) {
-    const guildConfig = getGuildData('logging', guildId);
+export async function getLoggingConfig(guildId) {
+    const guildConfig = await getGuildData('logging', guildId);
     return {
         channelId: guildConfig.channelId || null,
         events: {
@@ -31,8 +31,8 @@ export function getLoggingConfig(guildId) {
  * @param {string} eventName - The event name
  * @returns {boolean} Whether the event is enabled
  */
-export function isEventEnabled(guildId, eventName) {
-    const cfg = getLoggingConfig(guildId);
+export async function isEventEnabled(guildId, eventName) {
+    const cfg = await getLoggingConfig(guildId);
     return cfg.channelId && cfg.events[eventName];
 }
 
@@ -42,7 +42,7 @@ export function isEventEnabled(guildId, eventName) {
  * @returns {Promise<TextChannel|null>} The logging channel or null
  */
 export async function getLogChannel(guild) {
-    const cfg = getLoggingConfig(guild.id);
+    const cfg = await getLoggingConfig(guild.id);
     
     if (!cfg.channelId) {return null;}
     
@@ -65,7 +65,7 @@ export async function getLogChannel(guild) {
  * @param {EmbedBuilder} embed - The embed to send
  */
 export async function logEvent(guild, eventType, embed) {
-    if (!isEventEnabled(guild.id, eventType)) {return;}
+    if (!(await isEventEnabled(guild.id, eventType))) {return;}
     
     const logChannel = await getLogChannel(guild);
     if (!logChannel) {return;}

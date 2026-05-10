@@ -24,7 +24,7 @@ export default {
             const user = interaction.options.getUser('user') || interaction.user;
             
             // Get level data
-            const levelData = getUserData('levels', interaction.guild.id, user.id) || {
+            const levelData = await getUserData('levels', interaction.guild.id, user.id) || {
                 xp: 0,
                 level: 0,
                 messages: 0

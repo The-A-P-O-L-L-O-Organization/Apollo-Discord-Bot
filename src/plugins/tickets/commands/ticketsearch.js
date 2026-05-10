@@ -85,7 +85,7 @@ export default {
 
         const guildId = interaction.guild.id;
         const subcommand = interaction.options.getSubcommand();
-        const ticketConfig = getGuildData('tickets', guildId);
+        const ticketConfig = await getGuildData('tickets', guildId);
         const allTickets = [
             ...(ticketConfig.openTickets || []),
             ...(ticketConfig.closedTickets || [])

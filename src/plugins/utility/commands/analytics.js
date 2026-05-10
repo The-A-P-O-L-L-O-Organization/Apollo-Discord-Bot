@@ -161,8 +161,8 @@ async function handleServerStats(interaction) {
     const guildId = interaction.guild.id;
     
     // Get summary data
-    const summary = getAnalyticsSummary(guildId, days);
-    const memberGrowth = getMemberGrowthStats(guildId, days);
+    const summary = await getAnalyticsSummary(guildId, days);
+    const memberGrowth = await getMemberGrowthStats(guildId, days);
     
     // Create sparklines for trends
     const memberCounts = memberGrowth.map(d => d.totalMembers);
@@ -232,7 +232,7 @@ async function handleCommandStats(interaction) {
     const days = interaction.options.getInteger('days') || 7;
     const guildId = interaction.guild.id;
     
-    const stats = getCommandStats(guildId, days);
+    const stats = await getCommandStats(guildId, days);
     
     const embed = new EmbedBuilder()
         .setColor('#9B59B6')
@@ -304,7 +304,7 @@ async function handleActivityStats(interaction) {
     const days = interaction.options.getInteger('days') || 7;
     const guildId = interaction.guild.id;
     
-    const stats = getMessageStats(guildId, days);
+    const stats = await getMessageStats(guildId, days);
     
     const embed = new EmbedBuilder()
         .setColor('#2ECC71')
@@ -391,9 +391,9 @@ async function handleModerationStats(interaction) {
     const days = interaction.options.getInteger('days') || 30;
     const guildId = interaction.guild.id;
     
-    const modStats = getModActionStats(guildId, days);
-    const violations = getViolationStats(guildId, days);
-    const ticketData = getGuildData('tickets', guildId);
+    const modStats = await getModActionStats(guildId, days);
+    const violations = await getViolationStats(guildId, days);
+    const ticketData = await getGuildData('tickets', guildId);
     
     const embed = new EmbedBuilder()
         .setColor('#E74C3C')
@@ -491,7 +491,7 @@ async function handleModerationStats(interaction) {
     }
     
     // Warning effectiveness
-    const warningsData = getUserData('warnings', guildId, 'ALL');
+    const warningsData = await getUserData('warnings', guildId, 'ALL');
     if (warningsData) {
         const allWarnings = Object.values(warningsData).flat();
         const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000);
@@ -523,8 +523,8 @@ async function handleUserStats(interaction) {
     const days = interaction.options.getInteger('days') || 30;
     const guildId = interaction.guild.id;
     
-    const commandStats = getCommandStats(guildId, days);
-    const messageStats = getMessageStats(guildId, days);
+    const commandStats = await getCommandStats(guildId, days);
+    const messageStats = await getMessageStats(guildId, days);
     
     // Find user's command count
     const userCommands = commandStats.byUser.find(u => u.userId === user.id);
@@ -537,7 +537,7 @@ async function handleUserStats(interaction) {
     const messageRank = messageStats.byUser.findIndex(u => u.userId === user.id) + 1;
     
     // Get warnings
-    const warnings = getUserData('warnings', guildId, user.id) || [];
+    const warnings = await getUserData('warnings', guildId, user.id) || [];
     const activeWarnings = warnings.filter(w => w.active !== false);
     const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000);
     const recentWarnings = warnings.filter(w => w.timestamp >= cutoff);

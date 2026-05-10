@@ -41,8 +41,8 @@ export function isNsfwDetectionAvailable() {
  * @param {string} guildId - The guild ID
  * @returns {Object} Configuration
  */
-export function getNsfwConfig(guildId) {
-    const guildConfig = getGuildData('nsfw-config', guildId);
+export async function getNsfwConfig(guildId) {
+    const guildConfig = await getGuildData('nsfw-config', guildId);
     return {
         enabled: guildConfig.enabled ?? false,
         threshold: guildConfig.threshold ?? 0.6,
@@ -140,7 +140,7 @@ export function isImageNsfw(predictions, threshold = 0.6) {
  * @returns {Promise<Object|null>} Detection result or null
  */
 export async function checkMessageAttachments(guildId, message) {
-    const config = getNsfwConfig(guildId);
+    const config = await getNsfwConfig(guildId);
     
     if (!config.enabled || !isNsfwDetectionAvailable()) {
         return null;

@@ -15,12 +15,12 @@ export default {
         await interaction.deferReply({ ephemeral: true });
 
         const guildId = interaction.guild.id;
-        const ticketConfig = getGuildData('tickets', guildId);
+        const ticketConfig = await getGuildData('tickets', guildId);
         const openTickets = ticketConfig.openTickets || [];
         const closedTickets = ticketConfig.closedTickets || [];
         const totalTickets = ticketConfig.totalTickets || 0;
 
-        const metrics = calculateSLAMetrics(guildId);
+        const metrics = await calculateSLAMetrics(guildId);
 
         const embed = new EmbedBuilder()
             .setColor('#3498DB')

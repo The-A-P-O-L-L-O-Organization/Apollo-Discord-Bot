@@ -39,7 +39,7 @@ export default {
             const action = interaction.options.getString('action');
             const value = interaction.options.getInteger('value');
             
-            const guildSettings = getGuildData('strike-config', interaction.guild.id);
+            const guildSettings = await getGuildData('strike-config', interaction.guild.id);
             
             if (action === 'view') {
                 // View current settings
@@ -75,7 +75,7 @@ export default {
                 }
                 
                 guildSettings.banThreshold = value;
-                setGuildData('strike-config', interaction.guild.id, guildSettings);
+                await setGuildData('strike-config', interaction.guild.id, guildSettings);
                 
                 await interaction.reply({
                     embeds: [{
@@ -102,7 +102,7 @@ export default {
                 }
                 
                 guildSettings.kickThreshold = value;
-                setGuildData('strike-config', interaction.guild.id, guildSettings);
+                await setGuildData('strike-config', interaction.guild.id, guildSettings);
                 
                 await interaction.reply({
                     embeds: [{
@@ -120,7 +120,7 @@ export default {
                 const newState = !currentState;
                 
                 guildSettings.autoKick = newState;
-                setGuildData('strike-config', interaction.guild.id, guildSettings);
+                await setGuildData('strike-config', interaction.guild.id, guildSettings);
                 
                 await interaction.reply({
                     embeds: [{

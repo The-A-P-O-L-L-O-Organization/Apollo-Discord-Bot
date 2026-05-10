@@ -143,7 +143,7 @@ async function handleCreate(interaction) {
     }
     
     // Check if tag exists
-    const tags = getGuildData('tags', interaction.guild.id);
+    const tags = await getGuildData('tags', interaction.guild.id);
     if (tags && tags[name]) {
         return interaction.reply({
             embeds: [{
@@ -166,7 +166,7 @@ async function handleCreate(interaction) {
         usageCount: 0
     };
     
-    setGuildData('tags', interaction.guild.id, {
+    await setGuildData('tags', interaction.guild.id, {
         [name]: tagData
     });
     
@@ -203,7 +203,7 @@ async function handleDelete(interaction) {
         });
     }
     
-    const tags = getGuildData('tags', interaction.guild.id);
+    const tags = await getGuildData('tags', interaction.guild.id);
     
     if (!tags || !tags[name]) {
         return interaction.reply({
@@ -218,7 +218,7 @@ async function handleDelete(interaction) {
     }
     
     delete tags[name];
-    setGuildData('tags', interaction.guild.id, tags);
+    await setGuildData('tags', interaction.guild.id, tags);
     
     const successEmbed = {
         color: 0x00FF00,
@@ -231,7 +231,7 @@ async function handleDelete(interaction) {
 }
 
 async function handleList(interaction) {
-    const tags = getGuildData('tags', interaction.guild.id);
+    const tags = await getGuildData('tags', interaction.guild.id);
     
     if (!tags || Object.keys(tags).length === 0) {
         return interaction.reply({
@@ -264,7 +264,7 @@ async function handleList(interaction) {
 async function handleInfo(interaction) {
     const name = interaction.options.getString('name').toLowerCase();
     
-    const tags = getGuildData('tags', interaction.guild.id);
+    const tags = await getGuildData('tags', interaction.guild.id);
     
     if (!tags || !tags[name]) {
         return interaction.reply({

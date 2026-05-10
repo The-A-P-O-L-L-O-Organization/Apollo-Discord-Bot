@@ -155,7 +155,7 @@ async function handleCreate(interaction) {
         createdAt: Date.now()
     };
     
-    updateGuildData('giveaways', interaction.guild.id, data => {
+    await updateGuildData('giveaways', interaction.guild.id, data => {
         if (!data.active) {data.active = [];}
         data.active.push(giveawayData);
         return data;
@@ -186,7 +186,7 @@ async function handleCreate(interaction) {
 async function handleEnd(interaction) {
     const messageId = interaction.options.getString('message_id');
     
-    const giveawayData = getGuildData('giveaways', interaction.guild.id);
+    const giveawayData = await getGuildData('giveaways', interaction.guild.id);
     const giveaway = giveawayData?.active?.find(g => g.messageId === messageId);
     
     if (!giveaway) {
@@ -241,7 +241,7 @@ function parseDuration(str) {
     return value * (multipliers[unit] || 0);
 }
 
-function getGuildData(store, guildId) {
+async function getGuildData(store, guildId) {
     const { getGuildData } = require('../../../utils/db.js');
     return getGuildData(store, guildId);
 }
