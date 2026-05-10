@@ -10,7 +10,7 @@ import {
     ButtonStyle,
     PermissionFlagsBits
 } from 'discord.js';
-import { generateId, appendToGuildArray, getGuildData } from '../../../utils/db.js';
+import { generateId, appendToGuildArray } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
 
 export default {

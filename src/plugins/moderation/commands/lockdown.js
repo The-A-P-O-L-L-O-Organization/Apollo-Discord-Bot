@@ -2,7 +2,7 @@
 // Locks channels during raids by preventing @everyone from sending messages
 
 import { PermissionsBitField } from 'discord.js';
-import { setGuildData, getGuildData, appendToGuildArray } from '../../../utils/db.js';
+import { setGuildData, getGuildData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
 
 export default {

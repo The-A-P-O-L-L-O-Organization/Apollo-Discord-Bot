@@ -1,6 +1,6 @@
 import { logEvent, createMemberLeaveEmbed } from '../../../utils/logger.js';
 import { trackMemberChange } from '../../../utils/analyticsCollector.js';
-import { getGuildData, setGuildData, updateGuildData } from '../../../utils/db.js';
+import { getGuildData, updateGuildData } from '../../../utils/db.js';
 
 export default {
     name: 'guildMemberRemove',
