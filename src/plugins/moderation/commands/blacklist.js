@@ -2,7 +2,7 @@
 // Manages the server-wide join blacklist (add, remove, view)
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
-import { getGuildData, setGuildData, getData, setData } from '../../../utils/db.js';
+import { getGuildData, setGuildData, getData, setData, updateGuildData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
 
 export default {
@@ -132,7 +132,7 @@ async function handleAdd(interaction) {
             });
         }
 
-        const guildData = getGuildData('blacklist', interaction.guild.id);
+        const guildData = await getGuildData('blacklist', interaction.guild.id);
         const entries = guildData.entries || {};
 
         // Check if already blacklisted
@@ -149,16 +149,18 @@ async function handleAdd(interaction) {
         }
 
         // Add to blacklist
-        entries[user.id] = {
-            userId: user.id,
-            userTag: user.tag,
-            reason: reason,
-            moderatorId: interaction.user.id,
-            moderatorTag: interaction.user.tag,
-            addedAt: Date.now()
-        };
-
-        setGuildData('blacklist', interaction.guild.id, { entries });
+        await updateGuildData('blacklist', interaction.guild.id, (data) => {
+            if (!data.entries) data.entries = {};
+            data.entries[user.id] = {
+                userId: user.id,
+                userTag: user.tag,
+                reason: reason,
+                moderatorId: interaction.user.id,
+                moderatorTag: interaction.user.tag,
+                addedAt: Date.now()
+            };
+            return data;
+        });
 
         const successEmbed = new EmbedBuilder()
             .setColor('#FF0000')
@@ -197,7 +199,7 @@ async function handleRemove(interaction) {
     try {
         const user = interaction.options.getUser('user');
 
-        const guildData = getGuildData('blacklist', interaction.guild.id);
+        const guildData = await getGuildData('blacklist', interaction.guild.id);
         const entries = guildData.entries || {};
 
         if (!entries[user.id]) {
@@ -213,8 +215,12 @@ async function handleRemove(interaction) {
         }
 
         const removedEntry = entries[user.id];
-        delete entries[user.id];
-        setGuildData('blacklist', interaction.guild.id, { entries });
+        await updateGuildData('blacklist', interaction.guild.id, (data) => {
+            if (data.entries) {
+                delete data.entries[user.id];
+            }
+            return data;
+        });
 
         const successEmbed = new EmbedBuilder()
             .setColor('#00FF00')
@@ -243,7 +249,7 @@ async function handleRemove(interaction) {
  */
 async function handleView(interaction) {
     try {
-        const guildData = getGuildData('blacklist', interaction.guild.id);
+        const guildData = await getGuildData('blacklist', interaction.guild.id);
         const entries = guildData.entries || {};
         const list = Object.values(entries);
 
@@ -306,7 +312,7 @@ async function handleGlobal(interaction) {
         const user = interaction.options.getUser('user');
         const reason = interaction.options.getString('reason');
 
-        const globalData = getData('global_blacklist') || { entries: {} };
+        const globalData = await getData('global_blacklist') || { entries: {} };
         const entries = globalData.entries || {};
 
         if (action === 'add') {
@@ -346,16 +352,18 @@ async function handleGlobal(interaction) {
                 });
             }
 
-            entries[user.id] = {
-                userId: user.id,
-                userTag: user.tag,
-                reason: reason,
-                moderatorId: interaction.user.id,
-                moderatorTag: interaction.user.tag,
-                addedAt: Date.now()
-            };
-
-            setData('global_blacklist', { entries });
+            await updateGuildData('global_blacklist', '__global__', (data) => {
+                if (!data.entries) data.entries = {};
+                data.entries[user.id] = {
+                    userId: user.id,
+                    userTag: user.tag,
+                    reason: reason,
+                    moderatorId: interaction.user.id,
+                    moderatorTag: interaction.user.tag,
+                    addedAt: Date.now()
+                };
+                return data;
+            });
 
             const successEmbed = new EmbedBuilder()
                 .setColor('#FF0000')
@@ -398,8 +406,12 @@ async function handleGlobal(interaction) {
             }
 
             const removedEntry = entries[user.id];
-            delete entries[user.id];
-            setData('global_blacklist', { entries });
+            await updateGuildData('global_blacklist', '__global__', (data) => {
+                if (data.entries) {
+                    delete data.entries[user.id];
+                }
+                return data;
+            });
 
             const successEmbed = new EmbedBuilder()
                 .setColor('#00FF00')

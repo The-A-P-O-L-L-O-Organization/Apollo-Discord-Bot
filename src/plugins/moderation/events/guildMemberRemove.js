@@ -1,6 +1,6 @@
 import { logEvent, createMemberLeaveEmbed } from '../../../utils/logger.js';
 import { trackMemberChange } from '../../../utils/analyticsCollector.js';
-import { getGuildData, setGuildData } from '../../../utils/db.js';
+import { getGuildData, setGuildData, updateGuildData } from '../../../utils/db.js';
 
 export default {
     name: 'guildMemberRemove',
@@ -11,7 +11,7 @@ export default {
 
         trackMemberChange(member.guild.id, false, member.guild.memberCount);
 
-        const rolePersistenceConfig = getGuildData('role-persistence', member.guild.id);
+        const rolePersistenceConfig = await getGuildData('role-persistence', member.guild.id);
 
         if (rolePersistenceConfig && rolePersistenceConfig.enabled) {
             const roleIds = member.roles.cache
@@ -19,16 +19,15 @@ export default {
                 .map(role => role.id);
 
             if (roleIds.length > 0) {
-                const config = getGuildData('role-persistence', member.guild.id);
-                if (!config.savedRoles) {config.savedRoles = {};}
-
-                config.savedRoles[member.id] = {
-                    roles: roleIds,
-                    username: member.user.tag,
-                    savedAt: Date.now()
-                };
-
-                setGuildData('role-persistence', member.guild.id, config);
+                await updateGuildData('role-persistence', member.guild.id, (data) => {
+                    if (!data.savedRoles) {data.savedRoles = {};}
+                    data.savedRoles[member.id] = {
+                        roles: roleIds,
+                        username: member.user.tag,
+                        savedAt: Date.now()
+                    };
+                    return data;
+                });
                 console.log(`[INFO] Saved ${roleIds.length} roles for ${member.user.tag}`);
             }
         }

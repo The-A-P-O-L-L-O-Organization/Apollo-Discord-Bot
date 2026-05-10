@@ -158,7 +158,7 @@ async function handleViewCase(interaction) {
     const caseId = interaction.options.getInteger('case-id');
     
     // Get case data
-    const caseData = getGuildData('mod-cases', interaction.guild.id);
+    const caseData = await getGuildData('mod-cases', interaction.guild.id);
     const cases = caseData.cases || [];
     const caseInfo = cases.find(c => c.caseId === caseId);
     
@@ -244,7 +244,7 @@ async function handleSearchCases(interaction) {
     const typeFilter = interaction.options.getString('type');
     
     // Get case data
-    const caseData = getGuildData('mod-cases', interaction.guild.id);
+    const caseData = await getGuildData('mod-cases', interaction.guild.id);
     const cases = caseData.cases || [];
     
     // Filter cases for user
@@ -292,7 +292,7 @@ async function handleEditCase(interaction) {
     const newReason = interaction.options.getString('reason');
     
     // Get and update case data
-    const result = updateGuildData('mod-cases', interaction.guild.id, data => {
+    const result = await updateGuildData('mod-cases', interaction.guild.id, data => {
         const cases = data.cases || [];
         const caseInfo = cases.find(c => c.caseId === caseId);
         
@@ -373,7 +373,7 @@ async function handleDeleteCase(interaction) {
     const reason = interaction.options.getString('reason');
     
     // Get and update case data
-    const result = updateGuildData('mod-cases', interaction.guild.id, data => {
+    const result = await updateGuildData('mod-cases', interaction.guild.id, data => {
         const cases = data.cases || [];
         const caseInfo = cases.find(c => c.caseId === caseId);
         
@@ -450,7 +450,7 @@ async function handleListCases(interaction) {
     const limit = interaction.options.getInteger('limit') || 10;
     
     // Get case data
-    const caseData = getGuildData('mod-cases', interaction.guild.id);
+    const caseData = await getGuildData('mod-cases', interaction.guild.id);
     const cases = caseData.cases || [];
     
     // Filter active cases
@@ -494,8 +494,8 @@ async function handleListCases(interaction) {
  * @param {Object} caseInfo - Case information
  * @returns {number} The case ID
  */
-export function createModCase(guildId, caseInfo) {
-    const data = updateGuildData('mod-cases', guildId, current => {
+export async function createModCase(guildId, caseInfo) {
+    const data = await updateGuildData('mod-cases', guildId, current => {
         if (!current.cases) {current.cases = [];}
         if (!current.nextCaseId) {current.nextCaseId = 1;}
         
