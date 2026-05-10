@@ -19,15 +19,15 @@ export const DEFAULT_SLA_THRESHOLDS = {
  * @param {string} ticketId 
  * @param {number} timestamp 
  */
-export function recordFirstResponse(guildId, ticketId, timestamp) {
-    const ticketConfig = getGuildData('tickets', guildId);
+export async function recordFirstResponse(guildId, ticketId, timestamp) {
+    const ticketConfig = await getGuildData('tickets', guildId);
     
     if (!ticketConfig.openTickets) {return;}
     
     const ticket = ticketConfig.openTickets.find(t => t.id === ticketId);
     if (ticket && !ticket.firstResponseAt) {
         ticket.firstResponseAt = timestamp;
-        setGuildData('tickets', guildId, ticketConfig);
+        await setGuildData('tickets', guildId, ticketConfig);
     }
 }
 
@@ -71,8 +71,8 @@ export function getResolutionTime(ticket) {
  * @param {string} guildId 
  * @returns {object}
  */
-export function calculateSLAMetrics(guildId) {
-    const ticketConfig = getGuildData('tickets', guildId);
+export async function calculateSLAMetrics(guildId) {
+    const ticketConfig = await getGuildData('tickets', guildId);
     const closedTickets = ticketConfig.closedTickets || [];
     const openTickets = ticketConfig.openTickets || [];
     const slaThresholds = ticketConfig.slaThresholds || DEFAULT_SLA_THRESHOLDS;

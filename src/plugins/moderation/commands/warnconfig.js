@@ -100,7 +100,7 @@ export default {
 };
 
 async function handleView(interaction) {
-    const guildConfig = getGuildData('warnings-config', interaction.guild.id);
+    const guildConfig = await getGuildData('warnings-config', interaction.guild.id);
     const thresholds = guildConfig.thresholds || config.warnings.thresholds;
     const muteDuration = guildConfig.muteDuration || config.warnings.muteDuration;
     
@@ -146,7 +146,7 @@ async function handleSet(interaction) {
     const warnings = interaction.options.getInteger('warnings');
     
     // Get current config
-    const guildConfig = getGuildData('warnings-config', interaction.guild.id);
+    const guildConfig = await getGuildData('warnings-config', interaction.guild.id);
     
     // Initialize thresholds if not exists
     if (!guildConfig.thresholds) {
@@ -193,7 +193,7 @@ async function handleSet(interaction) {
     }
     
     // Save config
-    setGuildData('warnings-config', interaction.guild.id, guildConfig);
+    await setGuildData('warnings-config', interaction.guild.id, guildConfig);
     
     const embed = new EmbedBuilder()
         .setColor('#00FF00')
@@ -229,11 +229,11 @@ async function handleSetMuteDuration(interaction) {
     }
     
     // Get current config
-    const guildConfig = getGuildData('warnings-config', interaction.guild.id);
+    const guildConfig = await getGuildData('warnings-config', interaction.guild.id);
     guildConfig.muteDuration = ms;
     
     // Save config
-    setGuildData('warnings-config', interaction.guild.id, guildConfig);
+    await setGuildData('warnings-config', interaction.guild.id, guildConfig);
     
     const embed = new EmbedBuilder()
         .setColor('#00FF00')
@@ -248,7 +248,7 @@ async function handleSetMuteDuration(interaction) {
 
 async function handleReset(interaction) {
     // Reset to defaults
-    setGuildData('warnings-config', interaction.guild.id, {});
+    await setGuildData('warnings-config', interaction.guild.id, {});
     
     const embed = new EmbedBuilder()
         .setColor('#00FF00')

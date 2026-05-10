@@ -37,7 +37,7 @@ export default {
             const action = interaction.options.getString('action');
             const reportId = interaction.options.getString('report_id');
             
-            const guildData = getGuildData('reports', interaction.guild.id);
+            const guildData = await getGuildData('reports', interaction.guild.id);
             const reports = guildData.entries || [];
             
             if (action === 'pending') {
@@ -195,7 +195,7 @@ export default {
                 }
                 
                 // Update report status
-                updateGuildData('reports', interaction.guild.id, (data) => {
+                await updateGuildData('reports', interaction.guild.id, (data) => {
                     if (!data.entries) {data.entries = [];}
                     if (data.entries[reportIndex]) {
                         data.entries[reportIndex].status = 'dismissed';

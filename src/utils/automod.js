@@ -28,8 +28,8 @@ export async function checkSpamRedis(redis, guildId, userId, threshold, interval
  * @param {string} guildId - The guild ID
  * @returns {Object} Automod configuration
  */
-export function getAutomodConfig(guildId) {
-    const guildConfig = getGuildData('automod', guildId);
+export async function getAutomodConfig(guildId) {
+    const guildConfig = await getGuildData('automod', guildId);
     return {
         enabled: guildConfig.enabled ?? config.automod.enabled,
         bannedWords: guildConfig.bannedWords || [],

@@ -37,7 +37,7 @@ export default {
             }
             
             // Get user's strikes
-            const strikes = getUserData('strikes', interaction.guild.id, user.id) || [];
+            const strikes = await getUserData('strikes', interaction.guild.id, user.id) || [];
             const activeStrikes = strikes.filter(s => s.active !== false);
             
             if (strikes.length === 0) {

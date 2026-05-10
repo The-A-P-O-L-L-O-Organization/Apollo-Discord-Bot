@@ -45,7 +45,7 @@ export default {
             }
             
             // Get user's strikes
-            const strikes = getUserData('strikes', interaction.guild.id, user.id) || [];
+            const strikes = await getUserData('strikes', interaction.guild.id, user.id) || [];
             
             if (strikes.length === 0) {
                 return interaction.reply({
@@ -83,7 +83,7 @@ export default {
                 description = `Strike ${strikeId} has been removed.`;
                 
                 // Update strikes
-                setUserData('strikes', interaction.guild.id, user.id, strikes);
+                await setUserData('strikes', interaction.guild.id, user.id, strikes);
                 
             } else {
                 // Clear all strikes
@@ -95,7 +95,7 @@ export default {
                 description = `All ${removed} strike(s) have been removed.`;
                 
                 // Update strikes
-                setUserData('strikes', interaction.guild.id, user.id, strikes);
+                await setUserData('strikes', interaction.guild.id, user.id, strikes);
             }
             
             // Create success embed

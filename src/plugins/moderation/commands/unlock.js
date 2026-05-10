@@ -45,7 +45,7 @@ export default {
             }
             
             // Get lockdown data
-            const lockdownData = getGuildData('channel-lockdowns', interaction.guild.id);
+            const lockdownData = await getGuildData('channel-lockdowns', interaction.guild.id);
             const lockInfo = lockdownData[channel.id];
             
             // Check if channel is actually locked
@@ -83,7 +83,7 @@ export default {
             
             // Remove from database
             delete lockdownData[channel.id];
-            setGuildData('channel-lockdowns', interaction.guild.id, lockdownData);
+            await setGuildData('channel-lockdowns', interaction.guild.id, lockdownData);
             
             // Calculate lockdown duration
             const duration = Date.now() - lockInfo.lockedAt;

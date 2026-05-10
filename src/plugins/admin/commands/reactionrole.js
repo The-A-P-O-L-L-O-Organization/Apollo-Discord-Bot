@@ -130,7 +130,7 @@ export default {
                 });
             }
 
-            const reactionRoles = getGuildData('reactionroles', guildId);
+            const reactionRoles = await getGuildData('reactionroles', guildId);
             if (!reactionRoles.roles) {
                 reactionRoles.roles = [];
             }
@@ -152,7 +152,7 @@ export default {
                 });
             }
 
-            setGuildData('reactionroles', guildId, reactionRoles);
+            await setGuildData('reactionroles', guildId, reactionRoles);
 
             return interaction.reply({
                 content: `Reaction role added! Users who react with ${emoji.display} on [this message](${message.url}) will receive the ${role} role.`,
@@ -171,7 +171,7 @@ export default {
                 });
             }
 
-            const reactionRoles = getGuildData('reactionroles', guildId);
+            const reactionRoles = await getGuildData('reactionroles', guildId);
             if (!reactionRoles.roles || reactionRoles.roles.length === 0) {
                 return interaction.reply({
                     content: 'No reaction roles are configured in this server.',
@@ -191,7 +191,7 @@ export default {
             }
 
             const removed = reactionRoles.roles.splice(index, 1)[0];
-            setGuildData('reactionroles', guildId, reactionRoles);
+            await setGuildData('reactionroles', guildId, reactionRoles);
 
             try {
                 const channel = await interaction.guild.channels.fetch(removed.channelId);
@@ -206,7 +206,7 @@ export default {
             });
 
         } else if (subcommand === 'list') {
-            const reactionRoles = getGuildData('reactionroles', guildId);
+            const reactionRoles = await getGuildData('reactionroles', guildId);
 
             if (!reactionRoles.roles || reactionRoles.roles.length === 0) {
                 return interaction.reply({
@@ -251,7 +251,7 @@ export default {
         } else if (subcommand === 'clear') {
             const messageId = interaction.options.getString('message_id');
 
-            const reactionRoles = getGuildData('reactionroles', guildId);
+            const reactionRoles = await getGuildData('reactionroles', guildId);
             if (!reactionRoles.roles || reactionRoles.roles.length === 0) {
                 return interaction.reply({
                     content: 'No reaction roles are configured in this server.',
@@ -268,7 +268,7 @@ export default {
             }
 
             reactionRoles.roles = reactionRoles.roles.filter(rr => rr.messageId !== messageId);
-            setGuildData('reactionroles', guildId, reactionRoles);
+            await setGuildData('reactionroles', guildId, reactionRoles);
 
             if (toRemove.length > 0) {
                 try {

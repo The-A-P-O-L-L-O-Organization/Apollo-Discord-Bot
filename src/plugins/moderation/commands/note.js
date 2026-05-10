@@ -131,7 +131,7 @@ async function handleAddNote(interaction, user) {
     };
     
     // Add note to database
-    appendToUserArray('mod-notes', interaction.guild.id, user.id, note);
+    await appendToUserArray('mod-notes', interaction.guild.id, user.id, note);
     
     // Create success embed
     const successEmbed = {
@@ -166,7 +166,7 @@ async function handleAddNote(interaction, user) {
 
 async function handleViewNotes(interaction, user) {
     // Get notes for user
-    const notes = getUserData('mod-notes', interaction.guild.id, user.id) || [];
+    const notes = await getUserData('mod-notes', interaction.guild.id, user.id) || [];
     
     if (notes.length === 0) {
         const errorEmbed = {
@@ -204,7 +204,7 @@ async function handleRemoveNote(interaction, user) {
     const noteId = interaction.options.getString('note-id');
     
     // Get notes for user
-    const notes = getUserData('mod-notes', interaction.guild.id, user.id) || [];
+    const notes = await getUserData('mod-notes', interaction.guild.id, user.id) || [];
     
     // Find note
     const noteIndex = notes.findIndex(n => n.id === noteId);
@@ -221,7 +221,7 @@ async function handleRemoveNote(interaction, user) {
     
     // Remove note
     const removedNote = notes.splice(noteIndex, 1)[0];
-    setUserData('mod-notes', interaction.guild.id, user.id, notes);
+    await setUserData('mod-notes', interaction.guild.id, user.id, notes);
     
     // Create success embed
     const successEmbed = {

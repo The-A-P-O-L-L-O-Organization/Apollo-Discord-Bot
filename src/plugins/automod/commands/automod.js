@@ -185,8 +185,8 @@ export default {
     }
 };
 
-function getAutomodConfig(guildId) {
-    const guildConfig = getGuildData('automod', guildId);
+async function getAutomodConfig(guildId) {
+    const guildConfig = await getGuildData('automod', guildId);
     return {
         enabled: guildConfig.enabled ?? config.automod.enabled,
         bannedWords: guildConfig.bannedWords || [],
@@ -203,9 +203,9 @@ function getAutomodConfig(guildId) {
 }
 
 async function handleEnable(interaction) {
-    const cfg = getGuildData('automod', interaction.guild.id);
+    const cfg = await getGuildData('automod', interaction.guild.id);
     cfg.enabled = true;
-    setGuildData('automod', interaction.guild.id, cfg);
+    await setGuildData('automod', interaction.guild.id, cfg);
     
     const embed = new EmbedBuilder()
         .setColor('#00FF00')
@@ -224,9 +224,9 @@ async function handleEnable(interaction) {
 }
 
 async function handleDisable(interaction) {
-    const cfg = getGuildData('automod', interaction.guild.id);
+    const cfg = await getGuildData('automod', interaction.guild.id);
     cfg.enabled = false;
-    setGuildData('automod', interaction.guild.id, cfg);
+    await setGuildData('automod', interaction.guild.id, cfg);
     
     const embed = new EmbedBuilder()
         .setColor('#FF0000')
@@ -239,7 +239,7 @@ async function handleDisable(interaction) {
 }
 
 async function handleStatus(interaction) {
-    const cfg = getAutomodConfig(interaction.guild.id);
+    const cfg = await getAutomodConfig(interaction.guild.id);
     
     const embed = new EmbedBuilder()
         .setColor(cfg.enabled ? '#00FF00' : '#FF0000')
@@ -264,7 +264,7 @@ async function handleStatus(interaction) {
 
 async function handleAddWord(interaction) {
     const word = interaction.options.getString('word').toLowerCase();
-    const guildConfig = getGuildData('automod', interaction.guild.id);
+    const guildConfig = await getGuildData('automod', interaction.guild.id);
     
     if (!guildConfig.bannedWords) {
         guildConfig.bannedWords = [];
@@ -283,7 +283,7 @@ async function handleAddWord(interaction) {
     }
     
     guildConfig.bannedWords.push(word);
-    setGuildData('automod', interaction.guild.id, guildConfig);
+    await setGuildData('automod', interaction.guild.id, guildConfig);
     
     const embed = new EmbedBuilder()
         .setColor('#00FF00')
@@ -298,7 +298,7 @@ async function handleAddWord(interaction) {
 
 async function handleRemoveWord(interaction) {
     const word = interaction.options.getString('word').toLowerCase();
-    const guildConfig = getGuildData('automod', interaction.guild.id);
+    const guildConfig = await getGuildData('automod', interaction.guild.id);
     
     if (!guildConfig.bannedWords || !guildConfig.bannedWords.includes(word)) {
         return interaction.reply({
@@ -313,7 +313,7 @@ async function handleRemoveWord(interaction) {
     }
     
     guildConfig.bannedWords = guildConfig.bannedWords.filter(w => w !== word);
-    setGuildData('automod', interaction.guild.id, guildConfig);
+    await setGuildData('automod', interaction.guild.id, guildConfig);
     
     const embed = new EmbedBuilder()
         .setColor('#00FF00')
@@ -327,7 +327,7 @@ async function handleRemoveWord(interaction) {
 }
 
 async function handleListWords(interaction) {
-    const cfg = getAutomodConfig(interaction.guild.id);
+    const cfg = await getAutomodConfig(interaction.guild.id);
     
     if (cfg.bannedWords.length === 0) {
         return interaction.reply({
@@ -404,9 +404,9 @@ async function handleSet(interaction) {
         }
     }
     
-    const cfg = getGuildData('automod', interaction.guild.id);
+    const cfg = await getGuildData('automod', interaction.guild.id);
     cfg[setting] = value;
-    setGuildData('automod', interaction.guild.id, cfg);
+    await setGuildData('automod', interaction.guild.id, cfg);
     
     const embed = new EmbedBuilder()
         .setColor('#00FF00')
@@ -422,7 +422,7 @@ async function handleExemptChannel(interaction) {
     const channel = interaction.options.getChannel('channel');
     const action = interaction.options.getString('action');
     
-    const guildConfig = getGuildData('automod', interaction.guild.id);
+    const guildConfig = await getGuildData('automod', interaction.guild.id);
     if (!guildConfig.exemptChannels) {
         guildConfig.exemptChannels = [];
     }
@@ -441,7 +441,7 @@ async function handleExemptChannel(interaction) {
         }
         
         guildConfig.exemptChannels.push(channel.id);
-        setGuildData('automod', interaction.guild.id, guildConfig);
+        await setGuildData('automod', interaction.guild.id, guildConfig);
         
         await interaction.reply({
             embeds: [{
@@ -465,7 +465,7 @@ async function handleExemptChannel(interaction) {
         }
         
         guildConfig.exemptChannels = guildConfig.exemptChannels.filter(id => id !== channel.id);
-        setGuildData('automod', interaction.guild.id, guildConfig);
+        await setGuildData('automod', interaction.guild.id, guildConfig);
         
         await interaction.reply({
             embeds: [{
@@ -482,7 +482,7 @@ async function handleExemptRole(interaction) {
     const role = interaction.options.getRole('role');
     const action = interaction.options.getString('action');
     
-    const guildConfig = getGuildData('automod', interaction.guild.id);
+    const guildConfig = await getGuildData('automod', interaction.guild.id);
     if (!guildConfig.exemptRoles) {
         guildConfig.exemptRoles = [];
     }
@@ -501,7 +501,7 @@ async function handleExemptRole(interaction) {
         }
         
         guildConfig.exemptRoles.push(role.id);
-        setGuildData('automod', interaction.guild.id, guildConfig);
+        await setGuildData('automod', interaction.guild.id, guildConfig);
         
         await interaction.reply({
             embeds: [{
@@ -525,7 +525,7 @@ async function handleExemptRole(interaction) {
         }
         
         guildConfig.exemptRoles = guildConfig.exemptRoles.filter(id => id !== role.id);
-        setGuildData('automod', interaction.guild.id, guildConfig);
+        await setGuildData('automod', interaction.guild.id, guildConfig);
         
         await interaction.reply({
             embeds: [{
