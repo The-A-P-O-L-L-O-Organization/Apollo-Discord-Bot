@@ -7,6 +7,7 @@ export default {
     .setDescription('Manually trigger a Na\'vi word post (owner only)')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   name: 'navi',
+  canQueue: false,
   category: 'nova',
 
   async execute(interaction) {

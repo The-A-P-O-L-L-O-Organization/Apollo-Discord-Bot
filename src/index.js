@@ -67,6 +67,40 @@ client.on('interactionCreate', async (interaction) => {
         return;
     }
 
+    const shouldQueue = config.queue.enabled && command.canQueue !== false;
+
+    if (shouldQueue) {
+      try {
+        if (!interaction.deferred && !interaction.replied) {
+          await interaction.deferReply();
+        }
+        const { enqueueCommand } = await import('./queue/jobs/processCommand.js');
+        await enqueueCommand(interaction);
+        client.stats.commandsRan++;
+        if (interaction.guild) {
+          trackCommand(interaction.guild.id, interaction.commandName, interaction.user.id);
+        }
+      } catch (error) {
+        console.error('[ERROR] Error queueing /' + interaction.commandName + ':', error);
+        const errorEmbed = {
+          color: 0xFF0000,
+          title: 'Error',
+          description: 'Failed to queue command. Is the queue available?',
+          timestamp: new Date().toISOString()
+        };
+        try {
+          if (interaction.deferred || interaction.replied) {
+            await interaction.editReply({ embeds: [errorEmbed] });
+          } else {
+            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+          }
+        } catch (e) {
+          console.error('[ERROR] Failed to send error response:', e);
+        }
+      }
+      return;
+    }
+
     try {
         await command.execute(interaction);
         client.stats.commandsRan++;

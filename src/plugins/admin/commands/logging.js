@@ -4,6 +4,7 @@ import { config } from '../../../config/config.js';
 
 export default {
     name: 'logging',
+    canQueue: false,
     data: new SlashCommandBuilder()
         .setName('logging')
         .setDescription('Configure server event logging')

@@ -2,11 +2,12 @@ import { config } from '../../../config/config.js';
 import { getDb, runMigrations } from '../../../db/knex.js';
 
 export default {
-  name: 'migrate',
-  description: 'Manage database migrations (bot owner only)',
-  category: 'Developer',
-  dmPermission: false,
-  options: [
+    name: 'migrate',
+    description: 'Manage database migrations (bot owner only)',
+    category: 'Developer',
+    dmPermission: false,
+    canQueue: false,
+    options: [
     {
       name: 'status',
       description: 'Check database migration status',
