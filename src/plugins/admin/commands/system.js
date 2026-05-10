@@ -19,6 +19,7 @@ export default {
   description: 'Display bot system status and health (bot owner only)',
   category: 'Developer',
   dmPermission: false,
+  canQueue: false,
   options: [],
 
   async execute(interaction) {

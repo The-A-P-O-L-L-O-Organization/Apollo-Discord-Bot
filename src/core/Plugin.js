@@ -40,12 +40,14 @@ export default class Plugin {
     try { files = readdirSync(cmdDir).filter(f => f.endsWith('.js')); }
     catch { return; }
 
+    const pluginId = this.constructor.id;
     for (const file of files) {
       try {
         const filePath = path.join(cmdDir, file);
         const url = pathToFileURL(filePath).href + '?t=' + Date.now();
         const mod = await import(url);
         if (mod.default && mod.default.name) {
+          mod.default.pluginId = pluginId;
           this.commands.set(mod.default.name, mod.default);
           if (this.client.commands) {
             this.client.commands.set(mod.default.name, mod.default);

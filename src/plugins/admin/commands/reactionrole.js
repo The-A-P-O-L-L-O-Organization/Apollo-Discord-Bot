@@ -3,10 +3,10 @@ import { getGuildData, setGuildData } from '../../../utils/db.js';
 
 export default {
     name: 'reactionrole',
-    description: 'Manage reaction roles',
-    category: 'admin',
-    defaultMemberPermissions: PermissionFlagsBits.ManageRoles,
+    description: 'Manage reaction roles for the server',
+    category: 'Admin',
     dmPermission: false,
+    canQueue: false,
     options: [
         {
             name: 'add',

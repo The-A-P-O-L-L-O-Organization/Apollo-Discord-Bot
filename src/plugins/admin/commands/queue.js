@@ -2,11 +2,12 @@ import { config } from '../../../config/config.js';
 import { getQueueMetrics } from '../../../queue/metrics.js';
 
 export default {
-  name: 'queue',
-  description: 'View BullMQ queue statistics (bot owner only)',
-  category: 'Developer',
-  dmPermission: false,
-  options: [],
+    name: 'queue',
+    description: 'Display BullMQ queue statistics and status (bot owner only)',
+    category: 'Developer',
+    dmPermission: false,
+    canQueue: false,
+    options: [],
 
   async execute(interaction) {
     const ownerIds = (process.env.OWNER_IDS || '').split(',').map(id => id.trim()).filter(Boolean);

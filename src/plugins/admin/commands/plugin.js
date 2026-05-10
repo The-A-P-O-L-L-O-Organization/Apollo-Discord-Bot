@@ -3,6 +3,7 @@ export default {
     description: 'Manage bot plugins (bot owner only)',
     category: 'Developer',
     dmPermission: false,
+    canQueue: false,
     options: [
         {
             name: 'list',
