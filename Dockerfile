@@ -16,7 +16,7 @@ ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 
 # Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN npm install -g corepack && corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy package files first for better caching
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* .npmrc* ./
