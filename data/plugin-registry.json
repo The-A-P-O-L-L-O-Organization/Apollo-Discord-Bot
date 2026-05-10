@@ -1,1 +1,1 @@
-{"plugins":[]}
+{"plugins":[{"id":"ssa","name":"SSA","version":"1.0.0","description":"SSA channel revival ping plugin. Pings a role when a monitored channel receives a message after a configurable period of silence.","downloadUrl":"https://github.com/The-A-P-O-L-L-O-Organization/ssa-apollo-plugin/releases/download/v1.0.0/ssa-plugin.zip"}]}
