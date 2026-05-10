@@ -31,12 +31,13 @@ describe('Plugin management command', () => {
     const interaction = {
       user: { id: 'notowner' },
       reply: vi.fn(),
+      editReply: vi.fn(),
+      deferReply: vi.fn(),
       options: { getSubcommand: () => 'list' }
     };
     await pluginCommand.execute(interaction);
-    expect(interaction.reply).toHaveBeenCalled();
-    const call = interaction.reply.mock.calls[0][0];
-    expect(call.ephemeral).toBe(true);
+    expect(interaction.deferReply).toHaveBeenCalled();
+    expect(interaction.editReply).toHaveBeenCalled();
     delete process.env.OWNER_IDS;
   });
 });
