@@ -27,6 +27,7 @@ RUN pnpm install --frozen-lockfile
 # Copy application source code
 COPY src ./src
 COPY deploy-commands.js ./
+COPY data ./data
 
 # Create directories for persistent data
 RUN mkdir -p /app/bot /app/logs
