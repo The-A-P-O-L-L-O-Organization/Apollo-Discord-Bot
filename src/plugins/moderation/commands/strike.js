@@ -9,7 +9,6 @@ import {
     getGuildData
 } from '../../../utils/db.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
-import { config } from '../../../config/config.js';
 
 export default {
     name: 'strike',

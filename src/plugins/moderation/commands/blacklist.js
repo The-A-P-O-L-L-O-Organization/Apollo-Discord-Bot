@@ -2,7 +2,7 @@
 // Manages the server-wide join blacklist (add, remove, view)
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
-import { getGuildData, setGuildData, getData, setData, updateGuildData } from '../../../utils/db.js';
+import { getGuildData, getData, updateGuildData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
 
 export default {
