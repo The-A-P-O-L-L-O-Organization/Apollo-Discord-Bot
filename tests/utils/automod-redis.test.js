@@ -14,6 +14,7 @@ describe('Automod Redis spam tracking', () => {
     const isSpam = await checkSpamRedis(redis, 'guild-1', 'user-1', 5, 5000, Date.now());
 
     expect(redis.zadd).toHaveBeenCalled();
+    expect(redis.expire).toHaveBeenCalledWith(expect.stringContaining('spam:guild-1:user-1'), 60);
     expect(redis.zcount).toHaveBeenCalled();
     expect(isSpam).toBe(false);
   });

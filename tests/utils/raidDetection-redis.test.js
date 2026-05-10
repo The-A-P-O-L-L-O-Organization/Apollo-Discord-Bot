@@ -12,6 +12,7 @@ describe('Raid detection Redis', () => {
 
     await trackJoin(redis, 'guild-1', 'user-1', Date.now());
     const isRaid = await checkRaid(redis, 'guild-1', 10, 10000, Date.now());
+    expect(redis.expire).toHaveBeenCalledWith(expect.stringContaining('raid:guild-1'), 300);
     expect(isRaid).toBe(false);
   });
 
