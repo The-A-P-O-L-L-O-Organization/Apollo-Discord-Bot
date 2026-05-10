@@ -8,6 +8,21 @@ import { config } from '../config/config.js';
 // Map<guildId, { joins: Array<{userId, username, timestamp, accountAge}>, raidMode: boolean, lastAlert: timestamp }>
 const raidState = new Map();
 
+// Redis-backed raid detection functions
+export async function trackJoin(redis, guildId, userId, timestamp) {
+  const key = `raid:${guildId}`;
+  await redis.zadd(key, timestamp, `${timestamp}:${userId}`);
+  await redis.expire(key, 300);
+}
+
+export async function checkRaid(redis, guildId, threshold, intervalMs, now = Date.now()) {
+  const key = `raid:${guildId}`;
+  const cutoff = now - intervalMs;
+  await redis.zremrangebyscore(key, '-inf', cutoff);
+  const count = await redis.zcount(key, cutoff, '+inf');
+  return count >= threshold;
+}
+
 // Raid detection thresholds (configurable)
 const RAID_THRESHOLDS = {
     joinCount: 5,           // Number of joins
