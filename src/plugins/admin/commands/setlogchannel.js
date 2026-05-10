@@ -3,6 +3,7 @@ import { setGuildData, getGuildData } from '../../../utils/db.js';
 
 export default {
     name: 'setlogchannel',
+    canQueue: false,
     data: new SlashCommandBuilder()
         .setName('setlogchannel')
         .setDescription('Set the channel for server event logs')
