@@ -17,6 +17,7 @@ services:
     volumes:
       - bot-data:/app/bot
       - bot-logs:/app/logs
+      - bot-plugins:/app/data/plugins
     healthcheck:
       test: ["CMD", "node", "-e", "process.exit(0)"]
       interval: 30s
@@ -81,6 +82,7 @@ services:
         condition: service_healthy
     volumes:
       - bot-logs:/app/logs
+      - bot-plugins:/app/data/plugins
     logging:
       driver: "json-file"
       options:
@@ -104,6 +106,7 @@ services:
         condition: service_healthy
     volumes:
       - bot-logs:/app/logs
+      - bot-plugins:/app/data/plugins
     logging:
       driver: "json-file"
       options:
@@ -114,6 +117,8 @@ volumes:
   bot-data:
     driver: local
   bot-logs:
+    driver: local
+  bot-plugins:
     driver: local
   postgres-data:
     driver: local

@@ -30,7 +30,7 @@ COPY deploy-commands.js ./
 COPY data ./data
 
 # Create directories for persistent data
-RUN mkdir -p /app/bot /app/logs
+RUN mkdir -p /app/bot /app/logs /app/data/plugins
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
