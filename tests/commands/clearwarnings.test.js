@@ -2,7 +2,7 @@
 // Tests for the clear warnings command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import clearWarningsCommand from '../../src/commands/clearwarnings.js';
+import clearWarningsCommand from '../../src/plugins/moderation/commands/clearwarnings.js';
 import { 
     createMockInteraction, 
     createMockUser, 
@@ -13,7 +13,10 @@ import {
 vi.mock('../../src/utils/db.js', () => ({
     getUserData: vi.fn(),
     setUserData: vi.fn(),
-    removeFromUserArray: vi.fn()
+    removeFromUserArray: vi.fn(),
+    updateGuildData: vi.fn((store, guildId, updater) => {
+        return Promise.resolve(updater({ nextCaseId: 1 }));
+    }),
 }));
 
 // Mock the modLog module

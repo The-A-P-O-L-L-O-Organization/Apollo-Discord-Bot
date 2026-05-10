@@ -2,7 +2,7 @@
 // Tests for the warn command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import warnCommand from '../../src/commands/warn.js';
+import warnCommand from '../../src/plugins/moderation/commands/warn.js';
 import {
     createMockInteraction,
     createMockUser,
@@ -16,7 +16,10 @@ vi.mock('../../src/utils/db.js', () => ({
     appendToUserArray: vi.fn(),
     generateId: vi.fn().mockReturnValue('test-warning-id'),
     getGuildData: vi.fn().mockReturnValue({}),
-    setGuildData: vi.fn()
+    setGuildData: vi.fn(),
+    updateGuildData: vi.fn((store, guildId, updater) => {
+        return Promise.resolve(updater({ nextCaseId: 1 }));
+    }),
 }));
 
 vi.mock('../../src/utils/modLog.js', () => ({

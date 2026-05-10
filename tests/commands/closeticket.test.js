@@ -14,11 +14,12 @@ import {
 // Mock the db module
 vi.mock('../../src/utils/db.js', () => ({
     getGuildData: vi.fn(),
-    setGuildData: vi.fn(),
+    updateGuildData: vi.fn(),
+    updateGuildData: vi.fn(),
     writeToSubDir: vi.fn()
 }));
 
-import { getGuildData, setGuildData, writeToSubDir } from '../../src/utils/db.js';
+import { getGuildData, updateGuildData, updateGuildData, writeToSubDir } from '../../src/utils/db.js';
 
 describe('CloseTicket Command', () => {
     let mockInteraction;
@@ -102,7 +103,7 @@ describe('CloseTicket Command', () => {
             await closeTicketCommand.execute(mockInteraction);
             
             expect(mockInteraction.reply).toHaveBeenCalled();
-            expect(setGuildData).toHaveBeenCalled();
+            expect(updateGuildData).toHaveBeenCalled();
             expect(writeToSubDir).toHaveBeenCalled();
         });
 
@@ -261,11 +262,11 @@ describe('CloseTicket Command', () => {
 
             await closeTicketCommand.execute(mockInteraction);
             
-            expect(setGuildData).toHaveBeenCalled();
-            const setCall = setGuildData.mock.calls[0];
-            const config = setCall[2];
-            expect(config.closedTickets).toBeDefined();
-            expect(config.closedTickets.length).toBeGreaterThan(0);
+            expect(updateGuildData).toHaveBeenCalled();
+            const callArgs = updateGuildData.mock.calls[0];
+            const result = callArgs[2]({ openTickets: [{}], closedTickets: [] });
+            expect(result.closedTickets).toBeDefined();
+            expect(result.closedTickets.length).toBeGreaterThan(0);
         });
 
         it('should limit closed tickets history to 100', async() => {
@@ -287,9 +288,9 @@ describe('CloseTicket Command', () => {
 
             await closeTicketCommand.execute(mockInteraction);
             
-            const setCall = setGuildData.mock.calls[0];
-            const config = setCall[2];
-            expect(config.closedTickets.length).toBeLessThanOrEqual(100);
+            const callArgs = updateGuildData.mock.calls[0];
+            const result = callArgs[2]({ openTickets: [{}], closedTickets });
+            expect(result.closedTickets.length).toBeLessThanOrEqual(100);
         });
     });
 });
