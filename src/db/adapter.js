@@ -59,3 +59,11 @@ export async function getAllUserData(store, guildId) {
     .where({ store, guild_id: guildId });
   return rows.map(r => ({ userId: r.user_id, data: deserialize(r.data) }));
 }
+
+export async function getData(store) {
+  return getGuildData(store, '__global__');
+}
+
+export async function setData(store, data) {
+  return setGuildData(store, '__global__', data);
+}
