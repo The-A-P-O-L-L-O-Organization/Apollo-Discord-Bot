@@ -2,13 +2,34 @@
 // Tests for the unban command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import unbanCommand from '../../src/commands/unban.js';
+import unbanCommand from '../../src/plugins/moderation/commands/unban.js';
 import { 
     createMockInteraction, 
     createMockUser, 
     createMockGuild,
     createMockClient 
 } from '../mocks/discord.js';
+
+// Mock the db module
+vi.mock('../../src/utils/db.js', () => ({
+    getGuildData: vi.fn(),
+    setGuildData: vi.fn(),
+    updateGuildData: vi.fn((store, guildId, updater) => {
+        return Promise.resolve(updater({ nextCaseId: 1 }));
+    }),
+    getData: vi.fn(),
+    setData: vi.fn(),
+    getUserData: vi.fn(),
+    setUserData: vi.fn(),
+}));
+
+// Mock tempbanScheduler
+vi.mock('../../src/utils/tempbanScheduler.js', () => ({
+    removeTempban: vi.fn(),
+    getTempban: vi.fn(),
+    startScheduler: vi.fn(),
+    stopScheduler: vi.fn(),
+}));
 
 // Mock the modLog module
 vi.mock('../../src/utils/modLog.js', () => ({

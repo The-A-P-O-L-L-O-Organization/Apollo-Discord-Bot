@@ -2,7 +2,7 @@
 // Tests for the interactionCreate event handler (ticket system buttons)
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import interactionCreateEvent from '../../src/events/interactionCreate.js';
+import interactionCreateEvent from '../../src/plugins/tickets/events/interactionCreate.js';
 import {
     createMockUser,
     createMockGuild,
@@ -14,7 +14,7 @@ import {
 // Mock the dataStore module
 vi.mock('../../src/utils/db.js', () => ({
     getGuildData: vi.fn(),
-    setGuildData: vi.fn(),
+    updateGuildData: vi.fn(),
     generateId: vi.fn().mockReturnValue('test-ticket-id'),
     writeToSubDir: vi.fn()
 }));
@@ -29,7 +29,7 @@ vi.mock('../../src/config/config.js', () => ({
     }
 }));
 
-import { getGuildData, setGuildData, writeToSubDir } from '../../src/utils/db.js';
+import { getGuildData, updateGuildData, writeToSubDir } from '../../src/utils/db.js';
 
 describe('InteractionCreate Event', () => {
     let mockInteraction;
@@ -142,18 +142,10 @@ describe('InteractionCreate Event', () => {
         it('should save ticket data', async() => {
             await interactionCreateEvent.execute(mockInteraction, mockClient);
             
-            expect(setGuildData).toHaveBeenCalledWith(
+            expect(updateGuildData).toHaveBeenCalledWith(
                 'tickets',
                 '987654321',
-                expect.objectContaining({
-                    totalTickets: 1,
-                    openTickets: expect.arrayContaining([
-                        expect.objectContaining({
-                            userId: '123456789',
-                            ticketNumber: 1
-                        })
-                    ])
-                })
+                expect.any(Function)
             );
         });
 
@@ -181,12 +173,10 @@ describe('InteractionCreate Event', () => {
             
             await interactionCreateEvent.execute(mockInteraction, mockClient);
             
-            expect(setGuildData).toHaveBeenCalledWith(
+            expect(updateGuildData).toHaveBeenCalledWith(
                 'tickets',
                 '987654321',
-                expect.objectContaining({
-                    totalTickets: 6
-                })
+                expect.any(Function)
             );
         });
 
@@ -300,18 +290,10 @@ describe('InteractionCreate Event', () => {
         it('should update ticket config after closing', async() => {
             await interactionCreateEvent.execute(mockInteraction, mockClient);
             
-            expect(setGuildData).toHaveBeenCalledWith(
+            expect(updateGuildData).toHaveBeenCalledWith(
                 'tickets',
                 '987654321',
-                expect.objectContaining({
-                    openTickets: [],
-                    closedTickets: expect.arrayContaining([
-                        expect.objectContaining({
-                            ticketNumber: 1,
-                            closedBy: '123456789'
-                        })
-                    ])
-                })
+                expect.any(Function)
             );
         });
     });

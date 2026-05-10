@@ -2,7 +2,7 @@
 // Tests for the reaction role command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import reactionRoleCommand from '../../src/commands/reactionrole.js';
+import reactionRoleCommand from '../../src/plugins/admin/commands/reactionrole.js';
 import { 
     createMockInteraction, 
     createMockUser,

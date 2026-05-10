@@ -142,5 +142,41 @@ export const config = {
     },
     
     // Command Prefix (for legacy commands if needed)
-    prefix: '!'
+    prefix: '!',
+
+    // Plugin System Settings
+    plugins: {
+        enabled: ['utility', 'admin', 'moderation', 'tickets', 'automod'],
+        directory: './src/plugins',
+        optionalDirectory: './data/plugins',
+        registryFile: './data/plugin-registry.json'
+    },
+
+    // Database Configuration
+    database: {
+        // Set to 'postgres' or 'sqlite'
+        type: process.env.DB_TYPE || 'sqlite',
+        postgres: {
+            connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/apollo',
+            pool: {
+                min: parseInt(process.env.DB_POOL_MIN || '2', 10),
+                max: parseInt(process.env.DB_POOL_MAX || '10', 10)
+            }
+        }
+    },
+
+    // Instance identity (for leader election)
+    podId: process.env.POD_ID || process.env.HOSTNAME || 'default',
+
+    // Queue Configuration
+    queue: {
+        enabled: process.env.QUEUE_ENABLED === 'true',
+        redis: {
+            host: process.env.REDIS_HOST || 'localhost',
+            port: parseInt(process.env.REDIS_PORT || '6379', 10),
+            password: process.env.REDIS_PASSWORD || undefined,
+        },
+        prefix: process.env.QUEUE_PREFIX || 'apollo',
+        stalledInterval: parseInt(process.env.QUEUE_STALLED_INTERVAL || '30000', 10),
+    },
 };

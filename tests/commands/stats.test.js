@@ -2,7 +2,7 @@
 // Tests for the stats command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import statsCommand from '../../src/commands/stats.js';
+import statsCommand from '../../src/plugins/utility/commands/stats.js';
 import { 
     createMockInteraction, 
     createMockUser,
