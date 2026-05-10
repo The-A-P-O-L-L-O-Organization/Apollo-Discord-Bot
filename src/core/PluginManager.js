@@ -58,17 +58,25 @@ export default class PluginManager {
 
   async _syncDiscordCommands() {
     try {
-      const commands = [...this.client.commands.values()].map(cmd => ({
-        name: cmd.name,
-        description: cmd.description,
-        options: cmd.options || []
-      }));
+      const body = [...this.client.commands.values()].map(cmd => {
+        if (cmd.data) {
+          return cmd.data.toJSON();
+        }
+        const isContextMenu = cmd.type === 2 || cmd.type === 3;
+        return {
+          name: cmd.name,
+          description: isContextMenu ? undefined : (cmd.description || 'No description'),
+          type: cmd.type || 1,
+          options: cmd.options || [],
+          dm_permission: cmd.dmPermission,
+        };
+      });
       const rest = this.client.rest;
       const { CLIENT_ID } = this.client.config;
       if (!CLIENT_ID) return;
       await rest.put(
         Routes.applicationCommands(CLIENT_ID),
-        { body: commands }
+        { body }
       );
     } catch (error) {
       console.error('[ERROR] Failed to sync commands with Discord:', error);
