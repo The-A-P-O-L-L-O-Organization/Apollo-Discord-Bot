@@ -1,5 +1,5 @@
 import { EmbedBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { getGuildData, setGuildData, updateGuildData, generateId, writeToSubDir } from '../../../utils/db.js';
+import { getGuildData, updateGuildData, generateId, writeToSubDir } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
 
 export default {
