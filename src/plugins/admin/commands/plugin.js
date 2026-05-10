@@ -101,9 +101,10 @@ export default {
     ],
 
     async execute(interaction) {
+        await interaction.deferReply({ ephemeral: true });
         const ownerIds = (process.env.OWNER_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
         if (ownerIds.length > 0 && !ownerIds.includes(interaction.user.id)) {
-            return interaction.reply({
+            return interaction.editReply({
                 embeds: [{
                     color: 0xFF0000,
                     title: '[ERROR] Access Denied',
@@ -141,14 +142,14 @@ export default {
                     ],
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [embed], ephemeral: true });
+                return interaction.editReply({ embeds: [embed], ephemeral: true });
             }
 
             case 'enable': {
                 const name = interaction.options.getString('name');
                 try {
                     await manager.enablePlugin(name);
-                    return interaction.reply({
+                    return interaction.editReply({
                         embeds: [{
                             color: 0x00FF00,
                             title: '[SUCCESS] Plugin Enabled',
@@ -158,7 +159,7 @@ export default {
                         ephemeral: true
                     });
                 } catch (err) {
-                    return interaction.reply({
+                    return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: err.message
                         }],
@@ -171,7 +172,7 @@ export default {
                 const name = interaction.options.getString('name');
                 try {
                     await manager.disablePlugin(name);
-                    return interaction.reply({
+                    return interaction.editReply({
                         embeds: [{
                             color: 0xFFA500,
                             title: '[SUCCESS] Plugin Disabled',
@@ -181,7 +182,7 @@ export default {
                         ephemeral: true
                     });
                 } catch (err) {
-                    return interaction.reply({
+                    return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: err.message
                         }],
@@ -194,7 +195,7 @@ export default {
                 const name = interaction.options.getString('name');
                 try {
                     await manager.reloadPlugin(name);
-                    return interaction.reply({
+                    return interaction.editReply({
                         embeds: [{
                             color: 0x00FF00,
                             title: '[SUCCESS] Plugin Reloaded',
@@ -204,7 +205,7 @@ export default {
                         ephemeral: true
                     });
                 } catch (err) {
-                    return interaction.reply({
+                    return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: err.message
                         }],
@@ -219,7 +220,7 @@ export default {
                     const plugin = await manager.loadPlugin(name);
                     await manager.enablePlugin(name);
                     await manager._syncDiscordCommands();
-                    return interaction.reply({
+                    return interaction.editReply({
                         embeds: [{
                             color: 0x00FF00,
                             title: '[SUCCESS] Plugin Loaded',
@@ -229,7 +230,7 @@ export default {
                         ephemeral: true
                     });
                 } catch (err) {
-                    return interaction.reply({
+                    return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: err.message
                         }],
@@ -240,7 +241,6 @@ export default {
 
             case 'install': {
                 const name = interaction.options.getString('name');
-                await interaction.deferReply({ ephemeral: true });
                 try {
                     await manager.installPlugin(name);
                     return interaction.editReply({
@@ -264,7 +264,7 @@ export default {
                 const name = interaction.options.getString('name');
                 try {
                     await manager.uninstallPlugin(name);
-                    return interaction.reply({
+                    return interaction.editReply({
                         embeds: [{
                             color: 0xFFA500,
                             title: '[SUCCESS] Plugin Uninstalled',
@@ -274,7 +274,7 @@ export default {
                         ephemeral: true
                     });
                 } catch (err) {
-                    return interaction.reply({
+                    return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: err.message
                         }],
@@ -290,7 +290,7 @@ export default {
                     interaction.client.config.plugins.registryFile || './data/plugin-registry.json'
                 );
                 const results = registry.search(query);
-                return interaction.reply({
+                return interaction.editReply({
                     embeds: [{
                         color: 0x00BFFF,
                         title: 'Plugin Search: "' + query + '"',
@@ -309,7 +309,6 @@ export default {
 
             case 'update': {
                 const name = interaction.options.getString('name');
-                await interaction.deferReply({ ephemeral: true });
                 try {
                     await manager.uninstallPlugin(name);
                     await manager.installPlugin(name);
