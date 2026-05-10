@@ -2,6 +2,8 @@
 // Background task that checks and unbans users with expired tempbans
 
 import { getData, setData } from './db.js';
+import { config } from '../config/config.js';
+import { getLockRedis, withLock } from './lock.js';
 
 let client = null;
 let schedulerInterval = null;
@@ -13,11 +15,16 @@ let schedulerInterval = null;
 export function initTempbanScheduler(discordClient) {
     client = discordClient;
     
-    // Check every 30 seconds
-    const checkInterval = 30000;
-    schedulerInterval = setInterval(checkTempbans, checkInterval);
+    schedulerInterval = setInterval(async () => {
+        const redis = await getLockRedis();
+        if (redis) {
+            await withLock(redis, 'scheduler:tempbans', config.podId, checkTempbans, 25000);
+        } else {
+            await checkTempbans();
+        }
+    }, 30000);
     
-    console.log(`[INFO] Tempban scheduler started (checking every ${checkInterval / 1000}s)`);
+    console.log(`[INFO] Tempban scheduler started (checking every 30s)`);
     
     // Run an immediate check
     checkTempbans().catch(err => console.error('[ERROR] Tempban check failed:', err));

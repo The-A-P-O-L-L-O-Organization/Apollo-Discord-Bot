@@ -3,6 +3,8 @@
 
 import { EmbedBuilder } from 'discord.js';
 import { getData, setData } from './db.js';
+import { config } from '../config/config.js';
+import { getLockRedis, withLock } from './lock.js';
 
 let client = null;
 let schedulerInterval = null;
@@ -24,8 +26,14 @@ const POLL_EMOJIS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
 export function initPollScheduler(discordClient) {
     client = discordClient;
     
-    // Check polls every 30 seconds
-    schedulerInterval = setInterval(checkPolls, 30000);
+    schedulerInterval = setInterval(async () => {
+        const redis = await getLockRedis();
+        if (redis) {
+            await withLock(redis, 'scheduler:polls', config.podId, checkPolls, 25000);
+        } else {
+            await checkPolls();
+        }
+    }, 30000);
     
     console.log('[INFO] Poll scheduler started (checking every 30s)');
     
