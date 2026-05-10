@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { getGuildData, setGuildData, updateGuildData } from '../../../utils/db.js';
+import { updateGuildData } from '../../../utils/db.js';
 
 export default {
     name: 'tickettransfer',
