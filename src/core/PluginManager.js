@@ -17,10 +17,15 @@ export default class PluginManager {
     this.config = config;
     const { enabled, directory } = config.plugins;
     this._rebuildInstalledPlugins();
-    for (const id of enabled) {
-      await this.loadPlugin(id, directory);
+    const allIds = [...new Set([
+      ...enabled,
+      ...[...this.installedPlugins.keys()].filter(id => !enabled.includes(id)),
+    ])];
+    for (const id of allIds) {
+      const baseDir = this.installedPlugins.has(id) ? this.config?.plugins?.optionalDirectory : directory;
+      await this.loadPlugin(id, baseDir || directory);
     }
-    const sorted = this._sortByDependencies(enabled);
+    const sorted = this._sortByDependencies(allIds);
     for (const id of sorted) {
       await this.enablePlugin(id);
     }
