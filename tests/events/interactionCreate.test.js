@@ -15,7 +15,6 @@ import {
 vi.mock('../../src/utils/db.js', () => ({
     getGuildData: vi.fn(),
     updateGuildData: vi.fn(),
-    updateGuildData: vi.fn(),
     generateId: vi.fn().mockReturnValue('test-ticket-id'),
     writeToSubDir: vi.fn()
 }));
@@ -30,7 +29,7 @@ vi.mock('../../src/config/config.js', () => ({
     }
 }));
 
-import { getGuildData, updateGuildData, updateGuildData, writeToSubDir } from '../../src/utils/db.js';
+import { getGuildData, updateGuildData, writeToSubDir } from '../../src/utils/db.js';
 
 describe('InteractionCreate Event', () => {
     let mockInteraction;

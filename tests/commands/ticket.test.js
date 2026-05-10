@@ -15,7 +15,6 @@ import {
 vi.mock('../../src/utils/db.js', () => ({
     getGuildData: vi.fn(),
     updateGuildData: vi.fn(),
-    updateGuildData: vi.fn(),
     generateId: vi.fn().mockReturnValue('ticket-123')
 }));
 

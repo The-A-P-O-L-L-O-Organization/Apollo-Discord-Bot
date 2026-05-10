@@ -13,7 +13,6 @@ import {
 // Mock the db module
 vi.mock('../../src/utils/db.js', () => ({
     getGuildData: vi.fn().mockReturnValue({}),
-    updateGuildData: vi.fn(),
     updateGuildData: vi.fn()
 }));
 
@@ -27,7 +26,7 @@ vi.mock('../../src/config/config.js', () => ({
     }
 }));
 
-import { getGuildData, updateGuildData, updateGuildData } from '../../src/utils/db.js';
+import { getGuildData, updateGuildData } from '../../src/utils/db.js';
 
 describe('Ticket Setup Command', () => {
     let mockInteraction;
