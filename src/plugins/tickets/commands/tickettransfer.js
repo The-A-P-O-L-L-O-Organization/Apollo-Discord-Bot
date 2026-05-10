@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { getGuildData, setGuildData } from '../../../utils/db.js';
+import { getGuildData, setGuildData, updateGuildData } from '../../../utils/db.js';
 
 export default {
     name: 'tickettransfer',
@@ -27,7 +27,7 @@ export default {
         const transferUser = interaction.options.getUser('user');
         const note = interaction.options.getString('note') || 'No note provided';
 
-        const ticketConfig = getGuildData('tickets', guildId);
+        const ticketConfig = await getGuildData('tickets', guildId);
 
         const ticket = ticketConfig.openTickets?.find(t => t.channelId === channelId);
 
@@ -61,15 +61,18 @@ export default {
         const oldAssignees = [...(ticket.assignedTo || [])];
         const oldClaimed = ticket.claimedBy;
 
-        ticket.assignedTo = [transferUser.id];
-        ticket.claimedBy = transferUser.id;
-
-        if (!ticket.participants) {ticket.participants = [ticket.userId];}
-        if (!ticket.participants.includes(transferUser.id)) {
-            ticket.participants.push(transferUser.id);
-        }
-
-        setGuildData('tickets', guildId, ticketConfig);
+        await updateGuildData('tickets', guildId, (data) => {
+            const t = data.openTickets?.find(x => x.channelId === channelId);
+            if (t) {
+                t.assignedTo = [transferUser.id];
+                t.claimedBy = transferUser.id;
+                if (!t.participants) {t.participants = [t.userId];}
+                if (!t.participants.includes(transferUser.id)) {
+                    t.participants.push(transferUser.id);
+                }
+            }
+            return data;
+        });
 
         try {
             await interaction.channel.permissionOverwrites.edit(transferUser.id, {

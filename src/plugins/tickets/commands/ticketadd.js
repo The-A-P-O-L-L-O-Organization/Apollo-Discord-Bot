@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { getGuildData, setGuildData } from '../../../utils/db.js';
+import { getGuildData, setGuildData, updateGuildData } from '../../../utils/db.js';
 
 export default {
     name: 'ticketadd',
@@ -20,7 +20,7 @@ export default {
         const channelId = interaction.channel.id;
         const addUser = interaction.options.getUser('user');
 
-        const ticketConfig = getGuildData('tickets', guildId);
+        const ticketConfig = await getGuildData('tickets', guildId);
 
         const ticket = ticketConfig.openTickets?.find(t => t.channelId === channelId);
 
@@ -53,8 +53,14 @@ export default {
             });
         }
 
-        ticket.participants.push(addUser.id);
-        setGuildData('tickets', guildId, ticketConfig);
+        await updateGuildData('tickets', guildId, (data) => {
+            const t = data.openTickets?.find(x => x.channelId === channelId);
+            if (t) {
+                if (!t.participants) {t.participants = [t.userId];}
+                t.participants.push(addUser.id);
+            }
+            return data;
+        });
 
         try {
             await interaction.channel.permissionOverwrites.edit(addUser.id, {

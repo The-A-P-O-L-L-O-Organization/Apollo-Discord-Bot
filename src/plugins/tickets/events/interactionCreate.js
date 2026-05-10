@@ -1,5 +1,5 @@
 import { EmbedBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { getGuildData, setGuildData, generateId, writeToSubDir } from '../../../utils/db.js';
+import { getGuildData, setGuildData, updateGuildData, generateId, writeToSubDir } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
 
 export default {
@@ -27,7 +27,7 @@ async function handleCreateTicket(interaction) {
     const guildId = interaction.guild.id;
     const userId = interaction.user.id;
     
-    const ticketConfig = getGuildData('tickets', guildId);
+    const ticketConfig = await getGuildData('tickets', guildId);
     
     const existingTicket = ticketConfig.openTickets?.find(t => t.userId === userId);
     if (existingTicket) {
@@ -137,19 +137,21 @@ async function handleCreateTicket(interaction) {
     });
     
     const ticketId = generateId();
-    if (!ticketConfig.openTickets) {
-        ticketConfig.openTickets = [];
-    }
-    ticketConfig.openTickets.push({
-        id: ticketId,
-        ticketNumber,
-        channelId: ticketChannel.id,
-        userId,
-        reason: 'Opened via panel',
-        createdAt: Date.now()
+    await updateGuildData('tickets', guildId, (data) => {
+        if (!data.openTickets) {
+            data.openTickets = [];
+        }
+        data.openTickets.push({
+            id: ticketId,
+            ticketNumber,
+            channelId: ticketChannel.id,
+            userId,
+            reason: 'Opened via panel',
+            createdAt: Date.now()
+        });
+        data.totalTickets = ticketNumber;
+        return data;
     });
-    ticketConfig.totalTickets = ticketNumber;
-    setGuildData('tickets', guildId, ticketConfig);
     
     return interaction.editReply({
         content: `Your ticket has been created: ${ticketChannel}`
@@ -160,7 +162,7 @@ async function handleCloseTicket(interaction) {
     const guildId = interaction.guild.id;
     const channelId = interaction.channel.id;
     
-    const ticketConfig = getGuildData('tickets', guildId);
+    const ticketConfig = await getGuildData('tickets', guildId);
     
     const ticketIndex = ticketConfig.openTickets?.findIndex(t => t.channelId === channelId);
     
@@ -253,27 +255,29 @@ async function handleCloseTicket(interaction) {
     const filename = `ticket-${ticket.ticketNumber}-${guildId}-${Date.now()}.json`;
     writeToSubDir('transcripts', filename, transcript);
     
-    ticketConfig.openTickets.splice(ticketIndex, 1);
-    
-    if (!ticketConfig.closedTickets) {
-        ticketConfig.closedTickets = [];
-    }
-    ticketConfig.closedTickets.push({
-        ticketNumber: ticket.ticketNumber,
-        userId: ticket.userId,
-        closedBy: interaction.user.id,
-        reason: ticket.reason,
-        closeReason: 'Closed via button',
-        createdAt: ticket.createdAt,
-        closedAt: Date.now(),
-        transcriptFile: filename
+    await updateGuildData('tickets', guildId, (data) => {
+        data.openTickets.splice(ticketIndex, 1);
+        
+        if (!data.closedTickets) {
+            data.closedTickets = [];
+        }
+        data.closedTickets.push({
+            ticketNumber: ticket.ticketNumber,
+            userId: ticket.userId,
+            closedBy: interaction.user.id,
+            reason: ticket.reason,
+            closeReason: 'Closed via button',
+            createdAt: ticket.createdAt,
+            closedAt: Date.now(),
+            transcriptFile: filename
+        });
+        
+        if (data.closedTickets.length > 100) {
+            data.closedTickets = data.closedTickets.slice(-100);
+        }
+        
+        return data;
     });
-    
-    if (ticketConfig.closedTickets.length > 100) {
-        ticketConfig.closedTickets = ticketConfig.closedTickets.slice(-100);
-    }
-    
-    setGuildData('tickets', guildId, ticketConfig);
     
     try {
         const ticketCreator = await interaction.client.users.fetch(ticket.userId);
