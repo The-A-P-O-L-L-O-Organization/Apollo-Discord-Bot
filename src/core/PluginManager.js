@@ -190,6 +190,7 @@ export default class PluginManager {
       : (this.config?.plugins?.directory || './src/plugins');
     await this.loadPlugin(id, baseDir);
     await this.enablePlugin(id);
+    await this._syncDiscordCommands();
   }
 
   async installPlugin(id) {
@@ -231,6 +232,7 @@ export default class PluginManager {
 
     await this.loadPlugin(id, this.client.config.plugins.optionalDirectory || './data/plugins');
     await this.enablePlugin(id);
+    await this._syncDiscordCommands();
 
     console.log(`[PluginManager] Successfully installed plugin ${id}`);
   }
@@ -263,6 +265,8 @@ export default class PluginManager {
     const enabled = this.client.config.plugins.enabled;
     const idx = enabled.indexOf(id);
     if (idx !== -1) enabled.splice(idx, 1);
+
+    await this._syncDiscordCommands();
 
     console.log(`[PluginManager] Successfully uninstalled plugin ${id}`);
   }
