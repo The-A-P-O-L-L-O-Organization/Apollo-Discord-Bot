@@ -2,7 +2,7 @@
 // Assign temporary roles that automatically expire
 
 import { PermissionsBitField } from 'discord.js';
-import { setGuildData, getGuildData, updateGuildData } from '../../../utils/db.js';
+import { getGuildData, updateGuildData } from '../../../utils/db.js';
 
 export default {
     name: 'temprole',

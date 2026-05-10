@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { getGuildData, setGuildData, updateGuildData, writeToSubDir } from '../../../utils/db.js';
+import { getGuildData, updateGuildData, writeToSubDir } from '../../../utils/db.js';
 
 export default {
     name: 'closeticket',
