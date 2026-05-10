@@ -1,4 +1,33 @@
+import { config } from '../config/config.js';
+
 const LOCK_PREFIX = 'apollo:lock:';
+
+let _lockRedis = null;
+
+export async function getLockRedis() {
+  if (_lockRedis) return _lockRedis;
+  if (!config.queue.enabled) return null;
+  try {
+    const { Redis } = await import('ioredis');
+    const redis = new Redis({
+      host: config.queue.redis.host,
+      port: config.queue.redis.port,
+      password: config.queue.redis.password || undefined,
+    });
+    if (_lockRedis === null) _lockRedis = redis;
+    return _lockRedis || redis;
+  } catch (err) {
+    console.warn('[lock] Failed to create Redis connection:', err);
+    return null;
+  }
+}
+
+export async function closeLockRedis() {
+  if (_lockRedis) {
+    await _lockRedis.quit();
+    _lockRedis = null;
+  }
+}
 
 const RELEASE_SCRIPT = `
   if redis.call("get", KEYS[1]) == ARGV[1] then
