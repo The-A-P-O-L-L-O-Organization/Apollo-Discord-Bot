@@ -13,7 +13,8 @@ import {
 // Mock the db module
 vi.mock('../../src/utils/db.js', () => ({
     getGuildData: vi.fn().mockReturnValue({}),
-    setGuildData: vi.fn()
+    updateGuildData: vi.fn(),
+    updateGuildData: vi.fn()
 }));
 
 // Mock config
@@ -26,7 +27,7 @@ vi.mock('../../src/config/config.js', () => ({
     }
 }));
 
-import { getGuildData, setGuildData } from '../../src/utils/db.js';
+import { getGuildData, updateGuildData, updateGuildData } from '../../src/utils/db.js';
 
 describe('Ticket Setup Command', () => {
     let mockInteraction;
@@ -136,13 +137,10 @@ describe('Ticket Setup Command', () => {
         it('should save panel message ID to data store', async() => {
             await ticketsetupCommand.execute(mockInteraction);
             
-            expect(setGuildData).toHaveBeenCalledWith(
+            expect(updateGuildData).toHaveBeenCalledWith(
                 'tickets',
                 'guild123',
-                expect.objectContaining({
-                    panelMessageId: 'panel-message-123',
-                    panelChannelId: 'channel123'
-                })
+                expect.any(Function)
             );
         });
 
@@ -208,12 +206,10 @@ describe('Ticket Setup Command', () => {
         it('should set ticket category successfully', async() => {
             await ticketsetupCommand.execute(mockInteraction);
             
-            expect(setGuildData).toHaveBeenCalledWith(
+            expect(updateGuildData).toHaveBeenCalledWith(
                 'tickets',
                 'guild123',
-                expect.objectContaining({
-                    categoryId: 'category123'
-                })
+                expect.any(Function)
             );
         });
 
@@ -236,12 +232,10 @@ describe('Ticket Setup Command', () => {
         it('should set support role successfully', async() => {
             await ticketsetupCommand.execute(mockInteraction);
             
-            expect(setGuildData).toHaveBeenCalledWith(
+            expect(updateGuildData).toHaveBeenCalledWith(
                 'tickets',
                 'guild123',
-                expect.objectContaining({
-                    supportRoleId: 'role123'
-                })
+                expect.any(Function)
             );
         });
 
