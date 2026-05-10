@@ -89,7 +89,7 @@ export default class Plugin {
   }
 
   _unloadEvents() {
-    for (const { name, handler, once } of this.eventHandlers) {
+    for (const { name, handler } of this.eventHandlers) {
       this.client.removeListener(name, handler);
     }
     this.eventHandlers = [];

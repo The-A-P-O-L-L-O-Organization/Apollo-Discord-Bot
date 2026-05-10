@@ -1,12 +1,14 @@
 import 'dotenv/config';
+import { randomUUID, randomBytes } from 'crypto';
 import { Client, GatewayIntentBits, Collection, Partials } from 'discord.js';
 import { config } from './config/config.js';
 import PluginManager from './core/PluginManager.js';
 import EventBus from './core/EventBus.js';
 import { closeAll as closeQueues } from './queue/queue.js';
 import registerProcessCommand from './queue/jobs/processCommand.js';
+import { trackCommand } from './utils/analyticsCollector.js';
 
-const uuid = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+const uuid = randomUUID?.() ?? randomBytes(16).toString('hex');
 
 const client = new Client({
     intents: [
@@ -101,7 +103,6 @@ if (RUN_MODE === 'worker') {
   const { startWorker } = await import('./worker.js');
   await startWorker();
 } else {
-  const { trackCommand } = await import('./utils/analyticsCollector.js');
   const { stopSpamTrackerCleanup } = await import('./utils/automod.js');
 
   if (config.queue.enabled) {

@@ -19,8 +19,6 @@ import { appendToUserArray, generateId, getUserData, getGuildData } from '../../
 import { sendModLog } from '../../../utils/modLog.js';
 import { config } from '../../../config/config.js';
 import { trackMessage, trackViolation } from '../../../utils/analyticsCollector.js';
-import { checkMessageToxicity } from '../../../utils/perspectiveApi.js';
-import { checkMessageAttachments } from '../../../utils/nsfwDetection.js';
 
 export default {
     name: 'messageCreate',

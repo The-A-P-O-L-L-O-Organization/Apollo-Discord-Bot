@@ -1,5 +1,5 @@
 import { existsSync, rmSync } from 'fs';
-import { join } from 'path';
+import { join, resolve, sep } from 'path';
 import { pathToFileURL } from 'url';
 import AdmZip from 'adm-zip';
 import { mkdirSync, writeFileSync } from 'fs';
@@ -40,6 +40,10 @@ function extractZip(buffer, destDir) {
       : entry.entryName;
     if (!relativePath) continue;
     const targetPath = join(destDir, relativePath);
+    const resolved = resolve(targetPath);
+    if (!resolved.startsWith(resolve(destDir) + sep)) {
+      throw new Error(`Invalid archive entry: ${entry.entryName}`);
+    }
     mkdirSync(join(targetPath, '..'), { recursive: true });
     writeFileSync(targetPath, entry.getData());
   }

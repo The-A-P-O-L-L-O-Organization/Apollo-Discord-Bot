@@ -2,12 +2,12 @@
 
 ## Supported Versions
 
-The following versions of this project are currently being supported with security updates:
+The following versions of Apollo Discord Bot v2 are currently supported with security updates:
 
 | Version | Supported |
 |---------|-----------|
-| 2.0.x   | Yes       |
-| < 2.0   | No        |
+| 2.0.x   | ✅ Active support |
+| < 2.0   | ❌ No longer supported |
 
 ## Reporting a Vulnerability
 
