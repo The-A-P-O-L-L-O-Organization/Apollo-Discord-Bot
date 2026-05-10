@@ -15,34 +15,51 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const commands = [];
 
 async function loadCommands() {
-    const commandsPath = join(__dirname, 'src/commands');
+    const pluginsDir = join(__dirname, 'src/plugins');
     
     try {
-        const commandFiles = readdirSync(commandsPath).filter(
-            file => file.endsWith('.js')
-        );
+        const pluginDirs = readdirSync(pluginsDir, { withFileTypes: true })
+            .filter(d => d.isDirectory())
+            .map(d => d.name);
         
-        console.log(`[INFO] Found ${commandFiles.length} command(s) to deploy...`);
+        let totalFound = 0;
         
-        for (const file of commandFiles) {
-            const filePath = join(commandsPath, file);
-            const command = await import(`file://${filePath}`);
-            
-            if (command.default && command.default.name) {
-                // Prepare command data for Discord
-                const commandData = {
-                    name: command.default.name,
-                    description: command.default.description,
-                    type: command.default.type,
-                    options: command.default.options || []
-                };
+        for (const plugin of pluginDirs) {
+            const commandsPath = join(pluginsDir, plugin, 'commands');
+            try {
+                const commandFiles = readdirSync(commandsPath).filter(
+                    file => file.endsWith('.js')
+                );
                 
-                commands.push(commandData);
-                console.log(`[SUCCESS] Command prepared: /${command.default.name}`);
+                for (const file of commandFiles) {
+                    const filePath = join(commandsPath, file);
+                    const command = await import(`file://${filePath}`);
+                    
+                    if (command.default) {
+                        let commandData;
+                        if (command.default.data) {
+                            commandData = command.default.data.toJSON();
+                        } else if (command.default.name) {
+                            commandData = {
+                                name: command.default.name,
+                                description: command.default.description || 'No description',
+                                type: command.default.type || 1,
+                                options: command.default.options || []
+                            };
+                        } else {
+                            continue;
+                        }
+                        commands.push(commandData);
+                        console.log(`[${plugin}] /${commandData.name}`);
+                    }
+                }
+                totalFound += commandFiles.length;
+            } catch {
+                // No commands directory for this plugin, skip
             }
         }
         
-        console.log(`[SUCCESS] All commands loaded! Total: ${commands.length}`);
+        console.log(`\n[SUCCESS] Total: ${commands.length} commands from ${pluginDirs.length} plugins`);
         
     } catch (error) {
         console.error('[ERROR] Error loading commands:', error);
