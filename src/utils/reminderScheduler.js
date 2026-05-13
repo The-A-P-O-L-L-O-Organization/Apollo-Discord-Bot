@@ -23,7 +23,7 @@ const performanceStats = {
 export function initReminderScheduler(discordClient) {
     client = discordClient;
     
-    schedulerInterval = setInterval(async () => {
+    schedulerInterval = setInterval(async() => {
         const redis = await getLockRedis();
         if (redis) {
             await withLock(redis, 'scheduler:reminders', config.podId, checkReminders, 25000);

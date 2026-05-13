@@ -21,7 +21,7 @@ vi.mock('../../src/utils/db.js', () => ({
     getData: vi.fn(),
     setData: vi.fn(),
     getUserData: vi.fn(),
-    setUserData: vi.fn(),
+    setUserData: vi.fn()
 }));
 
 // Mock the modLog module
