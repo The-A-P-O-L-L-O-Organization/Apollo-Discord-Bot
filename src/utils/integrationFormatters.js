@@ -75,3 +75,19 @@ export function formatGithubPrNotification(repo, sender, pr) {
     }],
   };
 }
+
+export function formatGithubIssueNotification(repo, sender, issue) {
+  return {
+    embeds: [{
+      color: 0x1D1D1D,
+      title: `#${issue.number} ${issue.title}`,
+      url: issue.html_url,
+      description: (issue.body || '').slice(0, 200),
+      fields: [
+        { name: 'Repository', value: repo, inline: true },
+        { name: 'Author', value: sender, inline: true },
+      ],
+      timestamp: new Date().toISOString(),
+    }],
+  };
+}
