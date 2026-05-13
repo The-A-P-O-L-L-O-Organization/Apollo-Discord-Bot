@@ -26,7 +26,7 @@ const POLL_EMOJIS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
 export function initPollScheduler(discordClient) {
     client = discordClient;
     
-    schedulerInterval = setInterval(async () => {
+    schedulerInterval = setInterval(async() => {
         const redis = await getLockRedis();
         if (redis) {
             await withLock(redis, 'scheduler:polls', config.podId, checkPolls, 25000);
