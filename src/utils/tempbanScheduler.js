@@ -15,7 +15,7 @@ let schedulerInterval = null;
 export function initTempbanScheduler(discordClient) {
     client = discordClient;
     
-    schedulerInterval = setInterval(async () => {
+    schedulerInterval = setInterval(async() => {
         const redis = await getLockRedis();
         if (redis) {
             await withLock(redis, 'scheduler:tempbans', config.podId, checkTempbans, 25000);
@@ -24,7 +24,7 @@ export function initTempbanScheduler(discordClient) {
         }
     }, 30000);
     
-    console.log(`[INFO] Tempban scheduler started (checking every 30s)`);
+    console.log('[INFO] Tempban scheduler started (checking every 30s)');
     
     // Run an immediate check
     checkTempbans().catch(err => console.error('[ERROR] Tempban check failed:', err));

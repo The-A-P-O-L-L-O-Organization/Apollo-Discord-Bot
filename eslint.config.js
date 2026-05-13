@@ -16,7 +16,10 @@ export default [
                 clearInterval: 'readonly',
                 global: 'readonly',
                 __dirname: 'readonly',
-                __filename: 'readonly'
+                __filename: 'readonly',
+                fetch: 'readonly',
+                URLSearchParams: 'readonly',
+                URL: 'readonly'
             }
         },
         rules: {
