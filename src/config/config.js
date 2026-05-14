@@ -134,6 +134,20 @@ export const config = {
         // Maximum number of options
         maxOptions: 10
     },
+
+    // Integration Settings
+    integrations: {
+        webhookPort: parseInt(process.env.INTEGRATIONS_WEBHOOK_PORT || '0', 10),
+        githubSecret: process.env.GITHUB_WEBHOOK_SECRET || '',
+        twitchClientId: process.env.TWITCH_CLIENT_ID || '',
+        twitchClientSecret: process.env.TWITCH_CLIENT_SECRET || '',
+        youtubeApiKey: process.env.YOUTUBE_API_KEY || '',
+        pollInterval: {
+            twitch: parseInt(process.env.INTEGRATIONS_POLL_TWITCH || '300000', 10),
+            youtube: parseInt(process.env.INTEGRATIONS_POLL_YOUTUBE || '300000', 10),
+            rss: parseInt(process.env.INTEGRATIONS_POLL_RSS || '900000', 10)
+        }
+    },
     
     // Reaction Roles Settings
     reactionRoles: {
@@ -146,7 +160,7 @@ export const config = {
 
     // Plugin System Settings
     plugins: {
-        enabled: ['utility', 'admin', 'moderation', 'tickets', 'automod'],
+        enabled: ['utility', 'admin', 'moderation', 'tickets', 'automod', 'integrations'],
         directory: './src/plugins',
         optionalDirectory: './data/plugins',
         registryFile: './data/plugin-registry.json'
@@ -174,9 +188,9 @@ export const config = {
         redis: {
             host: process.env.REDIS_HOST || 'localhost',
             port: parseInt(process.env.REDIS_PORT || '6379', 10),
-            password: process.env.REDIS_PASSWORD || undefined,
+            password: process.env.REDIS_PASSWORD || undefined
         },
         prefix: process.env.QUEUE_PREFIX || 'apollo',
-        stalledInterval: parseInt(process.env.QUEUE_STALLED_INTERVAL || '30000', 10),
-    },
+        stalledInterval: parseInt(process.env.QUEUE_STALLED_INTERVAL || '30000', 10)
+    }
 };

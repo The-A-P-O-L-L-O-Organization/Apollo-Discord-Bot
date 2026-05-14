@@ -4,7 +4,7 @@ import { getGuildData, setGuildData } from '../../../utils/db.js';
 export default {
     name: 'reactionrole',
     description: 'Manage reaction roles for the server',
-    category: 'Admin',
+    category: 'admin',
     dmPermission: false,
     canQueue: false,
     options: [
