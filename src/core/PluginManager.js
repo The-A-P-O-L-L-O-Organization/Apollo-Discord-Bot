@@ -135,7 +135,7 @@ export default class PluginManager {
         }
 
         const plugin = new PluginClass(this.client, this);
-        plugin.setDirectory(path.join(process.cwd(), baseDir, id));
+        plugin.setDirectory(pluginDir);
         await plugin.onLoad();
         plugin._loaded = true;
         this.plugins.set(id, plugin);
