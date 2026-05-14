@@ -20,7 +20,7 @@ vi.mock('../../src/utils/db.js', () => ({
     getData: vi.fn(),
     setData: vi.fn(),
     getUserData: vi.fn(),
-    setUserData: vi.fn(),
+    setUserData: vi.fn()
 }));
 
 // Mock tempbanScheduler
@@ -28,7 +28,7 @@ vi.mock('../../src/utils/tempbanScheduler.js', () => ({
     removeTempban: vi.fn(),
     getTempban: vi.fn(),
     startScheduler: vi.fn(),
-    stopScheduler: vi.fn(),
+    stopScheduler: vi.fn()
 }));
 
 // Mock the modLog module

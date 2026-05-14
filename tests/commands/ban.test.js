@@ -19,7 +19,7 @@ vi.mock('../../src/utils/db.js', () => ({
         return Promise.resolve(updater({ nextCaseId: 1 }));
     }),
     getData: vi.fn(),
-    setData: vi.fn(),
+    setData: vi.fn()
 }));
 
 // Mock the modLog module

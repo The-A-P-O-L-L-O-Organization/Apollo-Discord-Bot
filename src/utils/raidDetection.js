@@ -10,17 +10,17 @@ const raidState = new Map();
 
 // Redis-backed raid detection functions
 export async function trackJoin(redis, guildId, userId, timestamp) {
-  const key = `raid:${guildId}`;
-  await redis.zadd(key, timestamp, `${timestamp}:${userId}`);
-  await redis.expire(key, 300);
+    const key = `raid:${guildId}`;
+    await redis.zadd(key, timestamp, `${timestamp}:${userId}`);
+    await redis.expire(key, 300);
 }
 
 export async function checkRaid(redis, guildId, threshold, intervalMs, now = Date.now()) {
-  const key = `raid:${guildId}`;
-  const cutoff = now - intervalMs;
-  await redis.zremrangebyscore(key, '-inf', cutoff);
-  const count = await redis.zcount(key, cutoff, '+inf');
-  return count >= threshold;
+    const key = `raid:${guildId}`;
+    const cutoff = now - intervalMs;
+    await redis.zremrangebyscore(key, '-inf', cutoff);
+    const count = await redis.zcount(key, cutoff, '+inf');
+    return count >= threshold;
 }
 
 // Raid detection thresholds (configurable)

@@ -10,17 +10,17 @@ const spamTracker = new Map();
 
 // Redis-backed spam tracking functions
 export async function trackMessage(redis, guildId, userId, timestamp) {
-  const key = `spam:${guildId}:${userId}`;
-  await redis.zadd(key, timestamp, `${timestamp}:${userId}`);
-  await redis.expire(key, 60);
+    const key = `spam:${guildId}:${userId}`;
+    await redis.zadd(key, timestamp, `${timestamp}:${userId}`);
+    await redis.expire(key, 60);
 }
 
 export async function checkSpamRedis(redis, guildId, userId, threshold, intervalMs, now = Date.now()) {
-  const key = `spam:${guildId}:${userId}`;
-  const cutoff = now - intervalMs;
-  await redis.zremrangebyscore(key, '-inf', cutoff);
-  const count = await redis.zcount(key, cutoff, '+inf');
-  return count >= threshold;
+    const key = `spam:${guildId}:${userId}`;
+    const cutoff = now - intervalMs;
+    await redis.zremrangebyscore(key, '-inf', cutoff);
+    const count = await redis.zcount(key, cutoff, '+inf');
+    return count >= threshold;
 }
 
 /**
