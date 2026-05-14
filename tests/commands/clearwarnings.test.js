@@ -16,7 +16,7 @@ vi.mock('../../src/utils/db.js', () => ({
     removeFromUserArray: vi.fn(),
     updateGuildData: vi.fn((store, guildId, updater) => {
         return Promise.resolve(updater({ nextCaseId: 1 }));
-    }),
+    })
 }));
 
 // Mock the modLog module

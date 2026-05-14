@@ -14,7 +14,7 @@ export function initTempRolesScheduler(client) {
         return;
     }
     
-    checkInterval = setInterval(async () => {
+    checkInterval = setInterval(async() => {
         const redis = await getLockRedis();
         if (redis) {
             await withLock(redis, 'scheduler:temproles', config.podId, () => checkExpiredTempRoles(client), 55000);
