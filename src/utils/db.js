@@ -27,7 +27,7 @@ async function _initAdapter() {
     const Database = (await import('better-sqlite3')).default;
     const path = (await import('path')).default;
     const { fileURLToPath } = await import('url');
-    const { existsSync, mkdirSync, writeFileSync } = await import('fs');
+    const { existsSync, mkdirSync } = await import('fs');
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
     const DATA_DIR = path.join(__dirname, '../data');
     if (!existsSync(DATA_DIR)) {mkdirSync(DATA_DIR, { recursive: true });}
