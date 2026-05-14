@@ -110,8 +110,9 @@ export default class PluginManager {
         if (this.plugins.has(id)) {return this.plugins.get(id);}
 
         let PluginClass = this._pluginRegistry.get(id);
+        let pluginDir = path.join(process.cwd(), baseDir, id);
         if (!PluginClass) {
-            let pluginDir = path.join(process.cwd(), baseDir, id);
+            pluginDir = path.join(process.cwd(), baseDir, id);
             let pluginPath = path.join(pluginDir, 'plugin.js');
             if (!existsSync(pluginPath)) {
                 const optionalDir = path.join(
