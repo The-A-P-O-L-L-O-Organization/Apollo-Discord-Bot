@@ -19,6 +19,24 @@ export default {
                 }));
                 return { count: subs.length, subscriptions: subs };
             }
+        },
+        {
+            name: 'add',
+            description: 'Add an integration',
+            needsSocket: true,
+            options: [
+                { name: 'type', description: 'Integration type', required: true },
+                { name: 'channel', description: 'Channel ID', required: true },
+                { name: 'target', description: 'Target ID/URL', required: false }
+            ]
+        },
+        {
+            name: 'remove',
+            description: 'Remove an integration',
+            needsSocket: true,
+            options: [
+                { name: 'id', description: 'Integration ID', required: true }
+            ]
         }
     ]
 };

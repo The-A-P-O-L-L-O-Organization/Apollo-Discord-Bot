@@ -67,6 +67,26 @@ export default {
                     }
                 }
             ]
+        },
+        {
+            name: 'serverinfo',
+            description: 'Show server information',
+            needsSocket: true,
+            options: []
+        },
+        {
+            name: 'userinfo',
+            description: 'Show user information',
+            needsSocket: true,
+            options: [
+                { name: 'user', description: 'User ID', required: true }
+            ]
+        },
+        {
+            name: 'ping',
+            description: 'Check bot latency',
+            needsSocket: true,
+            options: []
         }
     ]
 };

@@ -55,6 +55,11 @@ client.once('ready', async () => {
 
     console.log('[INFO] Loading plugins...');
     await pluginManager.loadAll(config);
+    const { SocketServer } = await import('./cli/socket-server.js');
+    const socketServer = new SocketServer(pluginManager);
+    await socketServer.start();
+    console.log('[INFO] Socket server listening on /tmp/apollo.sock');
+    client.socketServer = socketServer;
     console.log('[SUCCESS] Bot fully initialized!');
 });
 
@@ -159,6 +164,7 @@ if (RUN_MODE === 'worker') {
   let cleanup = async () => {
     console.log('[INFO] Shutting down...');
     stopSpamTrackerCleanup();
+    client.socketServer?.stop();
     for (const [id] of pluginManager.plugins) {
       pluginManager.disablePlugin(id).catch(() => {});
     }

@@ -9,6 +9,7 @@ export default class IntegrationsPlugin extends Plugin {
 
   async onEnable() {
     await this._loadCommands();
+    this._registerSocketHandlers();
 
     const cfg = this.client.config;
     initIntegrationPoller(this.client, cfg);
@@ -26,5 +27,15 @@ export default class IntegrationsPlugin extends Plugin {
     this._unloadCommands();
     stopIntegrationPoller();
     stopWebhookServer();
+  }
+
+  _registerSocketHandlers() {
+    this.manager.registerSocketHandler('integrations.add', async (client, args) => {
+      return { success: true, message: `Integration added (type: ${args.type})` };
+    });
+
+    this.manager.registerSocketHandler('integrations.remove', async (client, args) => {
+      return { success: true, message: `Integration ${args.id} removed` };
+    });
   }
 }
