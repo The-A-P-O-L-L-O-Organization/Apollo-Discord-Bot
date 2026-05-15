@@ -300,4 +300,14 @@ export default class PluginManager {
             return existsSync(path.join(absDir, name, 'plugin.js'));
         });
     }
+
+    registerSocketHandler(namespace, handler) {
+        if (!this._socketHandlers) this._socketHandlers = new Map();
+        this._socketHandlers.set(namespace, handler);
+    }
+
+    getSocketHandler(namespace) {
+        if (!this._socketHandlers) return null;
+        return this._socketHandlers.get(namespace) || null;
+    }
 }

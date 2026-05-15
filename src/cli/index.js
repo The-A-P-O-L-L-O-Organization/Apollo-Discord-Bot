@@ -56,6 +56,18 @@ export async function run(argv, commandMap) {
         }
     }
 
+    if (resolved.command.needsSocket) {
+        try {
+            const { sendSocketCommand } = await import('./socket-client.js');
+            const commandName = `${resolved.plugin}.${resolved.command.name}`;
+            const result = await sendSocketCommand(commandName, args);
+            const display = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
+            return formatSuccess(display);
+        } catch (err) {
+            return formatError(`Command failed: ${err.message}`);
+        }
+    }
+
     try {
         const result = await resolved.command.execute(args);
         const display = typeof result === 'string' ? result : JSON.stringify(result, null, 2);

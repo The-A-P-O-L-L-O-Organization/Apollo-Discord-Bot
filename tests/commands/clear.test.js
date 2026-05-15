@@ -214,24 +214,84 @@ describe('Clear Command', () => {
             });
         });
 
-        it.skip('should handle confirm delete all', async() => {
-            // TODO: Complex button interaction testing - simplified for now
-            expect(true).toBe(true);
+        it('should handle confirm delete all', async() => {
+            let collectCallback;
+            mockCollector.on.mockImplementation((event, callback) => {
+                if (event === 'collect') collectCallback = callback;
+            });
+
+            const executePromise = clearCommand.execute(interaction);
+            await executePromise;
+
+            const buttonInteraction = {
+                customId: 'confirm_delete_all',
+                deferUpdate: vi.fn().mockResolvedValue(),
+            };
+            await collectCallback(buttonInteraction);
+
+            expect(channel.bulkDelete).toHaveBeenCalled();
+            const embed = interaction.editReply.mock.calls[0][0].embeds[0];
+            expect(embed.title).toBe('[SUCCESS] All Messages Deleted');
+            expect(interaction.editReply.mock.calls[0][0].components).toEqual([]);
         });
 
-        it.skip('should handle cancel delete all', async() => {
-            // TODO: Complex button interaction testing - simplified for now
-            expect(true).toBe(true);
+        it('should handle cancel delete all', async() => {
+            let collectCallback;
+            mockCollector.on.mockImplementation((event, callback) => {
+                if (event === 'collect') collectCallback = callback;
+            });
+
+            const executePromise = clearCommand.execute(interaction);
+            await executePromise;
+
+            const buttonInteraction = {
+                customId: 'cancel_delete_all',
+                update: vi.fn().mockResolvedValue(),
+            };
+            await collectCallback(buttonInteraction);
+
+            const embed = buttonInteraction.update.mock.calls[0][0].embeds[0];
+            expect(embed.title).toBe('[CANCELLED] Operation Aborted');
+            expect(buttonInteraction.update.mock.calls[0][0].components).toEqual([]);
         });
 
-        it.skip('should handle timeout in delete all confirmation', async() => {
-            // TODO: Complex button interaction testing - simplified for now
-            expect(true).toBe(true);
+        it('should handle timeout in delete all confirmation', async() => {
+            let endCallback;
+            mockCollector.on.mockImplementation((event, callback) => {
+                if (event === 'end') endCallback = callback;
+            });
+
+            const executePromise = clearCommand.execute(interaction);
+            await executePromise;
+
+            await endCallback(new Map(), 'time');
+
+            const embed = interaction.editReply.mock.calls[0][0].embeds[0];
+            expect(embed.title).toBe('[TIMEOUT] Confirmation Expired');
+            expect(interaction.editReply.mock.calls[0][0].components).toEqual([]);
         });
 
-        it.skip('should handle errors during delete all', async() => {
-            // TODO: Complex button interaction testing - simplified for now
-            expect(true).toBe(true);
+        it('should handle errors during delete all', async() => {
+            let collectCallback;
+            mockCollector.on.mockImplementation((event, callback) => {
+                if (event === 'collect') collectCallback = callback;
+            });
+
+            channel.bulkDelete.mockReset().mockRejectedValue(new Error('Delete failed'));
+            channel.messages.fetch.mockReset().mockResolvedValue({ size: 5, values: vi.fn() });
+
+            const executePromise = clearCommand.execute(interaction);
+            await executePromise;
+
+            const buttonInteraction = {
+                customId: 'confirm_delete_all',
+                deferUpdate: vi.fn().mockResolvedValue(),
+            };
+            await collectCallback(buttonInteraction);
+
+            const embed = interaction.editReply.mock.calls[0][0].embeds[0];
+            expect(embed.title).toBe('[ERROR] Delete Failed');
+            expect(interaction.editReply.mock.calls[0][0].components).toEqual([]);
         });
     });
 

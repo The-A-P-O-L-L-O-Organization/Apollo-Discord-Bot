@@ -23,6 +23,52 @@ export default {
                     }
                 }
             ]
+        },
+        {
+            name: 'plugin',
+            description: 'Manage plugins',
+            options: [],
+            subcommands: [
+                {
+                    name: 'enable',
+                    description: 'Enable a plugin',
+                    needsSocket: true,
+                    options: [{ name: 'id', description: 'Plugin ID', required: true }]
+                },
+                {
+                    name: 'disable',
+                    description: 'Disable a plugin',
+                    needsSocket: true,
+                    options: [{ name: 'id', description: 'Plugin ID', required: true }]
+                },
+                {
+                    name: 'reload',
+                    description: 'Reload a plugin',
+                    needsSocket: true,
+                    options: [{ name: 'id', description: 'Plugin ID', required: true }]
+                },
+                {
+                    name: 'install',
+                    description: 'Install a plugin',
+                    needsSocket: true,
+                    options: [{ name: 'id', description: 'Plugin ID', required: true }]
+                },
+                {
+                    name: 'uninstall',
+                    description: 'Uninstall a plugin',
+                    needsSocket: true,
+                    options: [{ name: 'id', description: 'Plugin ID', required: true }]
+                }
+            ]
+        },
+        {
+            name: 'logging',
+            description: 'Configure logging',
+            needsSocket: true,
+            options: [
+                { name: 'setting', description: 'The setting to change', required: true },
+                { name: 'value', description: 'The value to set', required: true }
+            ]
         }
     ]
 };
