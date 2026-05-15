@@ -181,6 +181,7 @@ export function createMockChannel(options = {}) {
         name: options.name || 'test-channel',
         type: options.type || 0, // GUILD_TEXT
         isTextBased: vi.fn().mockReturnValue(true),
+        permissionsFor: vi.fn().mockReturnValue({ has: vi.fn().mockReturnValue(true) }),
         send: vi.fn().mockResolvedValue({}),
         toString: vi.fn().mockReturnValue(`<#${id}>`),
         messages: {

@@ -142,10 +142,16 @@ export default {
             channel => channel.name === config.welcome.channelName
         );
 
-        const targetChannel = welcomeChannel || guild.systemChannel || guild.channels.cache.first();
+        const canSend = ch => ch.isTextBased() && ch.permissionsFor(guild.members.me).has('SendMessages');
+
+        const targetChannel = (welcomeChannel && canSend(welcomeChannel))
+            ? welcomeChannel
+            : (guild.systemChannel && canSend(guild.systemChannel))
+                ? guild.systemChannel
+                : guild.channels.cache.find(canSend);
 
         if (!targetChannel) {
-            console.log('[ERROR] No suitable channel found for welcome message');
+            console.log('[INFO] No suitable channel for welcome message — no text channel with SendMessages permission');
             return;
         }
 
@@ -188,7 +194,7 @@ export default {
             });
             console.log(`[SUCCESS] Welcome message sent for ${member.user.tag}`);
         } catch (error) {
-            console.error('[ERROR] Error sending welcome message:', error);
+            console.error(`[ERROR] Error sending welcome message in #${targetChannel.name} (${targetChannel.id}): ${error.message}`);
         }
     }
 };
