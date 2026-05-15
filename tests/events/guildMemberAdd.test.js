@@ -153,7 +153,10 @@ describe('GuildMemberAdd Event', () => {
                 name: 'general',
                 send: vi.fn().mockResolvedValue({})
             });
-            mockGuild.channels.cache.first = vi.fn().mockReturnValue(fallbackChannel);
+            // Override find to return null for name match, then fallbackChannel for permission check
+            mockGuild.channels.cache.find = vi.fn()
+                .mockReturnValueOnce(null)
+                .mockReturnValue(fallbackChannel);
             
             await guildMemberAddHandler.execute(mockMember);
             
