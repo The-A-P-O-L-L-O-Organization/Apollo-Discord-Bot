@@ -25,6 +25,41 @@ export default {
                 }));
                 return { openCount: open.length, closedCount: closed.length, open, closed };
             }
+        },
+        {
+            name: 'create',
+            description: 'Create a ticket',
+            needsSocket: true,
+            options: [
+                { name: 'user', description: 'User ID', required: true },
+                { name: 'reason', description: 'Ticket reason', required: false }
+            ]
+        },
+        {
+            name: 'close',
+            description: 'Close a ticket',
+            needsSocket: true,
+            options: [
+                { name: 'id', description: 'Ticket ID', required: true }
+            ]
+        },
+        {
+            name: 'add',
+            description: 'Add a user to a ticket',
+            needsSocket: true,
+            options: [
+                { name: 'id', description: 'Ticket ID', required: true },
+                { name: 'user', description: 'User ID', required: true }
+            ]
+        },
+        {
+            name: 'remove',
+            description: 'Remove a user from a ticket',
+            needsSocket: true,
+            options: [
+                { name: 'id', description: 'Ticket ID', required: true },
+                { name: 'user', description: 'User ID', required: true }
+            ]
         }
     ]
 };
