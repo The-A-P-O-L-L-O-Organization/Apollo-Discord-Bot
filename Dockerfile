@@ -13,7 +13,7 @@ WORKDIR /app
 # Set environment variables
 ENV NODE_ENV=production
 ENV PNPM_HOME=/pnpm
-ENV PATH=$PNPM_HOME:$PATH
+ENV PATH=/app/node_modules/.bin:$PNPM_HOME:$PATH
 
 # Install pnpm
 RUN npm install -g corepack && corepack enable && corepack prepare pnpm@latest --activate
