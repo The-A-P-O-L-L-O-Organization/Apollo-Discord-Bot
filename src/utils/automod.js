@@ -78,6 +78,43 @@ export function isChannelExempt(channelId, cfg) {
 }
 
 /**
+ * Normalizes message content for banned word matching.
+ * Converts leetspeak substitutions (e.g. @→a, 3→e, 0→o) and
+ * decomposes accented characters to their ASCII base equivalents.
+ * @param {string} content - Raw message content
+ * @returns {string} Normalized content
+ */
+export function normalizeContent(content) {
+    let normalized = content.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+    const leetMap = {
+        '4': 'a', '@': 'a', 'ª': 'a',
+        '8': 'b', 'ß': 'b', 'þ': 'b', 'β': 'b',
+        '©': 'c', '¢': 'c', '₵': 'c',
+        'ð': 'd', 'đ': 'd', 'Ð': 'd', 'Đ': 'd',
+        '3': 'e', '€': 'e',
+        'ƒ': 'f', '₣': 'f',
+        '9': 'g', '6': 'g',
+        '1': 'i', '!': 'i', '|': 'i',
+        '0': 'o', '¤': 'o', 'ø': 'o', 'Ø': 'o',
+        '¶': 'p',
+        '®': 'r',
+        '5': 's', '$': 's', '§': 's',
+        '7': 't', '†': 't', '+': 't',
+        'µ': 'u',
+        '√': 'v',
+        '×': 'x', 'ˣ': 'x',
+        '¥': 'y',
+        '2': 'z',
+        'ł': 'l', 'Ł': 'l',
+        'æ': 'a', 'Æ': 'a',
+        'œ': 'o', 'Œ': 'o'
+    };
+
+    return normalized.split('').map(c => leetMap[c] || c).join('');
+}
+
+/**
  * Checks message for banned words
  * @param {string} content - Message content
  * @param {string[]} bannedWords - List of banned words
@@ -86,12 +123,12 @@ export function isChannelExempt(channelId, cfg) {
 export function checkBannedWords(content, bannedWords) {
     if (!bannedWords.length) {return null;}
     
-    const lowerContent = content.toLowerCase();
+    const normalizedContent = normalizeContent(content).toLowerCase();
     
     for (const word of bannedWords) {
-        // Check for word boundaries to avoid partial matches
-        const regex = new RegExp(`\\b${escapeRegex(word)}\\b`, 'i');
-        if (regex.test(lowerContent)) {
+        const normalizedWord = normalizeContent(word).toLowerCase();
+        const regex = new RegExp(`\\b${escapeRegex(normalizedWord)}\\b`, 'i');
+        if (regex.test(normalizedContent)) {
             return word;
         }
     }
