@@ -145,22 +145,13 @@ describe('GuildMemberAdd Event', () => {
             expect(systemChannel.send).toHaveBeenCalled();
         });
 
-        it('should use first available channel when no welcome or system channel', async() => {
+        it('should skip welcome message when no welcome or system channel', async() => {
             mockGuild.channels.cache.find = vi.fn().mockReturnValue(null);
             mockGuild.systemChannel = null;
-            const fallbackChannel = createMockChannel({
-                id: '444555666',
-                name: 'general',
-                send: vi.fn().mockResolvedValue({})
-            });
-            // Override find to return null for name match, then fallbackChannel for permission check
-            mockGuild.channels.cache.find = vi.fn()
-                .mockReturnValueOnce(null)
-                .mockReturnValue(fallbackChannel);
             
-            await guildMemberAddHandler.execute(mockMember);
+            await expect(guildMemberAddHandler.execute(mockMember)).resolves.not.toThrow();
             
-            expect(fallbackChannel.send).toHaveBeenCalled();
+            expect(welcomeChannel.send).not.toHaveBeenCalled();
         });
     });
 

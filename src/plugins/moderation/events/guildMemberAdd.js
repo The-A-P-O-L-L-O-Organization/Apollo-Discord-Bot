@@ -138,20 +138,26 @@ export default {
             await logEvent(guild, 'memberJoin', logEmbed);
         }
 
-        const welcomeChannel = guild.channels.cache.find(
-            channel => channel.name === config.welcome.channelName
-        );
+        const me = guild.members.me;
+        if (!me) {
+            console.log('[INFO] Bot member not cached — skipping welcome message');
+            return;
+        }
 
-        const canSend = ch => ch.isTextBased() && ch.permissionsFor(guild.members.me).has('SendMessages');
+        const canSend = ch => ch.isTextBased() && ch.permissionsFor(me).has('SendMessages');
+
+        const welcomeChannel = guild.channels.cache.find(
+            ch => ch.name === config.welcome.channelName
+        );
 
         const targetChannel = (welcomeChannel && canSend(welcomeChannel))
             ? welcomeChannel
             : (guild.systemChannel && canSend(guild.systemChannel))
                 ? guild.systemChannel
-                : guild.channels.cache.find(canSend);
+                : null;
 
         if (!targetChannel) {
-            console.log('[INFO] No suitable channel for welcome message — no text channel with SendMessages permission');
+            console.log(`[INFO] Welcome channel "${config.welcome.channelName}" unavailable or missing SendMessages — skipping welcome message`);
             return;
         }
 
@@ -194,7 +200,7 @@ export default {
             });
             console.log(`[SUCCESS] Welcome message sent for ${member.user.tag}`);
         } catch (error) {
-            console.error(`[ERROR] Error sending welcome message in #${targetChannel.name} (${targetChannel.id}): ${error.message}`);
+            console.warn(`[WARN] Could not send welcome message in #${targetChannel.name} (${targetChannel.id}): ${error.message}`);
         }
     }
 };
