@@ -3,6 +3,7 @@
 
 import { describe, it, expect } from 'vitest';
 import {
+    normalizeContent,
     checkBannedWords,
     checkInvites,
     checkLinks,
@@ -53,6 +54,86 @@ describe('Automod Utility', () => {
         it('should return null when no banned words match', () => {
             const result = checkBannedWords('this is clean content', ['bad', 'evil', 'naughty']);
             expect(result).toBeNull();
+        });
+    });
+
+    describe('normalizeContent', () => {
+        it('should return unchanged content when no substitutions needed', () => {
+            const result = normalizeContent('hello world');
+            expect(result).toBe('hello world');
+        });
+
+        it('should normalize leetspeak a substitutions', () => {
+            expect(normalizeContent('b@d')).toBe('bad');
+            expect(normalizeContent('b4d')).toBe('bad');
+        });
+
+        it('should normalize leetspeak e substitutions', () => {
+            expect(normalizeContent('h3llo')).toBe('hello');
+            expect(normalizeContent('h€llo')).toBe('hello');
+        });
+
+        it('should normalize leetspeak i substitutions', () => {
+            expect(normalizeContent('b1t')).toBe('bit');
+            expect(normalizeContent('b!t')).toBe('bit');
+        });
+
+        it('should normalize leetspeak o substitutions', () => {
+            expect(normalizeContent('hell0')).toBe('hello');
+            expect(normalizeContent('hellø')).toBe('hello');
+        });
+
+        it('should normalize leetspeak s substitutions', () => {
+            expect(normalizeContent('badword5')).toBe('badwords');
+            expect(normalizeContent('badword$')).toBe('badwords');
+        });
+
+        it('should normalize accented characters to ASCII', () => {
+            expect(normalizeContent('héllö')).toBe('hello');
+            expect(normalizeContent('bäd')).toBe('bad');
+            expect(normalizeContent('crème brûlée')).toBe('creme brulee');
+            expect(normalizeContent('ñ')).toBe('n');
+        });
+
+        it('should normalize multiple substitutions in one string', () => {
+            expect(normalizeContent('h3ll0 w0rld')).toBe('hello world');
+            expect(normalizeContent('b@d b0y5')).toBe('bad boys');
+        });
+
+        it('should normalize uppercase accented characters', () => {
+            expect(normalizeContent('HÉLLÖ')).toBe('HELLO');
+        });
+
+        it('should normalize special characters like ß and þ', () => {
+            expect(normalizeContent('straße')).toBe('strabe');
+            expect(normalizeContent('þorn')).toBe('born');
+        });
+    });
+
+    describe('checkBannedWords', () => {
+        it('should match leetspeak substitutions', () => {
+            const result = checkBannedWords('this is b@d', ['bad']);
+            expect(result).toBe('bad');
+        });
+
+        it('should match accented character substitutions', () => {
+            const result = checkBannedWords('hëllö dudes', ['hello']);
+            expect(result).toBe('hello');
+        });
+
+        it('should match mixed leetspeak and accents', () => {
+            const result = checkBannedWords('h3ll0 w0rld', ['hello', 'world']);
+            expect(result).toBe('hello');
+        });
+
+        it('should still respect word boundaries after normalization', () => {
+            const result = checkBannedWords('this is badwording', ['bad']);
+            expect(result).toBeNull();
+        });
+
+        it('should still be case insensitive', () => {
+            const result = checkBannedWords('THIS HAS BADWORD IN IT', ['badword']);
+            expect(result).toBe('badword');
         });
     });
 
