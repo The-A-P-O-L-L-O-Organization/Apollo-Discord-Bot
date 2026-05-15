@@ -3,8 +3,12 @@
   "version": "2.0.0",
   "description": "Modular Discord bot with plugin system, multi-instance HA, and Redis-backed queue architecture",
   "main": "src/index.js",
+  "bin": {
+    "apollo": "./bin/apollo.js"
+  },
   "type": "module",
   "scripts": {
+    "apollo": "node bin/apollo.js",
     "start": "node src/index.js",
     "start:gateway": "RUN_MODE=gateway node src/index.js",
     "start:worker": "RUN_MODE=worker node src/index.js",
