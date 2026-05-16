@@ -87,6 +87,24 @@ export default {
             description: 'Check bot latency',
             needsSocket: true,
             options: []
+        },
+        {
+            name: 'embed',
+            description: 'Send an embed message to a channel',
+            needsSocket: true,
+            options: [
+                { name: 'channel', description: 'Channel ID to send to', required: true },
+                { name: 'title', description: 'Embed title', required: false },
+                { name: 'description', description: 'Embed description', required: false },
+                { name: 'color', description: 'Hex color (e.g. #FF0000)', required: false },
+                { name: 'image', description: 'Image URL', required: false },
+                { name: 'thumbnail', description: 'Thumbnail URL', required: false },
+                { name: 'footer', description: 'Footer text', required: false },
+                { name: 'author', description: 'Author name', required: false },
+                { name: 'url', description: 'Title link URL', required: false },
+                { name: 'timestamp', description: 'Add timestamp (true/false)', required: false },
+                { name: 'file', description: 'Path to .md file on disk', required: false }
+            ]
         }
     ]
 };

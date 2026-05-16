@@ -26,7 +26,8 @@ describe('Embed Command', () => {
             channel: mockChannel,
             options: {
                 getString: vi.fn(),
-                getBoolean: vi.fn()
+                getBoolean: vi.fn(),
+                getAttachment: vi.fn().mockReturnValue(null)
             }
         });
     });
@@ -246,6 +247,153 @@ describe('Embed Command', () => {
             await embedCommand.execute(mockInteraction);
             
             expect(mockChannel.send).toHaveBeenCalled();
+        });
+    });
+
+    describe('execute - Markdown File Attachment', () => {
+        beforeEach(() => {
+            mockInteraction.options.getString.mockReturnValue(null);
+            mockInteraction.options.getBoolean.mockReturnValue(null);
+            mockInteraction.options.getAttachment = vi.fn().mockReturnValue(null);
+        });
+
+        it('should reject non-.md file attachments', async () => {
+            mockInteraction.options.getAttachment.mockReturnValue({
+                name: 'readme.txt',
+                url: 'https://cdn.discord.com/readme.txt'
+            });
+
+            await embedCommand.execute(mockInteraction);
+
+            expect(mockChannel.send).not.toHaveBeenCalled();
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.content).toContain('.md');
+            expect(replyCall.ephemeral).toBe(true);
+        });
+
+        it('should fetch and parse .md attachment', async () => {
+            const attachment = {
+                name: 'guide.md',
+                url: 'https://cdn.discord.com/guide.md'
+            };
+            mockInteraction.options.getAttachment.mockReturnValue(attachment);
+            global.fetch = vi.fn().mockResolvedValue({
+                text: vi.fn().mockResolvedValue('# Hello\n\n## Section 1\n\nContent here')
+            });
+
+            await embedCommand.execute(mockInteraction);
+
+            expect(global.fetch).toHaveBeenCalledWith(attachment.url);
+            expect(mockChannel.send).toHaveBeenCalled();
+            const sendCall = mockChannel.send.mock.calls[0][0];
+            expect(sendCall.embeds[0].data.title).toBe('Hello');
+            expect(sendCall.embeds[0].data.fields[0].name).toBe('Section 1');
+            expect(sendCall.embeds[0].data.fields[0].value).toBe('Content here');
+        });
+
+        it('manual title takes precedence over parsed # heading', async () => {
+            const attachment = {
+                name: 'guide.md',
+                url: 'https://cdn.discord.com/guide.md'
+            };
+            mockInteraction.options.getAttachment.mockReturnValue(attachment);
+            mockInteraction.options.getString.mockImplementation(name => {
+                if (name === 'title') return 'Manual Title';
+                return null;
+            });
+            global.fetch = vi.fn().mockResolvedValue({
+                text: vi.fn().mockResolvedValue('# File Title\n\n## Section\n\nContent')
+            });
+
+            await embedCommand.execute(mockInteraction);
+
+            const sendCall = mockChannel.send.mock.calls[0][0];
+            expect(sendCall.embeds[0].data.title).toBe('Manual Title');
+        });
+
+        it('should handle empty .md file', async () => {
+            mockInteraction.options.getAttachment.mockReturnValue({
+                name: 'empty.md',
+                url: 'https://cdn.discord.com/empty.md'
+            });
+            global.fetch = vi.fn().mockResolvedValue({
+                text: vi.fn().mockResolvedValue('')
+            });
+
+            await embedCommand.execute(mockInteraction);
+
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.content).toContain('empty');
+            expect(mockChannel.send).not.toHaveBeenCalled();
+        });
+
+        it('should handle fetch errors gracefully', async () => {
+            mockInteraction.options.getAttachment.mockReturnValue({
+                name: 'broken.md',
+                url: 'https://cdn.discord.com/broken.md'
+            });
+            global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+
+            await embedCommand.execute(mockInteraction);
+
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.content).toContain('Could not read');
+            expect(mockChannel.send).not.toHaveBeenCalled();
+        });
+
+        it('allows file-only invocation with no title or description options', async () => {
+            const attachment = {
+                name: 'doc.md',
+                url: 'https://cdn.discord.com/doc.md'
+            };
+            mockInteraction.options.getAttachment.mockReturnValue(attachment);
+            global.fetch = vi.fn().mockResolvedValue({
+                text: vi.fn().mockResolvedValue('Descriptive text\n\n# Doc Title\n\n## Section\n\nContent')
+            });
+
+            await embedCommand.execute(mockInteraction);
+
+            expect(mockChannel.send).toHaveBeenCalled();
+            const sendCall = mockChannel.send.mock.calls[0][0];
+            expect(sendCall.embeds[0].data.title).toBe('Doc Title');
+            expect(sendCall.embeds[0].data.fields[0].name).toBe('Section');
+        });
+
+        it('sets footer to rendered from filename', async () => {
+            const attachment = {
+                name: 'guide.md',
+                url: 'https://cdn.discord.com/guide.md'
+            };
+            mockInteraction.options.getAttachment.mockReturnValue(attachment);
+            global.fetch = vi.fn().mockResolvedValue({
+                text: vi.fn().mockResolvedValue('# Title\n\nContent')
+            });
+
+            await embedCommand.execute(mockInteraction);
+
+            const sendCall = mockChannel.send.mock.calls[0][0];
+            expect(sendCall.embeds[0].data.footer.text).toContain('guide.md');
+        });
+
+        it('manual description takes precedence over parsed preamble', async () => {
+            const attachment = {
+                name: 'guide.md',
+                url: 'https://cdn.discord.com/guide.md'
+            };
+            mockInteraction.options.getAttachment.mockReturnValue(attachment);
+            mockInteraction.options.getString.mockImplementation(name => {
+                if (name === 'title') return 'Title';
+                if (name === 'description') return 'Manual desc';
+                return null;
+            });
+            global.fetch = vi.fn().mockResolvedValue({
+                text: vi.fn().mockResolvedValue('Preamble desc\n\n# Title\n\n## Section\n\nContent')
+            });
+
+            await embedCommand.execute(mockInteraction);
+
+            const sendCall = mockChannel.send.mock.calls[0][0];
+            expect(sendCall.embeds[0].data.description).toBe('Manual desc');
         });
     });
 });
