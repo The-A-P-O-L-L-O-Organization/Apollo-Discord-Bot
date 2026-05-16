@@ -5,6 +5,7 @@ import { PermissionsBitField } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { setUserData } from '../../../utils/db.js';
 import { createModCase } from './case.js';
+import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 
 export default {
     name: 'mute',
@@ -180,6 +181,10 @@ export default {
                 // Add mute role to member
                 await member.roles.add(muteRole, reason);
             }
+            
+            // Track and flush analytics immediately for this critical action
+            trackModAction(interaction.guild.id, interaction.user.id, 'mute');
+            await flushAnalyticsCritical();
             
             // Create mod case
             const caseId = createModCase(interaction.guild.id, {

@@ -18,7 +18,7 @@ import {
 import { appendToUserArray, generateId, getUserData, getGuildData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { config } from '../../../config/config.js';
-import { trackMessage, trackViolation } from '../../../utils/analyticsCollector.js';
+import { trackMessage, trackViolation, flushAnalyticsCritical } from '../../../utils/analyticsCollector.js';
 
 export default {
     name: 'messageCreate',
@@ -139,6 +139,9 @@ async function handleViolation(message, type, reason, client, deleteMessage = fa
     try {
         // Track violation for analytics
         trackViolation(message.guild.id, type);
+        
+        // Flush critical analytics immediately
+        await flushAnalyticsCritical();
         
         // Delete the message if requested
         if (deleteMessage && message.deletable) {

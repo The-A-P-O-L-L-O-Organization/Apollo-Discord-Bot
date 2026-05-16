@@ -3,6 +3,7 @@
 
 import { updateGuildData, generateId } from '../utils/db.js';
 import { sendModLog } from '../utils/modLog.js';
+import { flushAnalyticsCritical } from './analyticsCollector.js';
 
 export async function handleReportSubmission(interaction, client) {
     try {
@@ -63,6 +64,9 @@ export async function handleReportSubmission(interaction, client) {
             data.reports.push(reportData);
             return data;
         });
+        
+        // Flush critical analytics for report submission
+        await flushAnalyticsCritical();
         
         // Create success embed for user
         const successEmbed = {
