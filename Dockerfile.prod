@@ -25,6 +25,7 @@ RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY src ./src
+COPY bin ./bin
 COPY deploy-commands.js ./
 
 # Stage 2: Production stage
@@ -48,6 +49,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
 
 # Copy from builder stage
 COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/bin ./bin
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/deploy-commands.js ./
 COPY data ./data
