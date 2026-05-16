@@ -182,6 +182,23 @@ export async function trackMemberChange(guildId, isJoin, totalMembers) {
 }
 
 /**
+ * Flushes critical analytics immediately to prevent data loss
+ * Called on critical events (automod violations, mod actions, reports)
+ * @returns {Promise<void>}
+ */
+export async function flushAnalyticsCritical() {
+    try {
+        await flushAnalyticsCache();
+        if (performanceStats.flushesPerformed % 10 === 0) {
+            console.log('[ANALYTICS] Critical flush completed successfully');
+        }
+    } catch (error) {
+        console.error('[ERROR] Failed to flush analytics:', error);
+        // Don't crash, just log
+    }
+}
+
+/**
  * Flushes the analytics cache to the database
  */
 async function flushAnalyticsCache() {
