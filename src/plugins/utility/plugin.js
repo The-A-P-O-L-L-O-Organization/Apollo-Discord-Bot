@@ -59,5 +59,68 @@ export default class UtilityPlugin extends Plugin {
     this.manager.registerSocketHandler('utility.ping', async (client, args) => {
       return { ping: client.ws.ping, websocket: 'connected' };
     });
+
+    this.manager.registerSocketHandler('utility.embed', async (client, args) => {
+      const { EmbedBuilder } = await import('discord.js');
+      const { parseMarkdownToEmbed } = await import('../../../utils/markdownParser.js');
+      const { readFileSync } = await import('fs');
+
+      const channel = client.channels.cache.get(args.channel);
+      if (!channel) throw new Error(`Channel ${args.channel} not found`);
+      if (!channel.isTextBased()) throw new Error(`Channel ${args.channel} is not a text channel`);
+
+      const embed = new EmbedBuilder();
+
+      let parsed = {};
+      if (args.file) {
+        let content;
+        try {
+          content = readFileSync(args.file, 'utf-8');
+        } catch {
+          throw new Error(`Could not read file: ${args.file}`);
+        }
+        if (!content.trim()) throw new Error('The file is empty');
+        parsed = parseMarkdownToEmbed(content, args.file, {
+          title: args.title,
+          description: args.description,
+        });
+      }
+
+      if (parsed.title && !args.title) embed.setTitle(parsed.title);
+      else if (args.title) embed.setTitle(args.title);
+
+      if (parsed.description && !args.description) embed.setDescription(parsed.description);
+      else if (args.description) embed.setDescription(args.description);
+
+      if (args.color) {
+        const hexRegex = /^#?([0-9A-Fa-f]{6})$/;
+        const match = args.color.match(hexRegex);
+        if (match) embed.setColor(`#${match[1]}`);
+        else throw new Error('Invalid hex color format');
+      } else {
+        embed.setColor('#3498DB');
+      }
+
+      if (args.image) embed.setImage(args.image);
+      if (args.thumbnail) embed.setThumbnail(args.thumbnail);
+      if (args.footer) embed.setFooter({ text: args.footer });
+      else if (parsed.footer) embed.setFooter(parsed.footer);
+      if (args.author) embed.setAuthor({ name: args.author });
+      if (args.url) embed.setURL(args.url);
+      if (args.timestamp === 'true' || args.timestamp === true) embed.setTimestamp();
+
+      if (parsed.fields) {
+        for (const field of parsed.fields) {
+          embed.addFields(field);
+        }
+      }
+
+      try {
+        await channel.send({ embeds: [embed] });
+        return { success: true, message: 'Embed sent successfully' };
+      } catch (err) {
+        throw new Error(`Failed to send embed: ${err.message}`);
+      }
+    });
   }
 }

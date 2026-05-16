@@ -113,4 +113,38 @@ describe('utility CLI commands', () => {
         const result = await del.execute({ guild: '123', name: 'nonexistent' });
         expect(result.success).toBe(false);
     });
+
+    it('has an embed command', () => {
+        const embed = utilityCommands.commands.find(c => c.name === 'embed');
+        expect(embed).toBeDefined();
+        expect(embed.needsSocket).toBe(true);
+    });
+
+    it('embed command has required channel option', () => {
+        const embed = utilityCommands.commands.find(c => c.name === 'embed');
+        const channelOpt = embed.options.find(o => o.name === 'channel');
+        expect(channelOpt).toBeDefined();
+        expect(channelOpt.required).toBe(true);
+    });
+
+    it('embed command has file option', () => {
+        const embed = utilityCommands.commands.find(c => c.name === 'embed');
+        const fileOpt = embed.options.find(o => o.name === 'file');
+        expect(fileOpt).toBeDefined();
+        expect(fileOpt.required).toBe(false);
+    });
+
+    it('embed command has title, description, color, image, thumbnail, footer, author, url, timestamp options', () => {
+        const embed = utilityCommands.commands.find(c => c.name === 'embed');
+        const optionNames = embed.options.map(o => o.name);
+        expect(optionNames).toContain('title');
+        expect(optionNames).toContain('description');
+        expect(optionNames).toContain('color');
+        expect(optionNames).toContain('image');
+        expect(optionNames).toContain('thumbnail');
+        expect(optionNames).toContain('footer');
+        expect(optionNames).toContain('author');
+        expect(optionNames).toContain('url');
+        expect(optionNames).toContain('timestamp');
+    });
 });

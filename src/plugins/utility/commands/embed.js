@@ -2,6 +2,7 @@
 // Allows users to create custom embeds
 
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
+import { parseMarkdownToEmbed } from '../../../utils/markdownParser.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -11,6 +12,12 @@ export default {
             option
                 .setName('title')
                 .setDescription('The embed title')
+                .setRequired(false)
+        )
+        .addAttachmentOption(option =>
+            option
+                .setName('file')
+                .setDescription('.md file to render as an embed')
                 .setRequired(false)
         )
         .addStringOption(option =>
@@ -75,9 +82,37 @@ export default {
         const author = interaction.options.getString('author');
         const url = interaction.options.getString('url');
         const timestamp = interaction.options.getBoolean('timestamp');
+        const fileAttachment = interaction.options.getAttachment('file');
 
-        // Must have at least title or description
-        if (!title && !description) {
+        // Handle .md file attachment
+        let parsed = {};
+        if (fileAttachment) {
+            if (!fileAttachment.name.toLowerCase().endsWith('.md')) {
+                return interaction.reply({
+                    content: 'Only `.md` files are supported. Please upload a markdown file.',
+                    ephemeral: true,
+                });
+            }
+            try {
+                const response = await fetch(fileAttachment.url);
+                const content = await response.text();
+                if (!content.trim()) {
+                    return interaction.reply({
+                        content: 'The uploaded .md file is empty.',
+                        ephemeral: true,
+                    });
+                }
+                parsed = parseMarkdownToEmbed(content, fileAttachment.name, { title, description });
+            } catch {
+                return interaction.reply({
+                    content: 'Could not read the attached file. Please try again.',
+                    ephemeral: true,
+                });
+            }
+        }
+
+        // Must have at least title or description (or a file)
+        if (!title && !description && !fileAttachment) {
             return interaction.reply({
                 content: 'You must provide at least a title or description for the embed.',
                 ephemeral: true
@@ -90,11 +125,15 @@ export default {
         // Set title
         if (title) {
             embed.setTitle(title);
+        } else if (parsed.title) {
+            embed.setTitle(parsed.title);
         }
 
         // Set description
         if (description) {
             embed.setDescription(description);
+        } else if (parsed.description) {
+            embed.setDescription(parsed.description);
         }
 
         // Set color
@@ -160,6 +199,16 @@ export default {
         // Set timestamp
         if (timestamp) {
             embed.setTimestamp();
+        }
+
+        // Add parsed fields and footer from .md file
+        if (parsed.fields) {
+            for (const field of parsed.fields) {
+                embed.addFields(field);
+            }
+        }
+        if (parsed.footer && !footer) {
+            embed.setFooter(parsed.footer);
         }
 
         // Send the embed
