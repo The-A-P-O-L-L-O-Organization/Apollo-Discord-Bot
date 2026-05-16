@@ -68,6 +68,18 @@ export async function run(argv, commandMap) {
         }
     }
 
+    if (!resolved.command.execute && resolved.command.subcommands) {
+        const lines = [formatInfo(`Subcommands of ${resolved.plugin} ${resolved.command.name}:\n`)];
+        for (const sub of resolved.command.subcommands) {
+            const flagHelp = (sub.options || []).map(o =>
+                `--${o.name}${o.required ? ' (required)' : ''}`
+            ).join(' ');
+            lines.push(`  ${sub.name} — ${sub.description}`);
+            if (flagHelp) lines.push(`    Flags: ${flagHelp}`);
+        }
+        return lines.join('\n');
+    }
+
     try {
         const result = await resolved.command.execute(args);
         const display = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
