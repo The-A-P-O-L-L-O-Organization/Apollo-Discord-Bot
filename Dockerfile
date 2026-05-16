@@ -26,6 +26,7 @@ RUN pnpm install --frozen-lockfile
 
 # Copy application source code
 COPY src ./src
+COPY bin ./bin
 COPY deploy-commands.js ./
 COPY data ./data
 
