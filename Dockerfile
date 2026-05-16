@@ -13,7 +13,7 @@ WORKDIR /app
 # Set environment variables
 ENV NODE_ENV=production
 ENV PNPM_HOME=/pnpm
-ENV PATH=/app/node_modules/.bin:$PNPM_HOME:$PATH
+ENV PATH=$PNPM_HOME:$PATH
 
 # Install pnpm
 RUN npm install -g corepack && corepack enable && corepack prepare pnpm@latest --activate
@@ -31,7 +31,8 @@ COPY deploy-commands.js ./
 COPY data ./data
 
 # Create directories for persistent data
-RUN mkdir -p /app/bot /app/logs /app/data/plugins
+RUN mkdir -p /app/bot /app/logs /app/data/plugins && \
+    ln -s /app/bin/apollo.js /usr/local/bin/apollo
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
