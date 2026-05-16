@@ -12,6 +12,7 @@ import {
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { config } from '../../../config/config.js';
 import { createModCase } from './case.js';
+import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 
 export default {
     name: 'warn',
@@ -161,6 +162,9 @@ export default {
                         reason: `Auto-ban: Reached ${warningCount} warnings. Latest: ${reason}`
                     });
                     autoPunishment = 'banned';
+                    // Flush critical analytics for auto-ban
+                    trackModAction(interaction.guild.id, interaction.client.user.id, 'ban');
+                    await flushAnalyticsCritical();
                 } catch (banError) {
                     console.error('[ERROR] Auto-ban failed:', banError);
                 }
@@ -170,6 +174,9 @@ export default {
                     if (member.kickable) {
                         await member.kick(`Auto-kick: Reached ${warningCount} warnings. Latest: ${reason}`);
                         autoPunishment = 'kicked';
+                        // Flush critical analytics for auto-kick
+                        trackModAction(interaction.guild.id, interaction.client.user.id, 'kick');
+                        await flushAnalyticsCritical();
                     }
                 } catch (kickError) {
                     console.error('[ERROR] Auto-kick failed:', kickError);
@@ -180,6 +187,9 @@ export default {
                     if (member.moderatable) {
                         await member.timeout(muteDuration, `Auto-mute: Reached ${warningCount} warnings. Latest: ${reason}`);
                         autoPunishment = 'muted';
+                        // Flush critical analytics for auto-mute
+                        trackModAction(interaction.guild.id, interaction.client.user.id, 'mute');
+                        await flushAnalyticsCritical();
                     }
                 } catch (muteError) {
                     console.error('[ERROR] Auto-mute failed:', muteError);

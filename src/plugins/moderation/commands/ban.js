@@ -4,6 +4,7 @@
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { createModCase } from './case.js';
+import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 
 export default {
     name: 'ban',
@@ -105,6 +106,10 @@ export default {
                 reason: reason,
                 deleteMessageSeconds: deleteDays * 24 * 60 * 60
             });
+            
+            // Track and flush analytics immediately for this critical action
+            trackModAction(interaction.guild.id, interaction.user.id, 'ban');
+            await flushAnalyticsCritical();
             
             // Create mod case
             const caseId = createModCase(interaction.guild.id, {
