@@ -34,6 +34,8 @@ async function _initAdapter() {
     const db = new Database(path.join(DATA_DIR, 'apollo.db'));
     db.pragma('journal_mode = WAL');
     db.pragma('foreign_keys = ON');
+    db.pragma('synchronous = NORMAL');
+    db.pragma('busy_timeout = 5000');
     db.exec(`CREATE TABLE IF NOT EXISTS guild_store (
     store TEXT NOT NULL, guild_id TEXT NOT NULL, data TEXT NOT NULL DEFAULT '{}',
     PRIMARY KEY (store, guild_id));
