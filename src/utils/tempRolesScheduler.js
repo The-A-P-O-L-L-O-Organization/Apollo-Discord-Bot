@@ -86,7 +86,7 @@ async function checkExpiredTempRoles(client) {
             }
             
             // Update storage
-            setGuildData('temp-roles', guildId, tempRoles);
+            await setGuildData('temp-roles', guildId, tempRoles);
         }
     } catch (error) {
         console.error('[ERROR] Temp roles scheduler error:', error);

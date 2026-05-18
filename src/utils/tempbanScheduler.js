@@ -64,7 +64,7 @@ async function checkTempbans() {
         
         // Remove processed tempbans
         data.tempbans = tempbans.filter(t => t.unbanAt > now);
-        setData('tempbans', data);
+        await setData('tempbans', data);
         
         if (expiredBans.length > 0) {
             console.log(`[INFO] Processed ${expiredBans.length} expired tempban(s)`);
@@ -154,14 +154,14 @@ async function processTempbanExpiry(tempban) {
  * Adds a new tempban
  * @param {Object} tempbanData - The tempban data
  */
-export function addTempban(tempbanData) {
+export async function addTempban(tempbanData) {
     const data = getData('tempbans');
     if (!data.tempbans) {
         data.tempbans = [];
     }
     
     data.tempbans.push(tempbanData);
-    setData('tempbans', data);
+    await setData('tempbans', data);
     
     console.log(`[INFO] Tempban added for user ${tempbanData.userId} in guild ${tempbanData.guildId}`);
 }
@@ -170,9 +170,9 @@ export function addTempban(tempbanData) {
  * Removes a tempban (when manually unbanned)
  * @param {string} guildId - The guild ID
  * @param {string} userId - The user ID
- * @returns {boolean} Whether the tempban was found and removed
+ * @returns {Promise<boolean>} Whether the tempban was found and removed
  */
-export function removeTempban(guildId, userId) {
+export async function removeTempban(guildId, userId) {
     const data = getData('tempbans');
     if (!data.tempbans) {return false;}
     
@@ -183,7 +183,7 @@ export function removeTempban(guildId, userId) {
     if (index === -1) {return false;}
     
     data.tempbans.splice(index, 1);
-    setData('tempbans', data);
+    await setData('tempbans', data);
     
     console.log(`[INFO] Tempban removed for user ${userId} in guild ${guildId}`);
     return true;
