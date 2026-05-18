@@ -15,7 +15,7 @@ export default {
         const userId = interaction.user.id;
 
         // Get user's reminders
-        const reminders = getUserReminders(userId);
+        const reminders = await getUserReminders(userId);
 
         // Filter out expired reminders (they should be cleaned up by the scheduler, but just in case)
         const activeReminders = reminders.filter(r => r.remindAt > Date.now());

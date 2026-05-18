@@ -65,7 +65,7 @@ export default {
         };
 
         // Save the reminder using the scheduler's function
-        addReminder(reminder);
+        await addReminder(reminder);
 
         // Format the time for display
         const timestamp = Math.floor(reminderTime / 1000);

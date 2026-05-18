@@ -16,12 +16,33 @@ const performanceStats = {
     errors: 0
 };
 
+// In-memory cache of reminders
+let inMemoryReminders = [];
+
+/**
+ * Loads reminders from database and populates in-memory cache
+ */
+async function loadRemindersFromDatabase() {
+    try {
+        const data = await getData('reminders');
+        const reminders = data.reminders || [];
+        inMemoryReminders = [...reminders];
+        console.log(`[INFO] Loaded ${reminders.length} reminders from database`);
+    } catch (error) {
+        console.error('[ERROR] Failed to load reminders from database:', error);
+        inMemoryReminders = [];
+    }
+}
+
 /**
  * Initializes the reminder scheduler
  * @param {Client} discordClient - The Discord client instance
  */
-export function initReminderScheduler(discordClient) {
+export async function initReminderScheduler(discordClient) {
     client = discordClient;
+    
+    // Load reminders from database on startup
+    await loadRemindersFromDatabase();
     
     schedulerInterval = setInterval(async() => {
         const redis = await getLockRedis();
@@ -58,7 +79,7 @@ async function checkReminders() {
     const startTime = Date.now();
     
     try {
-        const data = getData('reminders');
+        const data = await getData('reminders');
         const reminders = data.reminders || [];
         const now = Date.now();
         
@@ -79,7 +100,7 @@ async function checkReminders() {
         
         // Remove sent reminders
         data.reminders = reminders.filter(r => r.remindAt > now);
-        setData('reminders', data);
+        await setData('reminders', data);
         
         // Update performance stats
         performanceStats.checksPerformed++;
@@ -151,14 +172,14 @@ async function sendReminder(reminder) {
  * @param {Object} reminderData - The reminder data
  * @returns {Object} The created reminder
  */
-export function addReminder(reminderData) {
-    const data = getData('reminders');
+export async function addReminder(reminderData) {
+    const data = await getData('reminders');
     if (!data.reminders) {
         data.reminders = [];
     }
     
     data.reminders.push(reminderData);
-    setData('reminders', data);
+    await setData('reminders', data);
     
     return reminderData;
 }
@@ -168,8 +189,8 @@ export function addReminder(reminderData) {
  * @param {string} userId - The user ID
  * @returns {Array} Array of reminders
  */
-export function getUserReminders(userId) {
-    const data = getData('reminders');
+export async function getUserReminders(userId) {
+    const data = await getData('reminders');
     const reminders = data.reminders || [];
     return reminders.filter(r => r.userId === userId);
 }
@@ -180,8 +201,8 @@ export function getUserReminders(userId) {
  * @param {string} userId - The user ID (for verification)
  * @returns {boolean} Whether the reminder was found and cancelled
  */
-export function cancelReminder(reminderId, userId) {
-    const data = getData('reminders');
+export async function cancelReminder(reminderId, userId) {
+    const data = await getData('reminders');
     if (!data.reminders) {return false;}
     
     const index = data.reminders.findIndex(
@@ -191,7 +212,7 @@ export function cancelReminder(reminderId, userId) {
     if (index === -1) {return false;}
     
     data.reminders.splice(index, 1);
-    setData('reminders', data);
+    await setData('reminders', data);
     
     return true;
 }
