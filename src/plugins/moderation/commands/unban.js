@@ -82,7 +82,7 @@ export default {
             await interaction.guild.bans.remove(userId, reason);
             
             // Remove from tempban scheduler if it exists
-            removeTempban(interaction.guild.id, userId);
+            await removeTempban(interaction.guild.id, userId);
             
             // Create mod case
             const caseId = createModCase(interaction.guild.id, {
