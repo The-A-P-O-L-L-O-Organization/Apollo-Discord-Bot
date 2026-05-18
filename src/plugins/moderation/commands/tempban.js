@@ -156,7 +156,7 @@ export default {
             });
             
             // Add to tempban scheduler
-            addTempban({
+            await addTempban({
                 userId: user.id,
                 guildId: interaction.guild.id,
                 reason: reason,
