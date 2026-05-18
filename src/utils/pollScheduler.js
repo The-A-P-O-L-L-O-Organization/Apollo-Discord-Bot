@@ -19,12 +19,39 @@ const performanceStats = {
 // Emoji options for polls (must match poll.js)
 const POLL_EMOJIS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
 
+// In-memory cache of polls
+let inMemoryPolls = {};
+
+/**
+ * Loads polls from database and populates in-memory cache
+ */
+async function loadPollsFromDatabase() {
+    try {
+        const data = await getData('polls');
+        if (data && typeof data === 'object') {
+            inMemoryPolls = { ...data };
+            const totalPolls = Object.values(data).reduce((sum, guildData) => {
+                return sum + (guildData.active ? guildData.active.length : 0);
+            }, 0);
+            console.log(`[INFO] Loaded ${totalPolls} polls from database`);
+        } else {
+            inMemoryPolls = {};
+        }
+    } catch (error) {
+        console.error('[ERROR] Failed to load polls from database:', error);
+        inMemoryPolls = {};
+    }
+}
+
 /**
  * Initializes the poll scheduler
  * @param {Client} discordClient - The Discord client instance
  */
-export function initPollScheduler(discordClient) {
+export async function initPollScheduler(discordClient) {
     client = discordClient;
+    
+    // Load polls from database on startup
+    await loadPollsFromDatabase();
     
     schedulerInterval = setInterval(async() => {
         const redis = await getLockRedis();
@@ -61,7 +88,7 @@ async function checkPolls() {
     const startTime = Date.now();
     
     try {
-        const data = getData('polls');
+        const data = await getData('polls');
         if (!data) {
             performanceStats.checksPerformed++;
             performanceStats.lastCheckTime = Date.now() - startTime;
@@ -94,7 +121,7 @@ async function checkPolls() {
         performanceStats.totalCheckTime += performanceStats.lastCheckTime;
         
         if (tallyCount > 0) {
-            setData('polls', data);
+            await setData('polls', data);
             console.log(`[INFO] Tallied ${tallyCount} poll(s) in ${performanceStats.lastCheckTime}ms`);
         }
         

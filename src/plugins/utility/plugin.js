@@ -12,8 +12,8 @@ export default class UtilityPlugin extends Plugin {
     await this._loadCommands();
     await this._loadEvents();
     this._registerSocketHandlers();
-    initReminderScheduler(this.client);
-    initPollScheduler(this.client);
+    await initReminderScheduler(this.client);
+    await initPollScheduler(this.client);
     initAnalyticsCollector(this.client);
   }
 
