@@ -22,7 +22,7 @@ export default {
         const userId = interaction.user.id;
 
         // Get the reminder message before deleting (for confirmation)
-        const reminders = getUserReminders(userId);
+        const reminders = await getUserReminders(userId);
         const reminder = reminders.find(r => r.id === reminderId);
 
         if (!reminder) {
@@ -33,7 +33,7 @@ export default {
         }
 
         // Cancel the reminder
-        const cancelled = cancelReminder(reminderId, userId);
+        const cancelled = await cancelReminder(reminderId, userId);
 
         if (!cancelled) {
             return interaction.reply({
