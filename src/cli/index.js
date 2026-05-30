@@ -16,14 +16,14 @@ export function generateHelp(commandMap) {
                 ? cmd.subcommands.map(s => `  ${s.name} — ${s.description}`).join('\n')
                 : '';
             lines.push(`    ${cmd.name} — ${cmd.description}`);
-            if (flagHelp) lines.push(`      Flags: ${flagHelp}`);
-            if (subHelp) lines.push(subHelp);
+            if (flagHelp) {lines.push(`      Flags: ${flagHelp}`);}
+            if (subHelp) {lines.push(subHelp);}
         }
     }
 
-    lines.push(`\n  Global flags:`);
-    lines.push(`    --guild <id>  Target guild (or set APOLLO_GUILD_ID)`);
-    lines.push(`    --help        Show this help`);
+    lines.push('\n  Global flags:');
+    lines.push('    --guild <id>  Target guild (or set APOLLO_GUILD_ID)');
+    lines.push('    --help        Show this help');
 
     return lines.join('\n');
 }
@@ -75,7 +75,7 @@ export async function run(argv, commandMap) {
                 `--${o.name}${o.required ? ' (required)' : ''}`
             ).join(' ');
             lines.push(`  ${sub.name} — ${sub.description}`);
-            if (flagHelp) lines.push(`    Flags: ${flagHelp}`);
+            if (flagHelp) {lines.push(`    Flags: ${flagHelp}`);}
         }
         return lines.join('\n');
     }

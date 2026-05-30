@@ -40,7 +40,7 @@ export async function createQueue(name, queueConfig = config.queue) {
         q = {
             name,
             _enabled: false,
-            async add(jobName, data, opts) {
+            async add(jobName, data, _opts) {
                 console.log(`[Queue] Would add job ${jobName} (queue disabled)`);
                 return { id: 'noop', name: jobName, data };
             },

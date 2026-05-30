@@ -58,10 +58,11 @@ export async function exportAnalytics(guildId, format = 'csv', options = {}) {
         throw new Error(`Unsupported format: ${format}`);
     }
     
+    const { statSync } = await import('fs');
     return {
         filename,
         filepath,
-        size: require('fs').statSync(filepath).size
+        size: statSync(filepath).size
     };
 }
 
@@ -104,12 +105,11 @@ async function exportCommandData(guildId, cutoffDate) {
  */
 async function exportMessageData(guildId, cutoffDate) {
     const data = await getGuildData('analytics-messages', guildId);
-    const cutoffHour = getHourString(Date.now() - (90 * 24 * 60 * 60 * 1000));
     const results = [];
     
     for (const key in data) {
         const entry = data[key];
-        if (entry.hour >= cutoffHour) {
+        if (entry.hour >= cutoffDate) {
             results.push({
                 hour: entry.hour,
                 channelId: entry.channelId,

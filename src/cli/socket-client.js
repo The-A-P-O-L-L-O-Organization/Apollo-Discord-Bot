@@ -22,7 +22,7 @@ export async function sendSocketCommand(command, args) {
             const parts = buffer.split('\n');
             buffer = parts.pop();
             for (const part of parts) {
-                if (!part.trim()) continue;
+                if (!part.trim()) {continue;}
                 try {
                     const msg = JSON.parse(part);
                     if (msg.id === id) {
@@ -34,7 +34,9 @@ export async function sendSocketCommand(command, args) {
                             resolve(msg.result);
                         }
                     }
-                } catch {}
+                } catch {
+                    // Ignore parsing errors
+                }
             }
         });
 

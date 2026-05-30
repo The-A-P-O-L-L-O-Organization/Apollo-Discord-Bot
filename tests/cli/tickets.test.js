@@ -23,7 +23,7 @@ describe('tickets CLI commands', () => {
         expect(typeof list.execute).toBe('function');
     });
 
-    it('list returns open and closed counts', async () => {
+    it('list returns open and closed counts', async() => {
         getGuildData.mockResolvedValue({
             openTickets: [{ id: '1', ticketNumber: 1, userId: 'u1', reason: 'help', status: 'open', priority: 'low' }],
             closedTickets: [{ ticketNumber: 2, userId: 'u2', closedAt: '2024-01-01' }]
@@ -36,7 +36,7 @@ describe('tickets CLI commands', () => {
         expect(result.closed[0].ticketNumber).toBe(2);
     });
 
-    it('list handles empty data', async () => {
+    it('list handles empty data', async() => {
         getGuildData.mockResolvedValue({});
         const list = ticketsCommands.commands.find(c => c.name === 'list');
         const result = await list.execute({ guild: '123' });

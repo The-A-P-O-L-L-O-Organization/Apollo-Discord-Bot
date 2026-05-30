@@ -32,11 +32,11 @@ export async function discoverCommands() {
 }
 
 export function resolveCommand(commandMap, path) {
-    if (path.length < 2) return null;
+    if (path.length < 2) {return null;}
 
     const [pluginName, ...rest] = path;
     const plugin = commandMap[pluginName];
-    if (!plugin) return null;
+    if (!plugin) {return null;}
 
     let currentCommands = plugin.commands;
     let matchedCommand = null;
@@ -44,7 +44,7 @@ export function resolveCommand(commandMap, path) {
     for (let i = 0; i < rest.length; i++) {
         const name = rest[i];
         const cmd = currentCommands.find(c => c.name === name);
-        if (!cmd) return null;
+        if (!cmd) {return null;}
 
         if (i === rest.length - 1) {
             matchedCommand = cmd;

@@ -16,7 +16,6 @@ export function createBarChart(data, maxWidth = 20) {
     const maxValue = Math.max(...data.map(d => d.value), 1);
     
     const lines = data.map(item => {
-        const percentage = (item.value / maxValue) * 100;
         const barLength = Math.round((item.value / maxValue) * maxWidth);
         
         // Create bar using block characters

@@ -164,7 +164,7 @@ export async function checkMessageAttachments(guildId, message) {
     const nsfwImages = [];
     
     // Analyze each image
-    for (const [id, attachment] of imageAttachments) {
+    for (const [, attachment] of imageAttachments) {
         try {
             const predictions = await analyzeImage(attachment.url);
             

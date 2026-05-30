@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 describe('DB bridge (utils/db.js)', () => {
     it('should export all expected functions as async', async() => {

@@ -10,7 +10,9 @@ class SocketServer {
     }
 
     async start() {
-        try { await fs.promises.unlink(SOCKET_PATH); } catch {}
+        try { await fs.promises.unlink(SOCKET_PATH); } catch {
+            // Ignore if file doesn't exist
+        }
         this.server = net.createServer((socket) => {
             let buffer = '';
             socket.on('data', (data) => {
@@ -18,11 +20,11 @@ class SocketServer {
                 const parts = buffer.split('\n');
                 buffer = parts.pop();
                 for (const part of parts) {
-                    if (!part.trim()) continue;
+                    if (!part.trim()) {continue;}
                     try {
                         const msg = JSON.parse(part);
                         this._handleMessage(socket, msg);
-                    } catch (e) {
+                    } catch {
                         socket.write(JSON.stringify({ error: 'Invalid JSON' }) + '\n');
                     }
                 }
@@ -41,7 +43,7 @@ class SocketServer {
             socket.write(JSON.stringify({ id, error: `Unknown command: ${command}` }) + '\n');
             return;
         }
-        Promise.resolve().then(async () => {
+        Promise.resolve().then(async() => {
             try {
                 const result = await handler(this.pluginManager.client, args);
                 socket.write(JSON.stringify({ id, result }) + '\n');
@@ -56,7 +58,9 @@ class SocketServer {
             this.server.close();
             this.server = null;
         }
-        try { await fs.promises.unlink(SOCKET_PATH); } catch {}
+        try { await fs.promises.unlink(SOCKET_PATH); } catch {
+            // Ignore if file doesn't exist
+        }
     }
 }
 
