@@ -159,12 +159,14 @@ describe('MessageCreate Event', () => {
             expect(getAutomodConfig).not.toHaveBeenCalled();
         });
 
-        it('should ignore bot messages', async() => {
+        it('should check bot messages for banned words', async() => {
             mockMessage.author.bot = true;
+            automodConfig.bannedWords = ['badword'];
             
             await messageCreateEvent.execute(mockMessage, mockClient);
             
-            expect(getAutomodConfig).not.toHaveBeenCalled();
+            expect(getAutomodConfig).toHaveBeenCalled();
+            expect(checkBannedWords).toHaveBeenCalled();
         });
 
         it('should skip if automod is disabled', async() => {

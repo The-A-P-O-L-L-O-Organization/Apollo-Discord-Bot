@@ -28,9 +28,6 @@ export default {
         // Ignore DMs
         if (!message.guild) {return;}
         
-        // Ignore bot messages
-        if (message.author.bot) {return;}
-        
         // Track message for analytics
         trackMessage(message.guild.id, message.channel.id, message.author.id);
         

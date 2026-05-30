@@ -9,12 +9,24 @@ import {
     createMockChannel
 } from '../mocks/discord.js';
 
+vi.mock('../../src/utils/automod.js', () => ({
+    getAutomodConfig: vi.fn(),
+    checkBannedWords: vi.fn().mockReturnValue(null)
+}));
+
+import { getAutomodConfig, checkBannedWords } from '../../src/utils/automod.js';
+
 describe('Embed Command', () => {
     let mockInteraction;
     let mockChannel;
 
     beforeEach(() => {
         vi.clearAllMocks();
+        
+        getAutomodConfig.mockResolvedValue({
+            enabled: true,
+            bannedWords: []
+        });
         
         mockChannel = createMockChannel({ 
             id: '111222333',
@@ -250,6 +262,144 @@ describe('Embed Command', () => {
         });
     });
 
+    describe('execute - Banned Word Filtering', () => {
+        beforeEach(() => {
+            mockInteraction.options.getString.mockImplementation(name => {
+                if (name === 'title') {return 'My Embed Title';}
+                return null;
+            });
+            getAutomodConfig.mockResolvedValue({
+                enabled: true,
+                bannedWords: ['badword', 'naughty']
+            });
+            checkBannedWords.mockImplementation((content, bannedWords) => {
+                const lower = content.toLowerCase();
+                for (const w of bannedWords) {
+                    if (lower.includes(w)) {return w;}
+                }
+                return null;
+            });
+        });
+
+        it('should reject embed with banned word in title', async() => {
+            mockInteraction.options.getString.mockImplementation(name => {
+                if (name === 'title') {return 'This has naughty content';}
+                return null;
+            });
+
+            await embedCommand.execute(mockInteraction);
+
+            expect(mockChannel.send).not.toHaveBeenCalled();
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.content).toContain('banned word');
+            expect(replyCall.ephemeral).toBe(true);
+        });
+
+        it('should reject embed with banned word in description', async() => {
+            mockInteraction.options.getString.mockImplementation(name => {
+                if (name === 'title') {return 'Safe Title';}
+                if (name === 'description') {return 'This is a badword here';}
+                return null;
+            });
+
+            await embedCommand.execute(mockInteraction);
+
+            expect(mockChannel.send).not.toHaveBeenCalled();
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.content).toContain('banned word');
+        });
+
+        it('should reject embed with banned word in footer', async() => {
+            mockInteraction.options.getString.mockImplementation(name => {
+                if (name === 'title') {return 'Safe Title';}
+                if (name === 'footer') {return 'naughty footer text';}
+                return null;
+            });
+
+            await embedCommand.execute(mockInteraction);
+
+            expect(mockChannel.send).not.toHaveBeenCalled();
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.content).toContain('banned word');
+        });
+
+        it('should reject embed with banned word in author', async() => {
+            mockInteraction.options.getString.mockImplementation(name => {
+                if (name === 'title') {return 'Safe Title';}
+                if (name === 'author') {return 'badword author';}
+                return null;
+            });
+
+            await embedCommand.execute(mockInteraction);
+
+            expect(mockChannel.send).not.toHaveBeenCalled();
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.content).toContain('banned word');
+        });
+
+        it('should reject embed with banned word in .md file content', async() => {
+            mockInteraction.options.getString.mockImplementation(() => null);
+            mockInteraction.options.getAttachment.mockReturnValue({
+                name: 'content.md',
+                url: 'https://cdn.discord.com/content.md'
+            });
+            global.fetch = vi.fn().mockResolvedValue({
+                text: vi.fn().mockResolvedValue('# naughty\n\nNormal text')
+            });
+
+            await embedCommand.execute(mockInteraction);
+
+            expect(mockChannel.send).not.toHaveBeenCalled();
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.content).toContain('banned word');
+        });
+
+        it('should allow embed with no banned words', async() => {
+            mockInteraction.options.getString.mockImplementation(name => {
+                if (name === 'title') {return 'Safe Title';}
+                if (name === 'description') {return 'Clean description';}
+                if (name === 'footer') {return 'Clean footer';}
+                if (name === 'author') {return 'Clean author';}
+                return null;
+            });
+
+            await embedCommand.execute(mockInteraction);
+
+            expect(mockChannel.send).toHaveBeenCalled();
+        });
+
+        it('should skip banned word check when automod is disabled', async() => {
+            getAutomodConfig.mockResolvedValue({
+                enabled: false,
+                bannedWords: ['badword']
+            });
+            mockInteraction.options.getString.mockImplementation(name => {
+                if (name === 'title') {return 'badword title';}
+                return null;
+            });
+
+            await embedCommand.execute(mockInteraction);
+
+            expect(mockChannel.send).toHaveBeenCalled();
+        });
+
+        it('should skip banned word check when bannedWords is empty', async() => {
+            getAutomodConfig.mockResolvedValue({
+                enabled: true,
+                bannedWords: []
+            });
+            checkBannedWords.mockReturnValue(null);
+            mockInteraction.options.getString.mockImplementation(name => {
+                if (name === 'title') {return 'My Embed Title';}
+                return null;
+            });
+
+            await embedCommand.execute(mockInteraction);
+
+            expect(mockChannel.send).toHaveBeenCalled();
+        });
+    });
+
     describe('execute - Markdown File Attachment', () => {
         beforeEach(() => {
             mockInteraction.options.getString.mockReturnValue(null);
@@ -257,7 +407,7 @@ describe('Embed Command', () => {
             mockInteraction.options.getAttachment = vi.fn().mockReturnValue(null);
         });
 
-        it('should reject non-.md file attachments', async () => {
+        it('should reject non-.md file attachments', async() => {
             mockInteraction.options.getAttachment.mockReturnValue({
                 name: 'readme.txt',
                 url: 'https://cdn.discord.com/readme.txt'
@@ -271,7 +421,7 @@ describe('Embed Command', () => {
             expect(replyCall.ephemeral).toBe(true);
         });
 
-        it('should fetch and parse .md attachment', async () => {
+        it('should fetch and parse .md attachment', async() => {
             const attachment = {
                 name: 'guide.md',
                 url: 'https://cdn.discord.com/guide.md'
@@ -291,14 +441,14 @@ describe('Embed Command', () => {
             expect(sendCall.embeds[0].data.fields[0].value).toBe('Content here');
         });
 
-        it('manual title takes precedence over parsed # heading', async () => {
+        it('manual title takes precedence over parsed # heading', async() => {
             const attachment = {
                 name: 'guide.md',
                 url: 'https://cdn.discord.com/guide.md'
             };
             mockInteraction.options.getAttachment.mockReturnValue(attachment);
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'title') return 'Manual Title';
+                if (name === 'title') {return 'Manual Title';}
                 return null;
             });
             global.fetch = vi.fn().mockResolvedValue({
@@ -311,7 +461,7 @@ describe('Embed Command', () => {
             expect(sendCall.embeds[0].data.title).toBe('Manual Title');
         });
 
-        it('should handle empty .md file', async () => {
+        it('should handle empty .md file', async() => {
             mockInteraction.options.getAttachment.mockReturnValue({
                 name: 'empty.md',
                 url: 'https://cdn.discord.com/empty.md'
@@ -327,7 +477,7 @@ describe('Embed Command', () => {
             expect(mockChannel.send).not.toHaveBeenCalled();
         });
 
-        it('should handle fetch errors gracefully', async () => {
+        it('should handle fetch errors gracefully', async() => {
             mockInteraction.options.getAttachment.mockReturnValue({
                 name: 'broken.md',
                 url: 'https://cdn.discord.com/broken.md'
@@ -341,7 +491,7 @@ describe('Embed Command', () => {
             expect(mockChannel.send).not.toHaveBeenCalled();
         });
 
-        it('allows file-only invocation with no title or description options', async () => {
+        it('allows file-only invocation with no title or description options', async() => {
             const attachment = {
                 name: 'doc.md',
                 url: 'https://cdn.discord.com/doc.md'
@@ -359,7 +509,7 @@ describe('Embed Command', () => {
             expect(sendCall.embeds[0].data.fields[0].name).toBe('Section');
         });
 
-        it('sets footer to rendered from filename', async () => {
+        it('sets footer to rendered from filename', async() => {
             const attachment = {
                 name: 'guide.md',
                 url: 'https://cdn.discord.com/guide.md'
@@ -375,15 +525,15 @@ describe('Embed Command', () => {
             expect(sendCall.embeds[0].data.footer.text).toContain('guide.md');
         });
 
-        it('manual description takes precedence over parsed preamble', async () => {
+        it('manual description takes precedence over parsed preamble', async() => {
             const attachment = {
                 name: 'guide.md',
                 url: 'https://cdn.discord.com/guide.md'
             };
             mockInteraction.options.getAttachment.mockReturnValue(attachment);
             mockInteraction.options.getString.mockImplementation(name => {
-                if (name === 'title') return 'Title';
-                if (name === 'description') return 'Manual desc';
+                if (name === 'title') {return 'Title';}
+                if (name === 'description') {return 'Manual desc';}
                 return null;
             });
             global.fetch = vi.fn().mockResolvedValue({

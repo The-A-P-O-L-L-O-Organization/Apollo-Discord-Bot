@@ -53,9 +53,6 @@ export async function getAutomodConfig(guildId) {
  * @returns {boolean} Whether the member is exempt
  */
 export function isExempt(member, cfg) {
-    // Bots are exempt
-    if (member.user.bot) {return true;}
-    
     // Admins are exempt
     if (member.permissions.has('Administrator')) {return true;}
     
@@ -85,7 +82,7 @@ export function isChannelExempt(channelId, cfg) {
  * @returns {string} Normalized content
  */
 export function normalizeContent(content) {
-    let normalized = content.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const normalized = content.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
     const leetMap = {
         '4': 'a', '@': 'a', 'ª': 'a',
@@ -391,7 +388,7 @@ export function checkPhishingLinks(content) {
                 };
             }
             
-        } catch (e) {
+        } catch {
             // Invalid URL, skip
             continue;
         }
