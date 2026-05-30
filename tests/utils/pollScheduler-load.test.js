@@ -30,7 +30,7 @@ describe('Poll Scheduler Database Loading', () => {
         vi.clearAllMocks();
     });
 
-    it('should load polls from database on initialization', async () => {
+    it('should load polls from database on initialization', async() => {
         const { getData } = await import('../../src/utils/db.js');
         
         // Mock database return with polls from multiple guilds
@@ -81,7 +81,7 @@ describe('Poll Scheduler Database Loading', () => {
         stopPollScheduler();
     });
 
-    it('should handle empty poll database', async () => {
+    it('should handle empty poll database', async() => {
         const { getData } = await import('../../src/utils/db.js');
         
         // Mock empty database
@@ -100,7 +100,7 @@ describe('Poll Scheduler Database Loading', () => {
         stopPollScheduler();
     });
 
-    it('should handle database errors gracefully', async () => {
+    it('should handle database errors gracefully', async() => {
         const { getData } = await import('../../src/utils/db.js');
         
         // Mock database error

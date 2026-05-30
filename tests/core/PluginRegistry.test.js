@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import PluginRegistry from '../../src/core/PluginRegistry.js';
-import { mkdtempSync, writeFileSync, rmSync } from 'fs';
+import { mkdtempSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 

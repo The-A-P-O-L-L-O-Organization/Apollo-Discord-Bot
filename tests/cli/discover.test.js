@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { discoverCommands, resolveCommand } from '../../src/cli/discover.js';
 
 describe('discoverCommands', () => {
-    it('returns an object with plugin names as keys', async () => {
+    it('returns an object with plugin names as keys', async() => {
         const map = await discoverCommands();
         expect(map).toBeTypeOf('object');
     });
@@ -17,7 +17,7 @@ describe('resolveCommand', () => {
                     name: 'listwords',
                     description: 'List banned words',
                     options: [],
-                    execute: async () => ({ words: [] })
+                    execute: async() => ({ words: [] })
                 },
                 {
                     name: 'set',
@@ -27,7 +27,7 @@ describe('resolveCommand', () => {
                         {
                             name: 'list',
                             description: 'List settings',
-                            execute: async () => ({ settings: [] })
+                            execute: async() => ({ settings: [] })
                         }
                     ]
                 }

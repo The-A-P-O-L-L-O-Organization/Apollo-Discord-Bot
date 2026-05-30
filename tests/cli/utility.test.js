@@ -54,7 +54,7 @@ describe('utility CLI commands', () => {
         expect(nameOpt.required).toBe(true);
     });
 
-    it('tags list returns tag names', async () => {
+    it('tags list returns tag names', async() => {
         getGuildData.mockResolvedValue({ greeting: { name: 'greeting', content: 'Hello!', createdByTag: 'user' } });
         const tags = utilityCommands.commands.find(c => c.name === 'tags');
         const list = tags.subcommands.find(s => s.name === 'list');
@@ -63,7 +63,7 @@ describe('utility CLI commands', () => {
         expect(result.tags).toContain('greeting');
     });
 
-    it('tags show returns tag details', async () => {
+    it('tags show returns tag details', async() => {
         getGuildData.mockResolvedValue({ greeting: { name: 'greeting', content: 'Hello!', createdByTag: 'user' } });
         const tags = utilityCommands.commands.find(c => c.name === 'tags');
         const show = tags.subcommands.find(s => s.name === 'show');
@@ -72,7 +72,7 @@ describe('utility CLI commands', () => {
         expect(result.content).toBe('Hello!');
     });
 
-    it('tags show returns not found for missing tag', async () => {
+    it('tags show returns not found for missing tag', async() => {
         getGuildData.mockResolvedValue({});
         const tags = utilityCommands.commands.find(c => c.name === 'tags');
         const show = tags.subcommands.find(s => s.name === 'show');
@@ -80,7 +80,7 @@ describe('utility CLI commands', () => {
         expect(result.success).toBe(false);
     });
 
-    it('tags create creates a new tag', async () => {
+    it('tags create creates a new tag', async() => {
         getGuildData.mockResolvedValue({});
         const tags = utilityCommands.commands.find(c => c.name === 'tags');
         const create = tags.subcommands.find(s => s.name === 'create');
@@ -89,7 +89,7 @@ describe('utility CLI commands', () => {
         expect(setGuildData).toHaveBeenCalled();
     });
 
-    it('tags create rejects duplicate', async () => {
+    it('tags create rejects duplicate', async() => {
         getGuildData.mockResolvedValue({ newtag: { name: 'newtag' } });
         const tags = utilityCommands.commands.find(c => c.name === 'tags');
         const create = tags.subcommands.find(s => s.name === 'create');
@@ -97,7 +97,7 @@ describe('utility CLI commands', () => {
         expect(result.success).toBe(false);
     });
 
-    it('tags delete removes a tag', async () => {
+    it('tags delete removes a tag', async() => {
         getGuildData.mockResolvedValue({ oldtag: { name: 'oldtag', content: 'bye' } });
         const tags = utilityCommands.commands.find(c => c.name === 'tags');
         const del = tags.subcommands.find(s => s.name === 'delete');
@@ -106,7 +106,7 @@ describe('utility CLI commands', () => {
         expect(setGuildData).toHaveBeenCalled();
     });
 
-    it('tags delete returns not found for missing tag', async () => {
+    it('tags delete returns not found for missing tag', async() => {
         getGuildData.mockResolvedValue({});
         const tags = utilityCommands.commands.find(c => c.name === 'tags');
         const del = tags.subcommands.find(s => s.name === 'delete');

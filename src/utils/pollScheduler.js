@@ -19,8 +19,7 @@ const performanceStats = {
 // Emoji options for polls (must match poll.js)
 const POLL_EMOJIS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
 
-// In-memory cache of polls
-let inMemoryPolls = {};
+// In-memory cache of polls (used for performance tracking)
 
 /**
  * Loads polls from database and populates in-memory cache
@@ -29,17 +28,13 @@ async function loadPollsFromDatabase() {
     try {
         const data = await getData('polls');
         if (data && typeof data === 'object') {
-            inMemoryPolls = { ...data };
             const totalPolls = Object.values(data).reduce((sum, guildData) => {
                 return sum + (guildData.active ? guildData.active.length : 0);
             }, 0);
             console.log(`[INFO] Loaded ${totalPolls} polls from database`);
-        } else {
-            inMemoryPolls = {};
         }
     } catch (error) {
         console.error('[ERROR] Failed to load polls from database:', error);
-        inMemoryPolls = {};
     }
 }
 
@@ -150,7 +145,7 @@ async function tallyPoll(guildId, poll) {
         let message;
         try {
             message = await channel.messages.fetch(poll.messageId);
-        } catch (error) {
+        } catch {
             console.log(`[INFO] Poll message ${poll.messageId} not found, skipping tally`);
             return;
         }
@@ -232,8 +227,8 @@ async function tallyPoll(guildId, poll) {
                 
                 await message.edit({ embeds: [closedEmbed], components: [] });
             }
-        } catch (editError) {
-            // Couldn't edit original message, not critical
+        } catch {
+            console.log('[INFO] Failed to send poll results');
         }
         
     } catch (error) {
