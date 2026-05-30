@@ -1,4 +1,3 @@
-import { REST } from '@discordjs/rest';
 import { Routes, Collection } from 'discord.js';
 
 export default class RemoteInteraction {
@@ -28,10 +27,10 @@ export default class RemoteInteraction {
             username: data.username,
             discriminator: data.userDiscriminator || '0',
             avatar: data.userAvatar,
-            displayAvatarURL: (opts = {}) => {
+            displayAvatarURL: (_opts = {}) => {
                 if (!data.userAvatar) {return `https://cdn.discordapp.com/embed/avatars/${parseInt(data.userDiscriminator || '0') % 5}.png`;}
-                const ext = opts.dynamic && data.userAvatar.startsWith('a_') ? 'gif' : (opts.format || 'png');
-                return `https://cdn.discordapp.com/avatars/${data.userId}/${data.userAvatar}.${ext}?size=${opts.size || 512}`;
+                const ext = _opts.dynamic && data.userAvatar.startsWith('a_') ? 'gif' : (_opts.format || 'png');
+                return `https://cdn.discordapp.com/avatars/${data.userId}/${data.userAvatar}.${ext}?size=${_opts.size || 512}`;
             },
             toString: () => `<@${data.userId}>`
         };
@@ -53,7 +52,7 @@ export default class RemoteInteraction {
         this.client = {
             user: {
                 id: config?.CLIENT_ID,
-                displayAvatarURL: (opts = {}) => 'https://cdn.discordapp.com/embed/avatars/0.png'
+                displayAvatarURL: (_opts = {}) => 'https://cdn.discordapp.com/embed/avatars/0.png'
             },
             ws: { ping: 0 },
             stats: { commandsRan: 0, startTime: Date.now() },
@@ -175,9 +174,9 @@ class RemoteOptions {
     }
 
     getString(name) { return this._find(name)?.value ?? null; }
-    getInteger(name) { const v = this._find(name)?.value; return v != null ? parseInt(v, 10) : null; }
-    getBoolean(name) { const v = this._find(name)?.value; return v != null ? Boolean(v) : null; }
-    getNumber(name) { const v = this._find(name)?.value; return v != null ? Number(v) : null; }
+    getInteger(name) { const v = this._find(name)?.value; return v !== null && v !== undefined ? parseInt(v, 10) : null; }
+    getBoolean(name) { const v = this._find(name)?.value; return v !== null && v !== undefined ? Boolean(v) : null; }
+    getNumber(name) { const v = this._find(name)?.value; return v !== null && v !== undefined ? Number(v) : null; }
     getChannel(name) {
         const opt = this._find(name);
         if (!opt || !opt.value) {return null;}

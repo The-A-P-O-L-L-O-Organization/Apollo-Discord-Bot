@@ -6,7 +6,7 @@ const colors = {
     yellow: `${ESC}[33m`,
     cyan: `${ESC}[36m`,
     bold: `${ESC}[1m`,
-    dim: `${ESC}[2m`,
+    dim: `${ESC}[2m`
 };
 
 function color(code, text) {
@@ -45,6 +45,6 @@ export function formatTable(headers, rows) {
 }
 
 export function formatList(items) {
-    if (items.length === 0) return '';
+    if (items.length === 0) {return '';}
     return items.map(item => `• ${item}`).join('\n');
 }

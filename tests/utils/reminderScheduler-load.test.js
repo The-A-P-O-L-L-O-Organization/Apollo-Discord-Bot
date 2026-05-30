@@ -31,7 +31,7 @@ describe('Reminder Scheduler Database Loading', () => {
         vi.clearAllMocks();
     });
 
-    it('should load reminders from database on initialization', async () => {
+    it('should load reminders from database on initialization', async() => {
         const { getData } = await import('../../src/utils/db.js');
         
         // Mock database return
@@ -76,7 +76,7 @@ describe('Reminder Scheduler Database Loading', () => {
         stopReminderScheduler();
     });
 
-    it('should handle empty reminder database', async () => {
+    it('should handle empty reminder database', async() => {
         const { getData } = await import('../../src/utils/db.js');
         
         // Mock empty database
@@ -97,7 +97,7 @@ describe('Reminder Scheduler Database Loading', () => {
         stopReminderScheduler();
     });
 
-    it('should handle database errors gracefully', async () => {
+    it('should handle database errors gracefully', async() => {
         const { getData } = await import('../../src/utils/db.js');
         
         // Mock database error
@@ -110,7 +110,7 @@ describe('Reminder Scheduler Database Loading', () => {
         const client = {};
         
         // Should not throw
-        await expect(async () => {
+        await expect(async() => {
             await initReminderScheduler(client);
         }).not.toThrow();
         

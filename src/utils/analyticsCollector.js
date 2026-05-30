@@ -1,7 +1,7 @@
 // Analytics Collector
 // Background service for collecting and aggregating analytics data
 
-import { getGuildData, setGuildData, getUserData, setUserData } from './db.js';
+import { getGuildData, setGuildData } from './db.js';
 
 // In-memory cache for batching analytics before writing to database
 const analyticsCache = {

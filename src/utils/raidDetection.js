@@ -1,7 +1,7 @@
 // Raid Detection Utility
 // Monitors join patterns and auto-locks server during raids
 
-import { EmbedBuilder, PermissionFlagsBits, ChannelType } from 'discord.js';
+import { EmbedBuilder, ChannelType } from 'discord.js';
 import { config } from '../config/config.js';
 
 // In-memory raid state tracking
@@ -185,7 +185,7 @@ export async function enableRaidMode(guild) {
         ch => ch.type === ChannelType.GuildText || ch.type === ChannelType.GuildVoice
     );
     
-    for (const [channelId, channel] of channels) {
+    for (const [, channel] of channels) {
         try {
             // Deny @everyone from sending messages
             await channel.permissionOverwrites.edit(guild.id, {
@@ -232,7 +232,7 @@ export async function disableRaidMode(guild) {
         ch => ch.type === ChannelType.GuildText || ch.type === ChannelType.GuildVoice
     );
     
-    for (const [channelId, channel] of channels) {
+    for (const [, channel] of channels) {
         try {
             // Remove the @everyone send messages deny
             await channel.permissionOverwrites.edit(guild.id, {

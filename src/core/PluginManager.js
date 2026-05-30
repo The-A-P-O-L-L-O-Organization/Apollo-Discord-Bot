@@ -302,12 +302,12 @@ export default class PluginManager {
     }
 
     registerSocketHandler(namespace, handler) {
-        if (!this._socketHandlers) this._socketHandlers = new Map();
+        if (!this._socketHandlers) {this._socketHandlers = new Map();}
         this._socketHandlers.set(namespace, handler);
     }
 
     getSocketHandler(namespace) {
-        if (!this._socketHandlers) return null;
+        if (!this._socketHandlers) {return null;}
         return this._socketHandlers.get(namespace) || null;
     }
 }

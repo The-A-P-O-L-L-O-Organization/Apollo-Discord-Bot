@@ -217,7 +217,7 @@ describe('Clear Command', () => {
         it('should handle confirm delete all', async() => {
             let collectCallback;
             mockCollector.on.mockImplementation((event, callback) => {
-                if (event === 'collect') collectCallback = callback;
+                if (event === 'collect') {collectCallback = callback;}
             });
 
             const executePromise = clearCommand.execute(interaction);
@@ -225,7 +225,7 @@ describe('Clear Command', () => {
 
             const buttonInteraction = {
                 customId: 'confirm_delete_all',
-                deferUpdate: vi.fn().mockResolvedValue(),
+                deferUpdate: vi.fn().mockResolvedValue()
             };
             await collectCallback(buttonInteraction);
 
@@ -238,7 +238,7 @@ describe('Clear Command', () => {
         it('should handle cancel delete all', async() => {
             let collectCallback;
             mockCollector.on.mockImplementation((event, callback) => {
-                if (event === 'collect') collectCallback = callback;
+                if (event === 'collect') {collectCallback = callback;}
             });
 
             const executePromise = clearCommand.execute(interaction);
@@ -246,7 +246,7 @@ describe('Clear Command', () => {
 
             const buttonInteraction = {
                 customId: 'cancel_delete_all',
-                update: vi.fn().mockResolvedValue(),
+                update: vi.fn().mockResolvedValue()
             };
             await collectCallback(buttonInteraction);
 
@@ -258,7 +258,7 @@ describe('Clear Command', () => {
         it('should handle timeout in delete all confirmation', async() => {
             let endCallback;
             mockCollector.on.mockImplementation((event, callback) => {
-                if (event === 'end') endCallback = callback;
+                if (event === 'end') {endCallback = callback;}
             });
 
             const executePromise = clearCommand.execute(interaction);
@@ -274,7 +274,7 @@ describe('Clear Command', () => {
         it('should handle errors during delete all', async() => {
             let collectCallback;
             mockCollector.on.mockImplementation((event, callback) => {
-                if (event === 'collect') collectCallback = callback;
+                if (event === 'collect') {collectCallback = callback;}
             });
 
             channel.bulkDelete.mockReset().mockRejectedValue(new Error('Delete failed'));
@@ -285,7 +285,7 @@ describe('Clear Command', () => {
 
             const buttonInteraction = {
                 customId: 'confirm_delete_all',
-                deferUpdate: vi.fn().mockResolvedValue(),
+                deferUpdate: vi.fn().mockResolvedValue()
             };
             await collectCallback(buttonInteraction);
 

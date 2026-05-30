@@ -15,7 +15,7 @@ describe('admin CLI commands', () => {
         expect(typeof info.execute).toBe('function');
     });
 
-    it('the system info executor returns an object with uptime, memory, nodeVersion', async () => {
+    it('the system info executor returns an object with uptime, memory, nodeVersion', async() => {
         const system = adminCommands.commands.find(c => c.name === 'system');
         const info = system.subcommands.find(s => s.name === 'info');
         const result = await info.execute({});

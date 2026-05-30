@@ -1,5 +1,5 @@
 export function parseMarkdownToEmbed(content, filename, existing = {}) {
-    if (!content || !content.trim()) return {};
+    if (!content || !content.trim()) {return {};}
 
     const lines = content.split('\n');
     let parsedTitle;
@@ -22,7 +22,7 @@ export function parseMarkdownToEmbed(content, filename, existing = {}) {
 
         if (h2Match) {
             inPreamble = false;
-            if (parsedFields.length >= 25) continue;
+            if (parsedFields.length >= 25) {continue;}
             currentField = { name: h2Match[1].trim(), value: '' };
             parsedFields.push(currentField);
             continue;
@@ -40,16 +40,14 @@ export function parseMarkdownToEmbed(content, filename, existing = {}) {
     }
 
     const result = {};
-    if (existing.title) result.title = existing.title;
-    else if (parsedTitle) result.title = truncate(parsedTitle, 256);
+    if (existing.title) {result.title = existing.title;} else if (parsedTitle) {result.title = truncate(parsedTitle, 256);}
 
-    if (existing.description) result.description = existing.description;
-    else if (parsedDesc) result.description = truncate(parsedDesc, 4096);
+    if (existing.description) {result.description = existing.description;} else if (parsedDesc) {result.description = truncate(parsedDesc, 4096);}
 
     if (parsedFields.length > 0) {
         result.fields = parsedFields.map(f => ({
             name: truncate(f.name, 1024),
-            value: truncate(f.value.trim(), 1024),
+            value: truncate(f.value.trim(), 1024)
         }));
     }
 
@@ -59,6 +57,6 @@ export function parseMarkdownToEmbed(content, filename, existing = {}) {
 }
 
 function truncate(str, maxLen) {
-    if (!str || str.length <= maxLen) return str;
+    if (!str || str.length <= maxLen) {return str;}
     return str.slice(0, maxLen - 1) + '\u2026';
 }

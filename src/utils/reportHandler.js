@@ -2,10 +2,9 @@
 // Handles report submissions from users
 
 import { updateGuildData, generateId } from '../utils/db.js';
-import { sendModLog } from '../utils/modLog.js';
 import { flushAnalyticsCritical } from './analyticsCollector.js';
 
-export async function handleReportSubmission(interaction, client) {
+export async function handleReportSubmission(interaction, _client) {
     try {
         if (!interaction.isModalSubmit()) {return false;}
         if (interaction.customId !== 'report_reason_modal') {return false;}
@@ -27,7 +26,7 @@ export async function handleReportSubmission(interaction, client) {
         
         try {
             reportedMessage = await channel.messages.fetch(messageId);
-        } catch (err) {
+        } catch {
             await interaction.reply({
                 content: '[ERROR] Could not fetch the message. It may have been deleted.',
                 ephemeral: true

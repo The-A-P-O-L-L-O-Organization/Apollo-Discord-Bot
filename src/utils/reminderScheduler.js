@@ -16,8 +16,7 @@ const performanceStats = {
     errors: 0
 };
 
-// In-memory cache of reminders
-let inMemoryReminders = [];
+// In-memory cache of reminders (used for performance tracking)
 
 /**
  * Loads reminders from database and populates in-memory cache
@@ -26,11 +25,9 @@ async function loadRemindersFromDatabase() {
     try {
         const data = await getData('reminders');
         const reminders = data.reminders || [];
-        inMemoryReminders = [...reminders];
         console.log(`[INFO] Loaded ${reminders.length} reminders from database`);
     } catch (error) {
         console.error('[ERROR] Failed to load reminders from database:', error);
-        inMemoryReminders = [];
     }
 }
 
@@ -142,7 +139,7 @@ async function sendReminder(reminder) {
             const user = await client.users.fetch(reminder.userId);
             await user.send({ embeds: [embed] });
             return;
-        } catch (dmError) {
+        } catch {
             // DM failed, try to send in the original channel
             console.log(`[INFO] Could not DM user ${reminder.userId}, trying channel`);
         }
