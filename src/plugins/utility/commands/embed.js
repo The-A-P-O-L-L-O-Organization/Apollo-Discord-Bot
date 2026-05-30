@@ -3,6 +3,7 @@
 
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import { parseMarkdownToEmbed } from '../../../utils/markdownParser.js';
+import { getAutomodConfig, checkBannedWords } from '../../../utils/automod.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -209,6 +210,29 @@ export default {
         }
         if (parsed.footer && !footer) {
             embed.setFooter(parsed.footer);
+        }
+
+        // Check embed content against banned words
+        const cfg = await getAutomodConfig(interaction.guild.id);
+        if (cfg.enabled && cfg.bannedWords.length > 0) {
+            const embedTexts = [];
+            if (title) {embedTexts.push(title);} else if (parsed.title) {embedTexts.push(parsed.title);}
+            if (description) {embedTexts.push(description);} else if (parsed.description) {embedTexts.push(parsed.description);}
+            if (footer) {embedTexts.push(footer);}
+            if (author) {embedTexts.push(author);}
+            if (parsed.fields) {
+                for (const field of parsed.fields) {
+                    embedTexts.push(field.name);
+                    embedTexts.push(field.value);
+                }
+            }
+            const matchedWord = checkBannedWords(embedTexts.join(' '), cfg.bannedWords);
+            if (matchedWord) {
+                return interaction.reply({
+                    content: 'Your embed contains a banned word and cannot be sent.',
+                    ephemeral: true
+                });
+            }
         }
 
         // Send the embed
