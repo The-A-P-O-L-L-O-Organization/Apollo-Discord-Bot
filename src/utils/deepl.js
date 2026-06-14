@@ -1,12 +1,12 @@
 import * as deepl from 'deepl-node';
 
 class DeepLService {
-    constructor() {
+    constructor(options = {}) {
         const apiKey = process.env.DEEPL_API_KEY;
         if (!apiKey) {
             throw new Error('DEEPL_API_KEY environment variable is not set');
         }
-        this.translator = new deepl.DeepLClient(apiKey);
+        this.translator = options.translator || new deepl.DeepLClient(apiKey);
         this.cachedLanguages = [];
     }
 
@@ -29,21 +29,12 @@ class DeepLService {
         return this.cachedLanguages;
     }
 
-    getCachedLanguages() {
-        return this.cachedLanguages;
-    }
-
     setCachedLanguages(languages) {
         this.cachedLanguages = languages;
     }
 
     validateLanguage(language) {
-        if (!language) return false;
-        const upperLang = language.toUpperCase();
-        return this.cachedLanguages.some(lang =>
-            lang.language === upperLang ||
-            lang.name.toUpperCase() === upperLang
-        );
+        return this.normalizeLanguageCode(language) !== null;
     }
 
     normalizeLanguageCode(language) {
