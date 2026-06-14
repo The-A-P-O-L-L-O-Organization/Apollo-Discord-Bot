@@ -1,20 +1,32 @@
-import { describe, it, expect, beforeAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import DeepLService from '../../../src/utils/deepl.js';
 
 describe('DeepLService', () => {
     let service;
+    let originalApiKey;
 
-    beforeAll(async () => {
+    beforeAll(() => {
+        originalApiKey = process.env.DEEPL_API_KEY;
+        process.env.DEEPL_API_KEY = 'test-key-1234567890';
+    });
+
+    afterAll(() => {
+        if (originalApiKey === undefined) {
+            delete process.env.DEEPL_API_KEY;
+        } else {
+            process.env.DEEPL_API_KEY = originalApiKey;
+        }
+    });
+
+    beforeEach(() => {
         process.env.DEEPL_API_KEY = 'test-key-1234567890';
         service = new DeepLService();
     });
 
     describe('constructor', () => {
         it('should throw if DEEPL_API_KEY is not set', () => {
-            const originalKey = process.env.DEEPL_API_KEY;
             delete process.env.DEEPL_API_KEY;
             expect(() => new DeepLService()).toThrow('DEEPL_API_KEY');
-            process.env.DEEPL_API_KEY = originalKey;
         });
     });
 
@@ -103,6 +115,61 @@ describe('DeepLService', () => {
         it('should throw for unsupported target language', async () => {
             service.setCachedLanguages([{ language: 'EN', name: 'English' }]);
             await expect(service.translate('Hello', 'XX')).rejects.toThrow('Unsupported language');
+        });
+
+        it('should return translated text with metadata', async () => {
+            const mockTranslator = {
+                translateText: vi.fn().mockResolvedValue({
+                    text: 'Bonjour',
+                    detectedSourceLanguage: 'EN',
+                    billedCharacters: 10
+                })
+            };
+            const svc = new DeepLService({ translator: mockTranslator });
+            svc.setCachedLanguages([
+                { language: 'EN', name: 'English' },
+                { language: 'FR', name: 'French' }
+            ]);
+            const result = await svc.translate('Hello', 'FR');
+            expect(result).toEqual({
+                original: 'Hello',
+                translated: 'Bonjour',
+                sourceLang: 'EN',
+                targetLang: 'FR',
+                sourceLangName: 'English',
+                targetLangName: 'French'
+            });
+        });
+    });
+
+    describe('initialize', () => {
+        it('should populate cachedLanguages from translator', async () => {
+            const mockLanguages = [
+                { code: 'EN', name: 'English', supportsFormality: false },
+                { code: 'FR', name: 'French', supportsFormality: true },
+                { code: 'DE', name: 'German', supportsFormality: true }
+            ];
+            const mockTranslator = {
+                getTargetLanguages: vi.fn().mockResolvedValue(mockLanguages)
+            };
+            const svc = new DeepLService({ translator: mockTranslator });
+            await svc.initialize();
+            expect(svc.getSupportedLanguages()).toEqual([
+                { language: 'EN', name: 'English', supportsFormality: false },
+                { language: 'FR', name: 'French', supportsFormality: true },
+                { language: 'DE', name: 'German', supportsFormality: true }
+            ]);
+        });
+    });
+
+    describe('getAvailableLanguagesString', () => {
+        it('should return formatted string of available languages', () => {
+            service.setCachedLanguages([
+                { language: 'EN', name: 'English' },
+                { language: 'FR', name: 'French' }
+            ]);
+            const result = service.getAvailableLanguagesString();
+            expect(result).toBe('English (EN), French (FR)');
         });
     });
 });
