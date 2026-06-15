@@ -17,14 +17,14 @@ export default class UtilityPlugin extends Plugin {
     await initPollScheduler(this.client);
     initAnalyticsCollector(this.client);
 
-    try {
-        const deepLService = new DeepLService();
-        await deepLService.initialize();
-        global.deepLService = deepLService;
-        console.log('[Utility] DeepL service initialized');
-    } catch (error) {
-        console.warn('[Utility] DeepL service not available:', error.message);
-    }
+  try {
+    const deepLService = new DeepLService();
+    await deepLService.initialize();
+    global.deepLService = deepLService;
+    console.log('[Utility] DeepL service initialized');
+  } catch (error) {
+    console.warn('[Utility] DeepL service not available:', error.message);
+  }
   }
 
   async onDisable() {
