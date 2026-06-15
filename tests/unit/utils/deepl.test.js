@@ -106,18 +106,18 @@ describe('DeepLService', () => {
     });
 
     describe('translate', () => {
-        it('should throw for empty text', async () => {
+        it('should throw for empty text', async() => {
             service.setCachedLanguages([{ language: 'EN', name: 'English' }]);
             await expect(service.translate('', 'EN')).rejects.toThrow('empty');
             await expect(service.translate('   ', 'EN')).rejects.toThrow('empty');
         });
 
-        it('should throw for unsupported target language', async () => {
+        it('should throw for unsupported target language', async() => {
             service.setCachedLanguages([{ language: 'EN', name: 'English' }]);
             await expect(service.translate('Hello', 'XX')).rejects.toThrow('Unsupported language');
         });
 
-        it('should return translated text with metadata', async () => {
+        it('should return translated text with metadata', async() => {
             const mockTranslator = {
                 translateText: vi.fn().mockResolvedValue({
                     text: 'Bonjour',
@@ -143,7 +143,7 @@ describe('DeepLService', () => {
     });
 
     describe('initialize', () => {
-        it('should populate cachedLanguages from translator', async () => {
+        it('should populate cachedLanguages from translator', async() => {
             const mockLanguages = [
                 { code: 'EN', name: 'English', supportsFormality: false },
                 { code: 'FR', name: 'French', supportsFormality: true },
