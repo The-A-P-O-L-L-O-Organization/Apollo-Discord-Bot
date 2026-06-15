@@ -40,9 +40,10 @@ async function loadCommands() {
                         if (command.default.data) {
                             commandData = command.default.data.toJSON();
                         } else if (command.default.name) {
+                            const isContextMenu = command.default.type === 2 || command.default.type === 3;
                             commandData = {
                                 name: command.default.name,
-                                description: command.default.description || 'No description',
+                                description: isContextMenu ? undefined : (command.default.description || 'No description'),
                                 type: command.default.type || 1,
                                 options: command.default.options || []
                             };
