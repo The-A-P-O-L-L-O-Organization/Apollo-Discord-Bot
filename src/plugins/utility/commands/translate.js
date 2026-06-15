@@ -6,8 +6,8 @@ export default {
     category: 'Utility',
 
     async execute(interaction) {
-        const deepLService = global.deepLService;
-        if (!deepLService) {
+        const translationService = global.translationService;
+        if (!translationService) {
             await interaction.reply({
                 content: 'Translation service is not available.',
                 ephemeral: true
@@ -52,7 +52,7 @@ export default {
 
             await modalSubmit.deferReply({ ephemeral: true });
 
-            const translation = await deepLService.translate(textToTranslate, targetLanguage);
+            const translation = await translationService.translate(textToTranslate, targetLanguage);
 
             const response = `> **${translation.sourceLangName}:**\n> ${translation.original}\n\n**${translation.targetLangName}:**\n${translation.translated}`;
 
@@ -66,8 +66,8 @@ export default {
 
             let errorMessage = 'Translation failed. Please try again.';
             if (error.message.includes('Unsupported language')) {
-                const langs = global.deepLService?.getAvailableLanguagesString();
-                errorMessage = `Language not supported. Available: ${langs || 'see DeepL docs'}`;
+                const langs = global.translationService?.getAvailableLanguagesString();
+                errorMessage = `Language not supported. Available: ${langs || 'see translation service docs'}`;
             } else if (error.message.includes('Too many')) {
                 errorMessage = 'Too many translation requests. Please wait a moment.';
             }

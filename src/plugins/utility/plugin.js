@@ -2,7 +2,7 @@ import Plugin from '../../core/Plugin.js';
 import { initReminderScheduler, stopReminderScheduler } from '../../utils/reminderScheduler.js';
 import { initPollScheduler, stopPollScheduler } from '../../utils/pollScheduler.js';
 import { initAnalyticsCollector, stopAnalyticsCollector } from '../../utils/analyticsCollector.js';
-import DeepLService from '../../utils/deepl.js';
+import TranslationService from '../../utils/translation.js';
 
 export default class UtilityPlugin extends Plugin {
   static id = 'utility';
@@ -18,12 +18,12 @@ export default class UtilityPlugin extends Plugin {
     initAnalyticsCollector(this.client);
 
   try {
-    const deepLService = new DeepLService();
-    await deepLService.initialize();
-    global.deepLService = deepLService;
-    console.log('[Utility] DeepL service initialized');
+    const translationService = new TranslationService();
+    await translationService.initialize();
+    global.translationService = translationService;
+    console.log('[Utility] Translation service initialized');
   } catch (error) {
-    console.warn('[Utility] DeepL service not available:', error.message);
+    console.warn('[Utility] Translation service not available:', error.message);
   }
   }
 
