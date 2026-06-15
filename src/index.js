@@ -68,6 +68,39 @@ client.once('clientReady', async() => {
 });
 
 client.on('interactionCreate', async(interaction) => {
+    // Handle message context menu commands (e.g., Translate)
+    if (interaction.isMessageContextMenuCommand()) {
+        const command = client.commands.get(interaction.commandName);
+        if (!command) {
+            console.log('[ERROR] Context menu command not found:', interaction.commandName);
+            return;
+        }
+        try {
+            await command.execute(interaction);
+            client.stats.commandsRan++;
+            if (interaction.guild) {
+                trackCommand(interaction.guild.id, interaction.commandName, interaction.user.id);
+            }
+        } catch (error) {
+            console.error('[ERROR] Error executing context menu command:', error);
+            try {
+                if (interaction.deferred || interaction.replied) {
+                    await interaction.editReply({ content: 'An error occurred.' });
+                } else {
+                    await interaction.reply({ content: 'An error occurred.', ephemeral: true });
+                }
+            } catch (e) {
+                console.error('[ERROR] Failed to send error response:', e);
+            }
+        }
+        return;
+    }
+
+    // Let modal submits pass through for awaitModalSubmit collectors
+    if (interaction.isModalSubmit()) {
+        return;
+    }
+
     if (!interaction.isChatInputCommand()) {return;}
 
     const command = client.commands.get(interaction.commandName);
