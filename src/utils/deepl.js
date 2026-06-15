@@ -38,16 +38,16 @@ class DeepLService {
     }
 
     normalizeLanguageCode(language) {
-        if (!language) return null;
+        if (!language) {return null;}
         const upperLang = language.toUpperCase();
 
         const codeMatch = this.cachedLanguages.find(lang => lang.language === upperLang);
-        if (codeMatch) return codeMatch.language;
+        if (codeMatch) {return codeMatch.language;}
 
         const nameMatch = this.cachedLanguages.find(lang =>
             lang.name.toUpperCase() === upperLang
         );
-        if (nameMatch) return nameMatch.language;
+        if (nameMatch) {return nameMatch.language;}
 
         return null;
     }
@@ -85,17 +85,17 @@ class DeepLService {
             };
         } catch (error) {
             if (error.message.includes('429')) {
-                throw new Error('Too many translation requests. Please wait a moment.');
+                throw new Error('Too many translation requests. Please wait a moment.', { cause: error });
             }
             if (error.message.includes('403')) {
-                throw new Error('DeepL API authentication failed. Check DEEPL_API_KEY.');
+                throw new Error('DeepL API authentication failed. Check DEEPL_API_KEY.', { cause: error });
             }
-            throw new Error(`Translation failed: ${error.message}`);
+            throw new Error(`Translation failed: ${error.message}`, { cause: error });
         }
     }
 
     getLanguageName(code) {
-        if (!code) return null;
+        if (!code) {return null;}
         const upperCode = code.toUpperCase();
         const lang = this.cachedLanguages.find(l => l.language === upperCode);
         return lang ? lang.name : null;
