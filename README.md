@@ -899,6 +899,10 @@ When inviting the bot, ensure it has these permissions:
 - Kick Members, Ban Members, Moderate Members (timeout)
 - View Channel, Add Reactions, Read Message History
 
+## Documentation
+
+For detailed setup guides, command references, developer guides, and troubleshooting, visit the **[Apollo Org documentation](https://docs.apolloorg.space/projects/apollo/intro)**.
+
 ## License
 
 This project is licensed under the GPLv3 License — see the LICENSE file for details.
