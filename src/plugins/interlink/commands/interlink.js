@@ -84,6 +84,14 @@ export default {
             options: [
                 { name: 'name', description: 'Bot name', type: 3, required: true }
             ]
+        },
+        {
+            name: 'override',
+            description: 'Activate override mode on all registered bots (owner only)',
+            type: 1,
+            options: [
+                { name: 'user-id', description: 'Discord user ID to activate override for (default: OWNER_IDS first entry)', type: 3, required: false }
+            ]
         }
     ],
 
@@ -116,6 +124,8 @@ export default {
                     return await this._broadcast(interaction);
                 case 'rotate-key':
                     return await this._rotateKey(interaction);
+                case 'override':
+                    return await this._override(interaction);
                 default:
                     return interaction.editReply({ embeds: [{ color: 0xFF0000, title: '[ERROR] Unknown subcommand' }] });
             }
@@ -303,6 +313,56 @@ export default {
                     'Store this securely. The old key is no longer valid.'
                 ].join('\n'),
                 fields: [{ name: 'New Key Prefix', value: `\`${rawKey.slice(0, 8)}\``, inline: true }]
+            }]
+        });
+    },
+
+    async _override(interaction) {
+        const registry = createRegistry();
+        const bots = await registry.list();
+        const active = bots.filter(b => b.is_active === 1);
+
+        if (active.length === 0) {
+            return interaction.editReply({
+                embeds: [{ color: 0xFFA500, title: '[WARNING] No Bots', description: 'No active registered bots to override.' }]
+            });
+        }
+
+        const ownerIds = (process.env.OWNER_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
+        const userId = interaction.options.getString('user-id') || ownerIds[0] || '';
+
+        if (!userId) {
+            return interaction.editReply({
+                embeds: [{ color: 0xFF0000, title: '[ERROR] No User ID', description: 'Could not determine target user ID. Set OWNER_IDS or provide a user-id.' }]
+            });
+        }
+
+        const bus = createBus();
+        const results = await bus.broadcast('command', {
+            command: 'override',
+            action: 'activate',
+            userId
+        });
+
+        const success = results.filter(r => r.success).length;
+        const failed = results.filter(r => !r.success).length;
+
+        const lines = results.map(r =>
+            `**${r.name}:** ${r.success ? '✅ Override activated' : `❌ ${r.error}`}`
+        );
+
+        return interaction.editReply({
+            embeds: [{
+                color: failed === 0 ? 0x00FF00 : 0xFFA500,
+                title: '[INFO] Override Broadcast Complete',
+                description: [
+                    `Target user: \`${userId}\``,
+                    `Sent to ${results.length} active bot(s).`,
+                    `✅ ${success} succeeded`,
+                    failed > 0 ? `❌ ${failed} failed` : '',
+                    '',
+                    ...lines
+                ].filter(Boolean).join('\n')
             }]
         });
     }
