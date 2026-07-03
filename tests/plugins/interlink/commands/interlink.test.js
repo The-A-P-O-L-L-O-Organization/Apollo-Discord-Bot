@@ -16,7 +16,7 @@ describe('Interlink Commands', () => {
     it('should have subcommands list, register, remove, send, broadcast, rotate-key', () => {
         const subcommands = cmd.options.filter(o => o.type === 1);
         const names = subcommands.map(s => s.name).sort();
-        expect(names).toEqual(['broadcast', 'list', 'register', 'remove', 'rotate-key', 'send']);
+        expect(names).toEqual(['broadcast', 'list', 'override', 'register', 'remove', 'rotate-key', 'send']);
     });
 
     it('should have register subcommand with required name and webhook-url', () => {
