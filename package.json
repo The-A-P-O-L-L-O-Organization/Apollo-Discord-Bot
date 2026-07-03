@@ -37,7 +37,9 @@
     "ioredis": "^5.11.1",
     "knex": "^3.2.10",
     "nsfwjs": "^4.3.0",
-    "pg": "^8.21.0"
+    "pg": "^8.21.0",
+    "bcryptjs": "^2.4.3",
+    "express": "^4.21.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -52,6 +54,7 @@
     "@vitest/coverage-v8": "^4.1.8",
     "@vitest/ui": "^4.1.8",
     "eslint": "^10.5.0",
+    "supertest": "^7.0.0",
     "vitest": "^4.1.8"
   }
 }
