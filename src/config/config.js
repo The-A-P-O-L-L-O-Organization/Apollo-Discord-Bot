@@ -160,7 +160,7 @@ export const config = {
 
     // Plugin System Settings
     plugins: {
-        enabled: ['utility', 'admin', 'moderation', 'tickets', 'automod', 'integrations'],
+        enabled: ['utility', 'admin', 'moderation', 'tickets', 'automod', 'integrations', 'interlink'],
         directory: './src/plugins',
         optionalDirectory: './data/plugins',
         registryFile: './data/plugin-registry.json'
