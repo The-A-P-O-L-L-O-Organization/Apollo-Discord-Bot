@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 // NSFW Detection Utility
 // Scans image attachments for NSFW content using TensorFlow.js
 

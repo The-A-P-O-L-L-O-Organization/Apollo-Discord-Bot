@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { Queue } from 'bullmq';
 import { config } from '../config/config.js';
 
