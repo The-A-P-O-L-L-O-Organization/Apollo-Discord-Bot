@@ -38,7 +38,7 @@ export default class MessageBus {
 
     async broadcast(type, payload) {
         const bots = await this._registry.list();
-        const active = bots.filter(b => b.is_active === 1);
+        const active = bots.filter(b => b.is_active);
         const results = [];
         for (const bot of active) {
             const envelope = this.createEnvelope(type, bot.name, payload);

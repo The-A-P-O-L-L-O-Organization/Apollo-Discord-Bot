@@ -3,11 +3,6 @@
 
 import { PermissionsBitField } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
-
-function generateId() {
-    return crypto.randomUUID();
-}
-
 export default {
     name: 'announcement',
     description: 'Schedule an announcement to be sent',
