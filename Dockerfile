@@ -28,7 +28,6 @@ RUN pnpm install --frozen-lockfile
 COPY src ./src
 COPY bin ./bin
 COPY deploy-commands.js ./
-COPY data ./data
 
 # Create directories for persistent data
 RUN mkdir -p /app/logs /app/data/plugins && \
