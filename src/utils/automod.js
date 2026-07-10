@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 // Automod Utility
 // Core automod checking functions
 

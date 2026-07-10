@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 // Mod Log Utility
 // Sends moderation action logs to a designated channel
 

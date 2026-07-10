@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 export const MetricsNames = {
     QUEUE_WAITING: 'apollo_queue_waiting',
     QUEUE_ACTIVE: 'apollo_queue_active',

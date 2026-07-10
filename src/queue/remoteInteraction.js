@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { Routes, Collection } from 'discord.js';
 
 export default class RemoteInteraction {

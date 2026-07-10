@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { config } from '../config/config.js';
 import { createQueue } from './queue.js';
 

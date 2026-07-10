@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 // Temporary Roles Scheduler
 // Automatically removes temporary roles when they expire
 

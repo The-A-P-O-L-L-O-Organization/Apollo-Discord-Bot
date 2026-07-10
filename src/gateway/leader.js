@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const LOCK_KEY = 'apollo:gateway:leader';
 
 const RELEASE_SCRIPT = `

@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 // Logger Utility
 // Centralized logging function for all server events
 

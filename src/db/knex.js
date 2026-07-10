@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import knex from 'knex';
 import { config } from '../config/config.js';
 

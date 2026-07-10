@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { readdirSync, existsSync, rmSync } from 'fs';
 import path from 'path';
 import { pathToFileURL } from 'url';

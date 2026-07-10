@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { createHmac, timingSafeEqual } from 'crypto';
 import { formatGithubPushNotification, formatGithubPrNotification, formatGithubIssueNotification } from './integrationFormatters.js';
 
