@@ -540,7 +540,7 @@ docker run -d \
   -e DISCORD_TOKEN=your_token \
   -e CLIENT_ID=your_client_id \
   -e OWNER_IDS=your_user_id \
-  -v apollo-data:/app/bot \
+  -v apollo-data:/app/src/data \
   apollo-bot:latest
 ```
 
@@ -558,7 +558,7 @@ services:
       - CLIENT_ID=${CLIENT_ID}
       - OWNER_IDS=${OWNER_IDS}
     volumes:
-      - apollo-data:/app/bot
+      - apollo-data:/app/src/data
     restart: unless-stopped
 
 volumes:

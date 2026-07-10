@@ -15,7 +15,7 @@ services:
     env_file:
       - .env
     volumes:
-      - bot-data:/app/bot
+      - bot-data:/app/src/data
       - bot-logs:/app/logs
       - bot-plugins:/app/data/plugins
     healthcheck:
