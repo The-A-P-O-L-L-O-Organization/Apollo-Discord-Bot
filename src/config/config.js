@@ -85,7 +85,9 @@ export const config = {
         // Spam detection: time interval in milliseconds
         spamInterval: 5000,
         // Action to take: 'warn', 'mute', 'kick', 'delete'
-        action: 'warn'
+        action: 'warn',
+        // AI-powered moderation (OpenAI Moderation API)
+        aiModeration: false
     },
     
     // Ticket System Settings
