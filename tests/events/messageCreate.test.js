@@ -26,6 +26,11 @@ vi.mock('../../src/utils/automod.js', () => ({
     checkAccountAge: vi.fn().mockReturnValue(false)
 }));
 
+vi.mock('../../src/utils/openaiModeration.js', () => ({
+    checkMessageModeration: vi.fn().mockResolvedValue(null),
+    formatViolations: vi.fn().mockReturnValue('')
+}));
+
 vi.mock('../../src/utils/nsfwDetection.js', () => ({
     checkMessageAttachments: vi.fn().mockResolvedValue(null),
     isNsfwDetectionAvailable: vi.fn().mockReturnValue(false)
@@ -67,6 +72,7 @@ import {
 import { appendToUserArray, getUserData } from '../../src/utils/db.js';
 import { sendModLog } from '../../src/utils/modLog.js';
 import { checkMessageAttachments } from '../../src/utils/nsfwDetection.js';
+import { checkMessageModeration } from '../../src/utils/openaiModeration.js';
 
 describe('MessageCreate Event', () => {
     let mockMessage;
@@ -87,6 +93,7 @@ describe('MessageCreate Event', () => {
         checkSpam.mockReturnValue(false);
         checkAccountAge.mockReturnValue(false);
         checkMessageAttachments.mockResolvedValue(null);
+        checkMessageModeration.mockResolvedValue(null);
         
         mockChannel = createMockChannel({
             id: '111222333',
