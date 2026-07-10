@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 // Data Store Utility
 // Handles all JSON file-based data persistence
 

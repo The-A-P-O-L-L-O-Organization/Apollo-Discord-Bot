@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 // Export Analytics Utility
 // Exports analytics data to CSV or JSON format
 

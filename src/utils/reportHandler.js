@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 // Report Modal Handler
 // Handles report submissions from users
 

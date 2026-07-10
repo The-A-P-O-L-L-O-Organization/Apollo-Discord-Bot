@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 // Tempban Scheduler
 // Background task that checks and unbans users with expired tempbans
 

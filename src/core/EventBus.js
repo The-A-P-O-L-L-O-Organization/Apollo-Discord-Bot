@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 export default class EventBus {
     constructor() {
         this._handlers = new Map();

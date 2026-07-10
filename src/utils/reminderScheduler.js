@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 // Reminder Scheduler
 // Background task that checks and sends due reminders
 

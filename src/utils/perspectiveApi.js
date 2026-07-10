@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 // Perspective API Utility
 // AI-powered toxicity detection using Google's Perspective API
 

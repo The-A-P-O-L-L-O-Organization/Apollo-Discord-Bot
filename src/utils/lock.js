@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { config } from '../config/config.js';
 
 const LOCK_PREFIX = 'apollo:lock:';

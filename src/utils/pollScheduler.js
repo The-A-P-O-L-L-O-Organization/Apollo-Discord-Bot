@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 // Poll Scheduler
 // Background task that checks and tallies completed polls
 

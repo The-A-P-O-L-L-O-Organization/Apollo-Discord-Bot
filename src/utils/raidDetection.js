@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 // Raid Detection Utility
 // Monitors join patterns and auto-locks server during raids
 

@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 class TranslationService {
     constructor(options = {}) {
         this.baseUrl = options.baseUrl || process.env.TRANSLATION_API_BASE_URL || 'https://translate.argosopentech.com';

@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 // Analytics Collector
 // Background service for collecting and aggregating analytics data
 
