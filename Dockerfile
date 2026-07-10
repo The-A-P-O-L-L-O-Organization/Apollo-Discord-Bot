@@ -31,7 +31,7 @@ COPY deploy-commands.js ./
 COPY data ./data
 
 # Create directories for persistent data
-RUN mkdir -p /app/bot /app/logs /app/data/plugins && \
+RUN mkdir -p /app/logs /app/data/plugins && \
     ln -s /app/bin/apollo.js /usr/local/bin/apollo
 
 # Create non-root user for security
