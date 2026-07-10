@@ -31,9 +31,6 @@ vi.mock('../../src/utils/nsfwDetection.js', () => ({
     isNsfwDetectionAvailable: vi.fn().mockReturnValue(false)
 }));
 
-vi.mock('../../src/utils/perspectiveApi.js', () => ({
-    checkMessageToxicity: vi.fn().mockResolvedValue(null)
-}));
 
 vi.mock('../../src/utils/db.js', () => ({
     appendToUserArray: vi.fn(),
@@ -70,7 +67,6 @@ import {
 import { appendToUserArray, getUserData } from '../../src/utils/db.js';
 import { sendModLog } from '../../src/utils/modLog.js';
 import { checkMessageAttachments } from '../../src/utils/nsfwDetection.js';
-import { checkMessageToxicity } from '../../src/utils/perspectiveApi.js';
 
 describe('MessageCreate Event', () => {
     let mockMessage;
@@ -91,7 +87,6 @@ describe('MessageCreate Event', () => {
         checkSpam.mockReturnValue(false);
         checkAccountAge.mockReturnValue(false);
         checkMessageAttachments.mockResolvedValue(null);
-        checkMessageToxicity.mockResolvedValue(null);
         
         mockChannel = createMockChannel({
             id: '111222333',

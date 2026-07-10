@@ -25,7 +25,6 @@
   "author": "CodeMaster013",
   "license": "GPLv3",
   "dependencies": {
-    "@conversationai/perspectiveapi-js-client": "^1.0.1",
     "@discordjs/builders": "^1.14.1",
     "@discordjs/rest": "^2.6.1",
     "@tensorflow/tfjs-node": "^4.22.0",
