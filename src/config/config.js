@@ -166,7 +166,7 @@ export const config = {
         enabled: ['utility', 'admin', 'moderation', 'tickets', 'automod', 'integrations', 'interlink'],
         directory: './src/plugins',
         optionalDirectory: './data/plugins',
-        registryFile: './data/plugin-registry.json'
+        registryFile: './data/plugins/registry.json'
     },
 
     // Database Configuration
