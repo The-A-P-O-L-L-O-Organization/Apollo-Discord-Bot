@@ -36,6 +36,9 @@ importers:
       better-sqlite3:
         specifier: ^12.11.1
         version: 12.11.1
+      buffer:
+        specifier: ^6.0.3
+        version: 6.0.3
       bullmq:
         specifier: ^5.79.3
         version: 5.79.3
@@ -56,7 +59,7 @@ importers:
         version: 3.3.0(better-sqlite3@12.11.1)(pg@8.22.0)
       nsfwjs:
         specifier: ^4.3.0
-        version: 4.3.0(@tensorflow/tfjs@4.22.0(seedrandom@3.0.5))(buffer@5.7.1)
+        version: 4.3.0(@tensorflow/tfjs@4.22.0(seedrandom@3.0.5))(buffer@6.0.3)
       pg:
         specifier: ^8.22.0
         version: 8.22.0
@@ -623,6 +626,9 @@ packages:
 
   buffer@5.7.1:
     resolution: {integrity: sha512-EHcyIPBQ4BSGlvjB16k5KgAJ27CIsHY/2JBmCRReo48y9rQ3MaUzWX3KVlBa4U7MyX02HdVj0K7C3WaB3ju7FQ==}
+
+  buffer@6.0.3:
+    resolution: {integrity: sha512-FTiCpNxtwiZZHEZbcbTIcZjERVICn9yq/pDFkTl95/AxzD1naBctN7YO68riM/gLSDY7sdrMby8hofADYuuqOA==}
 
   bullmq@5.79.3:
     resolution: {integrity: sha512-ol/zGeYw1AOKVWCgqGbElGAcvpO8ijc0qmTigXveEBOh+6yCiSwAG3ISI8zYW9Yu3sijnt58O/3JNtJGUYebLA==}
@@ -2628,6 +2634,11 @@ snapshots:
       base64-js: 1.5.1
       ieee754: 1.2.1
 
+  buffer@6.0.3:
+    dependencies:
+      base64-js: 1.5.1
+      ieee754: 1.2.1
+
   bullmq@5.79.3:
     dependencies:
       cron-parser: 4.9.0
@@ -3399,10 +3410,10 @@ snapshots:
       gauge: 3.0.2
       set-blocking: 2.0.0
 
-  nsfwjs@4.3.0(@tensorflow/tfjs@4.22.0(seedrandom@3.0.5))(buffer@5.7.1):
+  nsfwjs@4.3.0(@tensorflow/tfjs@4.22.0(seedrandom@3.0.5))(buffer@6.0.3):
     dependencies:
       '@tensorflow/tfjs': 4.22.0(seedrandom@3.0.5)
-      buffer: 5.7.1
+      buffer: 6.0.3
 
   object-assign@4.1.1: {}
 
