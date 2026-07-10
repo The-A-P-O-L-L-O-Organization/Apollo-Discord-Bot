@@ -8,6 +8,9 @@ export const config = {
     // Discord Client ID - Get from https://discord.com/developers/applications
     CLIENT_ID: process.env.CLIENT_ID || '',
     
+    // Discord Guild ID (for dev guild-specific command deployment)
+    GUILD_ID: process.env.GUILD_ID || '',
+
     // Bot Activity/Status
     activity: {
         name: 'for new members join',
