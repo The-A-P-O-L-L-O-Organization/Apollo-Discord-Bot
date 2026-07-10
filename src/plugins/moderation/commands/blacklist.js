@@ -291,12 +291,12 @@ async function handleView(interaction) {
 
 /**
  * Handles global blacklist operations (add/remove/view across all servers)
- * Restricted to bot owner (1068324046422413373)
+ * Restricted to bot owners defined in OWNER_IDS env var
  */
 async function handleGlobal(interaction) {
     try {
-        // Restrict to bot owner only
-        if (interaction.user.id !== '1068324046422413373') {
+        const ownerIds = (process.env.OWNER_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
+        if (!ownerIds.includes(interaction.user.id)) {
             return interaction.reply({
                 embeds: [{
                     color: 0xFF0000,

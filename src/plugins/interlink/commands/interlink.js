@@ -7,7 +7,7 @@ const SEND_CONFIG = { requestTimeout: 5000, maxRetries: 3 };
 
 function isOwner(interaction) {
     const ownerIds = (process.env.OWNER_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
-    return ownerIds.length === 0 || ownerIds.includes(interaction.user.id);
+    return ownerIds.length > 0 && ownerIds.includes(interaction.user.id);
 }
 
 function createRegistry() {
@@ -154,7 +154,7 @@ export default {
         }
 
         const lines = bots.map(bot => {
-            const status = bot.is_active ? '🟢 Active' : '🔴 Inactive';
+            const status = bot.is_active ? 'Active' : 'Inactive';
             const redis = bot.supports_redis ? ' +Redis' : '';
             const lastSeen = bot.last_seen_at ? `\n  Last seen: ${new Date(bot.last_seen_at).toLocaleString()}` : '';
             return `**${bot.name}**${lastSeen}\n  Status: ${status}${redis}\n  Key prefix: \`${bot.api_key_prefix}\``;
@@ -190,7 +190,7 @@ export default {
 
         const result = await createRegistry().create({ name, webhookUrl, description, supportsRedis });
 
-        return interaction.editReply({
+        await interaction.editReply({
             embeds: [{
                 color: 0x00FF00,
                 title: '[SUCCESS] Bot Registered',
@@ -199,9 +199,7 @@ export default {
                     `**Webhook:** ${webhookUrl}`,
                     `**Redis:** ${supportsRedis ? 'Yes' : 'No'}`,
                     '',
-                    '**⚠️ API Key (shown once):**',
-                    `\`\`\`${result.rawKey}\`\`\``,
-                    'Store this securely. It will not be shown again.'
+                    'API key sent via ephemeral message.'
                 ].join('\n'),
                 fields: [{
                     name: 'Key Prefix',
@@ -209,6 +207,11 @@ export default {
                     inline: true
                 }]
             }]
+        });
+
+        await interaction.followUp({
+            content: `**[WARNING] API Key for ${name} (shown once):**\n\`\`\`${result.rawKey}\`\`\`\nStore this securely. It will not be shown again.`,
+            ephemeral: true
         });
     },
 
@@ -301,26 +304,29 @@ export default {
 
         const { rawKey } = await createRegistry().rotateKey(name);
 
-        return interaction.editReply({
+        await interaction.editReply({
             embeds: [{
                 color: 0x00FF00,
                 title: '[SUCCESS] API Key Rotated',
                 description: [
                     `**Bot:** ${name}`,
                     '',
-                    '**⚠️ New API Key (shown once):**',
-                    `\`\`\`${rawKey}\`\`\``,
-                    'Store this securely. The old key is no longer valid.'
+                    'New API key sent via ephemeral message.'
                 ].join('\n'),
                 fields: [{ name: 'New Key Prefix', value: `\`${rawKey.slice(0, 8)}\``, inline: true }]
             }]
+        });
+
+        await interaction.followUp({
+            content: `**[WARNING] New API Key for ${name} (shown once):**\n\`\`\`${rawKey}\`\`\`\nStore this securely. The old key is no longer valid.`,
+            ephemeral: true
         });
     },
 
     async _override(interaction) {
         const registry = createRegistry();
         const bots = await registry.list();
-        const active = bots.filter(b => b.is_active === 1);
+        const active = bots.filter(b => b.is_active);
 
         if (active.length === 0) {
             return interaction.editReply({
@@ -348,7 +354,7 @@ export default {
         const failed = results.filter(r => !r.success).length;
 
         const lines = results.map(r =>
-            `**${r.name}:** ${r.success ? '✅ Override activated' : `❌ ${r.error}`}`
+            `**${r.name}:** ${r.success ? 'Override activated' : `Failed: ${r.error}`}`
         );
 
         return interaction.editReply({
@@ -358,8 +364,8 @@ export default {
                 description: [
                     `Target user: \`${userId}\``,
                     `Sent to ${results.length} active bot(s).`,
-                    `✅ ${success} succeeded`,
-                    failed > 0 ? `❌ ${failed} failed` : '',
+                    `${success} succeeded`,
+                    failed > 0 ? `${failed} failed` : '',
                     '',
                     ...lines
                 ].filter(Boolean).join('\n')
