@@ -29,17 +29,17 @@
     "@discordjs/builders": "^1.14.1",
     "@discordjs/rest": "^2.6.1",
     "@tensorflow/tfjs-node": "^4.22.0",
-    "adm-zip": "^0.5.17",
-    "better-sqlite3": "^12.10.1",
-    "bullmq": "^5.78.1",
+    "adm-zip": "^0.5.18",
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.11.1",
+    "bullmq": "^5.79.3",
     "discord.js": "^14.26.4",
     "dotenv": "^17.4.2",
+    "express": "^5.2.1",
     "ioredis": "^5.11.1",
-    "knex": "^3.2.10",
+    "knex": "^3.3.0",
     "nsfwjs": "^4.3.0",
-    "pg": "^8.21.0",
-    "bcryptjs": "^2.4.3",
-    "express": "^4.21.0"
+    "pg": "^8.22.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -51,10 +51,10 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@vitest/coverage-v8": "^4.1.8",
-    "@vitest/ui": "^4.1.8",
-    "eslint": "^10.5.0",
-    "supertest": "^7.0.0",
-    "vitest": "^4.1.8"
+    "@vitest/coverage-v8": "^4.1.10",
+    "@vitest/ui": "^4.1.10",
+    "eslint": "^10.6.0",
+    "supertest": "^7.2.2",
+    "vitest": "^4.1.10"
   }
 }
