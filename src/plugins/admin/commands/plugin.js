@@ -287,7 +287,7 @@ export default {
                 const query = interaction.options.getString('query');
                 const { default: PluginRegistry } = await import('../../../core/PluginRegistry.js');
                 const registry = new PluginRegistry(
-                    interaction.client.config.plugins.registryFile || './data/plugin-registry.json'
+                    interaction.client.config.plugins.registryFile || './data/plugins/registry.json'
                 );
                 const results = registry.search(query);
                 return interaction.editReply({

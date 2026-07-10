@@ -205,7 +205,7 @@ export default class PluginManager {
 
         const { default: PluginRegistry } = await import('./PluginRegistry.js');
         const registry = new PluginRegistry(
-            this.client.config.plugins.registryFile || './data/plugin-registry.json'
+            this.client.config.plugins.registryFile || './data/plugins/registry.json'
         );
 
         const entry = registry.get(id);
