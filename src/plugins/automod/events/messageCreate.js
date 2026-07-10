@@ -19,6 +19,7 @@ import { appendToUserArray, generateId, getUserData, getGuildData } from '../../
 import { sendModLog } from '../../../utils/modLog.js';
 import { config } from '../../../config/config.js';
 import { trackMessage, trackViolation, flushAnalyticsCritical } from '../../../utils/analyticsCollector.js';
+import { checkMessageModeration, formatViolations } from '../../../utils/openaiModeration.js';
 
 export default {
     name: 'messageCreate',
@@ -116,6 +117,14 @@ export default {
                         `Sent ${cfg.spamThreshold}+ messages in ${cfg.spamInterval / 1000}s`, client, true);
                     return;
                 }
+            }
+
+            // Check AI moderation (OpenAI Moderation API)
+            const moderationResult = await checkMessageModeration(message.guild.id, message.content);
+            if (moderationResult) {
+                const reason = `AI moderation flagged: ${formatViolations(moderationResult.violations)}`;
+                await handleViolation(message, 'ai_moderation', reason, client, moderationResult.shouldDelete);
+                return;
             }
             
         } catch (error) {
