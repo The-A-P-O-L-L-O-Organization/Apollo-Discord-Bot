@@ -2,7 +2,7 @@
 // Create and manage giveaways
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
-import { updateGuildData } from '../../../utils/db.js';
+import { getGuildData, updateGuildData } from '../../../utils/db.js';
 
 export default {
     name: 'giveaway',
@@ -123,14 +123,14 @@ async function handleCreate(interaction) {
     // Create giveaway message
     const giveawayEmbed = new EmbedBuilder()
         .setColor(0x9B59B6)
-        .setTitle('🎉 GIVEAWAY 🎉')
+        .setTitle('GIVEAWAY')
         .setDescription(`**Prize:** ${prize}`)
         .addFields(
             { name: 'Hosted by', value: interaction.user.toString(), inline: true },
             { name: 'Ends', value: `<t:${Math.floor(endTime / 1000)}:R>`, inline: true },
             { name: 'Winners', value: `${winners}`, inline: true }
         )
-        .setFooter({ text: 'React with 🎉 to enter!' })
+        .setFooter({ text: 'Click the button to enter!' })
         .setTimestamp();
     
     const message = await interaction.reply({
@@ -180,7 +180,7 @@ async function handleCreate(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+    await interaction.followUp({ embeds: [successEmbed], ephemeral: true });
 }
 
 async function handleEnd(interaction) {
@@ -241,7 +241,4 @@ function parseDuration(str) {
     return value * (multipliers[unit] || 0);
 }
 
-async function getGuildData(store, guildId) {
-    const { getGuildData } = require('../../../utils/db.js');
-    return getGuildData(store, guildId);
-}
+

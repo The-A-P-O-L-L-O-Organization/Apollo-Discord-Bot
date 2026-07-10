@@ -331,8 +331,8 @@ if (RUN_MODE === 'worker') {
                 }
             }, 5000);
 
-             process.on('SIGTERM', async () => { clearInterval(pollInterval); await redis.quit(); await cleanup(); });
-             process.on('SIGINT', async () => { clearInterval(pollInterval); await redis.quit(); await cleanup(); });
+             process.on('SIGTERM', async () => { clearInterval(pollInterval); await redis.quit(); });
+             process.on('SIGINT', async () => { clearInterval(pollInterval); await redis.quit(); });
         } else {
             console.log('[Gateway] Elected as leader!');
             startHeartbeat(redis, config.podId);
