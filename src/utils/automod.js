@@ -42,6 +42,7 @@ export async function getAutomodConfig(guildId) {
         minAccountAge: guildConfig.minAccountAge ?? config.automod.minAccountAge,
         spamThreshold: guildConfig.spamThreshold ?? config.automod.spamThreshold,
         spamInterval: guildConfig.spamInterval ?? config.automod.spamInterval,
+        aiModeration: guildConfig.aiModeration ?? config.automod.aiModeration,
         exemptChannels: guildConfig.exemptChannels || [],
         exemptRoles: guildConfig.exemptRoles || []
     };

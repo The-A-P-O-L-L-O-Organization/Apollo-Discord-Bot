@@ -76,7 +76,8 @@ export default {
                         { name: 'Max Caps Percent', value: 'maxCapsPercent' },
                         { name: 'Min Account Age (days)', value: 'minAccountAge' },
                         { name: 'Spam Threshold', value: 'spamThreshold' },
-                        { name: 'Spam Interval (ms)', value: 'spamInterval' }
+                        { name: 'Spam Interval (ms)', value: 'spamInterval' },
+                        { name: 'AI Moderation', value: 'aiModeration' }
                     ]
                 },
                 {
@@ -197,6 +198,7 @@ async function getAutomodConfig(guildId) {
         minAccountAge: guildConfig.minAccountAge ?? config.automod.minAccountAge,
         spamThreshold: guildConfig.spamThreshold ?? config.automod.spamThreshold,
         spamInterval: guildConfig.spamInterval ?? config.automod.spamInterval,
+        aiModeration: guildConfig.aiModeration ?? config.automod.aiModeration,
         exemptChannels: guildConfig.exemptChannels || [],
         exemptRoles: guildConfig.exemptRoles || []
     };
@@ -254,7 +256,8 @@ async function handleStatus(interaction) {
             { name: '[Spam] Spam Threshold', value: `${cfg.spamThreshold} msgs / ${cfg.spamInterval / 1000}s`, inline: true },
             { name: '[Ban] Banned Words', value: cfg.bannedWords.length > 0 ? `${cfg.bannedWords.length} word(s)` : 'None configured', inline: true },
             { name: '[Channel] Exempt Channels', value: `${cfg.exemptChannels.length} channel(s)`, inline: true },
-            { name: '[Roles] Exempt Roles', value: `${cfg.exemptRoles.length} role(s)`, inline: true }
+            { name: '[Roles] Exempt Roles', value: `${cfg.exemptRoles.length} role(s)`, inline: true },
+            { name: '[AI] Moderation', value: cfg.aiModeration ? 'Enabled' : 'Disabled', inline: true }
         )
         .setTimestamp()
         .setFooter({ text: 'Use /automod set to modify settings' });
@@ -363,7 +366,7 @@ async function handleSet(interaction) {
     
     // Parse value based on setting type
     let value;
-    const booleanSettings = ['filterInvites', 'filterLinks'];
+    const booleanSettings = ['filterInvites', 'filterLinks', 'aiModeration'];
     const numberSettings = ['maxMentions', 'maxCapsPercent', 'minAccountAge', 'spamThreshold', 'spamInterval'];
     
     if (booleanSettings.includes(setting)) {

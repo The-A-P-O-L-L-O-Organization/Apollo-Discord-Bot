@@ -120,11 +120,13 @@ export default {
             }
 
             // Check AI moderation (OpenAI Moderation API)
-            const moderationResult = await checkMessageModeration(message.guild.id, message.content);
-            if (moderationResult) {
-                const reason = `AI moderation flagged: ${formatViolations(moderationResult.violations)}`;
-                await handleViolation(message, 'ai_moderation', reason, client, moderationResult.shouldDelete);
-                return;
+            if (cfg.aiModeration) {
+                const moderationResult = await checkMessageModeration(message.content);
+                if (moderationResult) {
+                    const reason = `AI moderation flagged: ${formatViolations(moderationResult.violations)}`;
+                    await handleViolation(message, 'ai_moderation', reason, client, true);
+                    return;
+                }
             }
             
         } catch (error) {
