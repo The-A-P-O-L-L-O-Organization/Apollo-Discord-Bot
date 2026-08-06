@@ -11,6 +11,7 @@ import { stopReminderScheduler } from './utils/reminderScheduler.js';
 import { stopPollScheduler } from './utils/pollScheduler.js';
 import { close as closeDatabase } from './utils/db.js';
 import { closeLockRedis } from './utils/lock.js';
+import { safeError } from './utils/safeError.js';
 
 const uuid = randomUUID?.() ?? randomBytes(16).toString('hex');
 
@@ -184,7 +185,7 @@ client.on('interactionCreate', async(interaction) => {
             color: 0xFF0000,
             title: 'Error',
             description: 'An error occurred while executing this command.',
-            fields: [{ name: 'Error', value: error.message || 'Unknown error' }],
+            fields: [{ name: 'Error', value: safeError(error) }],
             timestamp: new Date().toISOString()
         };
 

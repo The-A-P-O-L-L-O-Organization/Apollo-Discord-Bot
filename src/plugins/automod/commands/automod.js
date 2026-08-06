@@ -4,6 +4,7 @@
 import { PermissionsBitField, EmbedBuilder, ChannelType } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
+import { safeError } from '../../../utils/safeError.js';
 
 export default {
     name: 'automod',
@@ -171,14 +172,12 @@ export default {
                 break;
             }
         } catch (error) {
-            console.error('[ERROR] Automod command error:', error);
-            
             await interaction.reply({
                 embeds: [{
                     color: 0xFF0000,
                     title: '[ERROR] Command Failed',
                     description: 'An error occurred while configuring automod.',
-                    fields: [{ name: 'Error', value: error.message }],
+                    fields: [{ name: 'Error', value: safeError(error) }],
                     timestamp: new Date().toISOString()
                 }],
                 ephemeral: true

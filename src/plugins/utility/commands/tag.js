@@ -3,6 +3,7 @@
 
 import { PermissionsBitField } from 'discord.js';
 import { setGuildData, getGuildData } from '../../../utils/db.js';
+import { safeError } from '../../../utils/safeError.js';
 
 export default {
     name: 'tag',
@@ -99,8 +100,6 @@ export default {
             }
             
         } catch (error) {
-            console.error('[ERROR] Tag command error:', error);
-            
             const errorEmbed = {
                 color: 0xFF0000,
                 title: '[ERROR] Command Failed',
@@ -108,7 +107,7 @@ export default {
                 fields: [
                     {
                         name: '[ERROR] Details',
-                        value: error.message,
+                        value: safeError(error),
                         inline: true
                     }
                 ],

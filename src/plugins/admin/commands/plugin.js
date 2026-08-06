@@ -1,3 +1,5 @@
+import { safeError } from '../../../utils/safeError.js';
+
 export default {
     name: 'plugin',
     description: 'Manage bot plugins (bot owner only)',
@@ -161,7 +163,7 @@ export default {
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
-                            color: 0xFF0000, title: '[ERROR]', description: err.message
+                            color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
                         ephemeral: true
                     });
@@ -184,7 +186,7 @@ export default {
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
-                            color: 0xFF0000, title: '[ERROR]', description: err.message
+                            color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
                         ephemeral: true
                     });
@@ -207,7 +209,7 @@ export default {
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
-                            color: 0xFF0000, title: '[ERROR]', description: err.message
+                            color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
                         ephemeral: true
                     });
@@ -232,7 +234,7 @@ export default {
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
-                            color: 0xFF0000, title: '[ERROR]', description: err.message
+                            color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
                         ephemeral: true
                     });
@@ -254,7 +256,7 @@ export default {
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
-                            color: 0xFF0000, title: '[ERROR]', description: err.message
+                            color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }]
                     });
                 }
@@ -276,7 +278,7 @@ export default {
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
-                            color: 0xFF0000, title: '[ERROR]', description: err.message
+                            color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
                         ephemeral: true
                     });
@@ -323,7 +325,7 @@ export default {
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
-                            color: 0xFF0000, title: '[ERROR]', description: err.message
+                            color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }]
                     });
                 }

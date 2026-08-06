@@ -6,6 +6,7 @@ import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { createModCase } from './case.js';
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 import { canModerate } from '../../../utils/moderation.js';
+import { safeError } from '../../../utils/safeError.js';
 
 export default {
     name: 'kick',
@@ -157,8 +158,6 @@ export default {
             console.log(`[MODERATION] User ${user.tag} was kicked by ${interaction.user.tag}. Reason: ${reason}`);
             
         } catch (error) {
-            console.error('[ERROR] Kick command error:', error);
-            
             const errorEmbed = {
                 color: 0xFF0000,
                 title: '[ERROR] Command Failed',
@@ -166,7 +165,7 @@ export default {
                 fields: [
                     {
                         name: '[ERROR] Details',
-                        value: error.message,
+                        value: safeError(error),
                         inline: true
                     }
                 ],
