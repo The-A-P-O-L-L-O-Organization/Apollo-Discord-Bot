@@ -14,6 +14,7 @@ import { config } from '../../../config/config.js';
 import { createModCase } from './case.js';
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 import { canModerate } from '../../../utils/moderation.js';
+import { safeError } from '../../../utils/safeError.js';
 
 export default {
     name: 'warn',
@@ -266,13 +267,11 @@ export default {
             console.log(`[MODERATION] User ${user.tag} warned by ${interaction.user.tag}. Total: ${warningCount}. Reason: ${reason}`);
             
         } catch (error) {
-            console.error('[ERROR] Warn command error:', error);
-            
             const errorEmbed = {
                 color: 0xFF0000,
                 title: '[ERROR] Command Failed',
                 description: 'An error occurred while trying to warn the user.',
-                fields: [{ name: 'Error', value: error.message, inline: true }],
+                fields: [{ name: 'Error', value: safeError(error), inline: true }],
                 timestamp: new Date().toISOString()
             };
             

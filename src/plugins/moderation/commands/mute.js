@@ -7,6 +7,7 @@ import { setUserData } from '../../../utils/db.js';
 import { createModCase } from './case.js';
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 import { canModerate } from '../../../utils/moderation.js';
+import { safeError } from '../../../utils/safeError.js';
 
 export default {
     name: 'mute',
@@ -263,8 +264,6 @@ export default {
             console.log(`[MODERATION] User ${user.tag} was muted by ${interaction.user.tag}. Duration: ${durationText}. Reason: ${reason}`);
             
         } catch (error) {
-            console.error('[ERROR] Mute command error:', error);
-            
             const errorEmbed = {
                 color: 0xFF0000,
                 title: '[ERROR] Command Failed',
@@ -272,7 +271,7 @@ export default {
                 fields: [
                     {
                         name: '[ERROR] Details',
-                        value: error.message,
+                        value: safeError(error),
                         inline: true
                     }
                 ],
