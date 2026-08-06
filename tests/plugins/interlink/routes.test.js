@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, vi } from 'vitest';
 import request from 'supertest';
 import express from 'express';
+import InterlinkServer from '../../../src/plugins/interlink/server.js';
 
 const { mockBcrypt } = vi.hoisted(() => {
     const mockBcrypt = {
@@ -141,11 +142,20 @@ describe('Interlink Routes', () => {
     });
 
     it('should return 429 when rate limit is exceeded', async() => {
-        // Recreate app with a 1-request limiter by monkeypatching the limiter
-        // on the server instance if available; otherwise assert via env is not
-        // possible, so verify the middleware exists by making 1 request and
-        // expecting 200 — full 429 coverage lives in rateLimit.test.js.
-        const res = await request(app).get('/api/v1/health');
-        expect(res.status).toBe(200);
+        const server = new InterlinkServer({ registry: mockRegistry, messageBus: mockMessageBus });
+        server._rateLimiter.limit = 1;
+        server._rateLimiter.windowMs = 60000;
+        await server.start(0);
+        try {
+            const res = await request(server._server).get('/api/v1/health');
+            expect(res.status).toBe(200);
+
+            const res2 = await request(server._server).get('/api/v1/health');
+            expect(res2.status).toBe(429);
+            expect(res2.body.error).toBe('Too many requests');
+            expect(res2.headers['retry-after']).toBeTruthy();
+        } finally {
+            await server.stop();
+        }
     });
 });
