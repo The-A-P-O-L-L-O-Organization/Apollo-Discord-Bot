@@ -4,6 +4,7 @@
 import { ApplicationCommandType, PermissionsBitField } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { canModerate } from '../../../utils/moderation.js';
+import { safeError } from '../../../utils/safeError.js';
 
 export default {
     name: 'purge',
@@ -170,8 +171,6 @@ export default {
             console.log(`[MODERATION] ${deletedMessages.size} messages deleted by ${interaction.user.tag}. Channel: ${channel.name}. Reason: ${reason}`);
             
         } catch (error) {
-            console.error('[ERROR] Purge command error:', error);
-            
             const errorEmbed = {
                 color: 0xFF0000,
                 title: '[ERROR] Command Failed',
@@ -179,7 +178,7 @@ export default {
                 fields: [
                     {
                         name: '[ERROR] Details',
-                        value: error.message,
+                        value: safeError(error),
                         inline: true
                     }
                 ],
