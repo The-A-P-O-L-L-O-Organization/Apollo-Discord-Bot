@@ -156,6 +156,34 @@ describe('Tag Command', () => {
             const [, , data] = setGuildData.mock.calls[0];
             expect(data.announce.embed).toEqual({ title: 'News', color: '#FF0000' });
         });
+
+        it('should reject embed JSON larger than 2KB', async() => {
+            mockInteraction.options.getString.mockImplementation((name) => {
+                if (name === 'name') {return 'big';}
+                if (name === 'content') {return 'content';}
+                if (name === 'embed') {return JSON.stringify({ title: 'x'.repeat(3000) });}
+                return null;
+            });
+
+            await tagCommand.execute(mockInteraction);
+
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.embeds[0].title).toContain('Embed Too Large');
+        });
+
+        it('should strip non-whitelisted embed keys', async() => {
+            mockInteraction.options.getString.mockImplementation((name) => {
+                if (name === 'name') {return 'clean';}
+                if (name === 'content') {return 'content';}
+                if (name === 'embed') {return JSON.stringify({ title: 'T', description: 'D', arbitraryKey: 'drop me', nested: { x: 1 } });}
+                return null;
+            });
+
+            await tagCommand.execute(mockInteraction);
+
+            const [, , data] = setGuildData.mock.calls[0];
+            expect(data.clean.embed).toEqual({ title: 'T', description: 'D' });
+        });
     });
 
     describe('show', () => {
