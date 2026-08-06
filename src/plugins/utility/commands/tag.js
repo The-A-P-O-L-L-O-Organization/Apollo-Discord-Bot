@@ -5,6 +5,19 @@ import { PermissionsBitField } from 'discord.js';
 import { setGuildData, getGuildData } from '../../../utils/db.js';
 import { safeError } from '../../../utils/safeError.js';
 
+const ALLOWED_EMBED_KEYS = ['title', 'description', 'color', 'fields', 'image', 'thumbnail', 'footer', 'author'];
+const MAX_EMBED_JSON_LENGTH = 2048;
+
+function sanitizeEmbedData(embedData) {
+    const clean = {};
+    for (const key of ALLOWED_EMBED_KEYS) {
+        if (embedData[key] !== undefined) {
+            clean[key] = embedData[key];
+        }
+    }
+    return clean;
+}
+
 export default {
     name: 'tag',
     description: 'Create and manage custom text commands',
@@ -171,6 +184,18 @@ async function handleCreate(interaction) {
             if (typeof embedData !== 'object' || embedData === null) {
                 throw new Error('Embed must be a JSON object');
             }
+            if (embedJson.length > MAX_EMBED_JSON_LENGTH) {
+                return interaction.reply({
+                    embeds: [{
+                        color: 0xFF0000,
+                        title: '[ERROR] Embed Too Large',
+                        description: 'Embed JSON must be 2KB or less.',
+                        timestamp: new Date().toISOString()
+                    }],
+                    ephemeral: true
+                });
+            }
+            embedData = sanitizeEmbedData(embedData);
         } catch (error) {
             return interaction.reply({
                 embeds: [{
