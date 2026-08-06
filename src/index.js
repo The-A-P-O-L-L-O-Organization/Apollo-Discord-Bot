@@ -179,8 +179,6 @@ client.on('interactionCreate', async(interaction) => {
             trackCommand(interaction.guild.id, interaction.commandName, interaction.user.id);
         }
     } catch (error) {
-        console.error('[ERROR] Error executing /' + interaction.commandName + ':', error);
-
         const errorEmbed = {
             color: 0xFF0000,
             title: 'Error',
