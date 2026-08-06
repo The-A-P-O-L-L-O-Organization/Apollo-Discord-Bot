@@ -375,4 +375,52 @@ describe('Warn Command', () => {
             expect(idField.value).toBe('test-warning-id');
         });
     });
+
+    describe('hierarchy check', () => {
+        it('should block warning a higher-ranked member', async() => {
+            const lowMod = createMockMember({
+                user: createMockUser({ id: 'lowmod' }),
+                roles: { highest: { position: 2 } }
+            });
+            const highTarget = createMockMember({
+                user: targetUser,
+                roles: { highest: { position: 5 } }
+            });
+            fetchMember.mockResolvedValue(highTarget);
+            mockInteraction.member = lowMod;
+
+            await warnCommand.execute(mockInteraction);
+
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.embeds[0].title).toContain('Hierarchy Check Failed');
+            expect(appendToUserArray).not.toHaveBeenCalled();
+        });
+
+        it('should allow warning a lower-ranked member', async() => {
+            const highMod = createMockMember({
+                user: createMockUser({ id: 'highmod' }),
+                roles: { highest: { position: 5 } }
+            });
+            const lowTarget = createMockMember({
+                user: targetUser,
+                roles: { highest: { position: 2 } }
+            });
+            fetchMember.mockResolvedValue(lowTarget);
+            mockInteraction.member = highMod;
+
+            await warnCommand.execute(mockInteraction);
+
+            expect(appendToUserArray).toHaveBeenCalledWith(
+                'warnings',
+                mockGuild.id,
+                targetUser.id,
+                expect.objectContaining({
+                    id: 'test-warning-id',
+                    reason: 'Breaking server rules',
+                    moderatorId: '999888777',
+                    active: true
+                })
+            );
+        });
+    });
 });
