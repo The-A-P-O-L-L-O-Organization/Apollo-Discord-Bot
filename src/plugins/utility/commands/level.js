@@ -3,6 +3,7 @@
 
 import { PermissionsBitField } from 'discord.js';
 import { getUserData } from '../../../utils/db.js';
+import { calculateXPForLevel } from '../../../utils/xp.js';
 
 export default {
     name: 'level',
@@ -103,14 +104,6 @@ export default {
         }
     }
 };
-
-/**
- * Calculate XP needed for a specific level
- * Uses a quadratic formula for increasing difficulty
- */
-function calculateXPForLevel(level) {
-    return Math.floor(100 * Math.pow(level, 1.5));
-}
 
 /**
  * Create a visual progress bar

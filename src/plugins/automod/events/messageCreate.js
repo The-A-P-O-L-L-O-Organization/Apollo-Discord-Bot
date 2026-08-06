@@ -20,6 +20,7 @@ import { sendModLog } from '../../../utils/modLog.js';
 import { config } from '../../../config/config.js';
 import { trackMessage, trackViolation, flushAnalyticsCritical } from '../../../utils/analyticsCollector.js';
 import { checkMessageModeration, formatViolations } from '../../../utils/openaiModeration.js';
+import { checkMessageAttachments } from '../../../utils/nsfwDetection.js';
 
 export default {
     name: 'messageCreate',
@@ -125,6 +126,17 @@ export default {
                 if (moderationResult) {
                     const reason = `AI moderation flagged: ${formatViolations(moderationResult.violations)}`;
                     await handleViolation(message, 'ai_moderation', reason, client, true);
+                    return;
+                }
+            }
+
+            // Check NSFW image attachments
+            if (cfg.nsfwFilter && message.attachments.size > 0) {
+                const nsfwResult = await checkMessageAttachments(message.guild.id, message, true);
+                if (nsfwResult && nsfwResult.detected) {
+                    const count = nsfwResult.images.length;
+                    const reason = `Posted NSFW image${count > 1 ? 's' : ''} (${count} detected)`;
+                    await handleViolation(message, 'nsfw', reason, client, true);
                     return;
                 }
             }
