@@ -87,7 +87,22 @@ export const config = {
         // Action to take: 'warn', 'mute', 'kick', 'delete'
         action: 'warn',
         // AI-powered moderation (OpenAI Moderation API)
-        aiModeration: false
+        aiModeration: false,
+        // NSFW image detection in attachments
+        nsfwFilter: false
+    },
+
+    // Leveling System Settings
+    levels: {
+        // Whether XP is awarded for messages
+        enabled: true,
+        // Cooldown between XP awards per user (milliseconds)
+        cooldown: 60000,
+        // Random XP awarded per message
+        minXp: 15,
+        maxXp: 25,
+        // Announce level-ups in the channel
+        announceLevelUp: true
     },
     
     // Ticket System Settings

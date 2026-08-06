@@ -138,12 +138,14 @@ export function isImageNsfw(predictions, threshold = 0.6) {
  * Checks message attachments for NSFW content
  * @param {string} guildId - Guild ID
  * @param {Message} message - Discord message
+ * @param {boolean|null} enabledOverride - Override for the enabled flag
  * @returns {Promise<Object|null>} Detection result or null
  */
-export async function checkMessageAttachments(guildId, message) {
+export async function checkMessageAttachments(guildId, message, enabledOverride = null) {
     const config = await getNsfwConfig(guildId);
-    
-    if (!config.enabled || !isNsfwDetectionAvailable()) {
+    const enabled = enabledOverride ?? config.enabled;
+
+    if (!enabled || !isNsfwDetectionAvailable()) {
         return null;
     }
     
