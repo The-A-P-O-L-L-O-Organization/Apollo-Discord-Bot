@@ -9,6 +9,7 @@ import {
     getGuildData
 } from '../../../utils/db.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
+import { canModerate } from '../../../utils/moderation.js';
 
 export default {
     name: 'strike',
@@ -86,6 +87,18 @@ export default {
                     }],
                     ephemeral: true
                 });
+            }
+            
+            // Hierarchy check
+            const hierarchy = canModerate(interaction.guild, interaction.member, member);
+            if (!hierarchy.ok) {
+                const errorEmbed = {
+                    color: 0xFF0000,
+                    title: '[ERROR] Hierarchy Check Failed',
+                    description: hierarchy.reason,
+                    timestamp: new Date().toISOString()
+                };
+                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
             }
             
             // Create strike object

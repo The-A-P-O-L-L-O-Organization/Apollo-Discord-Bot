@@ -13,6 +13,7 @@ import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { config } from '../../../config/config.js';
 import { createModCase } from './case.js';
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
+import { canModerate } from '../../../utils/moderation.js';
 
 export default {
     name: 'warn',
@@ -93,6 +94,18 @@ export default {
                     }],
                     ephemeral: true
                 });
+            }
+            
+            // Hierarchy check
+            const hierarchy = canModerate(interaction.guild, interaction.member, member);
+            if (!hierarchy.ok) {
+                const errorEmbed = {
+                    color: 0xFF0000,
+                    title: '[ERROR] Hierarchy Check Failed',
+                    description: hierarchy.reason,
+                    timestamp: new Date().toISOString()
+                };
+                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
             }
             
             // Create warning object
