@@ -12,6 +12,7 @@ import { stopPollScheduler } from './utils/pollScheduler.js';
 import { close as closeDatabase } from './utils/db.js';
 import { closeLockRedis } from './utils/lock.js';
 import { safeError } from './utils/safeError.js';
+import { assertDiscordToken } from './utils/startupChecks.js';
 
 const uuid = randomUUID?.() ?? randomBytes(16).toString('hex');
 
@@ -298,6 +299,13 @@ if (RUN_MODE === 'worker') {
      });
 
     async function startGateway() {
+        try {
+            assertDiscordToken(config.DISCORD_TOKEN);
+        } catch (error) {
+            console.error(error.message);
+            process.exit(1);
+        }
+
         console.log('[INFO] Attempting to log in...');
         client.login(config.DISCORD_TOKEN)
             .catch((error) => {
