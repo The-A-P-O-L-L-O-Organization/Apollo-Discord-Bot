@@ -3,6 +3,53 @@ import { join, resolve, sep } from 'path';
 import { pathToFileURL } from 'url';
 import AdmZip from 'adm-zip';
 import { mkdirSync, writeFileSync } from 'fs';
+import { lookup as dnsLookup } from 'node:dns';
+
+const PRIVATE_IPV4_RANGES = [
+    { start: '10.0.0.0', end: '10.255.255.255' },
+    { start: '100.64.0.0', end: '100.127.255.255' },
+    { start: '127.0.0.0', end: '127.255.255.255' },
+    { start: '169.254.0.0', end: '169.254.255.255' },
+    { start: '172.16.0.0', end: '172.31.255.255' },
+    { start: '192.168.0.0', end: '192.168.255.255' },
+    { start: '0.0.0.0', end: '0.255.255.255' }
+];
+
+function ipv4ToInt(ip) {
+    return ip.split('.').reduce((acc, octet) => (acc * 256) + Number(octet), 0);
+}
+
+export function isPrivateIp(ip) {
+    if (ip.includes(':')) {
+        const lower = ip.toLowerCase();
+        return lower === '::1'
+            || lower.startsWith('fc00::')
+            || lower.startsWith('fe80::')
+            || lower === '::'
+            || lower.startsWith('fec0::');
+    }
+    const int = ipv4ToInt(ip);
+    return PRIVATE_IPV4_RANGES.some(({ start, end }) =>
+        int >= ipv4ToInt(start) && int <= ipv4ToInt(end));
+}
+
+export function isAllowedProtocol(protocol) {
+    return protocol === 'https:';
+}
+
+export function resolvePublicIps(hostname) {
+    return new Promise((resolve, reject) => {
+        dnsLookup(hostname, { all: true }, (err, addresses) => {
+            if (err) { return reject(new Error(`DNS lookup failed for ${hostname}`)); }
+            const ips = addresses.map(a => a.address);
+            const blocked = ips.filter(ip => isPrivateIp(ip));
+            if (blocked.length > 0) {
+                return reject(new Error(`Plugin URL resolves to a private/internal address (${blocked.join(', ')}).`));
+            }
+            resolve(ips);
+        });
+    });
+}
 
 export async function downloadAndExtractPlugin(url, destDir) {
     if (!url) {throw new Error('No download URL provided');}
