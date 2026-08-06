@@ -2,7 +2,8 @@
 // Deletes multiple messages from a channel
 
 import { ApplicationCommandType, PermissionsBitField } from 'discord.js';
-import { sendModLog } from '../../../utils/modLog.js';
+import { sendModLog, fetchMember } from '../../../utils/modLog.js';
+import { canModerate } from '../../../utils/moderation.js';
 
 export default {
     name: 'purge',
@@ -75,6 +76,21 @@ export default {
                 
                 // Limit to 100 messages max
                 messages = new Map([...messages].slice(0, 100));
+            }
+            
+            // Hierarchy check when filtering by a specific user
+            if (targetUser) {
+                const targetMember = await fetchMember(interaction.guild, targetUser.id).catch(() => null);
+                const hierarchy = canModerate(interaction.guild, interaction.member, targetMember);
+                if (!hierarchy.ok) {
+                    const errorEmbed = {
+                        color: 0xFF0000,
+                        title: '[ERROR] Hierarchy Check Failed',
+                        description: hierarchy.reason,
+                        timestamp: new Date().toISOString()
+                    };
+                    return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                }
             }
             
             // Check if there are messages to delete
