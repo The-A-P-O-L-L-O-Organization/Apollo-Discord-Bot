@@ -22,13 +22,17 @@ function ipv4ToInt(ip) {
 export function isPrivateIp(ip) {
     if (ip.includes(':')) {
         const lower = ip.toLowerCase();
+        const mapped = lower.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+        if (mapped) { return isPrivateIp(mapped[1]); }
         return lower === '::1'
-            || lower.startsWith('fc00::')
+            || lower.startsWith('fc')
+            || lower.startsWith('fd')
             || lower.startsWith('fe80::')
             || lower === '::'
             || lower.startsWith('fec0::');
     }
     const int = ipv4ToInt(ip);
+    if (!Number.isFinite(int)) { return true; }
     return PRIVATE_IPV4_RANGES.some(({ start, end }) =>
         int >= ipv4ToInt(start) && int <= ipv4ToInt(end));
 }

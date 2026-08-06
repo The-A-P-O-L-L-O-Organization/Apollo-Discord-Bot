@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isAllowedProtocol, isPrivateIp, validatePluginDirectory } from '../../src/core/pluginDownloader.js';
+import { isAllowedProtocol, isPrivateIp, resolvePublicIps, validatePluginDirectory } from '../../src/core/pluginDownloader.js';
 import { mkdtempSync, writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
@@ -51,12 +51,27 @@ describe('pluginDownloader security validators', () => {
     it('should reject private IPv6 addresses', () => {
         expect(isPrivateIp('::1')).toBe(true);
         expect(isPrivateIp('fc00::1')).toBe(true);
+        expect(isPrivateIp('fd00::1')).toBe(true);
         expect(isPrivateIp('fe80::1')).toBe(true);
+        expect(isPrivateIp('::ffff:127.0.0.1')).toBe(true);
     });
 
     it('should allow only https protocol', () => {
         expect(isAllowedProtocol('https:')).toBe(true);
         expect(isAllowedProtocol('http:')).toBe(false);
         expect(isAllowedProtocol('file:')).toBe(false);
+    });
+
+    it('should reject private IPs during resolution', async() => {
+        await expect(resolvePublicIps('127.0.0.1')).rejects.toThrow(/private|internal/i);
+    });
+
+    it('should resolve public IPs', async() => {
+        const ips = await resolvePublicIps('8.8.8.8');
+        expect(ips).toContain('8.8.8.8');
+    });
+
+    it('should reject fd00:: ULA addresses during resolution', async() => {
+        await expect(resolvePublicIps('fd00::1')).rejects.toThrow(/private|internal/i);
     });
 });
