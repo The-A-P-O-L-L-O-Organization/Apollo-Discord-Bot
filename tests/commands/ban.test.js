@@ -293,6 +293,7 @@ describe('Ban Command', () => {
 
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.embeds[0].title).toContain('Hierarchy Check Failed');
+            expect(mockGuild.bans.create).not.toHaveBeenCalled();
         });
 
         it('should allow banning a lower-ranked member', async() => {
