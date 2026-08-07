@@ -4,6 +4,7 @@ import { pathToFileURL } from 'url';
 import AdmZip from 'adm-zip';
 import { mkdirSync, writeFileSync } from 'fs';
 import { lookup as dnsLookup } from 'node:dns';
+import { createHash } from 'node:crypto';
 
 const PRIVATE_IPV4_RANGES = [
     { start: '10.0.0.0', end: '10.255.255.255' },
@@ -64,7 +65,8 @@ export async function downloadPluginArchive(url, {
     timeoutMs = DEFAULT_TIMEOUT_MS,
     maxRedirects = DEFAULT_MAX_REDIRECTS,
     fetchImpl = fetch,
-    expectedSha256 = null
+    expectedSha256 = null,
+    skipDnsCheck = false
 } = {}) {
     if (!url) {
         throw new Error('Plugin download URL is required.');
@@ -75,8 +77,7 @@ export async function downloadPluginArchive(url, {
         throw new Error('Plugin downloads must use https.');
     }
 
-    const usesRealFetch = fetchImpl === fetch;
-    if (usesRealFetch) {
+    if (!skipDnsCheck) {
         await resolvePublicIps(parsed.hostname);
     }
 
@@ -95,7 +96,7 @@ export async function downloadPluginArchive(url, {
         const timer = setTimeout(() => controller.abort(), remaining);
         let response;
         try {
-            response = await fetchImpl(currentUrl, { signal: controller.signal });
+            response = await fetchImpl(currentUrl, { signal: controller.signal, redirect: 'manual' });
         } catch (err) {
             clearTimeout(timer);
             throw new Error(`Plugin download failed: ${err.message}`, { cause: err });
@@ -115,7 +116,7 @@ export async function downloadPluginArchive(url, {
             if (!isAllowedProtocol(next.protocol)) {
                 throw new Error('Plugin download redirects must use https.');
             }
-            if (usesRealFetch) {
+            if (!skipDnsCheck) {
                 await resolvePublicIps(next.hostname);
             }
             currentUrl = next.href;
@@ -132,8 +133,7 @@ export async function downloadPluginArchive(url, {
         }
 
         if (expectedSha256) {
-            const crypto = await import('node:crypto');
-            const actual = crypto.createHash('sha256').update(buffer).digest('hex');
+            const actual = createHash('sha256').update(buffer).digest('hex');
             if (actual !== expectedSha256.toLowerCase()) {
                 throw new Error('Plugin download hash mismatch.');
             }

@@ -83,11 +83,11 @@ describe('downloadPluginArchive', () => {
     });
 
     it('should reject URLs resolving to private IPs', async() => {
-        await expect(downloadPluginArchive('https://internal.example.com/p.zip'))
+        await expect(downloadPluginArchive('https://127.0.0.1/p.zip'))
             .rejects.toThrow(/private|internal/i);
     });
 
-    it('should follow redirects up to the limit and enforce byte cap', async() => {
+    it('should follow redirects up to the limit', async() => {
         const chunk = Buffer.alloc(1024, 0x61);
         const urls = ['https://cdn.example.com/a.zip', 'https://cdn.example.com/b.zip'];
         const responses = {
@@ -98,6 +98,7 @@ describe('downloadPluginArchive', () => {
         const result = await downloadPluginArchive(urls[0], {
             maxBytes: 1024 * 1024,
             timeoutMs: 2000,
+            skipDnsCheck: true,
             fetchImpl: async(url) => {
                 const r = responses[url];
                 return {
@@ -114,11 +115,12 @@ describe('downloadPluginArchive', () => {
         expect(result.buffer.length).toBe(1024);
     });
 
-    it('should abort when the download exceeds maxBytes', async() => {
+    it('should reject when the download exceeds maxBytes', async() => {
         const big = Buffer.alloc(1024, 0x62);
         await expect(downloadPluginArchive('https://big.example.com/b.zip', {
             maxBytes: 512,
             timeoutMs: 2000,
+            skipDnsCheck: true,
             fetchImpl: async() => ({
                 ok: true, status: 200, statusText: 'OK',
                 headers: { get: () => 'application/zip' },
@@ -138,6 +140,7 @@ describe('downloadPluginArchive', () => {
         await expect(downloadPluginArchive('https://loop.example.com/start.zip', {
             maxRedirects: 5,
             timeoutMs: 2000,
+            skipDnsCheck: true,
             fetchImpl: async(url) => loop(url)
         })).rejects.toThrow(/redirect/i);
     });
@@ -146,10 +149,46 @@ describe('downloadPluginArchive', () => {
         await expect(downloadPluginArchive('https://slow.example.com/s.zip', {
             maxBytes: 1024,
             timeoutMs: 100,
-            fetchImpl: async() => new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('slow')),
-                    200);
+            skipDnsCheck: true,
+            fetchImpl: async(url, { signal }) => new Promise((_, reject) => {
+                signal.addEventListener('abort', () => reject(signal.reason));
             })
         })).rejects.toThrow();
+    });
+
+    it('should accept an archive matching the expected sha256', async() => {
+        const chunk = Buffer.alloc(1024, 0x61);
+        const crypto = await import('node:crypto');
+        const hash = crypto.createHash('sha256').update(chunk).digest('hex');
+
+        const result = await downloadPluginArchive('https://hash.example.com/m.zip', {
+            maxBytes: 1024 * 1024,
+            timeoutMs: 2000,
+            skipDnsCheck: true,
+            expectedSha256: hash,
+            fetchImpl: async() => ({
+                ok: true, status: 200, statusText: 'OK',
+                headers: { get: () => 'application/zip' },
+                url: 'https://hash.example.com/m.zip',
+                arrayBuffer: async() => chunk
+            })
+        });
+
+        expect(result.buffer.length).toBe(1024);
+    });
+
+    it('should reject an archive not matching the expected sha256', async() => {
+        await expect(downloadPluginArchive('https://hash.example.com/m.zip', {
+            maxBytes: 1024 * 1024,
+            timeoutMs: 2000,
+            skipDnsCheck: true,
+            expectedSha256: '00'.repeat(32),
+            fetchImpl: async() => ({
+                ok: true, status: 200, statusText: 'OK',
+                headers: { get: () => 'application/zip' },
+                url: 'https://hash.example.com/m.zip',
+                arrayBuffer: async() => Buffer.alloc(1024, 0x61)
+            })
+        })).rejects.toThrow(/hash mismatch/i);
     });
 });
