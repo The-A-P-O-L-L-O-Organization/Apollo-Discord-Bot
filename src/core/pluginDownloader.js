@@ -55,6 +55,98 @@ export function resolvePublicIps(hostname) {
     });
 }
 
+const DEFAULT_MAX_BYTES = 25 * 1024 * 1024;
+const DEFAULT_TIMEOUT_MS = 30000;
+const DEFAULT_MAX_REDIRECTS = 5;
+
+export async function downloadPluginArchive(url, {
+    maxBytes = DEFAULT_MAX_BYTES,
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+    maxRedirects = DEFAULT_MAX_REDIRECTS,
+    fetchImpl = fetch,
+    expectedSha256 = null
+} = {}) {
+    if (!url) {
+        throw new Error('Plugin download URL is required.');
+    }
+
+    const parsed = new URL(url);
+    if (!isAllowedProtocol(parsed.protocol)) {
+        throw new Error('Plugin downloads must use https.');
+    }
+
+    const usesRealFetch = fetchImpl === fetch;
+    if (usesRealFetch) {
+        await resolvePublicIps(parsed.hostname);
+    }
+
+    let currentUrl = url;
+    let redirects = 0;
+
+    const deadline = Date.now() + timeoutMs;
+
+    while (true) {
+        const remaining = deadline - Date.now();
+        if (remaining <= 0) {
+            throw new Error('Plugin download timed out.');
+        }
+
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), remaining);
+        let response;
+        try {
+            response = await fetchImpl(currentUrl, { signal: controller.signal });
+        } catch (err) {
+            clearTimeout(timer);
+            throw new Error(`Plugin download failed: ${err.message}`, { cause: err });
+        }
+        clearTimeout(timer);
+
+        if (response.status >= 300 && response.status < 400) {
+            const location = response.headers.get('location');
+            if (!location) {
+                throw new Error('Plugin download redirect missing Location header.');
+            }
+            redirects += 1;
+            if (redirects > maxRedirects) {
+                throw new Error('Plugin download exceeded maximum redirects.');
+            }
+            const next = new URL(location, currentUrl);
+            if (!isAllowedProtocol(next.protocol)) {
+                throw new Error('Plugin download redirects must use https.');
+            }
+            if (usesRealFetch) {
+                await resolvePublicIps(next.hostname);
+            }
+            currentUrl = next.href;
+            continue;
+        }
+
+        if (!response.ok) {
+            throw new Error(`Download failed: ${response.status} ${response.statusText}`);
+        }
+
+        const buffer = Buffer.from(await response.arrayBuffer());
+        if (buffer.length > maxBytes) {
+            throw new Error(`Plugin download exceeds ${maxBytes} byte limit.`);
+        }
+
+        if (expectedSha256) {
+            const crypto = await import('node:crypto');
+            const actual = crypto.createHash('sha256').update(buffer).digest('hex');
+            if (actual !== expectedSha256.toLowerCase()) {
+                throw new Error('Plugin download hash mismatch.');
+            }
+        }
+
+        return {
+            buffer,
+            contentType: response.headers.get('content-type') || '',
+            finalUrl: currentUrl
+        };
+    }
+}
+
 export async function downloadAndExtractPlugin(url, destDir) {
     if (!url) {throw new Error('No download URL provided');}
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isAllowedProtocol, isPrivateIp, resolvePublicIps, validatePluginDirectory } from '../../src/core/pluginDownloader.js';
+import { downloadPluginArchive, isAllowedProtocol, isPrivateIp, resolvePublicIps, validatePluginDirectory } from '../../src/core/pluginDownloader.js';
 import { mkdtempSync, writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
@@ -73,5 +73,83 @@ describe('pluginDownloader security validators', () => {
 
     it('should reject fd00:: ULA addresses during resolution', async() => {
         await expect(resolvePublicIps('fd00::1')).rejects.toThrow(/private|internal/i);
+    });
+});
+
+describe('downloadPluginArchive', () => {
+    it('should reject non-https URLs', async() => {
+        await expect(downloadPluginArchive('http://example.com/p.zip'))
+            .rejects.toThrow(/https/i);
+    });
+
+    it('should reject URLs resolving to private IPs', async() => {
+        await expect(downloadPluginArchive('https://internal.example.com/p.zip'))
+            .rejects.toThrow(/private|internal/i);
+    });
+
+    it('should follow redirects up to the limit and enforce byte cap', async() => {
+        const chunk = Buffer.alloc(1024, 0x61);
+        const urls = ['https://cdn.example.com/a.zip', 'https://cdn.example.com/b.zip'];
+        const responses = {
+            [urls[0]]: { status: 302, headers: { location: urls[1] }, body: null },
+            [urls[1]]: { status: 200, headers: { 'content-type': 'application/zip' }, body: chunk }
+        };
+
+        const result = await downloadPluginArchive(urls[0], {
+            maxBytes: 1024 * 1024,
+            timeoutMs: 2000,
+            fetchImpl: async(url) => {
+                const r = responses[url];
+                return {
+                    ok: r.status < 300,
+                    status: r.status,
+                    statusText: String(r.status),
+                    headers: { get: (name) => r.headers[name.toLowerCase()] || null },
+                    url,
+                    arrayBuffer: async() => r.body
+                };
+            }
+        });
+
+        expect(result.buffer.length).toBe(1024);
+    });
+
+    it('should abort when the download exceeds maxBytes', async() => {
+        const big = Buffer.alloc(1024, 0x62);
+        await expect(downloadPluginArchive('https://big.example.com/b.zip', {
+            maxBytes: 512,
+            timeoutMs: 2000,
+            fetchImpl: async() => ({
+                ok: true, status: 200, statusText: 'OK',
+                headers: { get: () => 'application/zip' },
+                url: 'https://big.example.com/b.zip',
+                arrayBuffer: async() => big
+            })
+        })).rejects.toThrow(/too large|exceeds/i);
+    });
+
+    it('should abort when too many redirects occur', async() => {
+        const loop = (url) => ({
+            ok: false, status: 302, statusText: 'Found',
+            headers: { get: (name) => name.toLowerCase() === 'location' ? 'https://loop.example.com/again.zip' : null },
+            url,
+            arrayBuffer: async() => Buffer.alloc(0)
+        });
+        await expect(downloadPluginArchive('https://loop.example.com/start.zip', {
+            maxRedirects: 5,
+            timeoutMs: 2000,
+            fetchImpl: async(url) => loop(url)
+        })).rejects.toThrow(/redirect/i);
+    });
+
+    it('should abort on timeout', async() => {
+        await expect(downloadPluginArchive('https://slow.example.com/s.zip', {
+            maxBytes: 1024,
+            timeoutMs: 100,
+            fetchImpl: async() => new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('slow')),
+                    200);
+            })
+        })).rejects.toThrow();
     });
 });
