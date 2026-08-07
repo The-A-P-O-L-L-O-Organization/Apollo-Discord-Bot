@@ -1,8 +1,9 @@
-import { describe, it, expect } from 'vitest';
-import { downloadPluginArchive, isAllowedProtocol, isPrivateIp, resolvePublicIps, validatePluginDirectory } from '../../src/core/pluginDownloader.js';
-import { mkdtempSync, writeFileSync, mkdirSync } from 'fs';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { downloadPluginArchive, extractZip, isAllowedProtocol, isPrivateIp, resolvePublicIps, validatePluginDirectory } from '../../src/core/pluginDownloader.js';
+import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
+import AdmZip from 'adm-zip';
 
 describe('pluginDownloader', () => {
     it('should validate a valid plugin directory', async() => {
@@ -190,5 +191,38 @@ describe('downloadPluginArchive', () => {
                 arrayBuffer: async() => Buffer.alloc(1024, 0x61)
             })
         })).rejects.toThrow(/hash mismatch/i);
+    });
+});
+
+describe('extractZip hardening', () => {
+    let destDir;
+
+    beforeEach(() => {
+        destDir = mkdtempSync(join(tmpdir(), 'plugin-extract-test-'));
+    });
+
+    afterEach(() => {
+        rmSync(destDir, { recursive: true, force: true });
+    });
+
+    it('should reject non-zip magic bytes', () => {
+        const buffer = Buffer.from('not a zip file at all');
+        expect(() => extractZip(buffer, destDir)).toThrow(/not a valid zip|zip/i);
+    });
+
+    it('should reject archives whose uncompressed size exceeds the cap', () => {
+        const zip = new AdmZip();
+        zip.addFile('payload.bin', Buffer.alloc(2000, 0));
+        const buffer = zip.toBuffer();
+        expect(() => extractZip(buffer, destDir, { maxUncompressedBytes: 1024 }))
+            .toThrow(/uncompressed|bomb/i);
+    });
+
+    it('should reject path traversal entries', () => {
+        const zip = new AdmZip();
+        zip.addFile('x.js', Buffer.from('bad'));
+        zip.getEntries()[0].entryName = '../evil.js';
+        const buffer = zip.toBuffer();
+        expect(() => extractZip(buffer, destDir)).toThrow(/Invalid archive entry|traversal/i);
     });
 });

@@ -1,5 +1,5 @@
 import { existsSync, rmSync } from 'fs';
-import { join, resolve, sep } from 'path';
+import { join, resolve, sep, dirname } from 'path';
 import { pathToFileURL } from 'url';
 import AdmZip from 'adm-zip';
 import { mkdirSync, writeFileSync } from 'fs';
@@ -147,48 +147,81 @@ export async function downloadPluginArchive(url, {
     }
 }
 
-export async function downloadAndExtractPlugin(url, destDir) {
-    if (!url) {throw new Error('No download URL provided');}
-
-    const response = await fetch(url);
-    if (!response.ok) {throw new Error(`Download failed: ${response.status} ${response.statusText}`);}
-
-    const buffer = Buffer.from(await response.arrayBuffer());
-
-    if (url.endsWith('.zip') || response.headers.get('content-type')?.includes('zip')) {
-        extractZip(buffer, destDir);
-    } else if (url.endsWith('.tar.gz') || url.endsWith('.tgz')) {
-        throw new Error('tar.gz extraction not yet implemented');
-    } else {
-        throw new Error('Unsupported archive format. Only .zip and .tar.gz are supported.');
+export async function downloadAndExtractPlugin(url, destDir, options = {}) {
+    if (!url) {
+        throw new Error('Plugin download URL is required.');
     }
+
+    const { buffer, contentType } = await downloadPluginArchive(url, options);
+
+    const isZip = buffer.length >= 4 && hasZipMagic(buffer)
+        || url.endsWith('.zip')
+        || contentType.toLowerCase().includes('zip');
+
+    if (isZip) {
+        extractZip(buffer, destDir, options);
+        return;
+    }
+
+    if (url.endsWith('.tar.gz') || url.endsWith('.tgz')) {
+        throw new Error('tar.gz extraction not yet implemented');
+    }
+
+    throw new Error('Unsupported archive format');
 }
 
-function extractZip(buffer, destDir) {
-    const zip = new AdmZip(buffer);
-    const entries = zip.getEntries();
+const DEFAULT_MAX_UNCOMPRESSED_BYTES = 100 * 1024 * 1024; // 100 MB
 
-    const entryNames = entries.filter(e => !e.isDirectory).map(e => e.entryName);
+function hasZipMagic(buffer) {
+    return buffer.length >= 4
+        && buffer[0] === 0x50 && buffer[1] === 0x4b
+        && (buffer[2] === 0x03 || buffer[2] === 0x05 || buffer[2] === 0x07);
+}
+
+export function extractZip(buffer, destDir, { maxUncompressedBytes = DEFAULT_MAX_UNCOMPRESSED_BYTES } = {}) {
+    if (!hasZipMagic(buffer)) {
+        throw new Error('Downloaded file is not a valid zip archive.');
+    }
+
+    const zip = new AdmZip(buffer);
+    const entries = zip.getEntries().filter(entry => !entry.isDirectory);
+
+    const totalUncompressed = entries.reduce((sum, entry) => sum + (entry.header.size || 0), 0);
+    if (totalUncompressed > maxUncompressedBytes) {
+        throw new Error(`Archive exceeds ${maxUncompressedBytes} byte uncompressed limit (possible zip bomb).`);
+    }
+
+    // Reject symlink entries (mode bits 0xA000) to prevent escape via links.
+    for (const entry of entries) {
+        const mode = (entry.header.attr & 0xF000);
+        if (mode === 0xA000) {
+            throw new Error('Archive contains a symlink entry, which is not allowed.');
+        }
+    }
+
+    const entryNames = entries.map(entry => entry.entryName);
     const commonPrefix = findCommonPrefix(entryNames);
 
-    if (rmSync && existsSync(destDir)) {
-        rmSync(destDir, { recursive: true, force: true });
-    }
+    rmSync(destDir, { recursive: true, force: true });
     mkdirSync(destDir, { recursive: true });
 
     for (const entry of entries) {
-        if (entry.isDirectory) {continue;}
         const relativePath = entry.entryName.startsWith(commonPrefix)
             ? entry.entryName.slice(commonPrefix.length)
             : entry.entryName;
-        if (!relativePath) {continue;}
+
+        if (!relativePath) {
+            continue;
+        }
+
         const targetPath = join(destDir, relativePath);
         const resolved = resolve(targetPath);
         if (!resolved.startsWith(resolve(destDir) + sep)) {
-            throw new Error(`Invalid archive entry: ${entry.entryName}`);
+            throw new Error('Invalid archive entry (path traversal).');
         }
-        mkdirSync(join(targetPath, '..'), { recursive: true });
-        writeFileSync(targetPath, entry.getData());
+
+        mkdirSync(dirname(resolved), { recursive: true });
+        writeFileSync(resolved, entry.getData());
     }
 }
 
