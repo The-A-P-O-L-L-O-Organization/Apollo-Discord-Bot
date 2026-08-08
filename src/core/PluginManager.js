@@ -3,6 +3,7 @@ import { readdirSync, existsSync, rmSync } from 'fs';
 import path from 'path';
 import { pathToFileURL } from 'url';
 import { Routes } from 'discord.js';
+import { verifyPluginManifest } from '../utils/manifest.js';
 
 export default class PluginManager {
     constructor(client, bus) {
@@ -15,6 +16,10 @@ export default class PluginManager {
     }
 
     async loadAll(config) {
+        const verify = await verifyPluginManifest();
+        if (!verify.ok) {
+            throw new Error('Plugin integrity verification failed. Run `pnpm manifest` and commit the updated plugin-manifest.json.');
+        }
         this.config = config;
         const { enabled, directory } = config.plugins;
         this._rebuildInstalledPlugins();
