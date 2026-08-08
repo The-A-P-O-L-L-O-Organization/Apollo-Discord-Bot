@@ -65,6 +65,11 @@ export default {
                 description: 'Plugin name from the registry',
                 type: 3,
                 required: true
+            }, {
+                name: 'confirm',
+                description: 'Confirm installation of third-party plugin code',
+                type: 5,
+                required: true
             }]
         },
         {
@@ -243,6 +248,20 @@ export default {
 
             case 'install': {
                 const name = interaction.options.getString('name');
+                const confirm = interaction.options.getBoolean('confirm');
+                if (!confirm) {
+                    return interaction.editReply({
+                        embeds: [{
+                            color: 0xFFA500,
+                            title: '[WARNING] Confirm Plugin Install',
+                            description: 'Installing a third-party plugin runs arbitrary code from the registry. ' +
+                                'It will run isolated from the main process. ' +
+                                'Re-run with `confirm: true` to proceed.',
+                            timestamp: new Date().toISOString()
+                        }],
+                        ephemeral: true
+                    });
+                }
                 try {
                     await manager.installPlugin(name);
                     return interaction.editReply({
