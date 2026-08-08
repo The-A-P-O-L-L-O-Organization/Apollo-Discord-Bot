@@ -135,10 +135,14 @@ export default {
                     fields: [
                         {
                             name: 'Loaded Plugins (' + plugins.length + ')',
-                            value: plugins.map(p =>
-                                '**' + p.id + '** v' + p.version +
-                                ' — ' + (p.enabled ? '[ENABLED]' : '[DISABLED]')
-                            ).join('\n') || 'None',
+                            value: plugins.map(p => {
+                                const installed = manager.installedPlugins.get(p.id);
+                                const workerStatus = installed?.origin === 'installed'
+                                    ? ' (worker: ' + (manager.workerHost?.isDisabled(p.id) ? 'disabled after crashes' : 'running') + ')'
+                                    : '';
+                                return '**' + p.id + '** v' + p.version +
+                                    ' — ' + (p.enabled ? '[ENABLED]' : '[DISABLED]') + workerStatus;
+                            }).join('\n') || 'None',
                             inline: false
                         },
                         {
