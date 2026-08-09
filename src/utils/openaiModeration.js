@@ -20,14 +20,22 @@ export async function checkModeration(content) {
     if (!content || content.length < 3) {return null;}
 
     try {
-        const response = await fetch(MODERATION_URL, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ input: content })
-        });
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 30000);
+        let response;
+        try {
+            response = await fetch(MODERATION_URL, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ input: content }),
+                signal: controller.signal
+            });
+        } finally {
+            clearTimeout(timer);
+        }
 
         if (!response.ok) {
             if (response.status === 429) {
