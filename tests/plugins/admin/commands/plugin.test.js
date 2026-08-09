@@ -41,26 +41,6 @@ describe('Plugin management command', () => {
     delete process.env.OWNER_IDS;
   });
 
-  it('should deny when OWNER_IDS is unset', async () => {
-    delete process.env.OWNER_IDS;
-    const installPlugin = vi.fn().mockResolvedValue({});
-    const interaction = {
-      user: { id: 'randomuser' },
-      client: { manager: { installPlugin } },
-      deferReply: vi.fn().mockResolvedValue({}),
-      editReply: vi.fn().mockResolvedValue({}),
-      options: {
-        getSubcommand: vi.fn().mockReturnValue('install'),
-        getString: vi.fn().mockReturnValue('some-plugin'),
-        getBoolean: vi.fn().mockReturnValue(true)
-      }
-    };
-    await pluginCommand.execute(interaction);
-    expect(installPlugin).not.toHaveBeenCalled();
-    const reply = interaction.editReply.mock.calls[0][0];
-    expect(reply.embeds[0].title).toContain('Access Denied');
-  });
-
   describe('plugin install confirmation', () => {
     function makeInteraction(confirmValue) {
       const installPlugin = vi.fn().mockResolvedValue({});
@@ -94,5 +74,25 @@ describe('Plugin management command', () => {
       expect(interaction.client.manager.installPlugin).toHaveBeenCalledWith('some-plugin');
       delete process.env.OWNER_IDS;
     });
+  });
+
+  it('should deny when OWNER_IDS is unset', async () => {
+    delete process.env.OWNER_IDS;
+    const installPlugin = vi.fn().mockResolvedValue({});
+    const interaction = {
+      user: { id: 'randomuser' },
+      client: { manager: { installPlugin } },
+      deferReply: vi.fn().mockResolvedValue({}),
+      editReply: vi.fn().mockResolvedValue({}),
+      options: {
+        getSubcommand: vi.fn().mockReturnValue('install'),
+        getString: vi.fn().mockReturnValue('some-plugin'),
+        getBoolean: vi.fn().mockReturnValue(true)
+      }
+    };
+    await pluginCommand.execute(interaction);
+    expect(installPlugin).not.toHaveBeenCalled();
+    const reply = interaction.editReply.mock.calls[0][0];
+    expect(reply.embeds[0].title).toContain('Access Denied');
   });
 });
