@@ -22,7 +22,7 @@ export default {
 
   async execute(interaction) {
     const ownerIds = (process.env.OWNER_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
-    if (ownerIds.length > 0 && !ownerIds.includes(interaction.user.id)) {
+    if (ownerIds.length === 0 || !ownerIds.includes(interaction.user.id)) {
       return interaction.reply({
         embeds: [{ color: 0xFF0000, title: '[ERROR] Access Denied', description: 'Only bot owners can use this command.', timestamp: new Date().toISOString() }],
         ephemeral: true
