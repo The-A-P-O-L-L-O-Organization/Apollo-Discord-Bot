@@ -110,7 +110,7 @@ export default {
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
         const ownerIds = (process.env.OWNER_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
-        if (ownerIds.length > 0 && !ownerIds.includes(interaction.user.id)) {
+        if (ownerIds.length === 0 || !ownerIds.includes(interaction.user.id)) {
             return interaction.editReply({
                 embeds: [{
                     color: 0xFF0000,
