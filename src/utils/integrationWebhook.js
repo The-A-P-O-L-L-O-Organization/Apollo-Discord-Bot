@@ -16,8 +16,18 @@ export async function startWebhookServer(port, secret, discordClient) {
             return;
         }
 
+        const MAX_BODY_BYTES = 1024 * 1024;
         const chunks = [];
-        for await (const chunk of req) {chunks.push(chunk);}
+        let totalBytes = 0;
+        for await (const chunk of req) {
+            totalBytes += chunk.length;
+            if (totalBytes > MAX_BODY_BYTES) {
+                res.writeHead(413, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Body too large' }));
+                return;
+            }
+            chunks.push(chunk);
+        }
         const body = Buffer.concat(chunks).toString('utf-8');
 
         const signature = req.headers['x-hub-signature-256'];
