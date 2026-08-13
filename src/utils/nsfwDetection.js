@@ -4,8 +4,7 @@
 
 import * as tf from '@tensorflow/tfjs-node';
 import * as nsfwjs from 'nsfwjs';
-import https from 'https';
-import http from 'http';
+import { safeFetch } from './safeFetch.js';
 import { getGuildData } from './db.js';
 
 let model = null;
@@ -58,22 +57,13 @@ export async function getNsfwConfig(guildId) {
  * @param {string} url - Image URL
  * @returns {Promise<Buffer>} Image buffer
  */
-function downloadImage(url) {
-    return new Promise((resolve, reject) => {
-        const protocol = url.startsWith('https') ? https : http;
-        
-        protocol.get(url, (response) => {
-            if (response.statusCode !== 200) {
-                reject(new Error(`Failed to download image: ${response.statusCode}`));
-                return;
-            }
-            
-            const chunks = [];
-            response.on('data', (chunk) => chunks.push(chunk));
-            response.on('end', () => resolve(Buffer.concat(chunks)));
-            response.on('error', reject);
-        }).on('error', reject);
+async function downloadImage(url) {
+    const result = await safeFetch(url, {
+        maxBytes: 10 * 1024 * 1024,
+        timeoutMs: 10000,
+        skipDnsCheck: true
     });
+    return result.buffer;
 }
 
 /**
