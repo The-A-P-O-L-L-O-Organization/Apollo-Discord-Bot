@@ -27,8 +27,9 @@ export default class InterlinkServer {
             next();
         });
         this._app.use('/api/v1', createRoutes({ registry: this._registry, messageBus: this._messageBus }));
+        const bindHost = process.env.INTERLINK_BIND_HOST || '127.0.0.1';
         await new Promise((resolve, reject) => {
-            this._server = this._app.listen(port, resolve);
+            this._server = this._app.listen(port, bindHost, resolve);
             this._server.once('error', reject);
         });
     }
