@@ -1,9 +1,14 @@
 // Bot Configuration
 // This file contains all configurable settings for the Discord bot
 
+function parseIntSafe(value, defaultValue) {
+    const n = parseInt(value, 10);
+    return Number.isFinite(n) ? n : defaultValue;
+}
+
 export const config = {
     // Discord Bot Token - Get from https://discord.com/developers/applications
-    DISCORD_TOKEN: process.env.DISCORD_TOKEN || 'your-token-here',
+    DISCORD_TOKEN: process.env.DISCORD_TOKEN || '',
     
     // Discord Client ID - Get from https://discord.com/developers/applications
     CLIENT_ID: process.env.CLIENT_ID || '',
@@ -157,15 +162,15 @@ export const config = {
 
     // Integration Settings
     integrations: {
-        webhookPort: parseInt(process.env.INTEGRATIONS_WEBHOOK_PORT || '0', 10),
+        webhookPort: parseIntSafe(process.env.INTEGRATIONS_WEBHOOK_PORT, 0),
         githubSecret: process.env.GITHUB_WEBHOOK_SECRET || '',
         twitchClientId: process.env.TWITCH_CLIENT_ID || '',
         twitchClientSecret: process.env.TWITCH_CLIENT_SECRET || '',
         youtubeApiKey: process.env.YOUTUBE_API_KEY || '',
         pollInterval: {
-            twitch: parseInt(process.env.INTEGRATIONS_POLL_TWITCH || '300000', 10),
-            youtube: parseInt(process.env.INTEGRATIONS_POLL_YOUTUBE || '300000', 10),
-            rss: parseInt(process.env.INTEGRATIONS_POLL_RSS || '900000', 10)
+            twitch: parseIntSafe(process.env.INTEGRATIONS_POLL_TWITCH, 300000),
+            youtube: parseIntSafe(process.env.INTEGRATIONS_POLL_YOUTUBE, 300000),
+            rss: parseIntSafe(process.env.INTEGRATIONS_POLL_RSS, 900000)
         }
     },
     
@@ -193,8 +198,8 @@ export const config = {
         postgres: {
             connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/apollo',
             pool: {
-                min: parseInt(process.env.DB_POOL_MIN || '2', 10),
-                max: parseInt(process.env.DB_POOL_MAX || '10', 10)
+                min: parseIntSafe(process.env.DB_POOL_MIN, 2),
+                max: parseIntSafe(process.env.DB_POOL_MAX, 10)
             }
         }
     },
@@ -202,11 +207,11 @@ export const config = {
     // Interlink (Cross-Bot Communication)
     interlink: {
         enabled: process.env.INTERLINK_ENABLED === 'true',
-        httpPort: parseInt(process.env.INTERLINK_HTTP_PORT || '3456', 10),
+        httpPort: parseIntSafe(process.env.INTERLINK_HTTP_PORT, 3456),
         redisPrefix: process.env.INTERLINK_REDIS_PREFIX || 'apollo:interlink',
         forwardEvents: (process.env.INTERLINK_FORWARD_EVENTS || 'memberJoin,guildBanAdd').split(',').filter(Boolean),
-        requestTimeout: parseInt(process.env.INTERLINK_REQUEST_TIMEOUT || '5000', 10),
-        maxRetries: parseInt(process.env.INTERLINK_MAX_RETRIES || '3', 10)
+        requestTimeout: parseIntSafe(process.env.INTERLINK_REQUEST_TIMEOUT, 5000),
+        maxRetries: parseIntSafe(process.env.INTERLINK_MAX_RETRIES, 3)
     },
 
     // Instance identity (for leader election)
@@ -217,10 +222,10 @@ export const config = {
         enabled: process.env.QUEUE_ENABLED === 'true',
         redis: {
             host: process.env.REDIS_HOST || 'localhost',
-            port: parseInt(process.env.REDIS_PORT || '6379', 10),
+            port: parseIntSafe(process.env.REDIS_PORT, 6379),
             password: process.env.REDIS_PASSWORD || undefined
         },
         prefix: process.env.QUEUE_PREFIX || 'apollo',
-        stalledInterval: parseInt(process.env.QUEUE_STALLED_INTERVAL || '30000', 10)
+        stalledInterval: parseIntSafe(process.env.QUEUE_STALLED_INTERVAL, 30000)
     }
 };
