@@ -3,6 +3,7 @@
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { sendModLog } from '../../../utils/modLog.js';
+import { safeError } from '../../../utils/safeError.js';
 
 export default {
     name: 'clear',
@@ -54,12 +55,11 @@ export default {
             await this.deleteMessages(interaction, channel, finalAmount);
 
         } catch (error) {
-            console.error('[ERROR] Clear command error:', error);
             return interaction.reply({
                 embeds: [{
                     color: 0xFF0000,
                     title: '[ERROR] Command Failed',
-                    description: `An error occurred: ${error.message}`
+                    description: safeError(error)
                 }],
                 ephemeral: true
             });
@@ -188,12 +188,10 @@ export default {
                     });
 
                 } catch (error) {
-                    console.error('[ERROR] Delete all error:', error);
-                    
                     const errorEmbed = new EmbedBuilder()
                         .setColor(0xFF0000)
                         .setTitle('[ERROR] Delete Failed')
-                        .setDescription(`Could not delete all messages: ${error.message}`);
+                        .setDescription(safeError(error));
                     
                     await interaction.editReply({
                         embeds: [errorEmbed],

@@ -3,6 +3,7 @@
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
+import { safeError } from '../../../utils/safeError.js';
 
 export default {
     name: 'reports',
@@ -219,13 +220,11 @@ export default {
             }
             
         } catch (error) {
-            console.error('[ERROR] Reports command error:', error);
-            
             const errorEmbed = {
                 color: 0xFF0000,
                 title: '[ERROR] Command Failed',
                 description: 'An error occurred while processing reports.',
-                fields: [{ name: 'Error', value: error.message, inline: true }],
+                fields: [{ name: 'Error', value: safeError(error), inline: true }],
                 timestamp: new Date().toISOString()
             };
             

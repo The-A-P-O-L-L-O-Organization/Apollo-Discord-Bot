@@ -4,6 +4,7 @@
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { getGuildData, getData, updateGuildData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
+import { safeError } from '../../../utils/safeError.js';
 
 export default {
     name: 'blacklist',
@@ -475,7 +476,7 @@ async function replyError(interaction, error) {
         color: 0xFF0000,
         title: '[ERROR] Command Failed',
         description: 'An error occurred while managing the blacklist.',
-        fields: [{ name: 'Details', value: error.message, inline: true }],
+        fields: [{ name: 'Details', value: safeError(error), inline: true }],
         timestamp: new Date().toISOString()
     };
     if (interaction.replied || interaction.deferred) {
