@@ -65,6 +65,7 @@ describe('Mute Command', () => {
         
         mockInteraction = createMockInteraction({
             user: createMockUser({ id: '999888777', tag: 'Moderator#0001' }),
+            member: createMockMember({ user: createMockUser({ id: '999888777' }) }),
             guild: mockGuild,
             options: {
                 getUser: vi.fn().mockReturnValue(targetUser),
@@ -362,6 +363,52 @@ describe('Mute Command', () => {
                     name: 'Muted',
                     permissions: []
                 })
+            );
+        });
+    });
+
+    describe('hierarchy check', () => {
+        it('should block muting a higher-ranked member', async() => {
+            const lowMod = createMockMember({
+                user: createMockUser({ id: 'lowmod' }),
+                roles: { highest: { position: 2 } }
+            });
+            const highTarget = createMockMember({
+                user: targetUser,
+                moderatable: true,
+                roles: { highest: { position: 5 } }
+            });
+            fetchMember.mockResolvedValue(highTarget);
+            mockInteraction.member = lowMod;
+
+            await muteCommand.execute(mockInteraction);
+
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.embeds[0].title).toContain('Hierarchy Check Failed');
+            expect(highTarget.timeout).not.toHaveBeenCalled();
+        });
+
+        it('should allow muting a lower-ranked member', async() => {
+            const highMod = createMockMember({
+                user: createMockUser({ id: 'highmod' }),
+                roles: { highest: { position: 5 } }
+            });
+            const lowTarget = createMockMember({
+                user: targetUser,
+                moderatable: true,
+                roles: {
+                    highest: { position: 2 },
+                    cache: new Map()
+                }
+            });
+            fetchMember.mockResolvedValue(lowTarget);
+            mockInteraction.member = highMod;
+
+            await muteCommand.execute(mockInteraction);
+
+            expect(lowTarget.timeout).toHaveBeenCalledWith(
+                3600000,
+                'Spamming in chat'
             );
         });
     });

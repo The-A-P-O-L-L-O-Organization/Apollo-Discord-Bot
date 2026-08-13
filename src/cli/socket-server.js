@@ -1,7 +1,9 @@
 import net from 'net';
 import fs from 'fs';
+import { join } from 'node:path';
 
-const SOCKET_PATH = '/tmp/apollo.sock';
+const SOCKET_PATH = process.env.APOLLO_SOCKET_PATH || join(process.cwd(), 'data', 'apollo.sock');
+const SOCKET_TOKEN = process.env.APOLLO_SOCKET_TOKEN;
 
 class SocketServer {
     constructor(pluginManager) {
@@ -32,11 +34,22 @@ class SocketServer {
             socket.on('error', () => {});
         });
         return new Promise((resolve) => {
-            this.server.listen(SOCKET_PATH, resolve);
+            this.server.listen(SOCKET_PATH, () => {
+                try { fs.chmodSync(SOCKET_PATH, 0o600); } catch {
+                    // Ignore chmod failures (e.g. on Windows)
+                }
+                resolve();
+            });
         });
     }
 
     _handleMessage(socket, msg) {
+        if (SOCKET_TOKEN) {
+            if (msg.token !== SOCKET_TOKEN) {
+                socket.write(JSON.stringify({ id: msg.id, error: 'Unauthorized' }) + '\n');
+                return;
+            }
+        }
         const { command, args, id } = msg;
         const handler = this.pluginManager.getSocketHandler(command);
         if (!handler) {

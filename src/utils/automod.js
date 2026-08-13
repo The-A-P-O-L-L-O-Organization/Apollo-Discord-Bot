@@ -43,6 +43,7 @@ export async function getAutomodConfig(guildId) {
         spamThreshold: guildConfig.spamThreshold ?? config.automod.spamThreshold,
         spamInterval: guildConfig.spamInterval ?? config.automod.spamInterval,
         aiModeration: guildConfig.aiModeration ?? config.automod.aiModeration,
+        nsfwFilter: guildConfig.nsfwFilter ?? config.automod.nsfwFilter,
         exemptChannels: guildConfig.exemptChannels || [],
         exemptRoles: guildConfig.exemptRoles || []
     };

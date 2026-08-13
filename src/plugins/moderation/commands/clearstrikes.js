@@ -4,6 +4,7 @@
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { getUserData, setUserData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
+import { safeError } from '../../../utils/safeError.js';
 
 export default {
     name: 'clearstrikes',
@@ -126,13 +127,11 @@ export default {
             console.log(`[MODERATION] ${removed} strike(s) cleared for ${user.tag} by ${interaction.user.tag}`);
             
         } catch (error) {
-            console.error('[ERROR] Clear strikes command error:', error);
-            
             const errorEmbed = {
                 color: 0xFF0000,
                 title: '[ERROR] Command Failed',
                 description: 'An error occurred while clearing strikes.',
-                fields: [{ name: 'Error', value: error.message, inline: true }],
+                fields: [{ name: 'Error', value: safeError(error), inline: true }],
                 timestamp: new Date().toISOString()
             };
             

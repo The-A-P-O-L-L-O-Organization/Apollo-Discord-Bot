@@ -2,31 +2,37 @@
 // NSFW Detection Utility
 // Scans image attachments for NSFW content using TensorFlow.js
 
-import * as tf from '@tensorflow/tfjs-node';
-import * as nsfwjs from 'nsfwjs';
-import https from 'https';
-import http from 'http';
+import { safeFetch } from './safeFetch.js';
 import { getGuildData } from './db.js';
 
 let model = null;
 let modelLoaded = false;
+let modelPromise = null;
+let tfModule = null;
 
 /**
  * Initializes the NSFW detection model
  * @returns {Promise<boolean>} Whether initialization was successful
  */
 export async function initializeNsfwModel() {
-    try {
-        console.log('[INFO] Loading NSFW detection model...');
-        model = await nsfwjs.load();
-        modelLoaded = true;
-        console.log('[INFO] NSFW detection model loaded successfully');
-        return true;
-    } catch (error) {
-        console.error('[ERROR] Failed to load NSFW detection model:', error);
-        modelLoaded = false;
-        return false;
-    }
+    if (modelPromise) {return modelPromise;}
+    modelPromise = (async() => {
+        try {
+            console.log('[INFO] Loading NSFW detection model...');
+            tfModule = await import('@tensorflow/tfjs-node');
+            const nsfwjs = await import('nsfwjs');
+            model = await nsfwjs.load();
+            modelLoaded = true;
+            console.log('[INFO] NSFW detection model loaded successfully');
+            return true;
+        } catch (error) {
+            console.error('[ERROR] Failed to load NSFW detection model:', error);
+            modelLoaded = false;
+            modelPromise = null;
+            return false;
+        }
+    })();
+    return modelPromise;
 }
 
 /**
@@ -58,22 +64,13 @@ export async function getNsfwConfig(guildId) {
  * @param {string} url - Image URL
  * @returns {Promise<Buffer>} Image buffer
  */
-function downloadImage(url) {
-    return new Promise((resolve, reject) => {
-        const protocol = url.startsWith('https') ? https : http;
-        
-        protocol.get(url, (response) => {
-            if (response.statusCode !== 200) {
-                reject(new Error(`Failed to download image: ${response.statusCode}`));
-                return;
-            }
-            
-            const chunks = [];
-            response.on('data', (chunk) => chunks.push(chunk));
-            response.on('end', () => resolve(Buffer.concat(chunks)));
-            response.on('error', reject);
-        }).on('error', reject);
+async function downloadImage(url) {
+    const result = await safeFetch(url, {
+        maxBytes: 10 * 1024 * 1024,
+        timeoutMs: 10000,
+        skipDnsCheck: true
     });
+    return result.buffer;
 }
 
 /**
@@ -91,7 +88,7 @@ export async function analyzeImage(imageUrl) {
         const imageBuffer = await downloadImage(imageUrl);
         
         // Decode image using TensorFlow
-        const decodedImage = tf.node.decodeImage(imageBuffer, 3);
+        const decodedImage = tfModule.node.decodeImage(imageBuffer, 3);
         
         // Analyze with NSFW model
         const predictions = await model.classify(decodedImage);
@@ -138,12 +135,14 @@ export function isImageNsfw(predictions, threshold = 0.6) {
  * Checks message attachments for NSFW content
  * @param {string} guildId - Guild ID
  * @param {Message} message - Discord message
+ * @param {boolean|null} enabledOverride - Override for the enabled flag
  * @returns {Promise<Object|null>} Detection result or null
  */
-export async function checkMessageAttachments(guildId, message) {
+export async function checkMessageAttachments(guildId, message, enabledOverride = null) {
     const config = await getNsfwConfig(guildId);
-    
-    if (!config.enabled || !isNsfwDetectionAvailable()) {
+    const enabled = enabledOverride ?? config.enabled;
+
+    if (!enabled || !isNsfwDetectionAvailable()) {
         return null;
     }
     
@@ -212,7 +211,4 @@ export function formatNsfwPredictions(predictions) {
         .join('\n');
 }
 
-// Initialize model on module load (async)
-initializeNsfwModel().catch(error => {
-    console.error('[ERROR] Failed to initialize NSFW detection:', error);
-});
+// Model is loaded lazily on first use via initializeNsfwModel()

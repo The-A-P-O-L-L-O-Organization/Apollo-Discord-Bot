@@ -3,6 +3,23 @@ import { readdirSync, existsSync, rmSync } from 'fs';
 import path from 'path';
 import { pathToFileURL } from 'url';
 import { Routes } from 'discord.js';
+import { verifyPluginManifest } from '../utils/manifest.js';
+import { WorkerHost } from './worker/workerHost.js';
+import { parsePluginManifest } from './worker/pluginManifest.js';
+
+const ALL_PLUGIN_CAPABILITIES = [
+    'events:ready',
+    'events:messageCreate',
+    'events:messageDelete',
+    'events:messageUpdate',
+    'events:guildMemberAdd',
+    'events:guildMemberRemove',
+    'events:channelCreate',
+    'api:sendMessage',
+    'api:getOwnConfig',
+    'api:setOwnConfig',
+    'api:commandReply'
+];
 
 export default class PluginManager {
     constructor(client, bus) {
@@ -12,9 +29,14 @@ export default class PluginManager {
         this._pluginRegistry = new Map();
         this.installedPlugins = new Map();
         this.config = null;
+        this.workerHost = new WorkerHost();
     }
 
     async loadAll(config) {
+        const verify = await verifyPluginManifest();
+        if (!verify.ok) {
+            throw new Error('Plugin integrity verification failed. Run `pnpm manifest` and commit the updated plugin-manifest.json.');
+        }
         this.config = config;
         const { enabled, directory } = config.plugins;
         this._rebuildInstalledPlugins();
@@ -237,11 +259,24 @@ export default class PluginManager {
             enabled.push(id);
         }
 
-        await this.loadPlugin(id, this.client.config.plugins.optionalDirectory || './data/plugins');
-        await this.enablePlugin(id);
+        await this.loadInstalledPlugin(id, destDir);
         await this._syncDiscordCommands();
 
         console.log(`[PluginManager] Successfully installed plugin ${id}`);
+    }
+
+    async loadInstalledPlugin(pluginId, dir, manifest) {
+        if (!manifest) {
+            manifest = await parsePluginManifest({ dir });
+        }
+        const worker = await this.workerHost.startPlugin({
+            pluginId,
+            dir,
+            capabilities: ALL_PLUGIN_CAPABILITIES,
+            manifest
+        });
+        this.installedPlugins.set(pluginId, { origin: 'installed', dir, worker });
+        return worker;
     }
 
     async uninstallPlugin(id) {

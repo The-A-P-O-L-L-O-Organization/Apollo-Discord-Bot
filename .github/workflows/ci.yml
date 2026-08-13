@@ -186,10 +186,43 @@ jobs:
         run: pnpm audit --audit-level=high
         continue-on-error: true
 
+  manifest-check:
+    name: Manifest Drift Check
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            node_modules
+            **/node_modules
+            ~/.pnpm-store
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Generate manifest
+        run: pnpm manifest
+
+      - name: Fail on manifest drift
+        run: git diff --exit-code plugin-manifest.json
+
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [lint, test, audit]
+    needs: [lint, test, audit, manifest-check]
     if: always()
     steps:
       - name: Check CI status

@@ -20,7 +20,8 @@
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
     "lint": "eslint src/**/*.js tests/**/*.js",
-    "lint:fix": "eslint src/**/*.js tests/**/*.js --fix"
+    "lint:fix": "eslint src/**/*.js tests/**/*.js --fix",
+    "manifest": "node scripts/generate-manifest.mjs"
   },
   "author": "CodeMaster013",
   "license": "GPLv3",
