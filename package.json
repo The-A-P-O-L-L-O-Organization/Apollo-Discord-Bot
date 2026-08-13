@@ -29,7 +29,7 @@
     "@discordjs/builders": "^1.14.1",
     "@discordjs/rest": "^2.6.1",
     "@tensorflow/tfjs-node": "^4.22.0",
-    "adm-zip": "^0.5.18",
+    "adm-zip": "^0.6.0",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.11.1",
     "buffer": "^6.0.3",
