@@ -136,7 +136,9 @@ describe('MessageCreate Event', () => {
             filterInvites: false,
             filterLinks: false,
             spamThreshold: 0,
-            spamInterval: 5000
+            spamInterval: 5000,
+            aiModeration: false,
+            nsfwFilter: false
         };
         
         getAutomodConfig.mockReturnValue(automodConfig);
@@ -372,6 +374,74 @@ describe('MessageCreate Event', () => {
             await messageCreateEvent.execute(mockMessage, mockClient);
             
             expect(checkAccountAge).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('NSFW Filter Check', () => {
+        it('should check attachments when nsfwFilter is enabled', async() => {
+            automodConfig.nsfwFilter = true;
+            getAutomodConfig.mockReturnValue(automodConfig);
+            mockMessage.attachments = new Map([['att1', { id: 'att1', contentType: 'image/png' }]]);
+            
+            await messageCreateEvent.execute(mockMessage, mockClient);
+            
+            expect(checkMessageAttachments).toHaveBeenCalledWith('987654321', mockMessage, true);
+        });
+
+        it('should not check attachments when nsfwFilter is disabled', async() => {
+            automodConfig.nsfwFilter = false;
+            getAutomodConfig.mockReturnValue(automodConfig);
+            mockMessage.attachments = new Map([['att1', { id: 'att1', contentType: 'image/png' }]]);
+            
+            await messageCreateEvent.execute(mockMessage, mockClient);
+            
+            expect(checkMessageAttachments).not.toHaveBeenCalled();
+        });
+
+        it('should not check when no attachments present', async() => {
+            automodConfig.nsfwFilter = true;
+            getAutomodConfig.mockReturnValue(automodConfig);
+            mockMessage.attachments = new Map();
+            
+            await messageCreateEvent.execute(mockMessage, mockClient);
+            
+            expect(checkMessageAttachments).not.toHaveBeenCalled();
+        });
+
+        it('should delete message and warn on NSFW detection', async() => {
+            automodConfig.nsfwFilter = true;
+            getAutomodConfig.mockReturnValue(automodConfig);
+            mockMessage.attachments = new Map([['att1', { id: 'att1', contentType: 'image/png' }]]);
+            checkMessageAttachments.mockResolvedValue({
+                detected: true,
+                images: [{ url: 'http://example.com/img.png', name: 'img.png', predictions: {} }],
+                shouldDelete: true,
+                shouldWarn: false
+            });
+            
+            await messageCreateEvent.execute(mockMessage, mockClient);
+            
+            expect(mockMessage.delete).toHaveBeenCalled();
+            expect(appendToUserArray).toHaveBeenCalledWith(
+                'warnings',
+                '987654321',
+                '123456789',
+                expect.objectContaining({
+                    violationType: 'nsfw'
+                })
+            );
+        });
+
+        it('should not trigger if check returns null', async() => {
+            automodConfig.nsfwFilter = true;
+            getAutomodConfig.mockReturnValue(automodConfig);
+            mockMessage.attachments = new Map([['att1', { id: 'att1', contentType: 'image/png' }]]);
+            checkMessageAttachments.mockResolvedValue(null);
+            
+            await messageCreateEvent.execute(mockMessage, mockClient);
+            
+            expect(mockMessage.delete).not.toHaveBeenCalled();
+            expect(appendToUserArray).not.toHaveBeenCalled();
         });
     });
 

@@ -42,7 +42,7 @@ describe('TranslationService', () => {
 
             await service.initialize();
 
-            expect(fetchMock).toHaveBeenCalledWith('https://test.instance.com/languages');
+            expect(fetchMock).toHaveBeenCalledWith('https://test.instance.com/languages', expect.objectContaining({ signal: expect.any(AbortSignal) }));
             expect(service.getSupportedLanguages()).toEqual([
                 { language: 'EN', name: 'English' },
                 { language: 'ES', name: 'Spanish' },

@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { safeFetch } from '../../utils/safeFetch.js';
 
 const VALID_TYPES = new Set(['ping', 'pong', 'command', 'event', 'custom']);
 
@@ -76,25 +77,32 @@ export default class MessageBus {
         const url = bot.webhook_url;
         const timeout = this._config.requestTimeout || 5000;
         const maxRetries = this._config.maxRetries || 3;
+        const payload = JSON.stringify(envelope);
+
+        const fetchImpl = async (targetUrl, opts) => {
+            return fetch(targetUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: payload,
+                signal: opts.signal
+            });
+        };
 
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
             try {
-                const controller = new AbortController();
-                const timer = setTimeout(() => controller.abort(), timeout);
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(envelope),
-                    signal: controller.signal
-                });
-                clearTimeout(timer);
-                if (response.ok) {
-                    return { success: true, status: response.status };
-                }
-                return { success: false, status: response.status, error: `HTTP ${response.status}` };
+                await safeFetch(url, { timeoutMs: timeout, fetchImpl, skipDnsCheck: false });
+                return { success: true, status: 200 };
             } catch (err) {
+                const msg = err.message || String(err);
+                const httpMatch = msg.match(/^Fetch failed: (\d{3})/);
+                if (httpMatch) {
+                    return { success: false, status: Number(httpMatch[1]), error: `HTTP ${httpMatch[1]}` };
+                }
+                if (msg.includes('Only HTTPS URLs are allowed.') || msg.includes('resolves to a private/internal address')) {
+                    return { success: false, error: msg };
+                }
                 if (attempt === maxRetries) {
-                    return { success: false, error: err.message };
+                    return { success: false, error: msg };
                 }
                 await new Promise(r => setTimeout(r, 1000));
             }

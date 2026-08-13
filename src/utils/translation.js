@@ -1,14 +1,35 @@
 /* eslint-disable no-console */
+const FETCH_TIMEOUT_MS = 30000;
+
 class TranslationService {
     constructor(options = {}) {
         this.baseUrl = options.baseUrl || process.env.TRANSLATION_API_BASE_URL || 'https://translate.argosopentech.com';
+        if (!this.baseUrl.startsWith('https://')) {
+            throw new Error('TRANSLATION_API_BASE_URL must use HTTPS.');
+        }
         this.apiKey = options.apiKey || process.env.TRANSLATION_API_KEY || '';
         this.cachedLanguages = [];
     }
 
+    _withTimeout(opts = {}) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+        return { ...opts, signal: controller.signal, _timeoutTimer: timer };
+    }
+
+    _clearTimeout(opts) {
+        if (opts._timeoutTimer) {clearTimeout(opts._timeoutTimer);}
+    }
+
     async initialize() {
         try {
-            const response = await fetch(`${this.baseUrl}/languages`);
+            const opts = this._withTimeout();
+            let response;
+            try {
+                response = await fetch(`${this.baseUrl}/languages`, opts);
+            } finally {
+                this._clearTimeout(opts);
+            }
             if (!response.ok) {
                 throw new Error(`Failed to fetch languages: ${response.status}`);
             }
@@ -55,11 +76,17 @@ class TranslationService {
         const body = { q: text };
         if (this.apiKey) {body.api_key = this.apiKey;}
 
-        const response = await fetch(`${this.baseUrl}/detect`, {
+        const opts = this._withTimeout({
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
         });
+        let response;
+        try {
+            response = await fetch(`${this.baseUrl}/detect`, opts);
+        } finally {
+            this._clearTimeout(opts);
+        }
 
         if (!response.ok) {return null;}
         const result = await response.json();
@@ -91,11 +118,17 @@ class TranslationService {
             };
             if (this.apiKey) {translateBody.api_key = this.apiKey;}
 
-            const translateResponse = await fetch(`${this.baseUrl}/translate`, {
+            const translateOpts = this._withTimeout({
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(translateBody)
             });
+            let translateResponse;
+            try {
+                translateResponse = await fetch(`${this.baseUrl}/translate`, translateOpts);
+            } finally {
+                this._clearTimeout(translateOpts);
+            }
 
             if (!translateResponse.ok) {
                 const errorData = await translateResponse.json().catch(() => ({}));

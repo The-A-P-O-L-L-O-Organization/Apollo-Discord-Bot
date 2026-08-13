@@ -6,6 +6,7 @@ import purgeCommand from '../../src/plugins/moderation/commands/purge.js';
 import {
     createMockInteraction,
     createMockUser,
+    createMockMember,
     createMockGuild,
     createMockChannel,
     createMockClient,
@@ -14,10 +15,11 @@ import {
 
 // Mock the modLog module
 vi.mock('../../src/utils/modLog.js', () => ({
-    sendModLog: vi.fn().mockResolvedValue(undefined)
+    sendModLog: vi.fn().mockResolvedValue(undefined),
+    fetchMember: vi.fn()
 }));
 
-import { sendModLog } from '../../src/utils/modLog.js';
+import { sendModLog, fetchMember } from '../../src/utils/modLog.js';
 
 describe('Purge Command', () => {
     let mockInteraction;
@@ -53,8 +55,11 @@ describe('Purge Command', () => {
         mockGuild = createMockGuild({ id: '987654321' });
         mockClient = createMockClient();
         
+        fetchMember.mockResolvedValue(null);
+        
         mockInteraction = createMockInteraction({
             user: createMockUser({ id: '999888777', tag: 'Moderator#0001' }),
+            member: createMockMember({ user: createMockUser({ id: '999888777' }) }),
             guild: mockGuild,
             channel: mockChannel,
             client: mockClient,
@@ -229,6 +234,46 @@ describe('Purge Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.embeds[0].title).toContain('Invalid Amount');
+        });
+    });
+
+    describe('hierarchy check', () => {
+        it('should block purging a higher-ranked member\'s messages', async() => {
+            const lowMod = createMockMember({
+                user: createMockUser({ id: 'lowmod' }),
+                roles: { highest: { position: 2 } }
+            });
+            const highTarget = createMockMember({
+                user: createMockUser({ id: '123456789' }),
+                roles: { highest: { position: 5 } }
+            });
+            fetchMember.mockResolvedValue(highTarget);
+            mockInteraction.member = lowMod;
+            mockInteraction.options.getUser.mockReturnValue(createMockUser({ id: '123456789' }));
+
+            await purgeCommand.execute(mockInteraction);
+
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.embeds[0].title).toContain('Hierarchy Check Failed');
+            expect(mockChannel.bulkDelete).not.toHaveBeenCalled();
+        });
+
+        it('should allow a higher-ranked member to purge a lower-ranked member\'s messages', async() => {
+            const highMod = createMockMember({
+                user: createMockUser({ id: 'highmod' }),
+                roles: { highest: { position: 5 } }
+            });
+            const lowTarget = createMockMember({
+                user: createMockUser({ id: '123456789' }),
+                roles: { highest: { position: 2 } }
+            });
+            fetchMember.mockResolvedValue(lowTarget);
+            mockInteraction.member = highMod;
+            mockInteraction.options.getUser.mockReturnValue(createMockUser({ id: '123456789' }));
+
+            await purgeCommand.execute(mockInteraction);
+
+            expect(mockChannel.bulkDelete).toHaveBeenCalled();
         });
     });
 

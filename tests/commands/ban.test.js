@@ -58,6 +58,7 @@ describe('Ban Command', () => {
         
         mockInteraction = createMockInteraction({
             user: createMockUser({ id: '999888777', tag: 'Moderator#0001' }),
+            member: createMockMember({ user: createMockUser({ id: '999888777' }) }),
             guild: mockGuild,
             client: createMockClient({ user: createMockUser({ id: 'BOT_ID' }) }),
             options: {
@@ -272,6 +273,46 @@ describe('Ban Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.embeds[0].title).toContain('Invalid Value');
+        });
+    });
+
+    describe('hierarchy check', () => {
+        it('should block banning a higher-ranked member', async() => {
+            const lowMod = createMockMember({
+                user: createMockUser({ id: 'lowmod' }),
+                roles: { highest: { position: 2 } }
+            });
+            const highTarget = createMockMember({
+                user: targetUser,
+                bannable: true,
+                roles: { highest: { position: 5 } }
+            });
+            fetchMember.mockResolvedValue(highTarget);
+            mockInteraction.member = lowMod;
+
+            await banCommand.execute(mockInteraction);
+
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.embeds[0].title).toContain('Hierarchy Check Failed');
+            expect(mockGuild.bans.create).not.toHaveBeenCalled();
+        });
+
+        it('should allow banning a lower-ranked member', async() => {
+            const highMod = createMockMember({
+                user: createMockUser({ id: 'highmod' }),
+                roles: { highest: { position: 5 } }
+            });
+            const lowTarget = createMockMember({
+                user: targetUser,
+                bannable: true,
+                roles: { highest: { position: 2 } }
+            });
+            fetchMember.mockResolvedValue(lowTarget);
+            mockInteraction.member = highMod;
+
+            await banCommand.execute(mockInteraction);
+
+            expect(mockGuild.bans.create).toHaveBeenCalled();
         });
     });
 });

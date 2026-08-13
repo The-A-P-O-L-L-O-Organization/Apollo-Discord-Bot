@@ -81,4 +81,16 @@ describe('PluginManager', () => {
         await manager.enablePlugin('passthrough');
         expect(manager.isEnabled('passthrough')).toBe(true);
     });
+
+    it('should route installed plugins through the worker host', async() => {
+        const startPlugin = vi.fn().mockResolvedValue({ child: { send: vi.fn() }, manifest: { id: 'demo', capabilities: ['api:sendMessage'] } });
+        manager.workerHost = { startPlugin, send: vi.fn(), getGrantedCapabilities: (m, r) => r };
+        await manager.loadInstalledPlugin('demo', '/data/plugins/demo', { id: 'demo', capabilities: ['api:sendMessage'] });
+        expect(startPlugin).toHaveBeenCalledWith(expect.objectContaining({
+            pluginId: 'demo',
+            dir: '/data/plugins/demo',
+            manifest: { id: 'demo', capabilities: ['api:sendMessage'] }
+        }));
+        expect(manager.installedPlugins.get('demo').origin).toBe('installed');
+    });
 });

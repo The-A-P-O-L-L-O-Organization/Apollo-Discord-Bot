@@ -3,6 +3,20 @@
 
 import { PermissionsBitField } from 'discord.js';
 import { setGuildData, getGuildData } from '../../../utils/db.js';
+import { safeError } from '../../../utils/safeError.js';
+
+const ALLOWED_EMBED_KEYS = ['title', 'description', 'color', 'fields', 'image', 'thumbnail', 'footer', 'author'];
+const MAX_EMBED_JSON_LENGTH = 2048;
+
+function sanitizeEmbedData(embedData) {
+    const clean = {};
+    for (const key of ALLOWED_EMBED_KEYS) {
+        if (embedData[key] !== undefined) {
+            clean[key] = embedData[key];
+        }
+    }
+    return clean;
+}
 
 export default {
     name: 'tag',
@@ -25,6 +39,25 @@ export default {
                 {
                     name: 'content',
                     description: 'Tag content',
+                    type: 3, // STRING
+                    required: true
+                },
+                {
+                    name: 'embed',
+                    description: 'Optional embed JSON (title, description, color, fields)',
+                    type: 3, // STRING
+                    required: false
+                }
+            ]
+        },
+        {
+            name: 'show',
+            description: 'Show a tag',
+            type: 1, // SUB_COMMAND
+            options: [
+                {
+                    name: 'name',
+                    description: 'Tag name',
                     type: 3, // STRING
                     required: true
                 }
@@ -69,6 +102,8 @@ export default {
             
             if (subcommand === 'create') {
                 await handleCreate(interaction);
+            } else if (subcommand === 'show') {
+                await handleShow(interaction);
             } else if (subcommand === 'delete') {
                 await handleDelete(interaction);
             } else if (subcommand === 'list') {
@@ -78,8 +113,6 @@ export default {
             }
             
         } catch (error) {
-            console.error('[ERROR] Tag command error:', error);
-            
             const errorEmbed = {
                 color: 0xFF0000,
                 title: '[ERROR] Command Failed',
@@ -87,7 +120,7 @@ export default {
                 fields: [
                     {
                         name: '[ERROR] Details',
-                        value: error.message,
+                        value: safeError(error),
                         inline: true
                     }
                 ],
@@ -102,6 +135,7 @@ export default {
 async function handleCreate(interaction) {
     const name = interaction.options.getString('name').toLowerCase();
     const content = interaction.options.getString('content');
+    const embedJson = interaction.options.getString('embed');
     
     // Check permissions
     if (!interaction.member.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
@@ -142,6 +176,39 @@ async function handleCreate(interaction) {
         });
     }
     
+    // Parse optional embed JSON
+    let embedData = null;
+    if (embedJson) {
+        try {
+            embedData = JSON.parse(embedJson);
+            if (typeof embedData !== 'object' || embedData === null) {
+                throw new Error('Embed must be a JSON object');
+            }
+            if (embedJson.length > MAX_EMBED_JSON_LENGTH) {
+                return interaction.reply({
+                    embeds: [{
+                        color: 0xFF0000,
+                        title: '[ERROR] Embed Too Large',
+                        description: 'Embed JSON must be 2KB or less.',
+                        timestamp: new Date().toISOString()
+                    }],
+                    ephemeral: true
+                });
+            }
+            embedData = sanitizeEmbedData(embedData);
+        } catch (error) {
+            return interaction.reply({
+                embeds: [{
+                    color: 0xFF0000,
+                    title: '[ERROR] Invalid Embed JSON',
+                    description: `Could not parse embed: ${error.message}`,
+                    timestamp: new Date().toISOString()
+                }],
+                ephemeral: true
+            });
+        }
+    }
+    
     // Check if tag exists
     const tags = await getGuildData('tags', interaction.guild.id);
     if (tags && tags[name]) {
@@ -160,6 +227,7 @@ async function handleCreate(interaction) {
     const tagData = {
         name: name,
         content: content,
+        embed: embedData,
         createdBy: interaction.user.id,
         createdByTag: interaction.user.tag,
         createdAt: Date.now(),
@@ -167,6 +235,7 @@ async function handleCreate(interaction) {
     };
     
     await setGuildData('tags', interaction.guild.id, {
+        ...(tags || {}),
         [name]: tagData
     });
     
@@ -177,7 +246,7 @@ async function handleCreate(interaction) {
         fields: [
             {
                 name: '[INFO] Usage',
-                value: `Use /${name} or mention the bot with "${name}"`,
+                value: `Use /tag show ${name} to display this tag`,
                 inline: false
             }
         ],
@@ -185,6 +254,98 @@ async function handleCreate(interaction) {
     };
     
     await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+}
+
+async function handleShow(interaction) {
+    const name = interaction.options.getString('name').toLowerCase();
+    
+    const tags = await getGuildData('tags', interaction.guild.id);
+    
+    if (!tags || !tags[name]) {
+        return interaction.reply({
+            embeds: [{
+                color: 0xFF0000,
+                title: '[ERROR] Tag Not Found',
+                description: `Tag "${name}" does not exist.`,
+                timestamp: new Date().toISOString()
+            }],
+            ephemeral: true
+        });
+    }
+    
+    const tag = tags[name];
+    
+    // Increment usage count
+    tag.usageCount = (tag.usageCount || 0) + 1;
+    await setGuildData('tags', interaction.guild.id, tags);
+    
+    const content = renderTagContent(tag.content, interaction);
+    
+    const messagePayload = { content };
+    
+    if (tag.embed) {
+        messagePayload.embeds = [buildTagEmbed(tag.embed)];
+    }
+    
+    await interaction.reply(messagePayload);
+}
+
+function renderTagContent(content, interaction) {
+    const now = new Date();
+    const variables = {
+        '{user}': `<@${interaction.user.id}>`,
+        '{username}': interaction.user.username,
+        '{server}': interaction.guild?.name || 'this server',
+        '{channel}': `<#${interaction.channel.id}>`,
+        '{channelname}': interaction.channel.name || 'channel',
+        '{date}': now.toLocaleDateString(),
+        '{time}': now.toLocaleTimeString(),
+        '{membercount}': interaction.guild?.memberCount || 0,
+        '{userid}': interaction.user.id
+    };
+    
+    return Object.entries(variables).reduce(
+        (result, [key, value]) => result.split(key).join(String(value)),
+        content
+    );
+}
+
+function buildTagEmbed(embedData) {
+    const embed = {
+        title: embedData.title,
+        description: embedData.description,
+        fields: Array.isArray(embedData.fields) ? embedData.fields : undefined
+    };
+    
+    if (embedData.color) {
+        const colorStr = String(embedData.color).replace('#', '');
+        embed.color = /^[0-9a-fA-F]{6}$/.test(colorStr) ? parseInt(colorStr, 16) : embedData.color;
+    }
+    
+    if (embedData.image) {
+        embed.image = { url: embedData.image };
+    }
+    
+    if (embedData.thumbnail) {
+        embed.thumbnail = { url: embedData.thumbnail };
+    }
+    
+    if (embedData.footer) {
+        embed.footer = { text: String(embedData.footer) };
+    }
+    
+    if (embedData.author) {
+        embed.author = { name: String(embedData.author) };
+    }
+    
+    // Clean up undefined properties
+    Object.keys(embed).forEach(key => {
+        if (embed[key] === undefined) {
+            delete embed[key];
+        }
+    });
+    
+    return embed;
 }
 
 async function handleDelete(interaction) {
@@ -251,7 +412,7 @@ async function handleList(interaction) {
         title: '[TAGS] Custom Commands',
         description: `Total: ${tagList.length}`,
         fields: tagList.slice(0, 10).map(tag => ({
-            name: `/${tag.name}`,
+            name: tag.name,
             value: `${tag.content.substring(0, 50)}${tag.content.length > 50 ? '...' : ''}\nUsed ${tag.usageCount} times`,
             inline: false
         })),

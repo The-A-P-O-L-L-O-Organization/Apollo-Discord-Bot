@@ -1,3 +1,5 @@
+import { safeError } from '../../../utils/safeError.js';
+
 export default {
     name: 'plugin',
     description: 'Manage bot plugins (bot owner only)',
@@ -63,6 +65,11 @@ export default {
                 description: 'Plugin name from the registry',
                 type: 3,
                 required: true
+            }, {
+                name: 'confirm',
+                description: 'Confirm installation of third-party plugin code',
+                type: 5,
+                required: true
             }]
         },
         {
@@ -103,7 +110,7 @@ export default {
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
         const ownerIds = (process.env.OWNER_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
-        if (ownerIds.length > 0 && !ownerIds.includes(interaction.user.id)) {
+        if (ownerIds.length === 0 || !ownerIds.includes(interaction.user.id)) {
             return interaction.editReply({
                 embeds: [{
                     color: 0xFF0000,
@@ -128,10 +135,14 @@ export default {
                     fields: [
                         {
                             name: 'Loaded Plugins (' + plugins.length + ')',
-                            value: plugins.map(p =>
-                                '**' + p.id + '** v' + p.version +
-                                ' — ' + (p.enabled ? '[ENABLED]' : '[DISABLED]')
-                            ).join('\n') || 'None',
+                            value: plugins.map(p => {
+                                const installed = manager.installedPlugins.get(p.id);
+                                const workerStatus = installed?.origin === 'installed'
+                                    ? ' (worker: ' + (manager.workerHost?.isDisabled(p.id) ? 'disabled after crashes' : 'running') + ')'
+                                    : '';
+                                return '**' + p.id + '** v' + p.version +
+                                    ' — ' + (p.enabled ? '[ENABLED]' : '[DISABLED]') + workerStatus;
+                            }).join('\n') || 'None',
                             inline: false
                         },
                         {
@@ -161,7 +172,7 @@ export default {
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
-                            color: 0xFF0000, title: '[ERROR]', description: err.message
+                            color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
                         ephemeral: true
                     });
@@ -184,7 +195,7 @@ export default {
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
-                            color: 0xFF0000, title: '[ERROR]', description: err.message
+                            color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
                         ephemeral: true
                     });
@@ -207,7 +218,7 @@ export default {
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
-                            color: 0xFF0000, title: '[ERROR]', description: err.message
+                            color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
                         ephemeral: true
                     });
@@ -232,7 +243,7 @@ export default {
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
-                            color: 0xFF0000, title: '[ERROR]', description: err.message
+                            color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
                         ephemeral: true
                     });
@@ -241,6 +252,20 @@ export default {
 
             case 'install': {
                 const name = interaction.options.getString('name');
+                const confirm = interaction.options.getBoolean('confirm');
+                if (!confirm) {
+                    return interaction.editReply({
+                        embeds: [{
+                            color: 0xFFA500,
+                            title: '[WARNING] Confirm Plugin Install',
+                            description: 'Installing a third-party plugin runs arbitrary code from the registry. ' +
+                                'It will run isolated from the main process. ' +
+                                'Re-run with `confirm: true` to proceed.',
+                            timestamp: new Date().toISOString()
+                        }],
+                        ephemeral: true
+                    });
+                }
                 try {
                     await manager.installPlugin(name);
                     return interaction.editReply({
@@ -254,7 +279,7 @@ export default {
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
-                            color: 0xFF0000, title: '[ERROR]', description: err.message
+                            color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }]
                     });
                 }
@@ -276,7 +301,7 @@ export default {
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
-                            color: 0xFF0000, title: '[ERROR]', description: err.message
+                            color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
                         ephemeral: true
                     });
@@ -323,7 +348,7 @@ export default {
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
-                            color: 0xFF0000, title: '[ERROR]', description: err.message
+                            color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }]
                     });
                 }

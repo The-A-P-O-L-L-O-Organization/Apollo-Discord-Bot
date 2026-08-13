@@ -2,6 +2,7 @@ import { getDb } from '../../../db/knex.js';
 import BotRegistry from '../registry.js';
 import MessageBus from '../messageBus.js';
 import { generateApiKey } from '../auth.js';
+import { safeError } from '../../../utils/safeError.js';
 
 const SEND_CONFIG = { requestTimeout: 5000, maxRetries: 3 };
 
@@ -130,12 +131,11 @@ export default {
                     return interaction.editReply({ embeds: [{ color: 0xFF0000, title: '[ERROR] Unknown subcommand' }] });
             }
         } catch (err) {
-            console.error('[Interlink:Command] Error:', err.message);
             return interaction.editReply({
                 embeds: [{
                     color: 0xFF0000,
                     title: '[ERROR] Command Failed',
-                    description: err.message
+                    description: safeError(err)
                 }]
             });
         }

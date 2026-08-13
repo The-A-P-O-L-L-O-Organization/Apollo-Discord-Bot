@@ -1,5 +1,6 @@
 import { config } from '../../../config/config.js';
 import { getDb, runMigrations } from '../../../db/knex.js';
+import { safeError } from '../../../utils/safeError.js';
 
 export default {
     name: 'migrate',
@@ -22,7 +23,7 @@ export default {
 
   async execute(interaction) {
     const ownerIds = (process.env.OWNER_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
-    if (ownerIds.length > 0 && !ownerIds.includes(interaction.user.id)) {
+    if (ownerIds.length === 0 || !ownerIds.includes(interaction.user.id)) {
       return interaction.reply({
         embeds: [{ color: 0xFF0000, title: '[ERROR] Access Denied', description: 'Only bot owners can use this command.', timestamp: new Date().toISOString() }],
         ephemeral: true
@@ -56,7 +57,7 @@ export default {
         });
       } catch (err) {
         return interaction.reply({
-          embeds: [{ color: 0xFF0000, title: '[ERROR] Migration Status Failed', description: err.message }],
+          embeds: [{ color: 0xFF0000, title: '[ERROR] Migration Status Failed', description: safeError(err) }],
           ephemeral: true
         });
       }
@@ -77,7 +78,7 @@ export default {
         });
       } catch (err) {
         return interaction.editReply({
-          embeds: [{ color: 0xFF0000, title: '[ERROR] Migration Failed', description: err.message }]
+          embeds: [{ color: 0xFF0000, title: '[ERROR] Migration Failed', description: safeError(err) }]
         });
       }
     }
