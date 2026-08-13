@@ -1,3 +1,5 @@
+import { safeFetch } from './safeFetch.js';
+
 export async function checkTwitchStream(streamerName, config) {
     if (!config.twitchClientId || !config.twitchClientSecret) {return null;}
 
@@ -53,9 +55,8 @@ export async function checkYoutubeUploads(channelId, config) {
 
 export async function checkRssFeed(feedUrl) {
     try {
-        const res = await fetch(feedUrl);
-        if (!res.ok) {return null;}
-        const xml = await res.text();
+        const result = await safeFetch(feedUrl, { timeoutMs: 10000 });
+        const xml = result.buffer.toString('utf8');
         return parseFeedXml(xml);
     } catch {
         return null;
