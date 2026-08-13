@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+vi.mock('../../src/utils/safeFetch.js', () => ({
+    safeFetch: vi.fn()
+}));
+
 describe('integrationClients', () => {
     beforeEach(() => {
         vi.restoreAllMocks();
@@ -63,16 +67,15 @@ describe('integrationClients', () => {
 
     describe('checkRssFeed', () => {
         it('returns null when fetch fails', async() => {
-            global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+            const { safeFetch } = await import('../../src/utils/safeFetch.js');
+            safeFetch.mockRejectedValue(new Error('Network error'));
             const { checkRssFeed } = await import('../../src/utils/integrationClients.js');
             const result = await checkRssFeed('https://example.com/feed.xml');
             expect(result).toBeNull();
         });
 
         it('parses RSS items from XML', async() => {
-            global.fetch = vi.fn().mockResolvedValue({
-                ok: true,
-                text: () => `<?xml version="1.0"?>
+            const xml = `<?xml version="1.0"?>
           <rss version="2.0">
             <channel>
               <title>Test Feed</title>
@@ -83,9 +86,9 @@ describe('integrationClients', () => {
                 <pubDate>Mon, 01 Jan 2024 00:00:00 GMT</pubDate>
               </item>
             </channel>
-          </rss>`
-            });
-
+          </rss>`;
+            const { safeFetch } = await import('../../src/utils/safeFetch.js');
+            safeFetch.mockResolvedValue({ buffer: Buffer.from(xml, 'utf8'), contentType: 'application/rss+xml', finalUrl: 'https://example.com/feed.xml' });
             const { checkRssFeed } = await import('../../src/utils/integrationClients.js');
             const result = await checkRssFeed('https://example.com/feed.xml');
             expect(result).toEqual({
@@ -100,9 +103,7 @@ describe('integrationClients', () => {
         });
 
         it('parses Atom items from XML', async() => {
-            global.fetch = vi.fn().mockResolvedValue({
-                ok: true,
-                text: () => `<?xml version="1.0"?>
+            const xml = `<?xml version="1.0"?>
           <feed xmlns="http://www.w3.org/2005/Atom">
             <title>Atom Feed</title>
             <entry>
@@ -111,9 +112,9 @@ describe('integrationClients', () => {
               <id>atom-guid</id>
               <published>2024-01-01T00:00:00Z</published>
             </entry>
-          </feed>`
-            });
-
+          </feed>`;
+            const { safeFetch } = await import('../../src/utils/safeFetch.js');
+            safeFetch.mockResolvedValue({ buffer: Buffer.from(xml, 'utf8'), contentType: 'application/atom+xml', finalUrl: 'https://example.com/atom.xml' });
             const { checkRssFeed } = await import('../../src/utils/integrationClients.js');
             const result = await checkRssFeed('https://example.com/atom.xml');
             expect(result).toEqual({
