@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, beforeAll, vi } from 'vitest';
 
 describe('Plugin management command', () => {
   let pluginCommand;
@@ -39,5 +39,60 @@ describe('Plugin management command', () => {
     expect(interaction.deferReply).toHaveBeenCalled();
     expect(interaction.editReply).toHaveBeenCalled();
     delete process.env.OWNER_IDS;
+  });
+
+  describe('plugin install confirmation', () => {
+    function makeInteraction(confirmValue) {
+      const installPlugin = vi.fn().mockResolvedValue({});
+      return {
+        user: { id: 'owner' },
+        client: { manager: { installPlugin } },
+        deferReply: vi.fn().mockResolvedValue({}),
+        editReply: vi.fn().mockResolvedValue({}),
+        options: {
+          getSubcommand: vi.fn().mockReturnValue('install'),
+          getString: vi.fn().mockReturnValue('some-plugin'),
+          getBoolean: vi.fn().mockReturnValue(confirmValue)
+        }
+      };
+    }
+
+    it('should refuse install without explicit confirmation', async () => {
+      process.env.OWNER_IDS = 'owner';
+      const interaction = makeInteraction(false);
+      await pluginCommand.execute(interaction);
+      expect(interaction.client.manager.installPlugin).not.toHaveBeenCalled();
+      const reply = interaction.editReply.mock.calls[0][0];
+      expect(reply.embeds[0].title).toContain('Confirm');
+      delete process.env.OWNER_IDS;
+    });
+
+    it('should install with confirmation', async () => {
+      process.env.OWNER_IDS = 'owner';
+      const interaction = makeInteraction(true);
+      await pluginCommand.execute(interaction);
+      expect(interaction.client.manager.installPlugin).toHaveBeenCalledWith('some-plugin');
+      delete process.env.OWNER_IDS;
+    });
+  });
+
+  it('should deny when OWNER_IDS is unset', async () => {
+    delete process.env.OWNER_IDS;
+    const installPlugin = vi.fn().mockResolvedValue({});
+    const interaction = {
+      user: { id: 'randomuser' },
+      client: { manager: { installPlugin } },
+      deferReply: vi.fn().mockResolvedValue({}),
+      editReply: vi.fn().mockResolvedValue({}),
+      options: {
+        getSubcommand: vi.fn().mockReturnValue('install'),
+        getString: vi.fn().mockReturnValue('some-plugin'),
+        getBoolean: vi.fn().mockReturnValue(true)
+      }
+    };
+    await pluginCommand.execute(interaction);
+    expect(installPlugin).not.toHaveBeenCalled();
+    const reply = interaction.editReply.mock.calls[0][0];
+    expect(reply.embeds[0].title).toContain('Access Denied');
   });
 });

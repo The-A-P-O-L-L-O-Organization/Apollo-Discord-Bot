@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, vi } from 'vitest';
 import request from 'supertest';
 import express from 'express';
+import InterlinkServer from '../../../src/plugins/interlink/server.js';
 
 const { mockBcrypt } = vi.hoisted(() => {
     const mockBcrypt = {
@@ -138,5 +139,23 @@ describe('Interlink Routes', () => {
             .set('Authorization', 'Bearer valid-key')
             .send({ invalid: true });
         expect(res.status).toBe(400);
+    });
+
+    it('should return 429 when rate limit is exceeded', async() => {
+        const server = new InterlinkServer({ registry: mockRegistry, messageBus: mockMessageBus });
+        server._rateLimiter.limit = 1;
+        server._rateLimiter.windowMs = 60000;
+        await server.start(0);
+        try {
+            const res = await request(server._server).get('/api/v1/health');
+            expect(res.status).toBe(200);
+
+            const res2 = await request(server._server).get('/api/v1/health');
+            expect(res2.status).toBe(429);
+            expect(res2.body.error).toBe('Too many requests');
+            expect(res2.headers['retry-after']).toBeTruthy();
+        } finally {
+            await server.stop();
+        }
     });
 });

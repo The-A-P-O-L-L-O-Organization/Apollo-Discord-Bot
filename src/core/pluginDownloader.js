@@ -1,51 +1,227 @@
 import { existsSync, rmSync } from 'fs';
-import { join, resolve, sep } from 'path';
+import { join, resolve, sep, dirname } from 'path';
 import { pathToFileURL } from 'url';
 import AdmZip from 'adm-zip';
 import { mkdirSync, writeFileSync } from 'fs';
+import { lookup as dnsLookup } from 'node:dns';
+import { createHash } from 'node:crypto';
 
-export async function downloadAndExtractPlugin(url, destDir) {
-    if (!url) {throw new Error('No download URL provided');}
+const PRIVATE_IPV4_RANGES = [
+    { start: '10.0.0.0', end: '10.255.255.255' },
+    { start: '100.64.0.0', end: '100.127.255.255' },
+    { start: '127.0.0.0', end: '127.255.255.255' },
+    { start: '169.254.0.0', end: '169.254.255.255' },
+    { start: '172.16.0.0', end: '172.31.255.255' },
+    { start: '192.168.0.0', end: '192.168.255.255' },
+    { start: '0.0.0.0', end: '0.255.255.255' }
+];
 
-    const response = await fetch(url);
-    if (!response.ok) {throw new Error(`Download failed: ${response.status} ${response.statusText}`);}
+function ipv4ToInt(ip) {
+    return ip.split('.').reduce((acc, octet) => (acc * 256) + Number(octet), 0);
+}
 
-    const buffer = Buffer.from(await response.arrayBuffer());
+export function isPrivateIp(ip) {
+    if (ip.includes(':')) {
+        const lower = ip.toLowerCase();
+        const mapped = lower.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+        if (mapped) { return isPrivateIp(mapped[1]); }
+        return lower === '::1'
+            || lower.startsWith('fc')
+            || lower.startsWith('fd')
+            || lower.startsWith('fe80::')
+            || lower === '::'
+            || lower.startsWith('fec0::');
+    }
+    const int = ipv4ToInt(ip);
+    if (!Number.isFinite(int)) { return true; }
+    return PRIVATE_IPV4_RANGES.some(({ start, end }) =>
+        int >= ipv4ToInt(start) && int <= ipv4ToInt(end));
+}
 
-    if (url.endsWith('.zip') || response.headers.get('content-type')?.includes('zip')) {
-        extractZip(buffer, destDir);
-    } else if (url.endsWith('.tar.gz') || url.endsWith('.tgz')) {
-        throw new Error('tar.gz extraction not yet implemented');
-    } else {
-        throw new Error('Unsupported archive format. Only .zip and .tar.gz are supported.');
+export function isAllowedProtocol(protocol) {
+    return protocol === 'https:';
+}
+
+export function resolvePublicIps(hostname) {
+    return new Promise((resolve, reject) => {
+        dnsLookup(hostname, { all: true }, (err, addresses) => {
+            if (err) { return reject(new Error(`DNS lookup failed for ${hostname}`)); }
+            const ips = addresses.map(a => a.address);
+            const blocked = ips.filter(ip => isPrivateIp(ip));
+            if (blocked.length > 0) {
+                return reject(new Error(`Plugin URL resolves to a private/internal address (${blocked.join(', ')}).`));
+            }
+            resolve(ips);
+        });
+    });
+}
+
+const DEFAULT_MAX_BYTES = 25 * 1024 * 1024;
+const DEFAULT_TIMEOUT_MS = 30000;
+const DEFAULT_MAX_REDIRECTS = 5;
+
+export async function downloadPluginArchive(url, {
+    maxBytes = DEFAULT_MAX_BYTES,
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+    maxRedirects = DEFAULT_MAX_REDIRECTS,
+    fetchImpl = fetch,
+    expectedSha256 = null,
+    skipDnsCheck = false
+} = {}) {
+    if (!url) {
+        throw new Error('Plugin download URL is required.');
+    }
+
+    const parsed = new URL(url);
+    if (!isAllowedProtocol(parsed.protocol)) {
+        throw new Error('Plugin downloads must use https.');
+    }
+
+    if (!skipDnsCheck) {
+        await resolvePublicIps(parsed.hostname);
+    }
+
+    let currentUrl = url;
+    let redirects = 0;
+
+    const deadline = Date.now() + timeoutMs;
+
+    while (true) {
+        const remaining = deadline - Date.now();
+        if (remaining <= 0) {
+            throw new Error('Plugin download timed out.');
+        }
+
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), remaining);
+        let response;
+        try {
+            response = await fetchImpl(currentUrl, { signal: controller.signal, redirect: 'manual' });
+        } catch (err) {
+            clearTimeout(timer);
+            throw new Error(`Plugin download failed: ${err.message}`, { cause: err });
+        }
+        clearTimeout(timer);
+
+        if (response.status >= 300 && response.status < 400) {
+            const location = response.headers.get('location');
+            if (!location) {
+                throw new Error('Plugin download redirect missing Location header.');
+            }
+            redirects += 1;
+            if (redirects > maxRedirects) {
+                throw new Error('Plugin download exceeded maximum redirects.');
+            }
+            const next = new URL(location, currentUrl);
+            if (!isAllowedProtocol(next.protocol)) {
+                throw new Error('Plugin download redirects must use https.');
+            }
+            if (!skipDnsCheck) {
+                await resolvePublicIps(next.hostname);
+            }
+            currentUrl = next.href;
+            continue;
+        }
+
+        if (!response.ok) {
+            throw new Error(`Download failed: ${response.status} ${response.statusText}`);
+        }
+
+        const buffer = Buffer.from(await response.arrayBuffer());
+        if (buffer.length > maxBytes) {
+            throw new Error(`Plugin download exceeds ${maxBytes} byte limit.`);
+        }
+
+        if (expectedSha256) {
+            const actual = createHash('sha256').update(buffer).digest('hex');
+            if (actual !== expectedSha256.toLowerCase()) {
+                throw new Error('Plugin download hash mismatch.');
+            }
+        }
+
+        return {
+            buffer,
+            contentType: response.headers.get('content-type') || '',
+            finalUrl: currentUrl
+        };
     }
 }
 
-function extractZip(buffer, destDir) {
-    const zip = new AdmZip(buffer);
-    const entries = zip.getEntries();
+export async function downloadAndExtractPlugin(url, destDir, options = {}) {
+    if (!url) {
+        throw new Error('Plugin download URL is required.');
+    }
 
-    const entryNames = entries.filter(e => !e.isDirectory).map(e => e.entryName);
+    const { buffer, contentType } = await downloadPluginArchive(url, options);
+
+    const isZip = buffer.length >= 4 && hasZipMagic(buffer)
+        || url.endsWith('.zip')
+        || contentType.toLowerCase().includes('zip');
+
+    if (isZip) {
+        extractZip(buffer, destDir, options);
+        return;
+    }
+
+    if (url.endsWith('.tar.gz') || url.endsWith('.tgz')) {
+        throw new Error('tar.gz extraction not yet implemented');
+    }
+
+    throw new Error('Unsupported archive format');
+}
+
+const DEFAULT_MAX_UNCOMPRESSED_BYTES = 100 * 1024 * 1024; // 100 MB
+
+function hasZipMagic(buffer) {
+    return buffer.length >= 4
+        && buffer[0] === 0x50 && buffer[1] === 0x4b
+        && (buffer[2] === 0x03 || buffer[2] === 0x05 || buffer[2] === 0x07);
+}
+
+export function extractZip(buffer, destDir, { maxUncompressedBytes = DEFAULT_MAX_UNCOMPRESSED_BYTES } = {}) {
+    if (!hasZipMagic(buffer)) {
+        throw new Error('Downloaded file is not a valid zip archive.');
+    }
+
+    const zip = new AdmZip(buffer);
+    const entries = zip.getEntries().filter(entry => !entry.isDirectory);
+
+    const totalUncompressed = entries.reduce((sum, entry) => sum + (entry.header.size || 0), 0);
+    if (totalUncompressed > maxUncompressedBytes) {
+        throw new Error(`Archive exceeds ${maxUncompressedBytes} byte uncompressed limit (possible zip bomb).`);
+    }
+
+    // Reject symlink entries (mode bits 0xA000) to prevent escape via links.
+    for (const entry of entries) {
+        const mode = (entry.header.attr & 0xF000);
+        if (mode === 0xA000) {
+            throw new Error('Archive contains a symlink entry, which is not allowed.');
+        }
+    }
+
+    const entryNames = entries.map(entry => entry.entryName);
     const commonPrefix = findCommonPrefix(entryNames);
 
-    if (rmSync && existsSync(destDir)) {
-        rmSync(destDir, { recursive: true, force: true });
-    }
+    rmSync(destDir, { recursive: true, force: true });
     mkdirSync(destDir, { recursive: true });
 
     for (const entry of entries) {
-        if (entry.isDirectory) {continue;}
         const relativePath = entry.entryName.startsWith(commonPrefix)
             ? entry.entryName.slice(commonPrefix.length)
             : entry.entryName;
-        if (!relativePath) {continue;}
+
+        if (!relativePath) {
+            continue;
+        }
+
         const targetPath = join(destDir, relativePath);
         const resolved = resolve(targetPath);
         if (!resolved.startsWith(resolve(destDir) + sep)) {
-            throw new Error(`Invalid archive entry: ${entry.entryName}`);
+            throw new Error('Invalid archive entry (path traversal).');
         }
-        mkdirSync(join(targetPath, '..'), { recursive: true });
-        writeFileSync(targetPath, entry.getData());
+
+        mkdirSync(dirname(resolved), { recursive: true });
+        writeFileSync(resolved, entry.getData());
     }
 }
 

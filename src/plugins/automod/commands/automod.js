@@ -4,6 +4,7 @@
 import { PermissionsBitField, EmbedBuilder, ChannelType } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
+import { safeError } from '../../../utils/safeError.js';
 
 export default {
     name: 'automod',
@@ -77,7 +78,8 @@ export default {
                         { name: 'Min Account Age (days)', value: 'minAccountAge' },
                         { name: 'Spam Threshold', value: 'spamThreshold' },
                         { name: 'Spam Interval (ms)', value: 'spamInterval' },
-                        { name: 'AI Moderation', value: 'aiModeration' }
+                        { name: 'AI Moderation', value: 'aiModeration' },
+                        { name: 'NSFW Filter', value: 'nsfwFilter' }
                     ]
                 },
                 {
@@ -170,14 +172,12 @@ export default {
                 break;
             }
         } catch (error) {
-            console.error('[ERROR] Automod command error:', error);
-            
             await interaction.reply({
                 embeds: [{
                     color: 0xFF0000,
                     title: '[ERROR] Command Failed',
                     description: 'An error occurred while configuring automod.',
-                    fields: [{ name: 'Error', value: error.message }],
+                    fields: [{ name: 'Error', value: safeError(error) }],
                     timestamp: new Date().toISOString()
                 }],
                 ephemeral: true
@@ -199,6 +199,7 @@ async function getAutomodConfig(guildId) {
         spamThreshold: guildConfig.spamThreshold ?? config.automod.spamThreshold,
         spamInterval: guildConfig.spamInterval ?? config.automod.spamInterval,
         aiModeration: guildConfig.aiModeration ?? config.automod.aiModeration,
+        nsfwFilter: guildConfig.nsfwFilter ?? config.automod.nsfwFilter,
         exemptChannels: guildConfig.exemptChannels || [],
         exemptRoles: guildConfig.exemptRoles || []
     };
@@ -257,7 +258,8 @@ async function handleStatus(interaction) {
             { name: '[Ban] Banned Words', value: cfg.bannedWords.length > 0 ? `${cfg.bannedWords.length} word(s)` : 'None configured', inline: true },
             { name: '[Channel] Exempt Channels', value: `${cfg.exemptChannels.length} channel(s)`, inline: true },
             { name: '[Roles] Exempt Roles', value: `${cfg.exemptRoles.length} role(s)`, inline: true },
-            { name: '[AI] Moderation', value: cfg.aiModeration ? 'Enabled' : 'Disabled', inline: true }
+            { name: '[AI] Moderation', value: cfg.aiModeration ? 'Enabled' : 'Disabled', inline: true },
+            { name: '[NSFW] Filter', value: cfg.nsfwFilter ? 'Enabled' : 'Disabled', inline: true }
         )
         .setTimestamp()
         .setFooter({ text: 'Use /automod set to modify settings' });
@@ -366,7 +368,7 @@ async function handleSet(interaction) {
     
     // Parse value based on setting type
     let value;
-    const booleanSettings = ['filterInvites', 'filterLinks', 'aiModeration'];
+    const booleanSettings = ['filterInvites', 'filterLinks', 'aiModeration', 'nsfwFilter'];
     const numberSettings = ['maxMentions', 'maxCapsPercent', 'minAccountAge', 'spamThreshold', 'spamInterval'];
     
     if (booleanSettings.includes(setting)) {

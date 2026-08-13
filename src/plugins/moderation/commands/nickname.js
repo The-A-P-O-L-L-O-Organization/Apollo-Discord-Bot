@@ -3,6 +3,7 @@
 
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
+import { safeError } from '../../../utils/safeError.js';
 
 export default {
     name: 'nickname',
@@ -150,8 +151,6 @@ export default {
             console.log(`[MODERATION] User ${user.tag}'s nickname was ${action} by ${interaction.user.tag}. Old: "${oldNickname}", New: "${newNickname}". Reason: ${reason}`);
             
         } catch (error) {
-            console.error('[ERROR] Nickname command error:', error);
-            
             const errorEmbed = {
                 color: 0xFF0000,
                 title: '[ERROR] Command Failed',
@@ -159,7 +158,7 @@ export default {
                 fields: [
                     {
                         name: '[ERROR] Details',
-                        value: error.message,
+                        value: safeError(error),
                         inline: true
                     }
                 ],

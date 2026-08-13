@@ -5,6 +5,8 @@ import { PermissionsBitField } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { createModCase } from './case.js';
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
+import { canModerate } from '../../../utils/moderation.js';
+import { safeError } from '../../../utils/safeError.js';
 
 export default {
     name: 'ban',
@@ -101,6 +103,18 @@ export default {
                 return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
             }
             
+            // Hierarchy check
+            const hierarchy = canModerate(interaction.guild, interaction.member, member);
+            if (!hierarchy.ok) {
+                const errorEmbed = {
+                    color: 0xFF0000,
+                    title: '[ERROR] Hierarchy Check Failed',
+                    description: hierarchy.reason,
+                    timestamp: new Date().toISOString()
+                };
+                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+            }
+            
             // Ban the user
             await interaction.guild.bans.create(user.id, {
                 reason: reason,
@@ -174,8 +188,6 @@ export default {
             console.log(`[MODERATION] User ${user.tag} was banned by ${interaction.user.tag}. Reason: ${reason}`);
             
         } catch (error) {
-            console.error('[ERROR] Ban command error:', error);
-            
             const errorEmbed = {
                 color: 0xFF0000,
                 title: '[ERROR] Command Failed',
@@ -183,7 +195,7 @@ export default {
                 fields: [
                     {
                         name: '[ERROR] Details',
-                        value: error.message,
+                        value: safeError(error),
                         inline: true
                     }
                 ],

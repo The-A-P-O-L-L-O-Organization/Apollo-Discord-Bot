@@ -2,9 +2,11 @@
 // Export Analytics Utility
 // Exports analytics data to CSV or JSON format
 
-import { writeFileSync, unlinkSync } from 'fs';
+import { writeFileSync, unlinkSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { getGuildData } from './db.js';
+
+const EXPORT_DIR = join(process.cwd(), 'data', 'exports');
 
 /**
  * Exports analytics data to a file
@@ -47,7 +49,8 @@ export async function exportAnalytics(guildId, format = 'csv', options = {}) {
     // Generate filename
     const timestamp = Date.now();
     const filename = `analytics-${guildId}-${timestamp}.${format}`;
-    const filepath = join('/tmp', filename);
+    mkdirSync(EXPORT_DIR, { recursive: true });
+    const filepath = join(EXPORT_DIR, filename);
     
     // Export based on format
     if (format === 'json') {

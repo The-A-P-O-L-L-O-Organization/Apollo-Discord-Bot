@@ -9,6 +9,8 @@ import {
     getGuildData
 } from '../../../utils/db.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
+import { canModerate } from '../../../utils/moderation.js';
+import { safeError } from '../../../utils/safeError.js';
 
 export default {
     name: 'strike',
@@ -86,6 +88,18 @@ export default {
                     }],
                     ephemeral: true
                 });
+            }
+            
+            // Hierarchy check
+            const hierarchy = canModerate(interaction.guild, interaction.member, member);
+            if (!hierarchy.ok) {
+                const errorEmbed = {
+                    color: 0xFF0000,
+                    title: '[ERROR] Hierarchy Check Failed',
+                    description: hierarchy.reason,
+                    timestamp: new Date().toISOString()
+                };
+                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
             }
             
             // Create strike object
@@ -206,13 +220,11 @@ export default {
             console.log(`[MODERATION] User ${user.tag} struck by ${interaction.user.tag}. Total: ${strikeCount}. Reason: ${reason}`);
             
         } catch (error) {
-            console.error('[ERROR] Strike command error:', error);
-            
             const errorEmbed = {
                 color: 0xFF0000,
                 title: '[ERROR] Command Failed',
                 description: 'An error occurred while issuing the strike.',
-                fields: [{ name: 'Error', value: error.message, inline: true }],
+                fields: [{ name: 'Error', value: safeError(error), inline: true }],
                 timestamp: new Date().toISOString()
             };
             

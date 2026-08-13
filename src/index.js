@@ -11,6 +11,8 @@ import { stopReminderScheduler } from './utils/reminderScheduler.js';
 import { stopPollScheduler } from './utils/pollScheduler.js';
 import { close as closeDatabase } from './utils/db.js';
 import { closeLockRedis } from './utils/lock.js';
+import { safeError } from './utils/safeError.js';
+import { assertDiscordToken } from './utils/startupChecks.js';
 
 const uuid = randomUUID?.() ?? randomBytes(16).toString('hex');
 
@@ -59,6 +61,50 @@ client.once('clientReady', async() => {
 
     console.log('[INFO] Loading plugins...');
     await pluginManager.loadAll(config);
+
+    const EVENT_FORWARD = {
+        ready: 'events:ready',
+        messageCreate: 'events:messageCreate',
+        messageDelete: 'events:messageDelete',
+        messageUpdate: 'events:messageUpdate',
+        guildMemberAdd: 'events:guildMemberAdd',
+        guildMemberRemove: 'events:guildMemberRemove',
+        channelCreate: 'events:channelCreate'
+    };
+
+    function serializeEventArgs(args) {
+        return args.map(arg => {
+            if (!arg) { return null; }
+            if (typeof arg.id === 'string') {
+                const out = { id: arg.id };
+                if (typeof arg.name === 'string') { out.name = arg.name; }
+                if (arg.guildId) { out.guildId = arg.guildId; }
+                if (arg.content !== undefined) { out.content = arg.content; }
+                if (arg.author?.id) { out.authorId = arg.author.id; }
+                return out;
+            }
+            return String(arg);
+        });
+    }
+
+    for (const [eventName, capability] of Object.entries(EVENT_FORWARD)) {
+        client.on(eventName, (...args) => {
+            for (const [id, info] of pluginManager.installedPlugins) {
+                if (info.origin === 'installed' && info.worker) {
+                    const granted = pluginManager.workerHost.getGrantedCapabilities(info.worker.manifest, [capability]);
+                    if (granted.length > 0) {
+                        pluginManager.workerHost.send(id, {
+                            kind: 'request',
+                            method: 'event:emit',
+                            payload: { event: capability, data: serializeEventArgs(args) },
+                            correlationId: `evt-${eventName}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+                        });
+                    }
+                }
+            }
+        });
+    }
+
     const { SocketServer } = await import('./cli/socket-server.js');
     const socketServer = new SocketServer(pluginManager);
     await socketServer.start();
@@ -178,13 +224,11 @@ client.on('interactionCreate', async(interaction) => {
             trackCommand(interaction.guild.id, interaction.commandName, interaction.user.id);
         }
     } catch (error) {
-        console.error('[ERROR] Error executing /' + interaction.commandName + ':', error);
-
         const errorEmbed = {
             color: 0xFF0000,
             title: 'Error',
             description: 'An error occurred while executing this command.',
-            fields: [{ name: 'Error', value: error.message || 'Unknown error' }],
+            fields: [{ name: 'Error', value: safeError(error) }],
             timestamp: new Date().toISOString()
         };
 
@@ -299,6 +343,13 @@ if (RUN_MODE === 'worker') {
      });
 
     async function startGateway() {
+        try {
+            assertDiscordToken(config.DISCORD_TOKEN);
+        } catch (error) {
+            console.error(error.message);
+            process.exit(1);
+        }
+
         console.log('[INFO] Attempting to log in...');
         client.login(config.DISCORD_TOKEN)
             .catch((error) => {

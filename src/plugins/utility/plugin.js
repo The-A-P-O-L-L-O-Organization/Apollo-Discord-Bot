@@ -74,6 +74,7 @@ export default class UtilityPlugin extends Plugin {
       const { EmbedBuilder } = await import('discord.js');
       const { parseMarkdownToEmbed } = await import('../../../utils/markdownParser.js');
       const { readFileSync } = await import('fs');
+      const { resolve, sep } = await import('path');
 
       const channel = client.channels.cache.get(args.channel);
       if (!channel) throw new Error(`Channel ${args.channel} not found`);
@@ -83,9 +84,14 @@ export default class UtilityPlugin extends Plugin {
 
       let parsed = {};
       if (args.file) {
+        const DATA_ROOT = resolve(process.cwd(), 'data');
+        const targetPath = resolve(DATA_ROOT, args.file);
+        if (!targetPath.startsWith(DATA_ROOT + sep)) {
+          throw new Error('File path must be within the data directory.');
+        }
         let content;
         try {
-          content = readFileSync(args.file, 'utf-8');
+          content = readFileSync(targetPath, 'utf-8');
         } catch {
           throw new Error(`Could not read file: ${args.file}`);
         }

@@ -1,0 +1,9 @@
+// Safe error helper
+// Logs the real error server-side but returns a generic message to users
+// so internal details (paths, secrets, SQL) never leak in replies.
+
+export function safeError(error) {
+    const detail = error && error.message ? error.message : String(error);
+    console.error('[ERROR]', detail);
+    return 'An unexpected error occurred. Please try again later.';
+}
