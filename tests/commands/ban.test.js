@@ -58,6 +58,7 @@ describe('Ban Command', () => {
         
         mockInteraction = createMockInteraction({
             user: createMockUser({ id: '999888777', tag: 'Moderator#0001' }),
+            member: createMockMember({ user: createMockUser({ id: '999888777' }) }),
             guild: mockGuild,
             client: createMockClient({ user: createMockUser({ id: 'BOT_ID' }) }),
             options: {

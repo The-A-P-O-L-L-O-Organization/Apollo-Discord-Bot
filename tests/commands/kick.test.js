@@ -54,6 +54,7 @@ describe('Kick Command', () => {
         
         mockInteraction = createMockInteraction({
             user: createMockUser({ id: '999888777', tag: 'Moderator#0001' }),
+            member: createMockMember({ user: createMockUser({ id: '999888777' }) }),
             guild: mockGuild,
             options: {
                 getUser: vi.fn().mockReturnValue(targetUser),

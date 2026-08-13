@@ -13,8 +13,7 @@
  */
 export function canModerate(guild, moderator, target) {
     if (!moderator || !moderator.id) {
-        // Cannot determine hierarchy; permission gate already applied by Discord.
-        return { ok: true };
+        return { ok: false, reason: 'Cannot verify moderator identity.' };
     }
 
     if (!target) {
