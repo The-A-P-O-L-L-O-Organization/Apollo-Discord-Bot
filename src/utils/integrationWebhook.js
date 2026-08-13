@@ -4,6 +4,20 @@ import { formatGithubPushNotification, formatGithubPrNotification, formatGithubI
 
 let server = null;
 
+const seenDeliveries = new Map();
+const DELIVERY_TTL_MS = 10 * 60 * 1000;
+
+function isReplay(deliveryId) {
+    if (!deliveryId) { return false; }
+    const now = Date.now();
+    for (const [id, ts] of seenDeliveries) {
+        if (now - ts > DELIVERY_TTL_MS) { seenDeliveries.delete(id); }
+    }
+    if (seenDeliveries.has(deliveryId)) { return true; }
+    seenDeliveries.set(deliveryId, now);
+    return false;
+}
+
 export async function startWebhookServer(port, secret, discordClient) {
     if (!port || !secret) {return;}
 
@@ -34,6 +48,13 @@ export async function startWebhookServer(port, secret, discordClient) {
         if (!signature || !verifyGithubSignature(body, signature, secret)) {
             res.writeHead(401);
             res.end('Invalid signature');
+            return;
+        }
+
+        const deliveryId = req.headers['x-github-delivery'];
+        if (isReplay(deliveryId)) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ status: 'duplicate, ignored' }));
             return;
         }
 
