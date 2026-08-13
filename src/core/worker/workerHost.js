@@ -24,17 +24,22 @@ export class WorkerHost {
         const granted = this.getGrantedCapabilities(manifest, capabilities);
         const childEntry = new URL('./workerChild.js', import.meta.url).pathname;
 
-        const env = { ...process.env };
-        for (const key of Object.keys(env)) {
-            if (key === 'DISCORD_TOKEN' || key.startsWith('DB_')) {
-                delete env[key];
-            }
-        }
-        env.PLUGIN_ID = pluginId;
-        env.PLUGIN_DIR = dir;
-        env.PLUGIN_CAPABILITIES = JSON.stringify(granted);
+        const env = {
+            PLUGIN_ID: pluginId,
+            PLUGIN_DIR: dir,
+            PLUGIN_CAPABILITIES: JSON.stringify(granted),
+            NODE_ENV: process.env.NODE_ENV
+        };
 
-        const child = this._fork(childEntry, [], { env, stdio: ['inherit', 'inherit', 'inherit', 'ipc'] });
+        const child = this._fork(childEntry, [], {
+            env,
+            stdio: ['inherit', 'inherit', 'inherit', 'ipc'],
+            resourceLimits: {
+                maxOldGenerationSizeMb: 256,
+                maxYoungGenerationSizeMb: 64,
+                stackSizeMb: 8
+            }
+        });
         child.on('exit', () => this.recordCrash(pluginId));
 
         this._workers.set(pluginId, { child, granted, manifest });
