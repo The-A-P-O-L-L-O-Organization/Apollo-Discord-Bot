@@ -79,7 +79,7 @@ describe('pluginDownloader security validators', () => {
 
 describe('downloadPluginArchive', () => {
     it('should reject non-https URLs', async() => {
-        await expect(downloadPluginArchive('http://example.com/p.zip'))
+        await expect(downloadPluginArchive('http://example.com/p.zip')) // codeql[js/insecure-download] false positive: test asserts rejection
             .rejects.toThrow(/https/i);
     });
 
