@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, relative, sep, dirname } from 'node:path';
+import { logSecurityEvent } from './securityLog.js';
 
 function hashFile(filePath) {
     return createHash('sha256').update(readFileSync(filePath)).digest('hex');
@@ -28,7 +29,7 @@ export async function verifyPluginManifest({
     allowUnverified = process.env.ALLOW_UNVERIFIED_PLUGINS === '1'
 } = {}) {
     if (allowUnverified) {
-        console.log('[SECURITY] ALLOW_UNVERIFIED_PLUGINS is set - skipping manifest verification.');
+        logSecurityEvent({ event: 'manifest.verification_skipped', reason: 'ALLOW_UNVERIFIED_PLUGINS is set' });
         return { ok: true, skipped: true, checked: 0 };
     }
 
