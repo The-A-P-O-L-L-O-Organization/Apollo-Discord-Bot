@@ -1,0 +1,39 @@
+Apollo Discord Bot — NOTICE
+
+This project is open-source software licensed under the GNU General Public License v3.0. See the LICENSE file for the full license text.
+
+## Operator Acceptance Required
+
+Before running a self-hosted instance of this Bot, you must read and accept the Terms of Service and Privacy Policy:
+
+- Terms of Service: [legal/TOS.md](legal/TOS.md)
+- Privacy Policy: [legal/PRIVACY.md](legal/PRIVACY.md)
+
+The Bot enforces acceptance by reading the `OPERATOR_AGREEMENT` environment variable from your `.env` file. It will refuse to start unless this variable is set to the literal string `true`. By setting `OPERATOR_AGREEMENT=true`, you affirm that you have read both documents and accept the operator responsibilities described therein, including your role as data controller for any personal data the Bot processes on your behalf.
+
+## Discord Platform Policies
+
+Apollo is a Discord application that accesses the Discord API. By operating an instance of this Bot, you agree to comply with Discord's platform policies, including:
+
+- Discord Terms of Service: https://discord.com/terms
+- Discord Developer Terms of Service: https://support-dev.discord.com/hc/en-us/articles/8562894815383
+- Discord Developer Policy: https://support-dev.discord.com/hc/en-us/articles/8563934450327
+- Discord Community Guidelines: https://discord.com/guidelines
+
+The upstream authors of Apollo are not responsible for compliance failures at self-hosted instances. Each instance operator is the data controller for data processed by their instance and is responsible for compliance with applicable laws and Discord's policies.
+
+## Third-Party Services
+
+When enabled by the operator, Apollo may interact with the following third-party services. Use of each service is governed by that service's own terms:
+
+- OpenAI Moderation API — https://openai.com/policies/row-privacy-policy
+- Argos Translate — https://translate.argosopentech.com
+- Twitch — https://www.twitch.tv/p/legal/terms-of-service/
+- YouTube — https://www.youtube.com/static?template=terms
+- GitHub — https://docs.github.com/en/site-policy/github-terms/github-terms-of-service
+
+## Upstream Author
+
+Mitchell Sehenuk — mgs008@outlook.com
+
+For project questions, open an issue at the project's public repository. This address is not a contact channel for users of arbitrary self-hosted instances; each instance operator must publish their own contact information.
