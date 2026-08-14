@@ -12,7 +12,7 @@ import { stopPollScheduler } from './utils/pollScheduler.js';
 import { close as closeDatabase } from './utils/db.js';
 import { closeLockRedis } from './utils/lock.js';
 import { safeError } from './utils/safeError.js';
-import { assertDiscordToken } from './utils/startupChecks.js';
+import { assertDiscordToken, assertOperatorAgreement } from './utils/startupChecks.js';
 
 const uuid = randomUUID?.() ?? randomBytes(16).toString('hex');
 
@@ -248,6 +248,12 @@ const RUN_MODE = process.env.RUN_MODE || 'gateway';
 
 if (RUN_MODE === 'worker') {
     console.log('[INFO] Starting in WORKER mode');
+    try {
+        assertOperatorAgreement(config.operator);
+    } catch (error) {
+        console.error(error.message);
+        process.exit(1);
+    }
     const { startWorker } = await import('./worker.js');
     await startWorker();
 } else {
@@ -345,6 +351,7 @@ if (RUN_MODE === 'worker') {
     async function startGateway() {
         try {
             assertDiscordToken(config.DISCORD_TOKEN);
+            assertOperatorAgreement(config.operator);
         } catch (error) {
             console.error(error.message);
             process.exit(1);
