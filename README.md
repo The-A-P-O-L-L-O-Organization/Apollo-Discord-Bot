@@ -907,6 +907,14 @@ For detailed setup guides, command references, developer guides, and troubleshoo
 
 This project is licensed under the GPLv3 License — see the LICENSE file for details.
 
+## Legal
+
+- [Privacy Policy](legal/PRIVACY.md) — How Apollo processes data when self-hosted
+- [Terms of Service](legal/TOS.md) — Terms governing use of the Bot
+- [NOTICE](NOTICE) — Third-party attributions and Discord policy references
+
+**Before running the bot**, you must read both the Terms of Service and Privacy Policy, then set `OPERATOR_AGREEMENT=true` and `OPERATOR_CONTACT` in your `.env` file. The bot will refuse to start otherwise.
+
 ## Contributing
 
 We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.

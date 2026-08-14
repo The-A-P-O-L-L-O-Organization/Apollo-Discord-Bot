@@ -227,5 +227,16 @@ export const config = {
         },
         prefix: process.env.QUEUE_PREFIX || 'apollo',
         stalledInterval: parseIntSafe(process.env.QUEUE_STALLED_INTERVAL, 30000)
+    },
+
+    // Operator Agreement (required to start the bot)
+    operator: {
+        // Must be the literal string 'true' to acknowledge the operator
+        // responsibilities in legal/TOS.md. Any other value (including
+        // 'yes', '1', 'True') will cause the bot to refuse to start.
+        agreed: process.env.OPERATOR_AGREEMENT === 'true',
+        // Free-text contact information published to users via the
+        // /operator-contact command. Required when OPERATOR_AGREEMENT=true.
+        contact: process.env.OPERATOR_CONTACT || ''
     }
 };
