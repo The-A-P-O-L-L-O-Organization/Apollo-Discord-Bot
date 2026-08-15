@@ -1,10 +1,10 @@
 packages:
   - bot
-onlyBuiltDependencies:
-  - '@tensorflow/tfjs-node'
-  - better-sqlite3
-  - core-js
-  - msgpackr-extract
+allowBuilds:
+  '@tensorflow/tfjs-node': true
+  better-sqlite3: true
+  core-js: true
+  msgpackr-extract: true
 enable-pre-post-scripts: true
 overrides:
   glob: 11.1.0
