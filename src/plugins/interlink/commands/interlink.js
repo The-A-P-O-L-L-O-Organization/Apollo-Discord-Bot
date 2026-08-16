@@ -3,13 +3,9 @@ import BotRegistry from '../registry.js';
 import MessageBus from '../messageBus.js';
 import { generateApiKey } from '../auth.js';
 import { safeError } from '../../../utils/safeError.js';
+import { isOwner, getOwnerIds } from '../../../utils/accessControl.js';
 
 const SEND_CONFIG = { requestTimeout: 5000, maxRetries: 3 };
-
-function isOwner(interaction) {
-    const ownerIds = (process.env.OWNER_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
-    return ownerIds.length > 0 && ownerIds.includes(interaction.user.id);
-}
 
 function createRegistry() {
     return new BotRegistry(getDb());
@@ -99,7 +95,7 @@ export default {
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 
-        if (!isOwner(interaction)) {
+        if (!isOwner(interaction.user.id)) {
             return interaction.editReply({
                 embeds: [{
                     color: 0xFF0000,
@@ -334,7 +330,7 @@ export default {
             });
         }
 
-        const ownerIds = (process.env.OWNER_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
+        const ownerIds = getOwnerIds();
         const userId = interaction.options.getString('user-id') || ownerIds[0] || '';
 
         if (!userId) {
