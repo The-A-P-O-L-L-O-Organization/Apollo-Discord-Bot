@@ -4,6 +4,15 @@ import { logSecurityEvent } from '../../utils/securityLog.js';
 const MAX_CONSECUTIVE_CRASHES = 5;
 const HEALTHY_WINDOW_MS = 10 * 60 * 1000;
 
+// Capabilities that require explicit admin approval due to high risk
+const HIGH_RISK_CAPABILITIES = new Set([
+    'api:sendMessage',
+    'api:commandReply',
+    'events:messageCreate',
+    'events:messageDelete',
+    'events:messageUpdate'
+]);
+
 export class WorkerHost {
     constructor({ fork: forkImpl = fork, log = console.log, now = () => Date.now(), backoff = (attempt) => Math.min(1000 * 2 ** attempt, 60000) } = {}) {
         this._fork = forkImpl;
@@ -17,7 +26,22 @@ export class WorkerHost {
 
     getGrantedCapabilities(manifest, requested) {
         const allowed = new Set(manifest.capabilities);
-        return requested.filter(cap => allowed.has(cap));
+        const granted = requested.filter(cap => allowed.has(cap));
+        
+        // Log high-risk capability grants for audit trail
+        for (const cap of granted) {
+            if (HIGH_RISK_CAPABILITIES.has(cap)) {
+                this._log(`[WORKER] SECURITY: Plugin granted high-risk capability: ${cap}`);
+                logSecurityEvent({ 
+                    event: 'plugin.capability.granted', 
+                    pluginId: manifest.id, 
+                    capability: cap,
+                    riskLevel: 'high'
+                });
+            }
+        }
+        
+        return granted;
     }
 
     async startPlugin({ pluginId, dir, capabilities, manifest }) {
@@ -33,27 +57,34 @@ export class WorkerHost {
 
         const child = this._fork(childEntry, [], {
             env,
-            stdio: ['inherit', 'inherit', 'inherit', 'ipc'],
+            stdio: ['ignore', 'inherit', 'inherit', 'ipc'], // stdin: ignore to prevent injection
             resourceLimits: {
                 maxOldGenerationSizeMb: 256,
                 maxYoungGenerationSizeMb: 64,
                 stackSizeMb: 8
             }
         });
-        child.on('exit', () => this.recordCrash(pluginId));
+        child.on('exit', (code, signal) => this.recordCrash(pluginId, code, signal));
+        child.on('error', (err) => this.handleWorkerError(pluginId, err));
 
         this._workers.set(pluginId, { child, granted, manifest });
         this._log(`[WORKER] Spawned worker for ${pluginId}`);
+        logSecurityEvent({ event: 'plugin.started', pluginId, grantedCapabilities: granted });
         return this._workers.get(pluginId);
     }
 
-    recordCrash(pluginId) {
+    handleWorkerError(pluginId, error) {
+        this._log(`[WORKER] ERROR in ${pluginId}: ${error.message}`);
+        logSecurityEvent({ event: 'plugin.error', pluginId, error: error.message });
+    }
+
+    recordCrash(pluginId, code, signal) {
         const prev = this._crashes.get(pluginId) || { count: 0, lastCrashAt: 0, healthySince: null };
         prev.count += 1;
         prev.lastCrashAt = this._now();
         this._crashes.set(pluginId, prev);
 
-        logSecurityEvent({ event: 'plugin.crash', pluginId, reason: `consecutive=${prev.count}` });
+        logSecurityEvent({ event: 'plugin.crash', pluginId, reason: `consecutive=${prev.count}`, exitCode: code, signal });
 
         if (prev.count >= MAX_CONSECUTIVE_CRASHES) {
             this._disabled.add(pluginId);
