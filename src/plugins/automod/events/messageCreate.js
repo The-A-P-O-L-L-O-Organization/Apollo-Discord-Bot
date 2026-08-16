@@ -12,6 +12,8 @@ import {
     checkMentionSpam,
     checkCapsSpam,
     checkSpam,
+    checkSpamRedis,
+    trackMessageRedis,
     checkAccountAge,
     checkPhishingLinks
 } from '../../../utils/automod.js';
@@ -21,6 +23,7 @@ import { config } from '../../../config/config.js';
 import { trackMessage, trackViolation, flushAnalyticsCritical } from '../../../utils/analyticsCollector.js';
 import { checkMessageModeration, formatViolations } from '../../../utils/openaiModeration.js';
 import { checkMessageAttachments } from '../../../utils/nsfwDetection.js';
+import { getLockRedis } from '../../../utils/lock.js';
 
 export default {
     name: 'messageCreate',
@@ -112,7 +115,23 @@ export default {
             
             // Check message spam
             if (cfg.spamThreshold > 0) {
-                const isSpam = checkSpam(message, cfg.spamThreshold, cfg.spamInterval);
+                let isSpam = false;
+                
+                // Try Redis-backed spam tracking if enabled
+                if (config.automod.useRedisSpamTracking) {
+                    const redis = await getLockRedis();
+                    if (redis) {
+                        await trackMessageRedis(message.guild.id, message.author.id, Date.now());
+                        isSpam = await checkSpamRedis(message.guild.id, message.author.id, cfg.spamThreshold, cfg.spamInterval, Date.now());
+                    } else {
+                        // Fallback to in-memory
+                        isSpam = checkSpam(message, cfg.spamThreshold, cfg.spamInterval);
+                    }
+                } else {
+                    // Use in-memory detection
+                    isSpam = checkSpam(message, cfg.spamThreshold, cfg.spamInterval);
+                }
+                
                 if (isSpam) {
                     await handleViolation(message, 'spam', 
                         `Sent ${cfg.spamThreshold}+ messages in ${cfg.spamInterval / 1000}s`, client, true);

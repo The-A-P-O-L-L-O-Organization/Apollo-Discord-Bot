@@ -3,7 +3,8 @@ import { config } from '../../../config/config.js';
 import { logEvent, createMemberJoinEmbed } from '../../../utils/logger.js';
 import { getGuildData, getData, updateGuildData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
-import { checkRaidPattern, handleRaidDetected } from '../../../utils/raidDetection.js';
+import { checkRaidPattern, handleRaidDetected, checkRaidPatternRedis, trackJoinRedis } from '../../../utils/raidDetection.js';
+import { getLockRedis } from '../../../utils/lock.js';
 import { trackMemberChange } from '../../../utils/analyticsCollector.js';
 
 export default {
@@ -17,7 +18,25 @@ export default {
 
         // --- Raid Detection ---
         if (!member.user.bot) {
-            const isRaid = checkRaidPattern(guild.id, member);
+            let isRaid = false;
+            
+            // Try Redis-backed raid detection if enabled
+            if (config.automod.useRedisRaidDetection) {
+                const redis = await getLockRedis();
+                if (redis) {
+                    const accountAge = Date.now() - member.user.createdTimestamp;
+                    const accountAgeDays = accountAge / (1000 * 60 * 60 * 24);
+                    await trackJoinRedis(guild.id, member.user.id, member.user.username, Date.now(), accountAgeDays);
+                    isRaid = await checkRaidPatternRedis(guild.id, 5, 10000, Date.now());
+                } else {
+                    // Fallback to in-memory
+                    isRaid = checkRaidPattern(guild.id, member);
+                }
+            } else {
+                // Use in-memory detection
+                isRaid = checkRaidPattern(guild.id, member);
+            }
+            
             if (isRaid) {
                 await handleRaidDetected(guild, member);
             }
