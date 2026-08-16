@@ -195,7 +195,7 @@ export default {
                     `**Webhook:** ${webhookUrl}`,
                     `**Redis:** ${supportsRedis ? 'Yes' : 'No'}`,
                     '',
-                    'API key sent via ephemeral message.'
+                    'API key sent via DM.'
                 ].join('\n'),
                 fields: [{
                     name: 'Key Prefix',
@@ -205,10 +205,19 @@ export default {
             }]
         });
 
-        await interaction.followUp({
-            content: `**[WARNING] API Key for ${name} (shown once):**\n\`\`\`${result.rawKey}\`\`\`\nStore this securely. It will not be shown again.`,
-            ephemeral: true
-        });
+        // Send API key via DM instead of followUp to avoid exposure in channel logs
+        try {
+            await interaction.user.send({
+                content: `**[WARNING] API Key for ${name} (shown once):**\n\`\`\`${result.rawKey}\`\`\`\nStore this securely. It will not be shown again.`
+            });
+        } catch (dmError) {
+            // Fallback to ephemeral followUp if DM fails
+            console.warn(`[INTERLINK] Failed to DM API key to ${interaction.user.tag}, falling back to ephemeral message: ${dmError.message}`);
+            await interaction.followUp({
+                content: `**[WARNING] API Key for ${name} (shown once):**\n\`\`\`${result.rawKey}\`\`\`\nStore this securely. It will not be shown again.`,
+                ephemeral: true
+            });
+        }
     },
 
     async _remove(interaction) {
@@ -307,16 +316,25 @@ export default {
                 description: [
                     `**Bot:** ${name}`,
                     '',
-                    'New API key sent via ephemeral message.'
+                    'New API key sent via DM.'
                 ].join('\n'),
                 fields: [{ name: 'New Key Prefix', value: `\`${rawKey.slice(0, 8)}\``, inline: true }]
             }]
         });
 
-        await interaction.followUp({
-            content: `**[WARNING] New API Key for ${name} (shown once):**\n\`\`\`${rawKey}\`\`\`\nStore this securely. The old key is no longer valid.`,
-            ephemeral: true
-        });
+        // Send API key via DM instead of followUp to avoid exposure in channel logs
+        try {
+            await interaction.user.send({
+                content: `**[WARNING] New API Key for ${name} (shown once):**\n\`\`\`${rawKey}\`\`\`\nStore this securely. The old key is no longer valid.`
+            });
+        } catch (dmError) {
+            // Fallback to ephemeral followUp if DM fails
+            console.warn(`[INTERLINK] Failed to DM API key to ${interaction.user.tag}, falling back to ephemeral message: ${dmError.message}`);
+            await interaction.followUp({
+                content: `**[WARNING] New API Key for ${name} (shown once):**\n\`\`\`${rawKey}\`\`\`\nStore this securely. The old key is no longer valid.`,
+                ephemeral: true
+            });
+        }
     },
 
     async _override(interaction) {
