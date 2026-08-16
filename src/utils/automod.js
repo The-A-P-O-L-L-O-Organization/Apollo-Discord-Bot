@@ -4,30 +4,65 @@
 
 import { getGuildData } from './db.js';
 import { config } from '../config/config.js';
+import { getLockRedis } from './lock.js';
 
-// In-memory spam tracking
+// In-memory spam tracking (fallback when Redis unavailable)
 // Map<guildId, Map<userId, { messages: timestamp[], lastWarned: timestamp }>>
 const spamTracker = new Map();
 
-// Redis-backed spam tracking functions
-export async function trackMessage(redis, guildId, userId, timestamp) {
-    const key = `spam:${guildId}:${userId}`;
-    await redis.zadd(key, timestamp, `${timestamp}:${userId}`);
-    await redis.expire(key, 60);
+// Redis key prefix for spam tracking
+const SPAM_KEY_PREFIX = 'apollo:spam:';
+
+/**
+ * Gets Redis client for spam tracking
+ * @returns {Promise<Redis|null>} Redis client or null if unavailable
+ */
+async function getSpamRedis() {
+    if (!config.queue.enabled) {return null;}
+    return getLockRedis();
 }
 
-export async function checkSpamRedis(redis, guildId, userId, threshold, intervalMs, now = Date.now()) {
-    const key = `spam:${guildId}:${userId}`;
+/**
+ * Tracks a message in Redis-backed spam tracking
+ * @param {string} guildId - Guild ID
+ * @param {string} userId - User ID
+ * @param {number} timestamp - Message timestamp
+ */
+export async function trackMessageRedis(guildId, userId, timestamp) {
+    const redis = await getSpamRedis();
+    if (!redis) {return;}
+
+    const key = `${SPAM_KEY_PREFIX}${guildId}:${userId}`;
+    await redis.zadd(key, timestamp, `${timestamp}:${userId}`);
+    await redis.expire(key, 60); // 1 minute TTL
+}
+
+/**
+ * Checks for spam using Redis
+ * @param {string} guildId - Guild ID
+ * @param {string} userId - User ID
+ * @param {number} threshold - Max messages in interval
+ * @param {number} intervalMs - Time interval in ms
+ * @param {number} now - Current timestamp
+ * @returns {Promise<boolean>} Whether spam was detected
+ */
+export async function checkSpamRedis(guildId, userId, threshold, intervalMs, now = Date.now()) {
+    const redis = await getSpamRedis();
+    if (!redis) {return false;}
+
+    const key = `${SPAM_KEY_PREFIX}${guildId}:${userId}`;
     const cutoff = now - intervalMs;
+    
     await redis.zremrangebyscore(key, '-inf', cutoff);
     const count = await redis.zcount(key, cutoff, '+inf');
+    
     return count >= threshold;
 }
 
 /**
  * Gets automod configuration for a guild
  * @param {string} guildId - The guild ID
- * @returns {Object} Automod configuration
+ * @returns {Promise<Object>} Automod configuration
  */
 export async function getAutomodConfig(guildId) {
     const guildConfig = await getGuildData('automod', guildId);
@@ -81,11 +116,17 @@ export function isChannelExempt(channelId, cfg) {
  * Normalizes message content for banned word matching.
  * Converts leetspeak substitutions (e.g. @→a, 3→e, 0→o) and
  * decomposes accented characters to their ASCII base equivalents.
+ * Also removes zero-width characters and common obfuscation techniques.
  * @param {string} content - Raw message content
  * @returns {string} Normalized content
  */
 export function normalizeContent(content) {
-    const normalized = content.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    // Remove zero-width characters and other invisible obfuscation
+    const cleaned = content
+        .replace(/[\u200B-\u200D\uFEFF]/g, '') // Zero-width space, joiner, non-joiner, BOM
+        .replace(/[\u2060-\u206F]/g, '') // Word joiner, invisible operators
+        .replace(/[\u00AD]/g, '') // Soft hyphen
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // Decompose and remove diacritics
 
     const leetMap = {
         '4': 'a', '@': 'a', 'ª': 'a',
@@ -111,7 +152,7 @@ export function normalizeContent(content) {
         'œ': 'o', 'Œ': 'o'
     };
 
-    return normalized.split('').map(c => leetMap[c] || c).join('');
+    return cleaned.split('').map(c => leetMap[c] || c).join('');
 }
 
 /**
@@ -127,9 +168,20 @@ export function checkBannedWords(content, bannedWords) {
     
     for (const word of bannedWords) {
         const normalizedWord = normalizeContent(word).toLowerCase();
+        // Use word boundary for exact matches
         const regex = new RegExp(`\\b${escapeRegex(normalizedWord)}\\b`, 'i');
         if (regex.test(normalizedContent)) {
             return word;
+        }
+        
+        // Also check for the word with common separators inserted (but still respect word boundaries)
+        // Only do this for words longer than 2 characters to avoid false positives
+        if (normalizedWord.length > 2) {
+            const separatedPattern = normalizedWord.split('').join('[\\s\\W_]*');
+            const separatedRegex = new RegExp(`\\b${separatedPattern}\\b`, 'i');
+            if (separatedRegex.test(normalizedContent)) {
+                return word;
+            }
         }
     }
     
@@ -138,24 +190,40 @@ export function checkBannedWords(content, bannedWords) {
 
 /**
  * Checks message for Discord invite links
+ * Handles obfuscated invites (spaces, zero-width chars, etc.)
  * @param {string} content - Message content
  * @returns {boolean} Whether invite was found
  */
 export function checkInvites(content) {
-    // Match discord.gg, discordapp.com/invite, discord.com/invite
-    const inviteRegex = /(discord\.gg|discordapp\.com\/invite|discord\.com\/invite)\/[a-zA-Z0-9]+/i;
-    return inviteRegex.test(content);
+    // Normalize content first to remove obfuscation
+    const normalized = normalizeContent(content);
+    
+    // Match discord.gg, discordapp.com/invite, discord.com/invite with various obfuscations
+    // For discord.gg: require /code format (most common)
+    // For full URLs: allow /code or space+code (alphanumeric, 4+ chars, mixed case/numbers)
+    const shortInviteRegex = /discord\.gg\/[a-zA-Z0-9]{4,}/i;
+    const fullInviteRegex = /(discordapp\.com\/invite|discord\.com\/invite)(?:\/|\s+)([a-zA-Z0-9]{4,})(?![a-zA-Z0-9])/i;
+    
+    return shortInviteRegex.test(normalized) || fullInviteRegex.test(normalized);
 }
 
 /**
  * Checks message for external links
+ * Handles obfuscated URLs (hxxp, spaces, zero-width chars, etc.)
  * @param {string} content - Message content
  * @returns {boolean} Whether link was found
  */
 export function checkLinks(content) {
-    // Match http:// or https:// URLs
-    const linkRegex = /https?:\/\/[^\s]+/i;
-    return linkRegex.test(content);
+    // Normalize content first to remove obfuscation
+    const normalized = normalizeContent(content);
+    
+    // Match http:// or https:// URLs (including hxxp obfuscation)
+    const linkRegex = /hxxps?:\/\/[^\s]+/i;
+    if (linkRegex.test(normalized)) {return true;}
+    
+    // Match standard URLs
+    const standardLinkRegex = /https?:\/\/[^\s]+/i;
+    return standardLinkRegex.test(normalized);
 }
 
 /**
@@ -197,13 +265,36 @@ export function checkCapsSpam(content, maxPercent, minLength = 10) {
 }
 
 /**
- * Checks for spam (rapid messages)
+ * Checks for spam (rapid messages) - uses Redis when available, falls back to in-memory
+ * @param {Message} message - The Discord message
+ * @param {number} threshold - Max messages in interval
+ * @param {number} interval - Time interval in ms
+ * @returns {Promise<boolean>} Whether spam was detected
+ */
+export async function checkSpam(message, threshold, interval) {
+    const guildId = message.guild.id;
+    const userId = message.author.id;
+    const now = Date.now();
+    
+    // Try Redis first
+    const redis = await getSpamRedis();
+    if (redis) {
+        await trackMessageRedis(guildId, userId, now);
+        return checkSpamRedis(guildId, userId, threshold, interval, now);
+    }
+    
+    // Fallback to in-memory
+    return checkSpamMemory(message, threshold, interval);
+}
+
+/**
+ * In-memory spam check (fallback)
  * @param {Message} message - The Discord message
  * @param {number} threshold - Max messages in interval
  * @param {number} interval - Time interval in ms
  * @returns {boolean} Whether spam was detected
  */
-export function checkSpam(message, threshold, interval) {
+function checkSpamMemory(message, threshold, interval) {
     const guildId = message.guild.id;
     const userId = message.author.id;
     const now = Date.now();
@@ -399,3 +490,22 @@ export function checkPhishingLinks(content) {
     
     return null;
 }
+
+export default {
+    trackMessageRedis,
+    checkSpamRedis,
+    getAutomodConfig,
+    isExempt,
+    isChannelExempt,
+    normalizeContent,
+    checkBannedWords,
+    checkInvites,
+    checkLinks,
+    checkMentionSpam,
+    checkCapsSpam,
+    checkSpam,
+    checkAccountAge,
+    cleanupSpamTracker,
+    stopSpamTrackerCleanup,
+    checkPhishingLinks
+};
