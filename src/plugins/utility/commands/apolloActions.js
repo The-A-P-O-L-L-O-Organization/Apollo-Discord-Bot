@@ -1,5 +1,6 @@
 import { ContextMenuCommandBuilder, ApplicationCommandType, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from 'discord.js';
 import { getData, updateGuildData } from '../../../utils/db.js';
+import { isOwner } from '../../../utils/accessControl.js';
 
 export default {
     data: new ContextMenuCommandBuilder()
@@ -11,8 +12,7 @@ export default {
     canQueue: false,
 
     async execute(interaction) {
-        const ownerIds = (process.env.OWNER_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
-        if (ownerIds.length === 0 || !ownerIds.includes(interaction.user.id)) {
+        if (!isOwner(interaction.user.id)) {
             return interaction.reply({
                 embeds: [{
                     color: 0xFF0000,

@@ -1,6 +1,7 @@
 import { config } from '../../../config/config.js';
 import { getDb, runMigrations } from '../../../db/knex.js';
 import { safeError } from '../../../utils/safeError.js';
+import { requireOwner } from '../../../utils/accessControl.js';
 
 export default {
     name: 'migrate',
@@ -22,12 +23,9 @@ export default {
   ],
 
   async execute(interaction) {
-    const ownerIds = (process.env.OWNER_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
-    if (ownerIds.length === 0 || !ownerIds.includes(interaction.user.id)) {
-      return interaction.reply({
-        embeds: [{ color: 0xFF0000, title: '[ERROR] Access Denied', description: 'Only bot owners can use this command.', timestamp: new Date().toISOString() }],
-        ephemeral: true
-      });
+    const denial = await requireOwner(interaction);
+    if (denial) {
+      return interaction.reply(denial);
     }
 
     const subcommand = interaction.options.getSubcommand();

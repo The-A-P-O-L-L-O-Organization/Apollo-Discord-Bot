@@ -1,10 +1,8 @@
-// Blacklist Command
-// Manages the server-wide join blacklist (add, remove, view)
-
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { getGuildData, getData, updateGuildData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { safeError } from '../../../utils/safeError.js';
+import { isOwner } from '../../../utils/accessControl.js';
 
 export default {
     name: 'blacklist',
@@ -296,8 +294,7 @@ async function handleView(interaction) {
  */
 async function handleGlobal(interaction) {
     try {
-        const ownerIds = (process.env.OWNER_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
-        if (!ownerIds.includes(interaction.user.id)) {
+        if (!isOwner(interaction.user.id)) {
             return interaction.reply({
                 embeds: [{
                     color: 0xFF0000,
