@@ -1,4 +1,5 @@
 import { safeError } from '../../../utils/safeError.js';
+import { requireOwner } from '../../../utils/accessControl.js';
 
 export default {
     name: 'plugin',
@@ -109,17 +110,9 @@ export default {
 
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
-        const ownerIds = (process.env.OWNER_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
-        if (ownerIds.length === 0 || !ownerIds.includes(interaction.user.id)) {
-            return interaction.editReply({
-                embeds: [{
-                    color: 0xFF0000,
-                    title: '[ERROR] Access Denied',
-                    description: 'Only bot owners can use this command.',
-                    timestamp: new Date().toISOString()
-                }],
-                ephemeral: true
-            });
+        const denial = await requireOwner(interaction);
+        if (denial) {
+            return interaction.editReply(denial);
         }
 
         const subcommand = interaction.options.getSubcommand();
