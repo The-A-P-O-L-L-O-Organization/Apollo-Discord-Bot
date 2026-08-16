@@ -53,6 +53,10 @@ vi.mock('../../src/config/config.js', () => ({
         warnings: {
             thresholds: { mute: 3, kick: 5, ban: 7 },
             muteDuration: 3600000
+        },
+        automod: {
+            useRedisSpamTracking: false,
+            useRedisRaidDetection: false
         }
     }
 }));

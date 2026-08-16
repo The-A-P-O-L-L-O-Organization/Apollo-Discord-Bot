@@ -94,7 +94,11 @@ export const config = {
         // AI-powered moderation (OpenAI Moderation API)
         aiModeration: false,
         // NSFW image detection in attachments
-        nsfwFilter: false
+        nsfwFilter: false,
+        // Use Redis-backed spam tracking when available (survives restarts, works across pods)
+        useRedisSpamTracking: false,
+        // Use Redis-backed raid detection when available
+        useRedisRaidDetection: false
     },
 
     // Leveling System Settings

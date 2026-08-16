@@ -26,6 +26,10 @@ vi.mock('../../src/config/config.js', () => ({
         },
         moderation: {
             moderationLogChannel: 'mod-log'
+        },
+        automod: {
+            useRedisRaidDetection: false,
+            useRedisSpamTracking: false
         }
     }
 }));
