@@ -4,25 +4,15 @@
 
 import { EmbedBuilder, ChannelType } from 'discord.js';
 import { config } from '../config/config.js';
+import { getLockRedis } from './lock.js';
 
-// In-memory raid state tracking
+// In-memory raid state tracking (fallback when Redis unavailable)
 // Map<guildId, { joins: Array<{userId, username, timestamp, accountAge}>, raidMode: boolean, lastAlert: timestamp }>
 const raidState = new Map();
 
-// Redis-backed raid detection functions
-export async function trackJoin(redis, guildId, userId, timestamp) {
-    const key = `raid:${guildId}`;
-    await redis.zadd(key, timestamp, `${timestamp}:${userId}`);
-    await redis.expire(key, 300);
-}
-
-export async function checkRaid(redis, guildId, threshold, intervalMs, now = Date.now()) {
-    const key = `raid:${guildId}`;
-    const cutoff = now - intervalMs;
-    await redis.zremrangebyscore(key, '-inf', cutoff);
-    const count = await redis.zcount(key, cutoff, '+inf');
-    return count >= threshold;
-}
+// Redis key prefixes
+const RAID_KEY_PREFIX = 'apollo:raid:';
+const RAID_MODE_KEY_PREFIX = 'apollo:raidmode:';
 
 // Raid detection thresholds (configurable)
 const RAID_THRESHOLDS = {
@@ -34,16 +24,140 @@ const RAID_THRESHOLDS = {
 };
 
 /**
- * Checks if a join is part of a raid pattern
+ * Gets Redis client for raid detection
+ * @returns {Promise<Redis|null>} Redis client or null if unavailable
+ */
+async function getRaidRedis() {
+    if (!config.queue.enabled) {return null;}
+    return getLockRedis();
+}
+
+/**
+ * Tracks a join in Redis-backed raid detection
+ * @param {string} guildId - Guild ID
+ * @param {string} userId - User ID
+ * @param {string} username - Username
+ * @param {number} timestamp - Join timestamp
+ * @param {number} accountAgeDays - Account age in days
+ */
+export async function trackJoinRedis(guildId, userId, username, timestamp, accountAgeDays) {
+    const redis = await getRaidRedis();
+    if (!redis) {return;}
+
+    const key = `${RAID_KEY_PREFIX}${guildId}`;
+    const memberData = JSON.stringify({ userId, username, timestamp, accountAgeDays });
+    
+    await redis.zadd(key, timestamp, memberData);
+    await redis.expire(key, 300); // 5 minute TTL
+}
+
+/**
+ * Checks for raid pattern using Redis
+ * @param {string} guildId - Guild ID
+ * @param {number} threshold - Join count threshold
+ * @param {number} intervalMs - Time window in ms
+ * @param {number} now - Current timestamp
+ * @returns {Promise<{detected: boolean, recentJoins: number, newAccounts: number, similarNames: number}>}
+ */
+export async function checkRaidPatternRedis(guildId, threshold, intervalMs, now = Date.now()) {
+    const redis = await getRaidRedis();
+    if (!redis) {
+        return { detected: false, recentJoins: 0, newAccounts: 0, similarNames: 0 };
+    }
+
+    const key = `${RAID_KEY_PREFIX}${guildId}`;
+    const cutoff = now - intervalMs;
+    
+    await redis.zremrangebyscore(key, '-inf', cutoff);
+    const members = await redis.zrange(key, 0, -1);
+    
+    const recentJoins = members.length;
+    if (recentJoins < threshold) {
+        return { detected: false, recentJoins, newAccounts: 0, similarNames: 0 };
+    }
+
+    // Parse member data
+    const parsedMembers = members.map(m => {
+        try { return JSON.parse(m); } catch { return null; }
+    }).filter(Boolean);
+
+    // Count new accounts
+    const newAccounts = parsedMembers.filter(m => m.accountAge < RAID_THRESHOLDS.newAccountAge).length;
+    
+    // Count similar names
+    const usernames = parsedMembers.map(m => m.username);
+    const similarNames = countSimilarNames(usernames);
+
+    const detected = recentJoins >= threshold || 
+                     (newAccounts >= 3 && recentJoins >= 4) || 
+                     (similarNames >= 3 && recentJoins >= 3);
+
+    return { detected, recentJoins, newAccounts, similarNames };
+}
+
+/**
+ * Gets raid mode state from Redis
+ * @param {string} guildId - Guild ID
+ * @returns {Promise<boolean>} Whether raid mode is enabled
+ */
+export async function isRaidModeEnabledRedis(guildId) {
+    const redis = await getRaidRedis();
+    if (!redis) {return false;}
+    
+    const key = `${RAID_MODE_KEY_PREFIX}${guildId}`;
+    const value = await redis.get(key);
+    return value === '1';
+}
+
+/**
+ * Sets raid mode state in Redis
+ * @param {string} guildId - Guild ID
+ * @param {boolean} enabled - Whether raid mode is enabled
+ */
+export async function setRaidModeRedis(guildId, enabled) {
+    const redis = await getRaidRedis();
+    if (!redis) {return;}
+    
+    const key = `${RAID_MODE_KEY_PREFIX}${guildId}`;
+    if (enabled) {
+        await redis.set(key, '1');
+    } else {
+        await redis.del(key);
+    }
+}
+
+/**
+ * Checks if a join is part of a raid pattern (uses Redis when available, falls back to in-memory)
  * @param {string} guildId - Guild ID
  * @param {GuildMember} member - The joining member
- * @returns {boolean} Whether raid was detected
+ * @returns {Promise<boolean>} Whether raid was detected
  */
-export function checkRaidPattern(guildId, member) {
+export async function checkRaidPattern(guildId, member) {
     const now = Date.now();
     const accountAge = now - member.user.createdTimestamp;
     const accountAgeDays = accountAge / (1000 * 60 * 60 * 24);
     
+    // Try Redis first
+    const redis = await getRaidRedis();
+    if (redis) {
+        await trackJoinRedis(guildId, member.user.id, member.user.username, now, accountAgeDays);
+        const result = await checkRaidPatternRedis(guildId, RAID_THRESHOLDS.joinCount, RAID_THRESHOLDS.timeWindow, now);
+        return result.detected;
+    }
+    
+    // Fallback to in-memory
+    return checkRaidPatternMemory(guildId, member, now, accountAgeDays);
+}
+
+/**
+ * In-memory raid pattern check (fallback)
+ * @param {string} guildId - Guild ID
+ * @param {GuildMember} member - The joining member
+ * @param {number} now - Current timestamp
+ * @param {number} accountAgeDays - Account age in days
+ * @returns {boolean} Whether raid was detected
+ */
+function checkRaidPatternMemory(guildId, member, now, accountAgeDays) {
     // Initialize guild state if needed
     if (!raidState.has(guildId)) {
         raidState.set(guildId, {
@@ -101,15 +215,42 @@ export function checkRaidPattern(guildId, member) {
  * @param {GuildMember} member - The member who triggered detection
  */
 export async function handleRaidDetected(guild, member) {
-    const state = raidState.get(guild.id);
-    
-    // Check alert cooldown
     const now = Date.now();
-    if (now - state.lastAlert < RAID_THRESHOLDS.alertCooldown) {
-        return; // Don't spam alerts
-    }
     
-    state.lastAlert = now;
+    // Get state (Redis or memory)
+    let state;
+    const redis = await getRaidRedis();
+    if (redis) {
+        const key = `${RAID_KEY_PREFIX}${guild.id}`;
+        const members = await redis.zrange(key, 0, -1);
+        const parsedMembers = members.map(m => {
+            try { return JSON.parse(m); } catch { return null; }
+        }).filter(Boolean);
+        
+        const lastAlertKey = `${RAID_KEY_PREFIX}${guild.id}:lastalert`;
+        const lastAlert = parseInt(await redis.get(lastAlertKey) || '0', 10);
+        
+        if (now - lastAlert < RAID_THRESHOLDS.alertCooldown) {
+            return; // Don't spam alerts
+        }
+        
+        await redis.set(lastAlertKey, now.toString());
+        
+        state = {
+            joins: parsedMembers,
+            raidMode: await isRaidModeEnabledRedis(guild.id),
+            lastAlert: now
+        };
+    } else {
+        state = raidState.get(guild.id);
+        if (!state) {return;}
+        
+        if (now - state.lastAlert < RAID_THRESHOLDS.alertCooldown) {
+            return; // Don't spam alerts
+        }
+        
+        state.lastAlert = now;
+    }
     
     // Find mod log channel
     const modChannel = guild.channels.cache.find(
@@ -169,12 +310,12 @@ export async function handleRaidDetected(guild, member) {
 /**
  * Enables raid mode - locks down all channels
  * @param {Guild} guild - The guild to lock down
- * @returns {Object} Result with success status and stats
+ * @returns {Promise<Object>} Result with success status and stats
  */
 export async function enableRaidMode(guild) {
-    const state = raidState.get(guild.id) || { joins: [], raidMode: false, lastAlert: 0 };
-    
-    if (state.raidMode) {
+    // Check current state (Redis or memory)
+    const raidModeEnabled = await isRaidModeEnabledRedis(guild.id);
+    if (raidModeEnabled) {
         return { success: false, reason: 'Raid mode already enabled' };
     }
     
@@ -200,6 +341,11 @@ export async function enableRaidMode(guild) {
         }
     }
     
+    // Set raid mode in Redis or memory
+    await setRaidModeRedis(guild.id, true);
+    
+    // Also update in-memory state for consistency
+    const state = raidState.get(guild.id) || { joins: [], raidMode: false, lastAlert: 0 };
     state.raidMode = true;
     raidState.set(guild.id, state);
     
@@ -216,12 +362,14 @@ export async function enableRaidMode(guild) {
 /**
  * Disables raid mode - unlocks all channels
  * @param {Guild} guild - The guild to unlock
- * @returns {Object} Result with success status and stats
+ * @returns {Promise<Object>} Result with success status and stats
  */
 export async function disableRaidMode(guild) {
-    const state = raidState.get(guild.id);
+    // Check current state (Redis or memory)
+    const raidModeEnabled = await isRaidModeEnabledRedis(guild.id);
+    const memState = raidState.get(guild.id);
     
-    if (!state || !state.raidMode) {
+    if (!raidModeEnabled && (!memState || !memState.raidMode)) {
         return { success: false, reason: 'Raid mode not enabled' };
     }
     
@@ -247,8 +395,13 @@ export async function disableRaidMode(guild) {
         }
     }
     
-    state.raidMode = false;
-    state.joins = []; // Clear join history
+    // Clear raid mode in Redis and memory
+    await setRaidModeRedis(guild.id, false);
+    
+    if (memState) {
+        memState.raidMode = false;
+        memState.joins = []; // Clear join history
+    }
     
     console.log(`[RAID] Raid mode disabled in ${guild.name}. Unlocked: ${unlocked}, Failed: ${failed}`);
     
@@ -261,11 +414,16 @@ export async function disableRaidMode(guild) {
 }
 
 /**
- * Checks if raid mode is currently enabled
+ * Checks if raid mode is currently enabled (uses Redis when available)
  * @param {string} guildId - Guild ID
- * @returns {boolean} Whether raid mode is enabled
+ * @returns {Promise<boolean>} Whether raid mode is enabled
  */
-export function isRaidModeEnabled(guildId) {
+export async function isRaidModeEnabled(guildId) {
+    const redis = await getRaidRedis();
+    if (redis) {
+        return isRaidModeEnabledRedis(guildId);
+    }
+    
     const state = raidState.get(guildId);
     return state ? state.raidMode : false;
 }
@@ -362,3 +520,16 @@ export function cleanupRaidState() {
 
 // Clean up raid state every 5 minutes
 setInterval(cleanupRaidState, 300000);
+
+export default {
+    trackJoinRedis,
+    checkRaidPatternRedis,
+    isRaidModeEnabledRedis,
+    setRaidModeRedis,
+    checkRaidPattern,
+    handleRaidDetected,
+    enableRaidMode,
+    disableRaidMode,
+    isRaidModeEnabled,
+    cleanupRaidState
+};
