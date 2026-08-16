@@ -18,7 +18,7 @@ describe('Reminder scheduler with lock', () => {
         const { initReminderScheduler, stopReminderScheduler } =
       await import('../../src/utils/reminderScheduler.js');
         const client = {};
-        initReminderScheduler(client);
+        await initReminderScheduler(client);
 
         await new Promise((r) => setTimeout(r, 100));
         stopReminderScheduler();
