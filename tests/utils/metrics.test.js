@@ -1,22 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { Registry } from 'prom-client';
-import { 
-    createMetrics,
-    recordCommand,
-    recordCommandDuration,
-    setQueueDepth,
-    recordDbQuery,
-    setActivePlugins,
-    setWorkerMemory,
-    setRedisConnections,
-    setAnalyticsCacheSize,
-    setSpamTrackerSize,
-    setEventBusHandlers,
-    recordHttpRequest,
-    recordError,
-    recordPluginLoad,
-    recordStartupDuration
-} from '../../src/utils/metrics.js';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { createMetrics } from '../../src/utils/metrics.js';
 
 describe('Metrics', () => {
     let register;

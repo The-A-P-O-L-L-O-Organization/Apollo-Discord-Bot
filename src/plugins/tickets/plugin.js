@@ -1,4 +1,5 @@
 import Plugin from '../../core/Plugin.js';
+import { startSlaMonitor } from './events/slaMonitor.js';
 
 export default class TicketsPlugin extends Plugin {
   static id = 'tickets';
@@ -9,11 +10,15 @@ export default class TicketsPlugin extends Plugin {
     await this._loadCommands();
     await this._loadEvents();
     this._registerSocketHandlers();
+    
+    // Start SLA monitor
+    startSlaMonitor(this.client);
   }
 
   async onDisable() {
     this._unloadCommands();
     this._unloadEvents();
+    this._stopSchedulers();
   }
 
   _registerSocketHandlers() {

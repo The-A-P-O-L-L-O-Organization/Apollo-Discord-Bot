@@ -23,7 +23,8 @@ vi.mock('../../src/utils/automod.js', () => ({
     checkMentionSpam: vi.fn().mockReturnValue(false),
     checkCapsSpam: vi.fn().mockReturnValue(false),
     checkSpam: vi.fn().mockReturnValue(false),
-    checkAccountAge: vi.fn().mockReturnValue(false)
+    checkAccountAge: vi.fn().mockReturnValue(false),
+    checkPhishingLinks: vi.fn().mockReturnValue(null)
 }));
 
 vi.mock('../../src/utils/openaiModeration.js', () => ({
@@ -36,11 +37,27 @@ vi.mock('../../src/utils/nsfwDetection.js', () => ({
     isNsfwDetectionAvailable: vi.fn().mockReturnValue(false)
 }));
 
+vi.mock('../../src/utils/raidDetection.js', () => ({
+    checkRaidPattern: vi.fn().mockResolvedValue(false),
+    handleRaidDetected: vi.fn().mockResolvedValue(undefined)
+}));
+
 
 vi.mock('../../src/utils/db.js', () => ({
     appendToUserArray: vi.fn(),
     generateId: vi.fn().mockReturnValue('test-warning-id'),
-    getUserData: vi.fn().mockReturnValue([]),
+    getUserData: vi.fn().mockImplementation((key, _guildId, _userId) => {
+        if (key === 'warnings') {
+            return [];
+        }
+        if (key.startsWith('automod_violation_')) {
+            return null;
+        }
+        if (key === 'warnings-config') {
+            return { thresholds: { mute: 3, kick: 5, ban: 7 }, muteDuration: 3600000 };
+        }
+        return {};
+    }),
     getGuildData: vi.fn().mockReturnValue({})
 }));
 
@@ -59,6 +76,12 @@ vi.mock('../../src/config/config.js', () => ({
             useRedisRaidDetection: false
         }
     }
+}));
+
+vi.mock('../../src/utils/analyticsCollector.js', () => ({
+    trackMessage: vi.fn(),
+    trackViolation: vi.fn(),
+    flushAnalyticsCritical: vi.fn().mockResolvedValue(undefined)
 }));
 
 import { 
@@ -86,7 +109,8 @@ describe('MessageCreate Event', () => {
     let automodConfig;
 
     beforeEach(() => {
-        vi.clearAllMocks();
+        vi.resetAllMocks();
+        automodConfig = {};
         isExempt.mockReturnValue(false);
         isChannelExempt.mockReturnValue(false);
         checkBannedWords.mockReturnValue(null);
@@ -139,6 +163,8 @@ describe('MessageCreate Event', () => {
             minAccountAge: 0,
             filterInvites: false,
             filterLinks: false,
+            filterPhishingLinks: false,
+            raidDetection: false,
             spamThreshold: 0,
             spamInterval: 5000,
             aiModeration: false,
@@ -227,8 +253,7 @@ describe('MessageCreate Event', () => {
             checkBannedWords.mockReturnValue('badword');
             
             await messageCreateEvent.execute(mockMessage, mockClient);
-            
-            expect(mockMessage.delete).toHaveBeenCalled();
+            expect(checkBannedWords).toHaveBeenCalledWith('Hello world', ['badword']);
             expect(appendToUserArray).toHaveBeenCalledWith(
                 'warnings',
                 '987654321',
@@ -239,6 +264,7 @@ describe('MessageCreate Event', () => {
                     violationType: 'banned_word'
                 })
             );
+            expect(mockMessage.delete).toHaveBeenCalled();
         });
 
         it('should not check banned words when list is empty', async() => {

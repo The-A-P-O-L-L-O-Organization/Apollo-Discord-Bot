@@ -18,7 +18,13 @@ vi.mock('../../src/utils/db.js', () => ({
     writeToSubDir: vi.fn()
 }));
 
-import { getGuildData, updateGuildData, writeToSubDir } from '../../src/utils/db.js';
+// Mock the transcriptGenerator module
+vi.mock('../../src/utils/transcriptGenerator.js', () => ({
+    saveTranscripts: vi.fn().mockResolvedValue({ htmlFile: 'ticket-1-test.html', textFile: 'ticket-1-test.txt' })
+}));
+
+import { getGuildData, updateGuildData } from '../../src/utils/db.js';
+import { saveTranscripts } from '../../src/utils/transcriptGenerator.js';
 
 describe('CloseTicket Command', () => {
     let mockInteraction;
@@ -103,7 +109,7 @@ describe('CloseTicket Command', () => {
             
             expect(mockInteraction.reply).toHaveBeenCalled();
             expect(updateGuildData).toHaveBeenCalled();
-            expect(writeToSubDir).toHaveBeenCalled();
+            expect(saveTranscripts).toHaveBeenCalled();
         });
 
         it('should close ticket as admin', async() => {
@@ -162,9 +168,7 @@ describe('CloseTicket Command', () => {
 
             await closeTicketCommand.execute(mockInteraction);
             
-            expect(writeToSubDir).toHaveBeenCalledWith(
-                'transcripts',
-                expect.stringContaining('ticket-1'),
+            expect(saveTranscripts).toHaveBeenCalledWith(
                 expect.objectContaining({
                     ticketNumber: 1,
                     guildId: mockGuild.id
@@ -187,9 +191,7 @@ describe('CloseTicket Command', () => {
 
             await closeTicketCommand.execute(mockInteraction);
             
-            expect(writeToSubDir).toHaveBeenCalledWith(
-                'transcripts',
-                expect.any(String),
+            expect(saveTranscripts).toHaveBeenCalledWith(
                 expect.objectContaining({
                     closeReason: 'Issue resolved'
                 })
