@@ -73,6 +73,8 @@ export default {
                     choices: [
                         { name: 'Filter Invites', value: 'filterInvites' },
                         { name: 'Filter Links', value: 'filterLinks' },
+                        { name: 'Filter Phishing Links', value: 'filterPhishingLinks' },
+                        { name: 'Raid Detection', value: 'raidDetection' },
                         { name: 'Max Mentions', value: 'maxMentions' },
                         { name: 'Max Caps Percent', value: 'maxCapsPercent' },
                         { name: 'Min Account Age (days)', value: 'minAccountAge' },
@@ -136,6 +138,40 @@ export default {
                     ]
                 }
             ]
+        },
+        {
+            name: 'scan',
+            description: 'Scan messages for NSFW content',
+            type: 1, // SUB_COMMAND
+            options: [
+                {
+                    name: 'channel',
+                    description: 'Channel to scan',
+                    type: 7, // CHANNEL type
+                    required: true,
+                    channel_types: [0] // GuildText
+                },
+                {
+                    name: 'limit',
+                    description: 'Number of messages to scan (1-1000)',
+                    type: 4, // INTEGER type
+                    required: false,
+                    min_value: 1,
+                    max_value: 1000
+                },
+                {
+                    name: 'user',
+                    description: 'User to filter by (optional)',
+                    type: 6, // USER type
+                    required: false
+                },
+                {
+                    name: 'delete',
+                    description: 'Delete detected NSFW messages',
+                    type: 5, // BOOLEAN type
+                    required: false
+                }
+            ]
         }
     ],
     
@@ -170,6 +206,9 @@ export default {
             case 'exemptrole':
                 await handleExemptRole(interaction);
                 break;
+            case 'scan':
+                await handleScan(interaction);
+                break;
             }
         } catch (error) {
             await interaction.reply({
@@ -193,6 +232,8 @@ async function getAutomodConfig(guildId) {
         bannedWords: guildConfig.bannedWords || [],
         filterInvites: guildConfig.filterInvites ?? config.automod.filterInvites,
         filterLinks: guildConfig.filterLinks ?? config.automod.filterLinks,
+        filterPhishingLinks: guildConfig.filterPhishingLinks ?? config.automod.filterPhishingLinks,
+        raidDetection: guildConfig.raidDetection ?? config.automod.raidDetection,
         maxMentions: guildConfig.maxMentions ?? config.automod.maxMentions,
         maxCapsPercent: guildConfig.maxCapsPercent ?? config.automod.maxCapsPercent,
         minAccountAge: guildConfig.minAccountAge ?? config.automod.minAccountAge,
@@ -251,6 +292,8 @@ async function handleStatus(interaction) {
         .addFields(
             { name: '[Link] Filter Invites', value: cfg.filterInvites ? 'Yes' : 'No', inline: true },
             { name: '[Web] Filter Links', value: cfg.filterLinks ? 'Yes' : 'No', inline: true },
+            { name: '[Shield] Filter Phishing Links', value: cfg.filterPhishingLinks ? 'Yes' : 'No', inline: true },
+            { name: '[Shield] Raid Detection', value: cfg.raidDetection ? 'Enabled' : 'Disabled', inline: true },
             { name: '[Mention] Max Mentions', value: `${cfg.maxMentions}`, inline: true },
             { name: '[Caps] Max Caps %', value: `${cfg.maxCapsPercent}%`, inline: true },
             { name: '[Date] Min Account Age', value: cfg.minAccountAge > 0 ? `${cfg.minAccountAge} days` : 'Disabled', inline: true },
@@ -368,7 +411,7 @@ async function handleSet(interaction) {
     
     // Parse value based on setting type
     let value;
-    const booleanSettings = ['filterInvites', 'filterLinks', 'aiModeration', 'nsfwFilter'];
+    const booleanSettings = ['filterInvites', 'filterLinks', 'filterPhishingLinks', 'raidDetection', 'aiModeration', 'nsfwFilter'];
     const numberSettings = ['maxMentions', 'maxCapsPercent', 'minAccountAge', 'spamThreshold', 'spamInterval'];
     
     if (booleanSettings.includes(setting)) {
@@ -534,11 +577,152 @@ async function handleExemptRole(interaction) {
         
         await interaction.reply({
             embeds: [{
-                color: 0x00FF00,
-                title: '[SUCCESS] Exemption Removed',
-                description: `${role} is no longer exempt from automod.`,
+color: 0x00FF00,
+                 title: '[SUCCESS] Exemption Removed',
+                 description: `${role} is no longer exempt from automod.`,
+                 timestamp: new Date().toISOString()
+             }]
+         });
+     }
+ }
+
+ async function handleScan(interaction) {
+    try {
+        const channel = interaction.options.getChannel('channel');
+        const limit = interaction.options.getInteger('limit') || 100;
+        const user = interaction.options.getUser('user');
+        const deleteEnabled = interaction.options.getBoolean('delete') || false;
+
+        // Validate channel is text-based and in guild
+        if (!channel.isTextBased() || !channel.guild) {
+            return interaction.reply({
+                embeds: [{
+                    color: 0xFF0000,
+                    title: '[ERROR] Invalid Channel',
+                    description: 'Please select a text channel in this server.',
+                    timestamp: new Date().toISOString()
+                }],
+                ephemeral: true
+            });
+        }
+
+        // Check if bot can read messages in the channel
+        if (!channel.viewable) {
+            return interaction.reply({
+                embeds: [{
+                    color: 0xFF0000,
+                    title: '[ERROR] Permission Denied',
+                    description: 'I cannot view messages in that channel.',
+                    timestamp: new Date().toISOString()
+                }],
+                ephemeral: true
+            });
+        }
+
+        await interaction.deferReply();
+
+        let messagesScanned = 0;
+        let nsfwFound = 0;
+        let messagesDeleted = 0;
+        let lastId = null;
+        const batchSize = 100; // Discord API limit per request
+
+        // Fetch and scan messages in batches
+        while (messagesScanned < limit) {
+            const remaining = limit - messagesScanned;
+            const fetchCount = Math.min(batchSize, remaining);
+            const options = {
+                limit: fetchCount,
+                before: lastId
+            };
+
+            const messages = await channel.messages.fetch(options);
+            if (messages.size === 0) break;
+
+            for (const [, msg] of messages) {
+                // Skip if user filter is set and doesn't match
+                if (user && msg.author.id !== user.id) continue;
+
+                // Check message attachments for NSFW
+                const result = await checkMessageAttachments(interaction.guild.id, msg);
+                messagesScanned++;
+
+                if (result) {
+                    nsfwFound++;
+                    if (deleteEnabled && result.shouldDelete) {
+                        try {
+                            await msg.delete();
+                            messagesDeleted++;
+                        } catch (delError) {
+                            console.error(`[ERROR] Failed to delete NSFW message ${msg.id}:`, delError);
+                        }
+                    }
+                }
+
+                // Update progress every 50 messages or at the end
+                if (messagesScanned % 50 === 0 || messagesScanned === limit) {
+                    await interaction.editReply({
+                        embeds: [{
+                            color: 0x0099FF,
+                            title: '[INFO] NSFW Scan Progress',
+                            description: `Scanning messages in ${channel}...`,
+                            fields: [
+                                { name: 'Messages Scanned', value: `${messagesScanned}/${limit}`, inline: true },
+                                { name: 'NSFW Detected', value: `${nsfwFound}`, inline: true },
+                                { name: 'Messages Deleted', value: `${messagesDeleted}`, inline: true }
+                            ],
+                            timestamp: new Date().toISOString()
+                        }]
+                    });
+                }
+
+                if (messagesScanned >= limit) break;
+            }
+
+            // Set lastId to the oldest message in this batch for pagination
+            const oldestMessage = messages.last();
+            if (oldestMessage) {
+                lastId = oldestMessage.id;
+            } else {
+                break;
+            }
+
+            // Small delay to avoid rate limiting
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
+        // Final results
+        const embed = new EmbedBuilder()
+            .setColor(nsfwFound > 0 ? '#FF0000' : '#00FF00')
+            .setTitle('[INFO] NSFW Scan Complete')
+            .setDescription(`Finished scanning ${messagesScanned} messages in ${channel}`)
+            .addFields(
+                { name: 'NSFW Content Detected', value: `${nsfwFound}`, inline: true },
+                { name: 'Messages Deleted', value: `${messagesDeleted}`, inline: true },
+                { name: 'Channel', value: channel.toString(), inline: true }
+            )
+            .setTimestamp();
+
+        if (user) {
+            embed.addFields({ name: 'User Filter', value: user.toString(), inline: true });
+        }
+        if (deleteEnabled) {
+            embed.addFields({ name: 'Delete Enabled', value: 'Yes', inline: true });
+        }
+
+        await interaction.editReply({ embeds: [embed] });
+        console.log(`[AUTOMOD] NSFW scan completed in ${channel.name} for ${interaction.guild.name}`);
+
+    } catch (error) {
+        await interaction.editReply({
+            embeds: [{
+                color: 0xFF0000,
+                title: '[ERROR] Scan Failed',
+                description: 'An error occurred during the NSFW scan.',
+                fields: [{ name: 'Error', value: safeError(error) }],
                 timestamp: new Date().toISOString()
             }]
         });
+        console.error(`[ERROR] NSWD scan error:`, error);
     }
 }
