@@ -8,12 +8,16 @@ import RemoteInteraction from '../remoteInteraction.js';
 import { serializeInteraction } from '../serializeInteraction.js';
 import { registerHandler } from '../jobHandler.js';
 import { createQueue } from '../queue.js';
+import { recordCommand, recordCommandDuration, recordError } from '../../utils/metrics.js';
 
 export const JobNames = {
   PROCESS_COMMAND: 'process-command',
 };
 
 let rest = null;
+
+// Command module cache to avoid re-importing on every job
+const commandModuleCache = new Map();
 
 function getRest() {
   if (!rest) {
@@ -28,33 +32,6 @@ export async function enqueueCommand(interaction) {
 
   const data = serializeInteraction(interaction);
   data.pluginId = command.pluginId || null;
-
-  const commandsList = [...interaction.client.commands.values()].map(c => ({
-    name: c.name,
-    description: c.description || 'No description',
-    category: c.category || null,
-    dmPermission: c.dmPermission,
-    pluginId: c.pluginId || null,
-  }));
-
-  const pluginsList = interaction.client.manager
-    ? interaction.client.manager.listPlugins().map(p => ({
-        id: p.id,
-        version: p.version,
-        loaded: p.loaded,
-        enabled: p.enabled,
-      }))
-    : [];
-
-  const scannedPlugins = interaction.client.manager
-    ? interaction.client.manager.scanPlugins()
-    : [];
-
-  data._meta = {
-    commandsList,
-    managerInfo: { plugins: pluginsList, scanned: scannedPlugins },
-    podId: config.podId,
-  };
 
   const queue = await createQueue(config.queue.prefix);
   const job = await queue.add(JobNames.PROCESS_COMMAND, data, {
@@ -72,27 +49,15 @@ export default function register() {
 
     const r = getRest();
 
-    const commandsList = data._meta?.commandsList || [];
-    const commands = new Collection();
-    for (const c of commandsList) {
-      commands.set(c.name, {
-        name: c.name,
-        description: c.description,
-        category: c.category,
-        dmPermission: c.dmPermission,
-        pluginId: c.pluginId,
-      });
-    }
-
     const interaction = new RemoteInteraction(data, r, {
-      commands,
+      commands: new Collection(),
       config: {
         ...config,
         CLIENT_ID: config.CLIENT_ID,
-        manager: data._meta?.managerInfo || null,
       },
     });
 
+    const startTime = Date.now();
     try {
       const commandModule = await importCommandModule(data.commandName, data.pluginId);
       if (!commandModule) {
@@ -103,6 +68,7 @@ export default function register() {
             description: `Command \`/${data.commandName}\` not found on worker.`,
           }],
         });
+        recordCommand(data.commandName, data.guildId, 'not_found');
         return { status: 'error', reason: 'command_not_found' };
       }
 
@@ -114,12 +80,15 @@ export default function register() {
             description: `Command \`/${data.commandName}\` has invalid execute method.`,
           }],
         });
+        recordCommand(data.commandName, data.guildId, 'invalid');
         return { status: 'error', reason: 'invalid_command' };
       }
 
       await commandModule.execute(interaction);
 
       console.log(`[Worker] /${data.commandName} completed`);
+      recordCommand(data.commandName, data.guildId, 'success');
+      recordCommandDuration(data.commandName, Date.now() - startTime);
       return { status: 'completed', commandName: data.commandName };
     } catch (error) {
       console.error(`[Worker] Error executing /${data.commandName}:`, error.message);
@@ -138,12 +107,19 @@ export default function register() {
         console.error('[Worker] Failed to send error response:', e.message);
       }
 
+      recordCommand(data.commandName, data.guildId, 'error');
+      recordError('command_execution', data.commandName);
       return { status: 'error', error: error.message };
     }
   });
 }
 
 async function importCommandModule(commandName, pluginId) {
+  const cacheKey = `${pluginId || 'global'}:${commandName}`;
+  if (commandModuleCache.has(cacheKey)) {
+    return commandModuleCache.get(cacheKey);
+  }
+
   const cwd = process.cwd();
   const baseDirs = [
     pluginId ? path.join(cwd, 'src/plugins', pluginId) : null,
@@ -155,9 +131,15 @@ async function importCommandModule(commandName, pluginId) {
     if (existsSync(cmdPath)) {
       try {
         const url = pathToFileURL(cmdPath);
-        url.searchParams.set('t', Date.now().toString());
+        // Remove cache-busting in production
+        if (process.env.NODE_ENV === 'development') {
+          url.searchParams.set('t', Date.now().toString());
+        }
         const mod = await import(url.href);
-        if (mod?.default?.execute) return mod.default;
+        if (mod?.default?.execute) {
+          commandModuleCache.set(cacheKey, mod.default);
+          return mod.default;
+        }
       } catch (err) {
         console.error(`[Worker] Failed to import ${cmdPath}:`, err.message);
       }
@@ -173,9 +155,14 @@ async function importCommandModule(commandName, pluginId) {
       if (existsSync(cmdPath)) {
         try {
           const url = pathToFileURL(cmdPath);
-          url.searchParams.set('t', Date.now().toString());
+          if (process.env.NODE_ENV === 'development') {
+            url.searchParams.set('t', Date.now().toString());
+          }
           const mod = await import(url.href);
-          if (mod?.default?.execute) return mod.default;
+          if (mod?.default?.execute) {
+            commandModuleCache.set(cacheKey, mod.default);
+            return mod.default;
+          }
         } catch {}
       }
     }

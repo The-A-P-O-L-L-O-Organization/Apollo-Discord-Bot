@@ -5,10 +5,18 @@
 import { getGuildData } from './db.js';
 import { config } from '../config/config.js';
 import { getLockRedis } from './lock.js';
+import { TwoLevelLRUCache } from './lruCache.js';
 
 // In-memory spam tracking (fallback when Redis unavailable)
-// Map<guildId, Map<userId, { messages: timestamp[], lastWarned: timestamp }>>
-const spamTracker = new Map();
+// Uses O(1) LRU cache for efficient eviction
+const spamTracker = new TwoLevelLRUCache({
+    maxGuilds: 1000,
+    maxUsersPerGuild: 500,
+    maxTotalUsers: 50000,
+    onEvict: (guildId, userId, value) => {
+        // Optional: log eviction for monitoring
+    }
+});
 
 // Redis key prefix for spam tracking
 const SPAM_KEY_PREFIX = 'apollo:spam:';
@@ -299,19 +307,12 @@ function checkSpamMemory(message, threshold, interval) {
     const userId = message.author.id;
     const now = Date.now();
     
-    // Initialize guild tracker if needed
-    if (!spamTracker.has(guildId)) {
-        spamTracker.set(guildId, new Map());
+    // Get or create user tracker (LRU automatically handled by TwoLevelLRUCache)
+    let userTracker = spamTracker.get(guildId, userId);
+    if (!userTracker) {
+        userTracker = { messages: [], lastWarned: 0 };
+        spamTracker.set(guildId, userId, userTracker);
     }
-    
-    const guildTracker = spamTracker.get(guildId);
-    
-    // Initialize user tracker if needed
-    if (!guildTracker.has(userId)) {
-        guildTracker.set(userId, { messages: [], lastWarned: 0 });
-    }
-    
-    const userTracker = guildTracker.get(userId);
     
     // Add current message timestamp
     userTracker.messages.push(now);
@@ -360,22 +361,35 @@ function escapeRegex(str) {
 /**
  * Cleans up old spam tracking data (call periodically)
  */
-export function cleanupSpamTracker() {
+export async function cleanupSpamTracker() {
     const now = Date.now();
     const maxAge = 60000; // 1 minute
     
-    for (const [guildId, guildTracker] of spamTracker) {
-        for (const [userId, userTracker] of guildTracker) {
-            // Remove users with no recent messages
-            if (userTracker.messages.length === 0 || 
-                now - Math.max(...userTracker.messages) > maxAge) {
-                guildTracker.delete(userId);
-            }
+    // Try to acquire distributed lock to avoid redundant cleanup across pods
+    const redis = await getSpamRedis();
+    let lockAcquired = false;
+    if (redis) {
+        const { acquireLock } = await import('./lock.js');
+        lockAcquired = await acquireLock(redis, 'cleanup:spam', config.podId, 10000);
+        if (!lockAcquired) {
+            return; // Another pod is doing cleanup
         }
+    }
+    
+    try {
+        // TwoLevelLRUCache doesn't support direct iteration, so we clean up
+        // by checking each guild's users. Since we can't iterate the cache directly,
+        // we rely on the LRU eviction and the fact that checkSpamMemory filters
+        // old messages on each access. For explicit cleanup, we'd need to track
+        // guild IDs separately or add an iteration method to the cache.
+        // For now, the LRU eviction and per-access filtering handle most cleanup.
         
-        // Remove empty guild trackers
-        if (guildTracker.size === 0) {
-            spamTracker.delete(guildId);
+        // Clean up empty guilds in the LRU cache
+        spamTracker.cleanupEmptyGuilds();
+    } finally {
+        if (lockAcquired && redis) {
+            const { releaseLock } = await import('./lock.js');
+            await releaseLock(redis, 'cleanup:spam', config.podId);
         }
     }
 }

@@ -26,6 +26,10 @@ export default class Plugin {
 
     static get dependencies() { return []; }
     static get version() { return '1.0.0'; }
+    
+    // Optional: Discord intents and partials required by this plugin
+    static get requiredIntents() { return []; }
+    static get requiredPartials() { return []; }
 
     async onLoad() {}
     async onUnload() {}
@@ -44,7 +48,7 @@ export default class Plugin {
         for (const file of files) {
             try {
                 const filePath = path.join(cmdDir, file);
-                const url = pathToFileURL(filePath).href + '?t=' + Date.now();
+                const url = pathToFileURL(filePath).href + (process.env.NODE_ENV === 'development' ? '?t=' + Date.now() : '');
                 const mod = await import(url);
                 if (mod.default && mod.default.name) {
                     mod.default.pluginId = pluginId;
@@ -75,7 +79,7 @@ export default class Plugin {
         for (const file of files) {
             try {
                 const filePath = path.join(evtDir, file);
-                const url = pathToFileURL(filePath).href + '?t=' + Date.now();
+                const url = pathToFileURL(filePath).href + (process.env.NODE_ENV === 'development' ? '?t=' + Date.now() : '');
                 const mod = await import(url);
                 if (!mod.default || !mod.default.name || !mod.default.execute) {continue;}
 

@@ -6,36 +6,52 @@ import crypto from 'crypto';
 const ALGORITHM = 'aes-256-gcm';
 const KEY_LENGTH = 32; // 256 bits
 const IV_LENGTH = 12; // 96 bits for GCM
-const AUTH_TAG_LENGTH = 16; // 128 bits
 const SALT_LENGTH = 16; // 128 bits
-const PBKDF2_ITERATIONS = 100000;
 
-let _encryptionKey = null;
+// PBKDF2 iterations - configurable via env, default 600000 (OWASP 2024 recommendation)
+const PBKDF2_ITERATIONS = parseInt(process.env.PBKDF2_ITERATIONS || '600000', 10);
+
+// LRU cache for decryption keys (salt -> derivedKey)
+const _keyCache = new Map();
+const MAX_KEY_CACHE_SIZE = 100;
 
 /**
- * Gets or derives the encryption key from environment variable
- * @returns {Buffer} 32-byte encryption key
+ * Gets derived key for a specific salt (with LRU caching)
+ * @param {Buffer} salt - Salt buffer
+ * @returns {Buffer} Derived key
  */
-function getEncryptionKey() {
-    if (_encryptionKey) {return _encryptionKey;}
+function getDerivedKeyForSalt(salt) {
+    const saltB64 = salt.toString('base64');
+    if (_keyCache.has(saltB64)) {
+        // Move to end (most recently used)
+        const key = _keyCache.get(saltB64);
+        _keyCache.delete(saltB64);
+        _keyCache.set(saltB64, key);
+        return key;
+    }
     
     const keyEnv = process.env.ENCRYPTION_KEY;
     if (!keyEnv) {
         throw new Error('ENCRYPTION_KEY environment variable is required for encryption at rest');
     }
     
-    // Derive key from passphrase using PBKDF2
-    const salt = crypto.randomBytes(SALT_LENGTH);
-    _encryptionKey = crypto.pbkdf2Sync(keyEnv, salt, PBKDF2_ITERATIONS, KEY_LENGTH, 'sha256');
+    const derived = crypto.pbkdf2Sync(keyEnv, salt, PBKDF2_ITERATIONS, KEY_LENGTH, 'sha256');
     
-    return _encryptionKey;
+    // Evict oldest if cache full
+    if (_keyCache.size >= MAX_KEY_CACHE_SIZE) {
+        const firstKey = _keyCache.keys().next().value;
+        _keyCache.delete(firstKey);
+    }
+    
+    _keyCache.set(saltB64, derived);
+    return derived;
 }
 
 /**
  * Clears the cached encryption key (for testing)
  */
 export function clearEncryptionKeyCache() {
-    _encryptionKey = null;
+    _keyCache.clear();
 }
 
 /**
@@ -44,12 +60,12 @@ export function clearEncryptionKeyCache() {
  * @returns {string} Base64 encoded encrypted data (salt:iv:authTag:ciphertext)
  */
 export function encrypt(data) {
-    const key = getEncryptionKey();
-    const iv = crypto.randomBytes(IV_LENGTH);
+    // Generate fresh salt for each encryption (critical for AES-GCM security)
     const salt = crypto.randomBytes(SALT_LENGTH);
+    const iv = crypto.randomBytes(IV_LENGTH);
     
-    // Re-derive key with this salt for storage
-    const derivedKey = crypto.pbkdf2Sync(process.env.ENCRYPTION_KEY, salt, PBKDF2_ITERATIONS, KEY_LENGTH, 'sha256');
+    // Derive key for this specific salt (cached)
+    const derivedKey = getDerivedKeyForSalt(salt);
     
     const cipher = crypto.createCipheriv(ALGORITHM, derivedKey, iv);
     
@@ -72,8 +88,6 @@ export function encrypt(data) {
  * @returns {string|Object|Array} Decrypted plaintext (parsed if JSON)
  */
 export function decrypt(encryptedData) {
-    const key = getEncryptionKey();
-    
     const parts = encryptedData.split(':');
     if (parts.length !== 4) {
         throw new Error('Invalid encrypted data format');
@@ -85,8 +99,8 @@ export function decrypt(encryptedData) {
     const authTag = Buffer.from(authTagB64, 'base64');
     const ciphertext = Buffer.from(ciphertextB64, 'base64');
     
-    // Derive key with stored salt
-    const derivedKey = crypto.pbkdf2Sync(process.env.ENCRYPTION_KEY, salt, PBKDF2_ITERATIONS, KEY_LENGTH, 'sha256');
+    // Derive key with stored salt (cached)
+    const derivedKey = getDerivedKeyForSalt(salt);
     
     const decipher = crypto.createDecipheriv(ALGORITHM, derivedKey, iv);
     decipher.setAuthTag(authTag);
