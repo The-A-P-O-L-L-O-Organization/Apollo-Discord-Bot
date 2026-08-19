@@ -1,53 +1,49 @@
+# syntax=docker/dockerfile:1.4
 # Production Dockerfile for Apollo Discord Bot
-# Optimized for minimal size and maximum performance
+# Optimized multi-stage build with BuildKit cache mounts
 
-# Use multi-stage build for smaller final image
 # Stage 1: Build stage
-FROM node:26-alpine AS builder
+FROM node:26.7.0-alpine AS builder
 
 # Install build dependencies for better-sqlite3
 RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
 
-# Set environment variables for pnpm
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 
 # Install pnpm
-RUN npm install -g corepack && corepack enable && corepack prepare pnpm@latest --activate
+RUN npm install -g corepack && corepack enable && corepack prepare pnpm@11 --activate
 
 # Copy package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
 
-# Install dependencies (postinstall rebuilds better-sqlite3)
-RUN pnpm install --frozen-lockfile
+# Install dependencies with BuildKit cache mount (production only)
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile --prefer-offline --prod
 
 # Copy source code
 COPY src ./src
 COPY bin ./bin
 COPY deploy-commands.js ./
 
-# Stage 2: Production stage
-FROM node:26-alpine
+# Stage 2: Production stage (minimal)
+FROM node:26.7.0-alpine
 
-# Install runtime dependencies
+# Install runtime dependencies only
 RUN apk add --no-cache libstdc++
 
 WORKDIR /app
 
-# Set environment variables
 ENV NODE_ENV=production
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 
-# Install pnpm
-RUN npm install -g corepack && corepack enable && corepack prepare pnpm@latest --activate
-
-# Copy package files
+# pnpm is already available in node_modules from builder - no reinstall needed
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
 
-# Copy from builder stage
+# Copy built artifacts from builder stage
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/bin ./bin
 COPY --from=builder /app/src ./src
@@ -59,13 +55,13 @@ RUN mkdir -p /app/src/data /app/logs /app/data/plugins && \
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
-  adduser -S nodejs -u 1001 -G nodejs && \
-  chown -R nodejs:nodejs /app
+    adduser -S nodejs -u 1001 -G nodejs && \
+    chown -R nodejs:nodejs /app
 
 USER nodejs
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD node -e "process.exit(0)" || exit 1
+# Health check - hits real /healthz endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000/healthz', (r) => { if (r.statusCode !== 200) process.exit(1) }).on('error', () => process.exit(1))" || exit 1
 
 CMD ["pnpm", "start"]
-
