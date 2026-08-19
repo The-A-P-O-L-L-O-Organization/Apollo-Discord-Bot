@@ -10,17 +10,14 @@ RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
 
-ENV PNPM_HOME=/pnpm
-ENV PATH=$PNPM_HOME:$PATH
-
-# Install pnpm
+# Install pnpm via corepack
 RUN npm install -g corepack && corepack enable && corepack prepare pnpm@11 --activate
 
 # Copy package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
 
 # Install dependencies with BuildKit cache mount (production only)
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --prefer-offline --prod
 
 # Copy source code
@@ -37,10 +34,11 @@ RUN apk add --no-cache libstdc++
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV PNPM_HOME=/pnpm
-ENV PATH=$PNPM_HOME:$PATH
 
-# pnpm is already available in node_modules from builder - no reinstall needed
+# Install pnpm via corepack (needed for `pnpm start` command)
+RUN npm install -g corepack && corepack enable && corepack prepare pnpm@11 --activate
+
+# Copy package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
 
 # Copy built artifacts from builder stage
