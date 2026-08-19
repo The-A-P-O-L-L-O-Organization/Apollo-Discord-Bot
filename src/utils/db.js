@@ -118,6 +118,18 @@ export async function getAllGuildData(store) {
     });
 }
 
+export async function getAllGuildIds(store) {
+    if (USE_PG) {
+        const { getAllGuildData } = await import('../db/adapter.js');
+        const data = await getAllGuildData(store);
+        return data.map(d => d.guildId);
+    }
+    const { db } = await getAdapter();
+    const stmt = db.prepare('SELECT guild_id FROM guild_store WHERE store = ? AND guild_id != ?');
+    const rows = stmt.all(store, '__global__');
+    return rows.map(r => r.guild_id);
+}
+
 export async function getUserData(store, guildId, userId) {
     if (USE_PG) {return (await getAdapter()).getUserData(store, guildId, userId);}
     const { db } = await getAdapter();
