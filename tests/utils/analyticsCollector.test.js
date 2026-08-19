@@ -147,6 +147,8 @@ describe('Analytics Collector', () => {
         // Track some member changes
         const { trackMemberChange } = await import('../../src/utils/analyticsCollector.js');
         await trackMemberChange('guild1', true, 100);
+        // Small delay to ensure different timestamps
+        await new Promise(r => setTimeout(r, 2));
         await trackMemberChange('guild1', false, 99);
         
         const stats = await getMemberGrowthStats('guild1');
