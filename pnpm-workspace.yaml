@@ -10,6 +10,7 @@ overrides:
   glob: 11.1.0
   cross-spawn: 7.0.5
   tar: ^7.5.11
-  vite: ^8.0.10
+  vite: ^8.0.16
+  adm-zip: ^0.6.0
 minimumReleaseAgeExclude:
   - bullmq@6.1.1
