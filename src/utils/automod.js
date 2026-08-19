@@ -13,7 +13,7 @@ const spamTracker = new TwoLevelLRUCache({
     maxGuilds: 1000,
     maxUsersPerGuild: 500,
     maxTotalUsers: 50000,
-    onEvict: (guildId, userId, value) => {
+    onEvict: (_guildId, _userId, _value) => {
         // Optional: log eviction for monitoring
     }
 });
@@ -362,8 +362,6 @@ function escapeRegex(str) {
  * Cleans up old spam tracking data (call periodically)
  */
 export async function cleanupSpamTracker() {
-    const now = Date.now();
-    const maxAge = 60000; // 1 minute
     
     // Try to acquire distributed lock to avoid redundant cleanup across pods
     const redis = await getSpamRedis();
@@ -451,14 +449,16 @@ export function checkPhishingLinks(content) {
     
     for (const url of urls) {
         try {
-            const urlObj = new URL(url);
+            // Decode URL to handle encoded characters
+            const decodedUrl = decodeURIComponent(url);
+            const urlObj = new URL(decodedUrl);
             const hostname = urlObj.hostname.toLowerCase();
             
             // Check against known phishing domains
             for (const domain of PHISHING_DOMAINS) {
                 if (hostname === domain || hostname.endsWith('.' + domain)) {
                     return {
-                        url,
+                        url: decodedUrl,
                         reason: 'Known phishing domain',
                         domain: hostname
                     };
@@ -467,9 +467,9 @@ export function checkPhishingLinks(content) {
             
             // Check for suspicious patterns in the full URL
             for (const pattern of SUSPICIOUS_PATTERNS) {
-                if (pattern.test(url)) {
+                if (pattern.test(decodedUrl)) {
                     return {
-                        url,
+                        url: decodedUrl,
                         reason: 'Suspicious URL pattern',
                         domain: hostname
                     };
@@ -490,7 +490,7 @@ export function checkPhishingLinks(content) {
             
             if ((isDiscordMention && !isLegitDiscord) || (isSteamMention && !isLegitSteam)) {
                 return {
-                    url,
+                    url: decodedUrl,
                     reason: 'Impersonation domain',
                     domain: hostname
                 };

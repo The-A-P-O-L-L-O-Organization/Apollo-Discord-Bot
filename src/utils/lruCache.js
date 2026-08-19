@@ -127,6 +127,7 @@ export class LRUCache {
             this.cache.delete(tail.key);
             this.size--;
             if (this.onEvict) {
+                // eslint-disable-next-line no-empty
                 try { this.onEvict(tail.key, tail.value); } catch {}
             }
         }
@@ -233,6 +234,7 @@ export class TwoLevelLRUCache {
                 // Clean up guild cache when guild is evicted
                 for (const [userId, value] of guildCache.entries()) {
                     if (this.onEvict) {
+                        // eslint-disable-next-line no-empty
                         try { this.onEvict(guildId, userId, value); } catch {}
                     }
                 }
@@ -255,6 +257,7 @@ export class TwoLevelLRUCache {
                 onEvict: (userId, value) => {
                     this.totalUsers--;
                     if (this.onEvict) {
+                        // eslint-disable-next-line no-empty
                         try { this.onEvict(guildId, userId, value); } catch {}
                     }
                 }
@@ -387,6 +390,7 @@ export class TwoLevelLRUCache {
                 this.totalUsers--;
                 evicted++;
                 if (this.onEvict) {
+                    // eslint-disable-next-line no-empty
                     try { this.onEvict(guildId, tail.key, tail.value); } catch {}
                 }
             }
@@ -402,7 +406,8 @@ export class TwoLevelLRUCache {
      * Cleans up empty guilds
      */
     cleanupEmptyGuilds() {
-        for (const [guildId, guildCache] of this.guildLRU.cache) {
+        for (const [guildId, node] of this.guildLRU.cache) {
+            const guildCache = node.value;
             if (guildCache.getSize() === 0) {
                 this.guildLRU.delete(guildId);
             }

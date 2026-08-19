@@ -1,64 +1,111 @@
 import { safeFetch } from './safeFetch.js';
+import { createServiceBreaker } from './circuitBreaker.js';
+
+// Create circuit breakers for each service
+const twitchBreaker = createServiceBreaker('twitch');
+const youtubeBreaker = createServiceBreaker('youtube');
+const rssBreaker = createServiceBreaker('rss');
 
 export async function checkTwitchStream(streamerName, config) {
     if (!config.twitchClientId || !config.twitchClientSecret) {return null;}
 
-    const tokenRes = await fetch('https://id.twitch.tv/oauth2/token', {
-        method: 'POST',
-        body: new URLSearchParams({
-            client_id: config.twitchClientId,
-            client_secret: config.twitchClientSecret,
-            grant_type: 'client_credentials'
-        })
-    });
-    if (!tokenRes.ok) {return null;}
-    const { access_token } = await tokenRes.json();
+    try {
+        return await twitchBreaker.execute(async() => {
+            const tokenRes = await fetch('https://id.twitch.tv/oauth2/token', {
+                method: 'POST',
+                body: new URLSearchParams({
+                    client_id: config.twitchClientId,
+                    client_secret: config.twitchClientSecret,
+                    grant_type: 'client_credentials'
+                })
+            });
+            if (!tokenRes.ok) {
+                const error = new Error(`Twitch token error: ${tokenRes.status}`);
+                error.status = tokenRes.status;
+                throw error;
+            }
+            const { access_token } = await tokenRes.json();
 
-    const res = await fetch(`https://api.twitch.tv/helix/streams?user_login=${encodeURIComponent(streamerName)}`, {
-        headers: {
-            'Client-ID': config.twitchClientId,
-            Authorization: `Bearer ${access_token}`
+            const res = await fetch(`https://api.twitch.tv/helix/streams?user_login=${encodeURIComponent(streamerName)}`, {
+                headers: {
+                    'Client-ID': config.twitchClientId,
+                    Authorization: `Bearer ${access_token}`
+                }
+            });
+            if (!res.ok) {
+                const error = new Error(`Twitch API error: ${res.status}`);
+                error.status = res.status;
+                throw error;
+            }
+
+            const { data } = await res.json();
+            if (!data || data.length === 0) {return { live: false };}
+
+            const stream = data[0];
+            return {
+                live: true,
+                title: stream.title,
+                game: stream.game_name,
+                viewers: stream.viewer_count,
+                thumbnail: stream.thumbnail_url.replace('{width}', '640').replace('{height}', '360')
+            };
+        });
+    } catch (error) {
+        if (error.name === 'CircuitBreakerOpenError') {
+            console.log('[CIRCUIT] Twitch circuit breaker open, skipping stream check');
+            return null;
         }
-    });
-    if (!res.ok) {return null;}
-
-    const { data } = await res.json();
-    if (!data || data.length === 0) {return { live: false };}
-
-    const stream = data[0];
-    return {
-        live: true,
-        title: stream.title,
-        game: stream.game_name,
-        viewers: stream.viewer_count,
-        thumbnail: stream.thumbnail_url.replace('{width}', '640').replace('{height}', '360')
-    };
+        console.error('[ERROR] Twitch stream check failed:', error.message);
+        return null;
+    }
 }
 
 export async function checkYoutubeUploads(channelId, config) {
     if (!config.youtubeApiKey) {return null;}
 
-    const res = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${encodeURIComponent(channelId)}&order=date&maxResults=5&type=video&key=${config.youtubeApiKey}`
-    );
-    if (!res.ok) {return null;}
+    try {
+        return await youtubeBreaker.execute(async() => {
+            const res = await fetch(
+                `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${encodeURIComponent(channelId)}&order=date&maxResults=5&type=video&key=${config.youtubeApiKey}`
+            );
+            if (!res.ok) {
+                const error = new Error(`YouTube API error: ${res.status}`);
+                error.status = res.status;
+                throw error;
+            }
 
-    const body = await res.json();
-    return (body.items || []).map(item => ({
-        title: item.snippet.title,
-        description: item.snippet.description,
-        thumbnail: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url,
-        videoId: item.id.videoId,
-        publishedAt: item.snippet.publishedAt
-    }));
+            const body = await res.json();
+            return (body.items || []).map(item => ({
+                title: item.snippet.title,
+                description: item.snippet.description,
+                thumbnail: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url,
+                videoId: item.id.videoId,
+                publishedAt: item.snippet.publishedAt
+            }));
+        });
+    } catch (error) {
+        if (error.name === 'CircuitBreakerOpenError') {
+            console.log('[CIRCUIT] YouTube circuit breaker open, skipping upload check');
+            return null;
+        }
+        console.error('[ERROR] YouTube upload check failed:', error.message);
+        return null;
+    }
 }
 
 export async function checkRssFeed(feedUrl) {
     try {
-        const result = await safeFetch(feedUrl, { timeoutMs: 10000 });
-        const xml = result.buffer.toString('utf8');
-        return parseFeedXml(xml);
-    } catch {
+        return await rssBreaker.execute(async() => {
+            const result = await safeFetch(feedUrl, { timeoutMs: 10000 });
+            const xml = result.buffer.toString('utf8');
+            return parseFeedXml(xml);
+        });
+    } catch (error) {
+        if (error.name === 'CircuitBreakerOpenError') {
+            console.log('[CIRCUIT] RSS circuit breaker open, skipping feed check');
+            return null;
+        }
+        console.error('[ERROR] RSS feed check failed:', error.message);
         return null;
     }
 }

@@ -17,6 +17,7 @@ import {
     checkAccountAge,
     checkPhishingLinks
 } from '../../../utils/automod.js';
+import { checkRaidPattern, handleRaidDetected } from '../../../utils/raidDetection.js';
 import { appendToUserArray, generateId, getUserData, getGuildData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { config } from '../../../config/config.js';
@@ -53,12 +54,19 @@ export default {
         
         // Run all checks
         try {
+            // Per-user violation cooldown (prevent spam)
+            const violationCooldownKey = `automod_violation_${message.guild.id}_${message.author.id}`;
+            const lastViolation = await getUserData(violationCooldownKey, message.guild.id, message.author.id);
+            if (lastViolation && Date.now() - lastViolation < 5000) {
+                return; // Skip if user had violation in last 5 seconds
+            }
+            
             // Check account age (warn only, don't delete)
             if (cfg.minAccountAge > 0) {
                 const isTooNew = checkAccountAge(message.author, cfg.minAccountAge);
                 if (isTooNew) {
                     await handleViolation(message, 'new_account', 
-                        `Account is less than ${cfg.minAccountAge} days old`, client);
+                        `Account is less than ${cfg.minAccountAge} days old`, client, false, violationCooldownKey);
                     // Don't return - still check other things
                 }
             }
@@ -68,7 +76,7 @@ export default {
                 const matchedWord = checkBannedWords(message.content, cfg.bannedWords);
                 if (matchedWord) {
                     await handleViolation(message, 'banned_word', 
-                        'Used banned word', client, true);
+                        'Used banned word', client, true, violationCooldownKey);
                     return;
                 }
             }
@@ -78,7 +86,7 @@ export default {
                 const hasInvite = checkInvites(message.content);
                 if (hasInvite) {
                     await handleViolation(message, 'invite_link', 
-                        'Posted Discord invite link', client, true);
+                        'Posted Discord invite link', client, true, violationCooldownKey);
                     return;
                 }
             }
@@ -88,7 +96,17 @@ export default {
                 const hasLink = checkLinks(message.content);
                 if (hasLink) {
                     await handleViolation(message, 'external_link', 
-                        'Posted external link', client, true);
+                        'Posted external link', client, true, violationCooldownKey);
+                    return;
+                }
+            }
+            
+            // Check phishing links
+            if (cfg.filterPhishingLinks) {
+                const phishingResult = checkPhishingLinks(message.content);
+                if (phishingResult) {
+                    await handleViolation(message, 'phishing_link', 
+                        `Phishing link detected: ${phishingResult.reason} (${phishingResult.domain})`, client, true, violationCooldownKey);
                     return;
                 }
             }
@@ -98,7 +116,7 @@ export default {
                 const isMentionSpam = checkMentionSpam(message, cfg.maxMentions);
                 if (isMentionSpam) {
                     await handleViolation(message, 'mention_spam', 
-                        `Exceeded ${cfg.maxMentions} mentions`, client, true);
+                        `Exceeded ${cfg.maxMentions} mentions`, client, true, violationCooldownKey);
                     return;
                 }
             }
@@ -108,7 +126,7 @@ export default {
                 const isCapsSpam = checkCapsSpam(message.content, cfg.maxCapsPercent, cfg.minCapsLength || 10);
                 if (isCapsSpam) {
                     await handleViolation(message, 'caps_spam', 
-                        `Message exceeded ${cfg.maxCapsPercent}% caps`, client, true);
+                        `Message exceeded ${cfg.maxCapsPercent}% caps`, client, true, violationCooldownKey);
                     return;
                 }
             }
@@ -134,8 +152,17 @@ export default {
                 
                 if (isSpam) {
                     await handleViolation(message, 'spam', 
-                        `Sent ${cfg.spamThreshold}+ messages in ${cfg.spamInterval / 1000}s`, client, true);
+                        `Sent ${cfg.spamThreshold}+ messages in ${cfg.spamInterval / 1000}s`, client, true, violationCooldownKey);
                     return;
+                }
+            }
+
+            // Check raid detection (coordinated attack via messages)
+            if (cfg.raidDetection) {
+                const isRaid = await checkRaidPattern(message.guild.id, message.member, cfg);
+                if (isRaid) {
+                    await handleRaidDetected(message.guild, message.member);
+                    // Don't return - still check other things
                 }
             }
 
@@ -144,7 +171,7 @@ export default {
                 const moderationResult = await checkMessageModeration(message.content);
                 if (moderationResult) {
                     const reason = `AI moderation flagged: ${formatViolations(moderationResult.violations)}`;
-                    await handleViolation(message, 'ai_moderation', reason, client, true);
+                    await handleViolation(message, 'ai_moderation', reason, client, true, violationCooldownKey);
                     return;
                 }
             }
@@ -155,7 +182,7 @@ export default {
                 if (nsfwResult && nsfwResult.detected) {
                     const count = nsfwResult.images.length;
                     const reason = `Posted NSFW image${count > 1 ? 's' : ''} (${count} detected)`;
-                    await handleViolation(message, 'nsfw', reason, client, true);
+                    await handleViolation(message, 'nsfw', reason, client, true, violationCooldownKey);
                     return;
                 }
             }
@@ -173,11 +200,17 @@ export default {
  * @param {string} reason - Human-readable reason
  * @param {Client} client - Discord client
  * @param {boolean} deleteMessage - Whether to delete the message
+ * @param {string} violationCooldownKey - Key for violation cooldown tracking
  */
-async function handleViolation(message, type, reason, client, deleteMessage = false) {
+async function handleViolation(message, type, reason, client, deleteMessage = false, violationCooldownKey) {
     try {
         // Track violation for analytics
         trackViolation(message.guild.id, type);
+        
+        // Set violation cooldown (5 seconds)
+        if (violationCooldownKey) {
+            await appendToUserArray(violationCooldownKey, message.guild.id, message.author.id, Date.now());
+        }
         
         // Flush critical analytics immediately
         await flushAnalyticsCritical();

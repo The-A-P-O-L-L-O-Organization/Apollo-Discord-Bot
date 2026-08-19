@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';  
 import { 
     acquireLock,
     releaseLock,
@@ -108,13 +108,11 @@ describe('Lock Manager', () => {
     });
 
     it('should release lock even if function throws', async() => {
-        const lockReleased = false;
-        
         try {
             await withLock(redis, 'test-lock-4', 'owner1', async() => {
                 throw new Error('Test error');
             }, 5000);
-        } catch (e) {
+        } catch {
             // Expected
         }
         

@@ -14,14 +14,32 @@ const raidState = new Map();
 const RAID_KEY_PREFIX = 'apollo:raid:';
 const RAID_MODE_KEY_PREFIX = 'apollo:raidmode:';
 
-// Raid detection thresholds (configurable)
-const RAID_THRESHOLDS = {
+// Raid detection thresholds (configurable per-guild via config)
+const DEFAULT_RAID_THRESHOLDS = {
     joinCount: 5,           // Number of joins
     timeWindow: 10000,      // Within 10 seconds
     newAccountAge: 7,       // Days (accounts newer than this are suspicious)
     similarNameThreshold: 0.7, // Name similarity ratio
     alertCooldown: 60000    // 1 minute between alerts
 };
+
+/**
+ * Gets raid thresholds for a guild (from config or defaults)
+ * @param {object} guildConfig - Guild automod config
+ * @returns {object} Raid thresholds
+ */
+function getRaidThresholds(guildConfig) {
+    if (!guildConfig.raidThresholds) {
+        return DEFAULT_RAID_THRESHOLDS;
+    }
+    return {
+        joinCount: guildConfig.raidThresholds.joinCount ?? DEFAULT_RAID_THRESHOLDS.joinCount,
+        timeWindow: guildConfig.raidThresholds.timeWindow ?? DEFAULT_RAID_THRESHOLDS.timeWindow,
+        newAccountAge: guildConfig.raidThresholds.newAccountAge ?? DEFAULT_RAID_THRESHOLDS.newAccountAge,
+        similarNameThreshold: guildConfig.raidThresholds.similarNameThreshold ?? DEFAULT_RAID_THRESHOLDS.similarNameThreshold,
+        alertCooldown: guildConfig.raidThresholds.alertCooldown ?? DEFAULT_RAID_THRESHOLDS.alertCooldown
+    };
+}
 
 /**
  * Gets Redis client for raid detection
@@ -59,7 +77,7 @@ export async function trackJoinRedis(guildId, userId, username, timestamp, accou
  * @param {number} now - Current timestamp
  * @returns {Promise<{detected: boolean, recentJoins: number, newAccounts: number, similarNames: number}>}
  */
-export async function checkRaidPatternRedis(guildId, threshold, intervalMs, now = Date.now()) {
+export async function checkRaidPatternRedis(guildId, threshold, intervalMs, now = Date.now(), thresholds = DEFAULT_RAID_THRESHOLDS) {
     const redis = await getRaidRedis();
     if (!redis) {
         return { detected: false, recentJoins: 0, newAccounts: 0, similarNames: 0 };
@@ -82,7 +100,7 @@ export async function checkRaidPatternRedis(guildId, threshold, intervalMs, now 
     }).filter(Boolean);
 
     // Count new accounts
-    const newAccounts = parsedMembers.filter(m => m.accountAge < RAID_THRESHOLDS.newAccountAge).length;
+    const newAccounts = parsedMembers.filter(m => m.accountAge < thresholds.newAccountAge).length;
     
     // Count similar names
     const usernames = parsedMembers.map(m => m.username);
@@ -130,23 +148,26 @@ export async function setRaidModeRedis(guildId, enabled) {
  * Checks if a join is part of a raid pattern (uses Redis when available, falls back to in-memory)
  * @param {string} guildId - Guild ID
  * @param {GuildMember} member - The joining member
+ * @param {object} guildConfig - Guild automod config (optional, for custom thresholds)
  * @returns {Promise<boolean>} Whether raid was detected
  */
-export async function checkRaidPattern(guildId, member) {
+export async function checkRaidPattern(guildId, member, guildConfig = {}) {
     const now = Date.now();
     const accountAge = now - member.user.createdTimestamp;
     const accountAgeDays = accountAge / (1000 * 60 * 60 * 24);
+    
+    const thresholds = getRaidThresholds(guildConfig);
     
     // Try Redis first
     const redis = await getRaidRedis();
     if (redis) {
         await trackJoinRedis(guildId, member.user.id, member.user.username, now, accountAgeDays);
-        const result = await checkRaidPatternRedis(guildId, RAID_THRESHOLDS.joinCount, RAID_THRESHOLDS.timeWindow, now);
+        const result = await checkRaidPatternRedis(guildId, thresholds.joinCount, thresholds.timeWindow, now, thresholds);
         return result.detected;
     }
     
     // Fallback to in-memory
-    return checkRaidPatternMemory(guildId, member, now, accountAgeDays);
+    return checkRaidPatternMemory(guildId, member, now, accountAgeDays, thresholds);
 }
 
 /**
@@ -157,7 +178,7 @@ export async function checkRaidPattern(guildId, member) {
  * @param {number} accountAgeDays - Account age in days
  * @returns {boolean} Whether raid was detected
  */
-function checkRaidPatternMemory(guildId, member, now, accountAgeDays) {
+function checkRaidPatternMemory(guildId, member, now, accountAgeDays, thresholds) {
     // Initialize guild state if needed
     if (!raidState.has(guildId)) {
         raidState.set(guildId, {
@@ -178,19 +199,19 @@ function checkRaidPatternMemory(guildId, member, now, accountAgeDays) {
     });
     
     // Remove old joins outside the time window
-    state.joins = state.joins.filter(j => now - j.timestamp < RAID_THRESHOLDS.timeWindow);
+    state.joins = state.joins.filter(j => now - j.timestamp < thresholds.timeWindow);
     
     // Check for raid patterns
     const recentJoins = state.joins.length;
     
     // Pattern 1: Too many joins in short time
-    if (recentJoins >= RAID_THRESHOLDS.joinCount) {
-        console.log(`[RAID] Pattern detected: ${recentJoins} joins in ${RAID_THRESHOLDS.timeWindow}ms`);
+    if (recentJoins >= thresholds.joinCount) {
+        console.log(`[RAID] Pattern detected: ${recentJoins} joins in ${thresholds.timeWindow}ms`);
         return true;
     }
     
     // Pattern 2: Multiple new accounts joining
-    const newAccounts = state.joins.filter(j => j.accountAge < RAID_THRESHOLDS.newAccountAge);
+    const newAccounts = state.joins.filter(j => j.accountAge < thresholds.newAccountAge);
     if (newAccounts.length >= 3 && recentJoins >= 4) {
         console.log(`[RAID] Pattern detected: ${newAccounts.length} new accounts in recent joins`);
         return true;
@@ -230,7 +251,7 @@ export async function handleRaidDetected(guild, member) {
         const lastAlertKey = `${RAID_KEY_PREFIX}${guild.id}:lastalert`;
         const lastAlert = parseInt(await redis.get(lastAlertKey) || '0', 10);
         
-        if (now - lastAlert < RAID_THRESHOLDS.alertCooldown) {
+        if (now - lastAlert < DEFAULT_RAID_THRESHOLDS.alertCooldown) {
             return; // Don't spam alerts
         }
         
@@ -245,7 +266,7 @@ export async function handleRaidDetected(guild, member) {
         state = raidState.get(guild.id);
         if (!state) {return;}
         
-        if (now - state.lastAlert < RAID_THRESHOLDS.alertCooldown) {
+        if (now - state.lastAlert < DEFAULT_RAID_THRESHOLDS.alertCooldown) {
             return; // Don't spam alerts
         }
         
@@ -268,8 +289,8 @@ export async function handleRaidDetected(guild, member) {
         .setTitle('[!] RAID DETECTED')
         .setDescription('⚠️ Suspicious join pattern detected! Potential raid in progress.')
         .addFields(
-            { name: 'Recent Joins', value: `${state.joins.length} in last ${RAID_THRESHOLDS.timeWindow / 1000}s`, inline: true },
-            { name: 'New Accounts', value: `${state.joins.filter(j => j.accountAge < RAID_THRESHOLDS.newAccountAge).length}`, inline: true },
+            { name: 'Recent Joins', value: `${state.joins.length} in last ${DEFAULT_RAID_THRESHOLDS.timeWindow / 1000}s`, inline: true },
+            { name: 'New Accounts', value: `${state.joins.filter(j => j.accountAge < DEFAULT_RAID_THRESHOLDS.newAccountAge).length}`, inline: true },
             { name: 'Triggered By', value: `${member.user.tag}\n\`${member.user.id}\``, inline: true }
         )
         .addFields({
@@ -441,7 +462,7 @@ function countSimilarNames(usernames) {
     for (let i = 0; i < usernames.length - 1; i++) {
         for (let j = i + 1; j < usernames.length; j++) {
             const similarity = calculateSimilarity(usernames[i], usernames[j]);
-            if (similarity >= RAID_THRESHOLDS.similarNameThreshold) {
+            if (similarity >= DEFAULT_RAID_THRESHOLDS.similarNameThreshold) {
                 similarCount++;
             }
         }

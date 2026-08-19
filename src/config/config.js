@@ -85,6 +85,10 @@ export const config = {
         filterInvites: true,
         // Filter external links
         filterLinks: false,
+        // Filter phishing links (Discord nitro scams, etc.)
+        filterPhishingLinks: true,
+        // Raid detection in automod (detects coordinated attacks)
+        raidDetection: false,
         // Spam detection: max messages in interval
         spamThreshold: 5,
         // Spam detection: time interval in milliseconds
