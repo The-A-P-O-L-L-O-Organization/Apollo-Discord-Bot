@@ -6,6 +6,7 @@ import { Routes } from 'discord.js';
 import { verifyPluginManifest } from '../utils/manifest.js';
 import { WorkerHost } from './worker/workerHost.js';
 import { parsePluginManifest } from './worker/pluginManifest.js';
+import { commandModuleCache } from '../queue/jobs/processCommand.js';
 
 const ALL_PLUGIN_CAPABILITIES = [
     'events:ready',
@@ -30,6 +31,8 @@ export default class PluginManager {
         this.installedPlugins = new Map();
         this.config = null;
         this.workerHost = new WorkerHost();
+        // Capability index: capability -> Set<pluginId>
+        this._capabilityIndex = new Map();
     }
 
     async loadAll(config) {
@@ -44,15 +47,81 @@ export default class PluginManager {
             ...enabled,
             ...[...this.installedPlugins.keys()].filter(id => !enabled.includes(id))
         ])];
-        for (const id of allIds) {
+        
+        // Load all plugins in parallel (respecting dependencies)
+        const loadPromises = allIds.map(id => {
             const baseDir = this.installedPlugins.has(id) ? this.config?.plugins?.optionalDirectory : directory;
-            await this.loadPlugin(id, baseDir || directory);
-        }
+            return this.loadPlugin(id, baseDir || directory);
+        });
+        await Promise.all(loadPromises);
+        
+        // Enable in dependency order with parallelization for independent plugins
         const sorted = this._sortByDependencies(allIds);
-        for (const id of sorted) {
-            await this.enablePlugin(id);
-        }
+        await this._enablePluginsParallel(sorted);
         await this._syncDiscordCommands();
+    }
+
+    /**
+     * Enables plugins in parallel where possible, respecting dependencies
+     * Groups plugins by dependency level and enables each level in parallel
+     */
+    async _enablePluginsParallel(sortedIds) {
+        // Build dependency graph
+        const graph = new Map();
+        const reverseGraph = new Map(); // dependents
+        for (const id of sortedIds) {
+            const PluginClass = this._pluginRegistry.get(id);
+            const deps = PluginClass ? PluginClass.dependencies : [];
+            graph.set(id, deps.filter(d => sortedIds.includes(d)));
+            for (const dep of deps) {
+                if (!reverseGraph.has(dep)) { reverseGraph.set(dep, new Set()); }
+                reverseGraph.get(dep).add(id);
+            }
+        }
+        
+        // Calculate dependency levels (topological levels)
+        const levels = new Map(); // id -> level
+        const visited = new Set();
+        
+        function calculateLevel(id) {
+            if (visited.has(id)) { return levels.get(id); }
+            visited.add(id);
+            
+            const deps = graph.get(id) || [];
+            if (deps.length === 0) {
+                levels.set(id, 0);
+                return 0;
+            }
+            
+            let maxLevel = 0;
+            for (const dep of deps) {
+                const depLevel = calculateLevel(dep);
+                maxLevel = Math.max(maxLevel, depLevel + 1);
+            }
+            levels.set(id, maxLevel);
+            return maxLevel;
+        }
+        
+        for (const id of sortedIds) {
+            calculateLevel(id);
+        }
+        
+        // Group by level
+        const levelGroups = new Map();
+        for (const [id, level] of levels) {
+            if (!levelGroups.has(level)) { levelGroups.set(level, []); }
+            levelGroups.get(level).push(id);
+        }
+        
+        // Enable level by level (parallel within level)
+        const maxLevel = Math.max(...levels.values());
+        for (let level = 0; level <= maxLevel; level++) {
+            const idsAtLevel = levelGroups.get(level) || [];
+            if (idsAtLevel.length === 0) { continue; }
+            
+            // Enable all plugins at this level in parallel
+            await Promise.all(idsAtLevel.map(id => this.enablePlugin(id)));
+        }
     }
 
     _rebuildInstalledPlugins() {
@@ -102,28 +171,65 @@ export default class PluginManager {
         return sorted;
     }
 
-    async _syncDiscordCommands() {
+    async _syncDiscordCommands(changedPluginId = null) {
         try {
-            const body = [...this.client.commands.values()].map(cmd => {
-                if (cmd.data) {
-                    return cmd.data.toJSON();
-                }
-                const isContextMenu = cmd.type === 2 || cmd.type === 3;
-                return {
-                    name: cmd.name,
-                    description: isContextMenu ? undefined : (cmd.description || 'No description'),
-                    type: cmd.type || 1,
-                    options: cmd.options || [],
-                    dm_permission: cmd.dmPermission
-                };
-            });
             const rest = this.client.rest;
             const { CLIENT_ID } = this.client.config;
             if (!CLIENT_ID) {return;}
-            await rest.put(
-                Routes.applicationCommands(CLIENT_ID),
-                { body }
-            );
+            
+            if (changedPluginId) {
+                // Incremental sync for a single plugin
+                const plugin = this.plugins.get(changedPluginId);
+                if (!plugin) {return;}
+                
+                const commands = plugin.getCommands?.() || [];
+                const body = commands.map(cmd => {
+                    if (cmd.data) {
+                        return cmd.data.toJSON();
+                    }
+                    const isContextMenu = cmd.type === 2 || cmd.type === 3;
+                    return {
+                        name: cmd.name,
+                        description: isContextMenu ? undefined : (cmd.description || 'No description'),
+                        type: cmd.type || 1,
+                        options: cmd.options || [],
+                        dm_permission: cmd.dmPermission
+                    };
+                });
+                
+                if (this.client.config.GUILD_ID) {
+                    // Guild-specific update (instant)
+                    await rest.put(
+                        Routes.applicationGuildCommands(CLIENT_ID, this.client.config.GUILD_ID),
+                        { body }
+                    );
+                } else {
+                    // Global update (up to 1h propagation)
+                    await rest.put(
+                        Routes.applicationCommands(CLIENT_ID),
+                        { body }
+                    );
+                }
+            } else {
+                // Full sync (startup only)
+                const body = [...this.client.commands.values()].map(cmd => {
+                    if (cmd.data) {
+                        return cmd.data.toJSON();
+                    }
+                    const isContextMenu = cmd.type === 2 || cmd.type === 3;
+                    return {
+                        name: cmd.name,
+                        description: isContextMenu ? undefined : (cmd.description || 'No description'),
+                        type: cmd.type || 1,
+                        options: cmd.options || [],
+                        dm_permission: cmd.dmPermission
+                    };
+                });
+                await rest.put(
+                    Routes.applicationCommands(CLIENT_ID),
+                    { body }
+                );
+            }
         } catch (error) {
             console.error('[ERROR] Failed to sync commands with Discord:', error);
         }
@@ -152,7 +258,7 @@ export default class PluginManager {
                 }
             }
 
-            const url = pathToFileURL(pluginPath).href + `?t=${Date.now()}`;
+            const url = pathToFileURL(pluginPath).href + (process.env.NODE_ENV === 'development' ? `?t=${Date.now()}` : '');
             const mod = await import(url);
             PluginClass = mod.default;
             this._pluginRegistry.set(id, PluginClass);
@@ -198,6 +304,17 @@ export default class PluginManager {
         this.bus.removeAll(id);
         await plugin.onEnable();
         plugin._enabled = true;
+        
+        // Update capability index for installed plugins with workers
+        const info = this.installedPlugins.get(id);
+        if (info?.origin === 'installed' && info.worker) {
+            for (const cap of info.worker.granted) {
+                if (!this._capabilityIndex.has(cap)) {
+                    this._capabilityIndex.set(cap, new Set());
+                }
+                this._capabilityIndex.get(cap).add(id);
+            }
+        }
     }
 
     async disablePlugin(id) {
@@ -207,19 +324,33 @@ export default class PluginManager {
         await plugin.onDisable();
         this.bus.removeAll(id);
         plugin._enabled = false;
+        
+        // Remove from capability index
+        const info = this.installedPlugins.get(id);
+        if (info?.origin === 'installed' && info.worker) {
+            for (const cap of info.worker.granted) {
+                this._capabilityIndex.get(cap)?.delete(id);
+            }
+        }
     }
 
     async reloadPlugin(id) {
         await this.disablePlugin(id);
         await this.unloadPlugin(id);
         this._pluginRegistry.delete(id);
+        // Clear command module cache for this plugin
+        for (const key of commandModuleCache.keys()) {
+            if (key.startsWith(`${id}:`)) {
+                commandModuleCache.delete(key);
+            }
+        }
         const installed = this.installedPlugins.get(id);
         const baseDir = installed?.origin === 'installed'
             ? (this.config?.plugins?.optionalDirectory || './data/plugins')
             : (this.config?.plugins?.directory || './src/plugins');
         await this.loadPlugin(id, baseDir);
         await this.enablePlugin(id);
-        await this._syncDiscordCommands();
+        await this._syncDiscordCommands(id);
     }
 
     async installPlugin(id) {
@@ -260,7 +391,7 @@ export default class PluginManager {
         }
 
         await this.loadInstalledPlugin(id, destDir);
-        await this._syncDiscordCommands();
+        await this._syncDiscordCommands(id);
 
         console.log(`[PluginManager] Successfully installed plugin ${id}`);
     }
@@ -308,7 +439,7 @@ export default class PluginManager {
         const idx = enabled.indexOf(id);
         if (idx !== -1) {enabled.splice(idx, 1);}
 
-        await this._syncDiscordCommands();
+        await this._syncDiscordCommands(id);
 
         console.log(`[PluginManager] Successfully uninstalled plugin ${id}`);
     }

@@ -1,4 +1,5 @@
 import { config } from '../config/config.js';
+import { getDb } from '../db/knex.js';
 
 const USE_PG = config.database.type === 'postgres';
 
@@ -33,6 +34,7 @@ async function _initAdapter() {
     if (!existsSync(DATA_DIR)) {mkdirSync(DATA_DIR, { recursive: true });}
     const db = new Database(path.join(DATA_DIR, 'apollo.db'));
     db.pragma('journal_mode = WAL');
+    db.pragma('wal_autocheckpoint = 1000'); // Checkpoint every 1000 pages
     db.pragma('foreign_keys = ON');
     db.pragma('synchronous = NORMAL');
     db.pragma('busy_timeout = 5000');
@@ -48,6 +50,15 @@ async function _initAdapter() {
 
 export async function getGuildData(store, guildId) {
     if (USE_PG) {return (await getAdapter()).getGuildData(store, guildId);}
+    const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
+    if (isTest && config.database.type === 'sqlite') {
+        const db = await getDb();
+        const row = await db('guild_store')
+            .select('data')
+            .where({ store, guild_id: guildId })
+            .first();
+        try { return row ? JSON.parse(row.data) : {}; } catch { return {}; }
+    }
     const { db } = await getAdapter();
     const stmt = db.prepare('SELECT data FROM guild_store WHERE store = ? AND guild_id = ?');
     const row = stmt.get(store, guildId);
@@ -56,6 +67,15 @@ export async function getGuildData(store, guildId) {
 
 export async function setGuildData(store, guildId, data) {
     if (USE_PG) {return (await getAdapter()).setGuildData(store, guildId, data);}
+    const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
+    if (isTest && config.database.type === 'sqlite') {
+        const db = await getDb();
+        await db.raw(
+            'INSERT INTO guild_store (store, guild_id, data) VALUES (?, ?, ?) ON CONFLICT(store, guild_id) DO UPDATE SET data = excluded.data',
+            [store, guildId, JSON.stringify(data)]
+        );
+        return;
+    }
     const { db } = await getAdapter();
     const stmt = db.prepare('INSERT INTO guild_store (store, guild_id, data) VALUES (?, ?, ?) ON CONFLICT(store, guild_id) DO UPDATE SET data = excluded.data');
     stmt.run(store, guildId, JSON.stringify(data));
@@ -170,7 +190,41 @@ export async function writeToSubDir(subdir, filename, data) {
 
 export async function close() {
     if (!USE_PG && _sqliteDb) {
+        // Perform final WAL checkpoint before closing
+        try {
+            _sqliteDb.db.pragma('wal_checkpoint(TRUNCATE)');
+        } catch {
+            // Ignore checkpoint errors on close
+        }
         _sqliteDb.db.close();
         _sqliteDb = null;
+    }
+}
+
+// Periodic WAL checkpoint for SQLite (call from main process)
+let _walCheckpointInterval = null;
+
+export function startWalCheckpointInterval(intervalMs = 5 * 60 * 1000) {
+    if (_walCheckpointInterval) {return;}
+    if (USE_PG) {return;} // Only for SQLite
+    
+    _walCheckpointInterval = setInterval(() => {
+        if (_sqliteDb) {
+            try {
+                _sqliteDb.db.pragma('wal_checkpoint(TRUNCATE)');
+            } catch (err) {
+                console.warn('[DB] WAL checkpoint failed:', err.message);
+            }
+        }
+    }, intervalMs);
+    
+    // Don't prevent process exit
+    _walCheckpointInterval.unref();
+}
+
+export function stopWalCheckpointInterval() {
+    if (_walCheckpointInterval) {
+        clearInterval(_walCheckpointInterval);
+        _walCheckpointInterval = null;
     }
 }

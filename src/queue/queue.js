@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import { Queue } from 'bullmq';
 import { config } from '../config/config.js';
+import { getRedis } from '../utils/redis.js';
 
 export const JobNames = {
     PROCESS_COMMAND: 'process-command',
@@ -9,27 +10,14 @@ export const JobNames = {
 };
 
 const queues = new Map();
-let connection = null;
-
-async function getConnection() {
-    if (connection) {return connection;}
-    const { redis } = config.queue;
-    const { Redis } = await import('ioredis');
-    connection = new Redis({
-        host: redis.host,
-        port: redis.port,
-        password: redis.password || undefined,
-        maxRetriesPerRequest: null
-    });
-    return connection;
-}
 
 export async function createQueue(name, queueConfig = config.queue) {
     if (queues.has(name)) {return queues.get(name);}
 
     let q;
     if (queueConfig.enabled) {
-        const conn = await getConnection();
+        const conn = getRedis('queue', { family: 4 });
+        await conn.connect();
         q = new Queue(name, {
             connection: conn,
             defaultJobOptions: {
@@ -58,8 +46,4 @@ export async function closeAll() {
         await q.close();
     }
     queues.clear();
-    if (connection) {
-        await connection.quit();
-        connection = null;
-    }
 }
