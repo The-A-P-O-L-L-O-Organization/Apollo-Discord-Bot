@@ -4,8 +4,32 @@ on:
   push:
     branches: [main, experimental]
     tags: ["v*"]
+    paths:
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.npmrc'
+      - 'src/**'
+      - 'bin/**'
+      - 'deploy-commands.js'
+      - 'plugin-manifest.json'
+      - 'Dockerfile'
+      - 'Dockerfile.prod'
+      - '.github/workflows/docker.yml'
   pull_request:
     branches: [main]
+    paths:
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.npmrc'
+      - 'src/**'
+      - 'bin/**'
+      - 'deploy-commands.js'
+      - 'plugin-manifest.json'
+      - 'Dockerfile'
+      - 'Dockerfile.prod'
+      - '.github/workflows/docker.yml'
   workflow_dispatch:
 
 concurrency:
