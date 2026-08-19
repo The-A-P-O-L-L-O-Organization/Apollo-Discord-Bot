@@ -5,6 +5,7 @@ import { PermissionsBitField, EmbedBuilder, ChannelType } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
 import { safeError } from '../../../utils/safeError.js';
+import { checkMessageAttachments } from '../../../utils/nsfwDetection.js';
 
 export default {
     name: 'automod',
@@ -149,7 +150,7 @@ export default {
                     description: 'Channel to scan',
                     type: 7, // CHANNEL type
                     required: true,
-                    channel_types: [0] // GuildText
+                    channel_types: [ChannelType.GuildText] // GuildText
                 },
                 {
                     name: 'limit',
@@ -577,21 +578,27 @@ async function handleExemptRole(interaction) {
         
         await interaction.reply({
             embeds: [{
-color: 0x00FF00,
-                 title: '[SUCCESS] Exemption Removed',
-                 description: `${role} is no longer exempt from automod.`,
-                 timestamp: new Date().toISOString()
-             }]
-         });
-     }
- }
+                color: 0x00FF00,
+                title: '[SUCCESS] Exemption Removed',
+                description: `${role} is no longer exempt from automod.`,
+                timestamp: new Date().toISOString()
+            }]
+        });
+    }
+}
 
- async function handleScan(interaction) {
+async function handleScan(interaction) {
     try {
         const channel = interaction.options.getChannel('channel');
         const limit = interaction.options.getInteger('limit') || 100;
         const user = interaction.options.getUser('user');
         const deleteEnabled = interaction.options.getBoolean('delete') || false;
+
+        // Check if NSFW filter is enabled for this guild
+        const cfg = await getAutomodConfig(interaction.guild.id);
+        if (!cfg.nsfwFilter) {
+            return interaction.reply({ content: 'NSFW filter is disabled for this server.', ephemeral: true });
+        }
 
         // Validate channel is text-based and in guild
         if (!channel.isTextBased() || !channel.guild) {
@@ -619,7 +626,7 @@ color: 0x00FF00,
             });
         }
 
-        await interaction.deferReply();
+        await interaction.deferReply({ ephemeral: true });
 
         let messagesScanned = 0;
         let nsfwFound = 0;
@@ -637,11 +644,15 @@ color: 0x00FF00,
             };
 
             const messages = await channel.messages.fetch(options);
-            if (messages.size === 0) break;
+            if (messages.size === 0) {break;}
 
             for (const [, msg] of messages) {
                 // Skip if user filter is set and doesn't match
-                if (user && msg.author.id !== user.id) continue;
+                if (user && msg.author.id !== user.id) {continue;}
+                // Check if channel is exempt
+                if (cfg.exemptChannels?.includes(msg.channel.id)) {continue;}
+                // Check if any of the member's roles are exempt
+                if (cfg.exemptRoles?.some(r => msg.member?.roles.cache.has(r))) {continue;}
 
                 // Check message attachments for NSFW
                 const result = await checkMessageAttachments(interaction.guild.id, msg);
@@ -650,17 +661,23 @@ color: 0x00FF00,
                 if (result) {
                     nsfwFound++;
                     if (deleteEnabled && result.shouldDelete) {
-                        try {
-                            await msg.delete();
-                            messagesDeleted++;
-                        } catch (delError) {
-                            console.error(`[ERROR] Failed to delete NSFW message ${msg.id}:`, delError);
+                        // Check if bot has permission to delete messages in this channel
+                        if (channel.permissionsFor(interaction.guild.members.me).has(PermissionsBitField.Flags.ManageMessages)) {
+                            try {
+                                await msg.delete();
+                                messagesDeleted++;
+                            } catch (delError) {
+                                console.error(`[ERROR] Failed to delete NSFW message ${msg.id}:`, delError);
+                            }
                         }
                     }
                 }
 
-                // Update progress every 50 messages or at the end
-                if (messagesScanned % 50 === 0 || messagesScanned === limit) {
+                // Delay to avoid rate limiting
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                // Update progress every 100 messages or at the end
+                if (messagesScanned % 100 === 0 || messagesScanned === limit) {
                     await interaction.editReply({
                         embeds: [{
                             color: 0x0099FF,
@@ -676,7 +693,7 @@ color: 0x00FF00,
                     });
                 }
 
-                if (messagesScanned >= limit) break;
+                if (messagesScanned >= limit) {break;}
             }
 
             // Set lastId to the oldest message in this batch for pagination
@@ -723,6 +740,6 @@ color: 0x00FF00,
                 timestamp: new Date().toISOString()
             }]
         });
-        console.error(`[ERROR] NSWD scan error:`, error);
+        console.error('[ERROR] NSFW scan error:', error);
     }
 }
