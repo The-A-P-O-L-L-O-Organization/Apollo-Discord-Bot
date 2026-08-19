@@ -84,6 +84,8 @@ jobs:
             BUILD_DATE=${{ github.event.head_commit.timestamp }}
             VCS_REF=${{ github.sha }}
             VERSION=${{ github.ref_name }}
+          # BuildKit inline cache for pnpm store (defined in Dockerfile)
+          # GHA cache handles Docker layer caching automatically
 
       - name: Export build digest
         run: |
