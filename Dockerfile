@@ -11,14 +11,12 @@ RUN apk add --no-cache python3 make g++ sqlite-dev && \
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV PNPM_HOME=/pnpm
-ENV PATH=$PNPM_HOME:$PATH
 
 # Copy package files first for better caching
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* .npmrc* ./
 
 # Install dependencies with BuildKit cache mount for pnpm store
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --prefer-offline
 
 # Copy application source code
