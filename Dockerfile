@@ -1,28 +1,25 @@
+# syntax=docker/dockerfile:1.4
 # Dockerfile for Apollo Discord Bot
-# Optimized for production use with Node.js
+# Optimized for fast builds with BuildKit cache mounts
 
-# Use official Node.js image as base
-FROM node:26-alpine
+FROM node:26.7.0-alpine
 
-# Install build dependencies for better-sqlite3
-RUN apk add --no-cache python3 make g++ sqlite-dev
+# Install build dependencies for better-sqlite3 + pnpm in one layer
+RUN apk add --no-cache python3 make g++ sqlite-dev && \
+    npm install -g corepack && corepack enable && corepack prepare pnpm@11 --activate
 
-# Set working directory
 WORKDIR /app
 
-# Set environment variables
 ENV NODE_ENV=production
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 
-# Install pnpm
-RUN npm install -g corepack && corepack enable && corepack prepare pnpm@latest --activate
-
 # Copy package files first for better caching
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* .npmrc* ./
 
-# Install dependencies (postinstall rebuilds better-sqlite3)
-RUN pnpm install --frozen-lockfile
+# Install dependencies with BuildKit cache mount for pnpm store
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile --prefer-offline
 
 # Copy application source code
 COPY src ./src
@@ -38,13 +35,10 @@ RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001 -G nodejs && \
     chown -R nodejs:nodejs /app
 
-# Switch to non-root user
 USER nodejs
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD node -e "process.exit(0)" || exit 1
+# Health check - hits real /healthz endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000/healthz', (r) => { if (r.statusCode !== 200) process.exit(1) }).on('error', () => process.exit(1))" || exit 1
 
-# Start the bot
 CMD ["pnpm", "start"]
-
