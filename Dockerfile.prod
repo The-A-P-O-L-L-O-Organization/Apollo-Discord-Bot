@@ -24,6 +24,7 @@ RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
 COPY src ./src
 COPY bin ./bin
 COPY deploy-commands.js ./
+COPY plugin-manifest.json ./
 
 # Stage 2: Production stage (minimal)
 FROM node:26.7.0-alpine
@@ -46,6 +47,7 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/bin ./bin
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/deploy-commands.js ./
+COPY --from=builder /app/plugin-manifest.json ./
 
 # Create directories for persistent data
 RUN mkdir -p /app/src/data /app/logs /app/data/plugins && \
