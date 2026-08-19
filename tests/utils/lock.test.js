@@ -33,7 +33,7 @@ class MockRedis {
     }
     async eval(script, numKeys, key, owner) {
         const stored = this.data.get(key);
-        if (!stored) return 0;
+        if (!stored) {return 0;}
         // check expiration
         if (!stored.expires || Date.now() < stored.expires) {
             // not expired
@@ -61,7 +61,7 @@ describe('Lock Manager', () => {
         // no cleanup needed
     });
 
-    it('should acquire and release lock', async () => {
+    it('should acquire and release lock', async() => {
         const acquired = await acquireLock(redis, 'test-lock-1', 'owner1', 5000);
         expect(acquired).toBe(true);
         
@@ -79,7 +79,7 @@ describe('Lock Manager', () => {
         await releaseLock(redis, 'test-lock-1', 'owner2');
     });
 
-    it('should not release lock owned by another', async () => {
+    it('should not release lock owned by another', async() => {
         await acquireLock(redis, 'test-lock-2', 'owner1', 5000);
         
         // Try to release with wrong owner - should not delete
@@ -92,10 +92,10 @@ describe('Lock Manager', () => {
         await releaseLock(redis, 'test-lock-2', 'owner1');
     });
 
-    it('should execute function with lock', async () => {
+    it('should execute function with lock', async() => {
         let counter = 0;
         
-        const result = await withLock(redis, 'test-lock-3', 'owner1', async () => {
+        const result = await withLock(redis, 'test-lock-3', 'owner1', async() => {
             counter++;
             // simulate async
             await new Promise(r => setTimeout(r, 10));
@@ -107,11 +107,11 @@ describe('Lock Manager', () => {
         expect(counter).toBe(2);
     });
 
-    it('should release lock even if function throws', async () => {
-        let lockReleased = false;
+    it('should release lock even if function throws', async() => {
+        const lockReleased = false;
         
         try {
-            await withLock(redis, 'test-lock-4', 'owner1', async () => {
+            await withLock(redis, 'test-lock-4', 'owner1', async() => {
                 throw new Error('Test error');
             }, 5000);
         } catch (e) {
@@ -125,10 +125,10 @@ describe('Lock Manager', () => {
         await releaseLock(redis, 'test-lock-4', 'owner2');
     });
 
-    it('should return false if lock not acquired', async () => {
+    it('should return false if lock not acquired', async() => {
         await acquireLock(redis, 'test-lock-5', 'owner1', 5000);
         
-        const result = await withLock(redis, 'test-lock-5', 'owner2', async () => {
+        const result = await withLock(redis, 'test-lock-5', 'owner2', async() => {
             return 'should not run';
         }, 100); // Short TTL
         
@@ -137,7 +137,7 @@ describe('Lock Manager', () => {
         await releaseLock(redis, 'test-lock-5', 'owner1');
     });
 
-    it('should handle lock expiration', async () => {
+    it('should handle lock expiration', async() => {
         // Acquire with very short TTL
         await acquireLock(redis, 'test-lock-6', 'owner1', 50);
         

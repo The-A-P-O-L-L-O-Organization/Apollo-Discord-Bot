@@ -2,26 +2,26 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Mock ioredis
 const mockRedisInstance = {
-  connect: vi.fn(),
-  quit: vi.fn(),
-  ping: vi.fn(),
-  status: 'ready',
-  on: vi.fn()
+    connect: vi.fn(),
+    quit: vi.fn(),
+    ping: vi.fn(),
+    status: 'ready',
+    on: vi.fn()
 };
 
 vi.mock('ioredis', () => {
-  return {
-    default: class {
-      constructor(options) {
-        this.options = options;
-        this.status = 'ready';
-        this.on = mockRedisInstance.on;
-        this.connect = mockRedisInstance.connect;
-        this.quit = mockRedisInstance.quit;
-        this.ping = mockRedisInstance.ping;
-      }
-    }
-  };
+    return {
+        default: class {
+            constructor(options) {
+                this.options = options;
+                this.status = 'ready';
+                this.on = mockRedisInstance.on;
+                this.connect = mockRedisInstance.connect;
+                this.quit = mockRedisInstance.quit;
+                this.ping = mockRedisInstance.ping;
+            }
+        }
+    };
 });
 
 import { getRedis, closeAll, healthCheck, removeRedis, getConnectionState } from '../../src/utils/redis.js';
@@ -44,7 +44,7 @@ describe('Redis Connection Manager', () => {
         }
     });
 
-    afterEach(async () => {
+    afterEach(async() => {
         // Clean up test connections individually
         for (const name of testNames) {
             await removeRedis(name);
@@ -53,7 +53,7 @@ describe('Redis Connection Manager', () => {
         await closeAll();
     });
 
-    it('should create and reuse connections', async () => {
+    it('should create and reuse connections', async() => {
         const name = getTestName('test1');
         const redis1 = getRedis(name);
         await redis1.connect();
@@ -63,7 +63,7 @@ describe('Redis Connection Manager', () => {
         expect(mockRedisInstance.connect).toHaveBeenCalledTimes(1);
     });
 
-    it('should create separate connections for different names', async () => {
+    it('should create separate connections for different names', async() => {
         const name1 = getTestName('test1');
         const name2 = getTestName('test2');
         const redis1 = getRedis(name1);
@@ -75,7 +75,7 @@ describe('Redis Connection Manager', () => {
         expect(mockRedisInstance.connect).toHaveBeenCalledTimes(2);
     });
 
-    it('should track connection state', async () => {
+    it('should track connection state', async() => {
         const name = getTestName('test-state');
         const redis = getRedis(name);
         await redis.connect();
@@ -85,7 +85,7 @@ describe('Redis Connection Manager', () => {
         expect(state.status).toBeDefined();
     });
 
-    it('should remove connections', async () => {
+    it('should remove connections', async() => {
         const name = getTestName('test-remove');
         const redis = getRedis(name);
         await redis.connect();
@@ -96,7 +96,7 @@ describe('Redis Connection Manager', () => {
         expect(mockRedisInstance.quit).toHaveBeenCalledTimes(1);
     });
 
-    it('should return connection names', async () => {
+    it('should return connection names', async() => {
         const name1 = getTestName('test-names-1');
         const name2 = getTestName('test-names-2');
         const redis1 = getRedis(name1);
@@ -108,7 +108,7 @@ describe('Redis Connection Manager', () => {
         expect(names).toBeDefined();
     });
 
-    it('should handle health check', async () => {
+    it('should handle health check', async() => {
         const name = getTestName('test-health');
         const redis = getRedis(name);
         await redis.connect();
@@ -136,7 +136,7 @@ describe('Redis Connection Pool', () => {
         }
     });
 
-    afterEach(async () => {
+    afterEach(async() => {
         for (const name of testNames) {
             await removeRedis(name);
         }
@@ -144,7 +144,7 @@ describe('Redis Connection Pool', () => {
         await closeAll();
     });
 
-    it('should create pool when poolSize > 1', async () => {
+    it('should create pool when poolSize > 1', async() => {
         const name = getTestName('test-pool');
         const redis = getRedis(name, { poolSize: 3 });
         await redis.connect();

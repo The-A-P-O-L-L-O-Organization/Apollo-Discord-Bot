@@ -33,13 +33,13 @@ describe('Metrics', () => {
         register.clear();
     });
 
-    it('should register default metrics', async () => {
+    it('should register default metrics', async() => {
         const metricsList = await register.getMetricsAsJSON();
         expect(metricsList).toBeDefined();
         expect(Array.isArray(metricsList)).toBe(true);
     });
 
-    it('should record command metrics', async () => {
+    it('should record command metrics', async() => {
         metrics.recordCommand('ping', 'guild1', 'success');
         metrics.recordCommand('ping', 'guild1', 'success');
         metrics.recordCommand('ping', 'guild2', 'error');
@@ -49,7 +49,7 @@ describe('Metrics', () => {
         expect(cmdMetric).toBeDefined();
     });
 
-    it('should record command duration', async () => {
+    it('should record command duration', async() => {
         metrics.recordCommandDuration('ping', 100);
         metrics.recordCommandDuration('ping', 200);
         
@@ -58,7 +58,7 @@ describe('Metrics', () => {
         expect(durationMetric).toBeDefined();
     });
 
-    it('should set queue depth', async () => {
+    it('should set queue depth', async() => {
         metrics.setQueueDepth('commands', 10);
         metrics.setQueueDepth('heavy', 5);
         
@@ -67,7 +67,7 @@ describe('Metrics', () => {
         expect(queueMetric).toBeDefined();
     });
 
-    it('should record DB query duration', async () => {
+    it('should record DB query duration', async() => {
         metrics.recordDbQuery('select', 'warnings', 50);
         metrics.recordDbQuery('insert', 'warnings', 100);
         
@@ -76,7 +76,7 @@ describe('Metrics', () => {
         expect(dbMetric).toBeDefined();
     });
 
-    it('should set active plugins count', async () => {
+    it('should set active plugins count', async() => {
         metrics.setActivePlugins(7);
         
         const metricsList = await register.getMetricsAsJSON();
@@ -84,7 +84,7 @@ describe('Metrics', () => {
         expect(pluginMetric).toBeDefined();
     });
 
-    it('should set worker memory', async () => {
+    it('should set worker memory', async() => {
         metrics.setWorkerMemory('automod', 1024 * 1024 * 100); // 100MB
         
         const metricsList = await register.getMetricsAsJSON();
@@ -92,7 +92,7 @@ describe('Metrics', () => {
         expect(memMetric).toBeDefined();
     });
 
-    it('should set Redis connections', async () => {
+    it('should set Redis connections', async() => {
         metrics.setRedisConnections(5);
         
         const metricsList = await register.getMetricsAsJSON();
@@ -100,7 +100,7 @@ describe('Metrics', () => {
         expect(redisMetric).toBeDefined();
     });
 
-    it('should set analytics cache size', async () => {
+    it('should set analytics cache size', async() => {
         metrics.setAnalyticsCacheSize('commands', 100);
         metrics.setAnalyticsCacheSize('messages', 200);
         
@@ -109,7 +109,7 @@ describe('Metrics', () => {
         expect(cacheMetric).toBeDefined();
     });
 
-    it('should set spam tracker size', async () => {
+    it('should set spam tracker size', async() => {
         metrics.setSpamTrackerSize('guild1', 50);
         
         const metricsList = await register.getMetricsAsJSON();
@@ -117,7 +117,7 @@ describe('Metrics', () => {
         expect(spamMetric).toBeDefined();
     });
 
-    it('should set event bus handlers', async () => {
+    it('should set event bus handlers', async() => {
         metrics.setEventBusHandlers('messageCreate', 10);
         
         const metricsList = await register.getMetricsAsJSON();
@@ -125,7 +125,7 @@ describe('Metrics', () => {
         expect(eventMetric).toBeDefined();
     });
 
-    it('should record HTTP requests', async () => {
+    it('should record HTTP requests', async() => {
         metrics.recordHttpRequest('GET', '/api/v1/bots', 200, 50);
         metrics.recordHttpRequest('POST', '/api/v1/bots', 201, 100);
         metrics.recordHttpRequest('GET', '/api/v1/bots', 404, 25);
@@ -135,7 +135,7 @@ describe('Metrics', () => {
         expect(httpMetric).toBeDefined();
     });
 
-    it('should record errors', async () => {
+    it('should record errors', async() => {
         metrics.recordError('validation', 'reportCommand');
         metrics.recordError('database', 'analyticsCollector');
         
@@ -144,7 +144,7 @@ describe('Metrics', () => {
         expect(errorMetric).toBeDefined();
     });
 
-    it('should record plugin load duration', async () => {
+    it('should record plugin load duration', async() => {
         metrics.recordPluginLoad('automod', 500);
         metrics.recordPluginLoad('utility', 100);
         
@@ -153,7 +153,7 @@ describe('Metrics', () => {
         expect(pluginMetric).toBeDefined();
     });
 
-    it('should record startup duration', async () => {
+    it('should record startup duration', async() => {
         metrics.recordStartupDuration(2500);
         
         const metricsList = await register.getMetricsAsJSON();
@@ -161,7 +161,7 @@ describe('Metrics', () => {
         expect(startupMetric).toBeDefined();
     });
 
-    it('should expose metrics in Prometheus format', async () => {
+    it('should expose metrics in Prometheus format', async() => {
         metrics.recordCommand('test', 'guild1', 'success');
         
         const output = await register.metrics();

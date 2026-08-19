@@ -20,7 +20,7 @@ import { getDb, closeDb, resetTestDb } from '../../src/db/knex.js';
 describe('Analytics Collector', () => {
     let mockClient;
 
-    beforeEach(async () => {
+    beforeEach(async() => {
         await resetTestDb();
         const db = getDb();
         await db.migrate.latest();
@@ -35,12 +35,12 @@ describe('Analytics Collector', () => {
         };
     });
 
-    afterEach(async () => {
+    afterEach(async() => {
         stopAnalyticsCollector();
         await closeDb();
     });
 
-    it('should initialize and start collector', async () => {
+    it('should initialize and start collector', async() => {
         await initAnalyticsCollector(mockClient);
         
         const stats = getAnalyticsCollectorStats();
@@ -48,7 +48,7 @@ describe('Analytics Collector', () => {
         expect(stats.cleanupsPerformed).toBe(0);
     });
 
-    it('should track commands', async () => {
+    it('should track commands', async() => {
         await initAnalyticsCollector(mockClient);
         
         trackCommand('guild1', 'ping', 'user1');
@@ -64,7 +64,7 @@ describe('Analytics Collector', () => {
         expect(stats.byCommand.find(c => c.name === 'help').count).toBe(1);
     });
 
-    it('should track messages', async () => {
+    it('should track messages', async() => {
         await initAnalyticsCollector(mockClient);
         
         trackMessage('guild1', 'channel1', 'user1');
@@ -78,7 +78,7 @@ describe('Analytics Collector', () => {
         expect(stats.byUser).toHaveLength(2);
     });
 
-    it('should track violations', async () => {
+    it('should track violations', async() => {
         await initAnalyticsCollector(mockClient);
         
         trackViolation('guild1', 'spam');
@@ -92,7 +92,7 @@ describe('Analytics Collector', () => {
         expect(stats.find(v => v.type === 'spam').count).toBe(2);
     });
 
-    it('should track mod actions', async () => {
+    it('should track mod actions', async() => {
         await initAnalyticsCollector(mockClient);
         
         trackModAction('guild1', 'mod1', 'ban');
@@ -106,7 +106,7 @@ describe('Analytics Collector', () => {
         expect(stats.byAction).toHaveLength(3);
     });
 
-    it('should flush critical analytics', async () => {
+    it('should flush critical analytics', async() => {
         await initAnalyticsCollector(mockClient);
         
         trackCommand('guild1', 'critical', 'user1');
@@ -117,7 +117,7 @@ describe('Analytics Collector', () => {
         expect(stats.byCommand.find(c => c.name === 'critical').count).toBe(1);
     });
 
-    it('should enforce cache limits', async () => {
+    it('should enforce cache limits', async() => {
         await initAnalyticsCollector(mockClient);
         
         // Add many entries to trigger limit
@@ -132,7 +132,7 @@ describe('Analytics Collector', () => {
         expect(stats.errors).toBe(0);
     });
 
-    it('should stop collector', async () => {
+    it('should stop collector', async() => {
         await initAnalyticsCollector(mockClient);
         
         stopAnalyticsCollector();
@@ -141,7 +141,7 @@ describe('Analytics Collector', () => {
         expect(stats.uptime).toBe(0);
     });
 
-    it('should get member growth stats', async () => {
+    it('should get member growth stats', async() => {
         await initAnalyticsCollector(mockClient);
         
         // Track some member changes

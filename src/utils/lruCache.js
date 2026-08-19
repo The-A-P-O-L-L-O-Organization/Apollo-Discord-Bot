@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+ 
 // O(1) LRU Cache Implementation
 // Uses Map + Doubly Linked List for true O(1) get/put/evict operations
 
