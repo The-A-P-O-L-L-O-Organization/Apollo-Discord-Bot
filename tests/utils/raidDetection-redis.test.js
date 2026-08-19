@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 describe('Raid detection Redis', () => {
     let mockRedis;
 
-    beforeEach(async () => {
+    beforeEach(async() => {
         vi.resetModules();
         mockRedis = {
             zadd: vi.fn().mockResolvedValue(1),
@@ -57,7 +57,7 @@ describe('Raid detection Redis', () => {
             JSON.stringify({ userId: 'u12', username: 'user12', timestamp: now, accountAge: 30 }),
             JSON.stringify({ userId: 'u13', username: 'user13', timestamp: now, accountAge: 30 }),
             JSON.stringify({ userId: 'u14', username: 'user14', timestamp: now, accountAge: 30 }),
-            JSON.stringify({ userId: 'u15', username: 'user15', timestamp: now, accountAge: 30 }),
+            JSON.stringify({ userId: 'u15', username: 'user15', timestamp: now, accountAge: 30 })
         ]);
         
         const result = await checkRaidPatternRedis('guild-1', 10, 10000, now);

@@ -483,14 +483,13 @@ describe('Analytics Command', () => {
         });
 
         it('should schedule file cleanup', async() => {
-            vi.useFakeTimers();
             const setTimeoutSpy = vi.spyOn(global, 'setTimeout');
 
             await analyticsCommand.execute(interaction);
 
             expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 5000);
 
-            vi.restoreAllMocks();
+            setTimeoutSpy.mockRestore();
         });
     });
 

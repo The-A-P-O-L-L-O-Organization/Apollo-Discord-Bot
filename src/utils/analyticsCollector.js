@@ -162,22 +162,22 @@ export async function trackMemberChange(guildId, isJoin, totalMembers) {
     const today = getDateString(Date.now());
     const data = await getGuildData('analytics-members', guildId);
     
-    if (!data[today]) {
-        data[today] = {
+    const key = `${today}:${Date.now()}`;
+    if (!data[key]) {
+        data[key] = {
             date: today,
-            joinCount: 0,
-            leaveCount: 0,
+            joinCount: isJoin ? 1 : 0,
+            leaveCount: isJoin ? 0 : 1,
             totalMembers: totalMembers
         };
-    }
-    
-    if (isJoin) {
-        data[today].joinCount++;
     } else {
-        data[today].leaveCount++;
+        if (isJoin) {
+            data[key].joinCount++;
+        } else {
+            data[key].leaveCount++;
+        }
+        data[key].totalMembers = totalMembers;
     }
-    
-    data[today].totalMembers = totalMembers;
     
     await setGuildData('analytics-members', guildId, data);
 }
@@ -202,7 +202,7 @@ export async function flushAnalyticsCritical() {
 /**
  * Flushes the analytics cache to the database
  */
-async function flushAnalyticsCache() {
+export async function flushAnalyticsCache() {
     const startTime = Date.now();
     
     try {
@@ -581,7 +581,9 @@ export async function getMemberGrowthStats(guildId, days = 30) {
     const growth = [];
     
     for (const key in data) {
-        if (key >= cutoffDate) {
+        // Extract the date from the key: the part before the first colon
+        const entryDate = key.split(':')[0];
+        if (entryDate >= cutoffDate) {
             growth.push(data[key]);
         }
     }

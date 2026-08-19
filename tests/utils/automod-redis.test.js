@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 describe('Automod Redis spam tracking', () => {
     let mockRedis;
 
-    beforeEach(async () => {
+    beforeEach(async() => {
         vi.resetModules();
         mockRedis = {
             zadd: vi.fn().mockResolvedValue(1),

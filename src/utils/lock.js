@@ -1,30 +1,17 @@
-/* eslint-disable no-console */
+ 
 import { config } from '../config/config.js';
+import { getRedis } from './redis.js';
 
 const LOCK_PREFIX = 'apollo:lock:';
 
 let _lockRedis = null;
-let _lockRedisPromise = null;
 
 export async function getLockRedis() {
     if (_lockRedis) {return _lockRedis;}
     if (!config.queue.enabled) {return null;}
-    if (_lockRedisPromise) {return _lockRedisPromise;}
-    _lockRedisPromise = (async() => {
-        try {
-            const { Redis } = await import('ioredis');
-            _lockRedis = new Redis({
-                host: config.queue.redis.host,
-                port: config.queue.redis.port,
-                password: config.queue.redis.password || undefined
-            });
-            return _lockRedis;
-        } catch (err) {
-            console.warn('[lock] Failed to create Redis connection:', err);
-            return null;
-        }
-    })();
-    return _lockRedisPromise;
+    _lockRedis = getRedis('lock');
+    await _lockRedis.connect();
+    return _lockRedis;
 }
 
 export async function closeLockRedis() {
