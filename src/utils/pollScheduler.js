@@ -52,7 +52,8 @@ export async function initPollScheduler(discordClient) {
     schedulerInterval = setInterval(async() => {
         const redis = await getLockRedis();
         if (redis) {
-            await withLock(redis, 'scheduler:polls', config.podId, checkPolls, 25000);
+            // TTL = interval (30s) to ensure no gap between lock expiration and next acquisition
+            await withLock(redis, 'scheduler:polls', config.podId, checkPolls, 30000);
         } else {
             await checkPolls();
         }

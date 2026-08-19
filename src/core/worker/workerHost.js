@@ -48,6 +48,12 @@ export class WorkerHost {
         const granted = this.getGrantedCapabilities(manifest, capabilities);
         const childEntry = new URL('./workerChild.js', import.meta.url).pathname;
 
+        // Per-plugin resource limits from manifest (with defaults)
+        const resourceLimits = manifest.resourceLimits || {};
+        const maxOldGenerationSizeMb = resourceLimits.maxOldGenerationSizeMb || 256;
+        const maxYoungGenerationSizeMb = resourceLimits.maxYoungGenerationSizeMb || 64;
+        const stackSizeMb = resourceLimits.stackSizeMb || 8;
+
         const env = {
             PLUGIN_ID: pluginId,
             PLUGIN_DIR: dir,
@@ -59,16 +65,16 @@ export class WorkerHost {
             env,
             stdio: ['ignore', 'inherit', 'inherit', 'ipc'], // stdin: ignore to prevent injection
             resourceLimits: {
-                maxOldGenerationSizeMb: 256,
-                maxYoungGenerationSizeMb: 64,
-                stackSizeMb: 8
+                maxOldGenerationSizeMb,
+                maxYoungGenerationSizeMb,
+                stackSizeMb
             }
         });
         child.on('exit', (code, signal) => this.recordCrash(pluginId, code, signal));
         child.on('error', (err) => this.handleWorkerError(pluginId, err));
 
         this._workers.set(pluginId, { child, granted, manifest });
-        this._log(`[WORKER] Spawned worker for ${pluginId}`);
+        this._log(`[WORKER] Spawned worker for ${pluginId} (memory: ${maxOldGenerationSizeMb}MB old, ${maxYoungGenerationSizeMb}MB young, stack: ${stackSizeMb}MB)`);
         logSecurityEvent({ event: 'plugin.started', pluginId, grantedCapabilities: granted });
         return this._workers.get(pluginId);
     }

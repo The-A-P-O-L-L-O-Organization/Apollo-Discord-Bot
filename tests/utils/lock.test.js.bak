@@ -1,65 +1,37 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { 
+    getLockRedis,
+    closeLockRedis,
     acquireLock,
     releaseLock,
     withLock
 } from '../../src/utils/lock.js';
-
-// Mock Redis implementation with TTL support
-class MockRedis {
-    constructor() {
-        this.data = new Map(); // key => {value, expires}
-        this.status = 'ready';
-    }
-    async connect() {
-        this.status = 'ready';
-    }
-    async quit() {
-        this.status = 'closed';
-    }
-    set(key, value, nx, px, ttlMs) {
-        const now = Date.now();
-        const existing = this.data.get(key);
-        if (nx && existing) {
-            // check if expired
-            if (!existing.expires || now < existing.expires) {
-                return null; // not expired, nx fails
-            }
-            // expired, treat as absent
-        }
-        const expires = ttlMs ? now + ttlMs : null;
-        this.data.set(key, { value, expires });
-        return 'OK';
-    }
-    async eval(script, numKeys, key, owner) {
-        const stored = this.data.get(key);
-        if (!stored) return 0;
-        // check expiration
-        if (!stored.expires || Date.now() < stored.expires) {
-            // not expired
-            if (stored.value === owner) {
-                this.data.delete(key);
-                return 1;
-            }
-            return 0;
-        } else {
-            // expired, treat as absent
-            this.data.delete(key);
-            return 0;
-        }
-    }
-}
+import { getRedis, removeRedis } from '../../src/utils/redis.js';
 
 describe('Lock Manager', () => {
-    let redis;
+    const testNames = new Set();
 
-    beforeEach(() => {
-        redis = new MockRedis();
-    });
+    function getTestName(base) {
+        const name = `${base}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        testNames.add(name);
+        return name;
+    }
 
-    afterEach(() => {
-        // no cleanup needed
-    });
+let redis;
+
+     beforeEach(async () => {
+         const name = getTestName('test-lock');
+         redis = getRedis(name);
+         await redis.connect();
+     });
+
+afterEach(async () => {
+         await closeLockRedis();
+         for (const name of testNames) {
+             await removeRedis(name);
+         }
+         testNames.clear();
+     });
 
     it('should acquire and release lock', async () => {
         const acquired = await acquireLock(redis, 'test-lock-1', 'owner1', 5000);
@@ -97,7 +69,6 @@ describe('Lock Manager', () => {
         
         const result = await withLock(redis, 'test-lock-3', 'owner1', async () => {
             counter++;
-            // simulate async
             await new Promise(r => setTimeout(r, 10));
             counter++;
             return counter;

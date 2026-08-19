@@ -89,7 +89,7 @@ export async function requireOwner(interaction, options = {}) {
  * @returns {Function} Wrapped execute function
  */
 export function withOwnerCheck(executeFn, options = {}) {
-    return async (interaction, ...args) => {
+    return async(interaction, ...args) => {
         const denial = await requireOwner(interaction, options);
         if (denial) {
             if (interaction.replied || interaction.deferred) {
