@@ -1,15 +1,15 @@
 // Context Menu Command: Scan for NSFW
 // Right-click a message → "Scan for NSFW"
 
-import { ApplicationCommandType, EmbedBuilder } from 'discord.js';
-import { checkMessageAttachments } from '../../../utils/nsfwDetection.js';
+import { ApplicationCommandType, EmbedBuilder, PermissionsBitField } from 'discord.js';
+import { checkMessageAttachments, formatNsfwPredictions } from '../../../utils/nsfwDetection.js';
 import { safeError } from '../../../utils/safeError.js';
 
 export default {
     name: 'Scan for NSFW',
     description: 'Scan a message for NSFW content',
     type: ApplicationCommandType.Message,
-    defaultMemberPermissions: null, // No specific permission required, but we'll check in execute
+    defaultMemberPermissions: PermissionsBitField.Flags.ModerateMembers, // Permission to moderate members (for context menu)
     dmPermission: false, // Only works in guilds
 
     async execute(interaction) {
@@ -75,7 +75,7 @@ export default {
                 .setTimestamp();
 
             // If we should delete and the bot has permission, delete the message
-            if (result.shouldDelete) {
+            if (result.shouldDelete && interaction.channel.permissionsFor(interaction.guild.members.me).has(PermissionsBitField.Flags.ManageMessages)) {
                 try {
                     await targetMessage.delete();
                     embed.setDescription('NSFW content was found and the message has been deleted.');
@@ -87,14 +87,14 @@ export default {
                         value: 'I don\'t have permission to delete this message.',
                         inline: false
                     });
-                    console.error(`[ERROR] Failed to delete NSFW message:`, deleteError);
+                    console.error('[ERROR] Failed to delete NSFW message:', deleteError);
                 }
             }
 
             // Add prediction details for each image
             if (result.images.length > 0) {
                 const predictionsText = result.images.map((img, index) => {
-                    return `**Image ${index + 1}:**\n${require('../../../utils/nsfwDetection.js').formatNsfwPredictions(img.predictions)}`;
+                    return `**Image ${index + 1}:**\n${formatNsfwPredictions(img.predictions)}`;
                 }).join('\n\n');
 
                 embed.addFields({
