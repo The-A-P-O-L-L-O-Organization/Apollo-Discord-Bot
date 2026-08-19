@@ -1,6 +1,6 @@
 let _db = null;
 
-import { encryptFields, decryptFields, isEncrypted } from '../utils/encryption.js';
+import { encryptFields, decryptFields } from '../utils/encryption.js';
 
 // Sensitive fields that should be encrypted at rest
 const SENSITIVE_GUILD_FIELDS = ['interlink_api_key', 'webhook_url', 'api_key', 'secret', 'token', 'password'];

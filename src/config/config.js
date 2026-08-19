@@ -202,8 +202,12 @@ export const config = {
         postgres: {
             connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/apollo',
             pool: {
-                min: parseIntSafe(process.env.DB_POOL_MIN, 2),
-                max: parseIntSafe(process.env.DB_POOL_MAX, 10)
+                min: parseIntSafe(process.env.DB_POOL_MIN, 5),
+                max: parseIntSafe(process.env.DB_POOL_MAX, 50),
+                acquireTimeoutMillis: 30000,
+                idleTimeoutMillis: 30000,
+                reapIntervalMillis: 10000,
+                createRetryIntervalMillis: 200
             }
         }
     },
