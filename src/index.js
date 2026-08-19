@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { randomUUID, randomBytes } from 'crypto';
 import { MessageFlags, Client, GatewayIntentBits, Collection, Partials } from 'discord.js';
+import { createServer } from 'http';
 import { config } from './config/config.js';
 import PluginManager from './core/PluginManager.js';
 import EventBus from './core/EventBus.js';
@@ -9,32 +10,34 @@ import registerProcessCommand from './queue/jobs/processCommand.js';
 import { trackCommand, stopAnalyticsCollector } from './utils/analyticsCollector.js';
 import { stopReminderScheduler } from './utils/reminderScheduler.js';
 import { stopPollScheduler } from './utils/pollScheduler.js';
-import { close as closeDatabase } from './utils/db.js';
+import { close as closeDatabase, startWalCheckpointInterval } from './utils/db.js';
 import { closeLockRedis } from './utils/lock.js';
 import { safeError } from './utils/safeError.js';
 import { assertDiscordToken, assertOperatorAgreement } from './utils/startupChecks.js';
+import { closeAll as closeRedis, healthCheck as redisHealthCheck } from './utils/redis.js';
 
 const uuid = randomUUID?.() ?? randomBytes(16).toString('hex');
 
+// Base intents - minimal set required for core bot functionality
+// Plugins can declare additional required intents via static requiredIntents getter
+const baseIntents = [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMessageReactions,
+    GatewayIntentBits.DirectMessages
+];
+
+const basePartials = [
+    Partials.Channel,
+    Partials.Message,
+    Partials.User,
+    Partials.Reaction
+];
+
 const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildPresences,
-        GatewayIntentBits.GuildMessageReactions,
-        GatewayIntentBits.GuildVoiceStates,
-        GatewayIntentBits.DirectMessages,
-        GatewayIntentBits.GuildModeration
-    ],
-    partials: [
-        Partials.Channel,
-        Partials.GuildMember,
-        Partials.Message,
-        Partials.User,
-        Partials.Reaction
-    ]
+    intents: baseIntents,
+    partials: basePartials
 });
 
 client.commands = new Collection();
@@ -52,6 +55,56 @@ const pluginManager = new PluginManager(client, bus);
 client.manager = pluginManager;
 client.bus = bus;
 
+// Health check HTTP server
+let healthServer = null;
+
+async function startHealthServer() {
+    const port = process.env.HEALTH_PORT || 8080;
+    const host = process.env.HEALTH_HOST || '127.0.0.1';
+    
+    healthServer = createServer(async (req, res) => {
+        const url = new URL(req.url, `http://${req.headers.host}`);
+        
+        if (url.pathname === '/healthz' || url.pathname === '/readyz') {
+            const isReady = client.isReady();
+            const redisHealth = await redisHealthCheck();
+            const allRedisHealthy = Object.values(redisHealth).every(r => r.status === 'healthy');
+            
+            const status = isReady && allRedisHealthy ? 200 : 503;
+            
+            res.writeHead(status, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+                status: status === 200 ? 'ok' : 'degraded',
+                timestamp: new Date().toISOString(),
+                discord: isReady ? 'connected' : 'disconnected',
+                redis: redisHealth,
+                uptimeMs: Date.now() - client.stats.startTime
+            }));
+        } else if (url.pathname === '/metrics') {
+            // Redirect to Interlink metrics if available, or return basic metrics
+            res.writeHead(200, { 'Content-Type': 'text/plain' });
+            res.end('# Metrics available at /metrics on Interlink port\n');
+        } else {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Not found' }));
+        }
+    });
+    
+    await new Promise((resolve, reject) => {
+        healthServer.listen(port, host, resolve);
+        healthServer.once('error', reject);
+    });
+    
+    console.log(`[INFO] Health server listening on ${host}:${port}`);
+}
+
+async function stopHealthServer() {
+    if (healthServer) {
+        await new Promise(resolve => healthServer.close(resolve));
+        healthServer = null;
+    }
+}
+
 client.once('clientReady', async() => {
     console.log('[SUCCESS] Bot is online! Logged in as ' + client.user.tag);
     console.log('[INFO] Bot ID: ' + client.user.id);
@@ -61,6 +114,9 @@ client.once('clientReady', async() => {
 
     console.log('[INFO] Loading plugins...');
     await pluginManager.loadAll(config);
+    
+    // Start WAL checkpoint interval for SQLite
+    startWalCheckpointInterval();
 
     const EVENT_FORWARD = {
         ready: 'events:ready',
@@ -89,18 +145,17 @@ client.once('clientReady', async() => {
 
     for (const [eventName, capability] of Object.entries(EVENT_FORWARD)) {
         client.on(eventName, (...args) => {
-            for (const [id, info] of pluginManager.installedPlugins) {
-                if (info.origin === 'installed' && info.worker) {
-                    const granted = pluginManager.workerHost.getGrantedCapabilities(info.worker.manifest, [capability]);
-                    if (granted.length > 0) {
-                        pluginManager.workerHost.send(id, {
-                            kind: 'request',
-                            method: 'event:emit',
-                            payload: { event: capability, data: serializeEventArgs(args) },
-                            correlationId: `evt-${eventName}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
-                        });
-                    }
-                }
+            const pluginIds = pluginManager._capabilityIndex.get(capability);
+            if (!pluginIds || pluginIds.size === 0) return;
+            
+            const payload = serializeEventArgs(args);
+            for (const id of pluginIds) {
+                pluginManager.workerHost.send(id, {
+                    kind: 'request',
+                    method: 'event:emit',
+                    payload: { event: capability, data: payload },
+                    correlationId: `evt-${eventName}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+                });
             }
         });
     }
@@ -110,6 +165,10 @@ client.once('clientReady', async() => {
     await socketServer.start();
     console.log('[INFO] Socket server listening on /tmp/apollo.sock');
     client.socketServer = socketServer;
+    
+    // Start health check server
+    await startHealthServer();
+    
     console.log('[SUCCESS] Bot fully initialized!');
 });
 
@@ -261,17 +320,11 @@ if (RUN_MODE === 'worker') {
 
     if (config.queue.enabled) {
         registerProcessCommand();
-        const { Redis } = await import('ioredis');
-        const pub = new Redis({
-            host: config.queue.redis.host,
-            port: config.queue.redis.port,
-            password: config.queue.redis.password || undefined
-        });
-        const sub = new Redis({
-            host: config.queue.redis.host,
-            port: config.queue.redis.port,
-            password: config.queue.redis.password || undefined
-        });
+        const { getRedis } = await import('./utils/redis.js');
+        const pub = getRedis('eventbus-pub');
+        const sub = getRedis('eventbus-sub');
+        await pub.connect();
+        await sub.connect();
         bus.enableCrossPod(pub, sub, uuid);
         console.log('[INFO] Cross-pod EventBus enabled');
     }
@@ -318,11 +371,19 @@ if (RUN_MODE === 'worker') {
              console.log('[INFO] Closing Redis lock connection...');
              await closeLockRedis();
              
-             // Close queue connections
-             console.log('[INFO] Closing queue connections...');
-             await closeQueues();
-             
-             console.log('[SUCCESS] Graceful shutdown completed');
+// Close queue connections
+              console.log('[INFO] Closing queue connections...');
+              await closeQueues();
+              
+              // Close Redis connections
+              console.log('[INFO] Closing Redis connections...');
+              await closeRedis();
+              
+              // Stop health server
+              console.log('[INFO] Stopping health server...');
+              await stopHealthServer();
+              
+              console.log('[SUCCESS] Graceful shutdown completed');
          } catch (error) {
              console.error('[ERROR] Error during shutdown:', error);
          } finally {
@@ -366,14 +427,11 @@ if (RUN_MODE === 'worker') {
     }
 
     if (config.queue.enabled) {
-        const { Redis } = await import('ioredis');
+        const { getRedis } = await import('./utils/redis.js');
         const { tryAcquireLock, releaseLock, startHeartbeat, stopHeartbeat } = await import('./gateway/leader.js');
 
-        const redis = new Redis({
-            host: config.queue.redis.host,
-            port: config.queue.redis.port,
-            password: config.queue.redis.password || undefined
-        });
+        const redis = getRedis('leader');
+        await redis.connect();
 
         const isLeader = await tryAcquireLock(redis, config.podId);
 
@@ -389,8 +447,8 @@ if (RUN_MODE === 'worker') {
                 }
             }, 5000);
 
-             process.on('SIGTERM', async () => { clearInterval(pollInterval); await redis.quit(); });
-             process.on('SIGINT', async () => { clearInterval(pollInterval); await redis.quit(); });
+             process.on('SIGTERM', async () => { clearInterval(pollInterval); });
+             process.on('SIGINT', async () => { clearInterval(pollInterval); });
         } else {
             console.log('[Gateway] Elected as leader!');
             startHeartbeat(redis, config.podId);
@@ -400,7 +458,6 @@ if (RUN_MODE === 'worker') {
             cleanup = async() => {
                 stopHeartbeat();
                 await releaseLock(redis, config.podId);
-                await redis.quit();
                 await origCleanup();
             };
         }

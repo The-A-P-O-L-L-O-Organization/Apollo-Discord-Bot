@@ -1,4 +1,4 @@
-import Redis from 'ioredis';
+import { getRedis } from '../../utils/redis.js';
 
 export default class RedisTransport {
     constructor(config) {
@@ -17,16 +17,10 @@ export default class RedisTransport {
     }
 
     async connect(onMessage) {
-        const opts = {
-            host: this._config.host || 'localhost',
-            port: this._config.port || 6379
-        };
-        if (this._config.password) {
-            opts.password = this._config.password;
-        }
-
-        this._pub = new Redis(opts);
-        this._sub = new Redis(opts);
+        this._pub = getRedis('interlink-pub');
+        this._sub = getRedis('interlink-sub');
+        await this._pub.connect();
+        await this._sub.connect();
         this._messageHandler = onMessage;
 
         await new Promise((resolve, reject) => {
@@ -61,11 +55,8 @@ export default class RedisTransport {
         this.isConnected = false;
         if (this._sub) {
             await this._sub.unsubscribe(this._messageChannel);
-            this._sub.disconnect();
         }
-        if (this._pub) {
-            this._pub.disconnect();
-        }
+        // Don't disconnect - shared connections managed by redis.js
         this._pub = null;
         this._sub = null;
     }

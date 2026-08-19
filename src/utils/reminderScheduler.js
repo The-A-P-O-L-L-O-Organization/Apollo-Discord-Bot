@@ -45,7 +45,8 @@ export async function initReminderScheduler(discordClient) {
     schedulerInterval = setInterval(async() => {
         const redis = await getLockRedis();
         if (redis) {
-            await withLock(redis, 'scheduler:reminders', config.podId, checkReminders, 25000);
+            // TTL = interval (30s) to ensure no gap between lock expiration and next acquisition
+            await withLock(redis, 'scheduler:reminders', config.podId, checkReminders, config.reminders.checkInterval);
         } else {
             await checkReminders();
         }

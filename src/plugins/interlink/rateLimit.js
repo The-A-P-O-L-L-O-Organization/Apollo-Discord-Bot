@@ -3,6 +3,7 @@
 
 import { config } from '../../config/config.js';
 import { getLockRedis } from '../../utils/lock.js';
+import { LRUCache } from '../../utils/lruCache.js';
 
 const RATE_LIMIT_PREFIX = 'apollo:ratelimit:';
 
@@ -142,12 +143,20 @@ export class DistributedRateLimiter {
 
 /**
  * In-memory fallback rate limiter (for when Redis is unavailable)
+ * Uses O(1) LRU cache for efficient eviction
  */
 export class MemoryRateLimiter {
-    constructor({ limit = 60, windowMs = 60000 } = {}) {
+    constructor({ limit = 60, windowMs = 60000, maxKeys = 10000 } = {}) {
         this.limit = limit;
         this.windowMs = windowMs;
-        this.buckets = new Map();
+        this.maxKeys = maxKeys;
+        // Use O(1) LRU cache for buckets
+        this.buckets = new LRUCache({ 
+            maxSize: maxKeys,
+            onEvict: (key, bucket) => {
+                // Optional: log eviction for monitoring
+            }
+        });
     }
 
     check(key) {
@@ -158,6 +167,7 @@ export class MemoryRateLimiter {
             this.buckets.set(key, bucket);
         }
         bucket.count += 1;
+        
         return {
             allowed: bucket.count <= this.limit,
             retryAfter: Math.ceil((bucket.resetAt - now) / 1000),
