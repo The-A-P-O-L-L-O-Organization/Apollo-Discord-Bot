@@ -17,7 +17,7 @@ export const JobNames = {
 let rest = null;
 
 // Command module cache to avoid re-importing on every job
-const commandModuleCache = new Map();
+export const commandModuleCache = new Map();
 
 function getRest() {
   if (!rest) {
