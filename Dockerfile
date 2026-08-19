@@ -23,6 +23,7 @@ RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
 COPY src ./src
 COPY bin ./bin
 COPY deploy-commands.js ./
+COPY plugin-manifest.json ./
 
 # Create directories for persistent data
 RUN mkdir -p /app/src/data /app/logs /app/data/plugins && \
