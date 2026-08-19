@@ -1,7 +1,6 @@
 import 'dotenv/config';
 import { randomUUID, randomBytes } from 'crypto';
 import { MessageFlags, Client, GatewayIntentBits, Collection, Partials } from 'discord.js';
-import { createServer } from 'http';
 import { config } from './config/config.js';
 import PluginManager from './core/PluginManager.js';
 import EventBus from './core/EventBus.js';
@@ -14,7 +13,8 @@ import { close as closeDatabase, startWalCheckpointInterval } from './utils/db.j
 import { closeLockRedis } from './utils/lock.js';
 import { safeError } from './utils/safeError.js';
 import { assertDiscordToken, assertOperatorAgreement } from './utils/startupChecks.js';
-import { closeAll as closeRedis, healthCheck as redisHealthCheck } from './utils/redis.js';
+import { closeAll as closeRedis } from './utils/redis.js';
+import { startHealthServer, stopHealthServer } from './utils/healthServer.js';
 
 const uuid = randomUUID?.() ?? randomBytes(16).toString('hex');
 
@@ -54,56 +54,6 @@ const pluginManager = new PluginManager(client, bus);
 
 client.manager = pluginManager;
 client.bus = bus;
-
-// Health check HTTP server
-let healthServer = null;
-
-async function startHealthServer() {
-    const port = process.env.HEALTH_PORT || 8080;
-    const host = process.env.HEALTH_HOST || '127.0.0.1';
-    
-    healthServer = createServer(async (req, res) => {
-        const url = new URL(req.url, `http://${req.headers.host}`);
-        
-        if (url.pathname === '/healthz' || url.pathname === '/readyz') {
-            const isReady = client.isReady();
-            const redisHealth = await redisHealthCheck();
-            const allRedisHealthy = Object.values(redisHealth).every(r => r.status === 'healthy');
-            
-            const status = isReady && allRedisHealthy ? 200 : 503;
-            
-            res.writeHead(status, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({
-                status: status === 200 ? 'ok' : 'degraded',
-                timestamp: new Date().toISOString(),
-                discord: isReady ? 'connected' : 'disconnected',
-                redis: redisHealth,
-                uptimeMs: Date.now() - client.stats.startTime
-            }));
-        } else if (url.pathname === '/metrics') {
-            // Redirect to Interlink metrics if available, or return basic metrics
-            res.writeHead(200, { 'Content-Type': 'text/plain' });
-            res.end('# Metrics available at /metrics on Interlink port\n');
-        } else {
-            res.writeHead(404, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Not found' }));
-        }
-    });
-    
-    await new Promise((resolve, reject) => {
-        healthServer.listen(port, host, resolve);
-        healthServer.once('error', reject);
-    });
-    
-    console.log(`[INFO] Health server listening on ${host}:${port}`);
-}
-
-async function stopHealthServer() {
-    if (healthServer) {
-        await new Promise(resolve => healthServer.close(resolve));
-        healthServer = null;
-    }
-}
 
 client.once('clientReady', async() => {
     console.log('[SUCCESS] Bot is online! Logged in as ' + client.user.tag);
@@ -167,7 +117,7 @@ client.once('clientReady', async() => {
     client.socketServer = socketServer;
     
     // Start health check server
-    await startHealthServer();
+    await startHealthServer(client);
     
     console.log('[SUCCESS] Bot fully initialized!');
 });

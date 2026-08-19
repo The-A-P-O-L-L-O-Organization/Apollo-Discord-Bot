@@ -23,7 +23,7 @@ const DEFAULT_OPTIONS = {
  */
 export function getRedis(nameOrOptions, options = {}) {
     let name = 'default';
-    let opts = {};
+    let opts;
     
     if (typeof nameOrOptions === 'string') {
         name = nameOrOptions;
@@ -88,7 +88,7 @@ export async function removeRedis(name) {
  */
 export async function closeAll() {
     if (global._redisMap) {
-        for (const [name, redis] of global._redisMap) {
+        for (const [, redis] of global._redisMap) {
             // Only quit if not already closing/closed
             if (redis.status === 'ready' || redis.status === 'connecting' || redis.status === 'wait') {
                 await redis.quit();

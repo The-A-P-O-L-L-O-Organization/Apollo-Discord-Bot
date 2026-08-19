@@ -36,8 +36,8 @@ RUN addgroup -g 1001 -S nodejs && \
 
 USER nodejs
 
-# Health check - hits real /healthz endpoint
+# Health check - hits real /health endpoint
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:3000/healthz', (r) => { if (r.statusCode !== 200) process.exit(1) }).on('error', () => process.exit(1))" || exit 1
+    CMD node -e "require('http').get('http://localhost:9090/health', (r) => { if (r.statusCode !== 200) process.exit(1) }).on('error', () => process.exit(1))" || exit 1
 
 CMD ["pnpm", "start"]
