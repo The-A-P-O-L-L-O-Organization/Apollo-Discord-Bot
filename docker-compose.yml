@@ -11,18 +11,21 @@ services:
   bot:
     image: ghcr.io/the-a-p-o-l-l-o-organization/apollo-discord-bot:latest
     container_name: apollo-discord-bot
-    restart: unless-stopped
+    restart: on-failure:5
     env_file:
       - .env
+    environment:
+      - HEALTH_PORT=3000
+      - HEALTH_HOST=0.0.0.0
     volumes:
       - bot-data:/app/src/data
       - bot-plugins:/app/data/plugins
     healthcheck:
-      test: ["CMD", "node", "-e", "process.exit(0)"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/healthz', (r) => { if (r.statusCode !== 200) process.exit(1) }).on('error', () => process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 30s
     logging:
       driver: "json-file"
       options:
