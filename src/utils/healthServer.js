@@ -4,7 +4,7 @@
 import { createServer } from 'http';
 import { register } from './metrics.js';
 import { getLockRedis } from './lock.js';
-import { getKnex } from '../db/adapter.js';
+import { getDb as getKnex } from '../db/knex.js';
 import { config } from '../config/config.js';
 
 let healthServer = null;
