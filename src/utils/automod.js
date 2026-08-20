@@ -184,8 +184,10 @@ export function checkBannedWords(content, bannedWords) {
         
         // Also check for the word with common separators inserted (but still respect word boundaries)
         // Only do this for words longer than 2 characters to avoid false positives
+        // Use + instead of * to require at least one separator between letters
+        // This prevents false positives on hyphens, dots, underscores in legitimate text
         if (normalizedWord.length > 2) {
-            const separatedPattern = normalizedWord.split('').join('[\\s\\W_]*');
+            const separatedPattern = normalizedWord.split('').join('[\\s\\W_]+');
             const separatedRegex = new RegExp(`\\b${separatedPattern}\\b`, 'i');
             if (separatedRegex.test(normalizedContent)) {
                 return word;
