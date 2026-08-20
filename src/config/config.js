@@ -253,5 +253,23 @@ export const config = {
         // Free-text contact information published to users via the
         // /operator-contact command. Required when OPERATOR_AGREEMENT=true.
         contact: process.env.OPERATOR_CONTACT || ''
+    },
+
+    // Sharding Configuration
+    shard: {
+        enabled: process.env.ENABLE_SHARDING === 'true',
+        count: process.env.SHARD_COUNT === 'auto' 
+            ? 'auto' 
+            : parseIntSafe(process.env.SHARD_COUNT, 1),
+        leaderElection: {
+            mode: process.env.SHARD_LEADER_MODE || 'hybrid',
+            globalTasks: ['commandSync', 'globalScheduler'],
+            perShardTasks: ['reminderScheduler', 'pollScheduler', 'spamCleanup', 'automodCleanup']
+        },
+        // Per-shard resource offsets
+        healthPortOffset: 3000,        // shard N uses port 3000 + N
+        socketPathBase: '/tmp/apollo', // shard N uses /tmp/apollo-shard-N.sock
+        queuePrefixBase: 'apollo',     // shard N uses apollo:shard-N
+        redisKeyPrefixBase: 'apollo'   // shard N uses apollo:shard-N:*
     }
 };

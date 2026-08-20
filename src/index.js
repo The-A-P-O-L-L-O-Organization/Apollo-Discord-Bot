@@ -16,6 +16,19 @@ import { assertDiscordToken, assertOperatorAgreement, assertEncryptionKey } from
 import { closeAll as closeRedis } from './utils/redis.js';
 import { startHealthServer, stopHealthServer } from './utils/healthServer.js';
 
+// Determine if we are running as a shard worker
+const SHARD_ID = process.env.SHARD_ID ? parseInt(process.env.SHARD_ID, 10) : undefined;
+const SHARD_COUNT = process.env.SHARD_COUNT ? process.env.SHARD_COUNT : undefined;
+const IS_SHARD_WORKER = typeof SHARD_ID !== 'undefined' && !isNaN(SHARD_ID);
+
+// Shard-scoped configuration overrides
+const shardConfig = {
+    queuePrefix: IS_SHARD_WORKER ? `${config.shard.queuePrefixBase}:shard-${SHARD_ID}` : config.queue.prefix,
+    socketPath: IS_SHARD_WORKER ? `${config.shard.socketPathBase}-shard-${SHARD_ID}.sock` : '/tmp/apollo.sock',
+    healthPort: IS_SHARD_WORKER ? 3000 + SHARD_ID : 3000,
+    redisPrefix: IS_SHARD_WORKER ? `${config.shard.redisKeyPrefixBase}:shard-${SHARD_ID}` : config.shard.redisKeyPrefixBase
+};
+
 const uuid = randomUUID?.() ?? randomBytes(16).toString('hex');
 
 // Base intents - minimal set required for core bot functionality
@@ -271,8 +284,8 @@ if (RUN_MODE === 'worker') {
     if (config.queue.enabled) {
         registerProcessCommand();
         const { getRedis } = await import('./utils/redis.js');
-        const pub = getRedis('eventbus-pub');
-        const sub = getRedis('eventbus-sub');
+        const pub = getRedis(`${shardConfig.redisPrefix}:eventbus-pub`);
+        const sub = getRedis(`${shardConfig.redisPrefix}:eventbus-sub`);
         await pub.connect();
         await sub.connect();
         bus.enableCrossPod(pub, sub, uuid);
