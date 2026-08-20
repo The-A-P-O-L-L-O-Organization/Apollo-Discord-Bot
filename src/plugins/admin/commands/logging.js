@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import { setGuildData, getGuildData } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
     name: 'logging',
@@ -57,95 +58,101 @@ export default {
     category: 'admin',
 
     async execute(interaction) {
-        const subcommand = interaction.options.getSubcommand();
-        const guildId = interaction.guild.id;
+        try {
+            const subcommand = interaction.options.getSubcommand();
+            const guildId = interaction.guild.id;
 
-        if (subcommand === 'enable' || subcommand === 'disable') {
-            const event = interaction.options.getString('event');
-            const enabled = subcommand === 'enable';
+            if (subcommand === 'enable' || subcommand === 'disable') {
+                const event = interaction.options.getString('event');
+                const enabled = subcommand === 'enable';
 
-            const existingConfig = await getGuildData('logging', guildId);
-            const events = existingConfig.events || { ...config.logging.defaultEvents };
+                const existingConfig = await getGuildData('logging', guildId);
+                const events = existingConfig.events || { ...config.logging.defaultEvents };
 
-            if (event === 'all') {
-                for (const eventName of config.logging.availableEvents) {
-                    events[eventName] = enabled;
+                if (event === 'all') {
+                    for (const eventName of config.logging.availableEvents) {
+                        events[eventName] = enabled;
+                    }
+                } else {
+                    events[event] = enabled;
                 }
-            } else {
-                events[event] = enabled;
-            }
 
-            await setGuildData('logging', guildId, {
-                ...existingConfig,
-                events
-            });
+                await setGuildData('logging', guildId, {
+                    ...existingConfig,
+                    events
+                });
 
-            const eventDisplay = event === 'all' ? 'All events' : getEventDisplayName(event);
-            return interaction.reply({
-                content: `${eventDisplay} logging has been **${enabled ? 'enabled' : 'disabled'}**.`,
-                flags: 64
-            });
+const eventDisplay = event === 'all' ? 'All events' : getEventDisplayName(event);
+                 return interaction.reply({
+                     content: `${eventDisplay} logging has been **${enabled ? 'enabled' : 'disabled'}**.`,
+                     flags: 64
+                 });
+            } else if (subcommand === 'status') {
+                const loggingConfig = await getGuildData('logging', guildId);
+                const events = loggingConfig.events || config.logging.defaultEvents;
 
-        } else if (subcommand === 'status') {
-            const loggingConfig = await getGuildData('logging', guildId);
-            const events = loggingConfig.events || config.logging.defaultEvents;
-
-            let channelStatus = 'Not configured';
-            if (loggingConfig.channelId) {
-                try {
-                    const channel = await interaction.guild.channels.fetch(loggingConfig.channelId);
-                    if (channel) {
-                        channelStatus = `<#${channel.id}>`;
-                    } else {
+                let channelStatus = 'Not configured';
+                if (loggingConfig.channelId) {
+                    try {
+                        const channel = await interaction.guild.channels.fetch(loggingConfig.channelId);
+                        if (channel) {
+                            channelStatus = `<#${channel.id}>`;
+                        } else {
+                            channelStatus = 'Channel not found (needs reconfiguration)';
+                        }
+                    } catch {
                         channelStatus = 'Channel not found (needs reconfiguration)';
                     }
-                } catch {
-                    channelStatus = 'Channel not found (needs reconfiguration)';
                 }
+
+const embed = new EmbedBuilder()
+                     .setColor('#3498DB')
+                     .setTitle('Logging Configuration')
+                     .setDescription('Current server event logging settings')
+                     .addFields(
+                         { name: 'Log Channel', value: channelStatus, inline: false },
+                         { name: '\u200B', value: '**Event Status**', inline: false },
+                         { 
+                             name: 'Message Delete', 
+                             value: events.messageDelete ?? config.logging.defaultEvents.messageDelete ? '[ON] Enabled' : '[OFF] Disabled', 
+                             inline: true 
+                         },
+                         { 
+                             name: 'Message Edit', 
+                             value: events.messageEdit ?? config.logging.defaultEvents.messageEdit ? '[ON] Enabled' : '[OFF] Disabled', 
+                             inline: true 
+                         },
+                         { 
+                             name: 'Member Join', 
+                             value: events.memberJoin ?? config.logging.defaultEvents.memberJoin ? '[ON] Enabled' : '[OFF] Disabled', 
+                             inline: true 
+                         },
+                         { 
+                             name: 'Member Leave', 
+                             value: events.memberLeave ?? config.logging.defaultEvents.memberLeave ? '[ON] Enabled' : '[OFF] Disabled', 
+                             inline: true 
+                         },
+                         { 
+                             name: 'Role Changes', 
+                             value: events.roleChanges ?? config.logging.defaultEvents.roleChanges ? '[ON] Enabled' : '[OFF] Disabled', 
+                             inline: true 
+                         },
+                         { 
+                             name: 'Voice Changes', 
+                             value: events.voiceChanges ?? config.logging.defaultEvents.voiceChanges ? '[ON] Enabled' : '[OFF] Disabled', 
+                             inline: true 
+                         }
+                     )
+                     .setFooter({ text: 'Use /logging enable or /logging disable to change settings' })
+                     .setTimestamp();
+
+                 return interaction.reply({ embeds: [embed], flags: 64 });
             }
-
-            const embed = new EmbedBuilder()
-                .setColor('#3498DB')
-                .setTitle('Logging Configuration')
-                .setDescription('Current server event logging settings')
-                .addFields(
-                    { name: 'Log Channel', value: channelStatus, inline: false },
-                    { name: '\u200B', value: '**Event Status**', inline: false },
-                    { 
-                        name: 'Message Delete', 
-                        value: events.messageDelete ?? config.logging.defaultEvents.messageDelete ? '[ON] Enabled' : '[OFF] Disabled', 
-                        inline: true 
-                    },
-                    { 
-                        name: 'Message Edit', 
-                        value: events.messageEdit ?? config.logging.defaultEvents.messageEdit ? '[ON] Enabled' : '[OFF] Disabled', 
-                        inline: true 
-                    },
-                    { 
-                        name: 'Member Join', 
-                        value: events.memberJoin ?? config.logging.defaultEvents.memberJoin ? '[ON] Enabled' : '[OFF] Disabled', 
-                        inline: true 
-                    },
-                    { 
-                        name: 'Member Leave', 
-                        value: events.memberLeave ?? config.logging.defaultEvents.memberLeave ? '[ON] Enabled' : '[OFF] Disabled', 
-                        inline: true 
-                    },
-                    { 
-                        name: 'Role Changes', 
-                        value: events.roleChanges ?? config.logging.defaultEvents.roleChanges ? '[ON] Enabled' : '[OFF] Disabled', 
-                        inline: true 
-                    },
-                    { 
-                        name: 'Voice Changes', 
-                        value: events.voiceChanges ?? config.logging.defaultEvents.voiceChanges ? '[ON] Enabled' : '[OFF] Disabled', 
-                        inline: true 
-                    }
-                )
-                .setFooter({ text: 'Use /logging enable or /logging disable to change settings' })
-                .setTimestamp();
-
-            return interaction.reply({ embeds: [embed], flags: 64 });
+        } catch (error) {
+            const userMessage = handleDiscordError(error);
+            if (userMessage) {
+                await safeReply(interaction, userMessage);
+            }
         }
     }
 };

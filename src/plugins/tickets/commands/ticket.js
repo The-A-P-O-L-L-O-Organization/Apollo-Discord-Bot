@@ -2,6 +2,7 @@ import { EmbedBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, Butto
 import { getGuildData, updateGuildData, generateId } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
 import { getPriorityColor, getPriorityEmoji } from '../../../utils/slaTracker.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
     name: 'ticket',

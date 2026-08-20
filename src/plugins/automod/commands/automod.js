@@ -6,6 +6,7 @@ import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
 import { safeError } from '../../../utils/safeError.js';
 import { checkMessageAttachments } from '../../../utils/nsfwDetection.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
     name: 'automod',
@@ -212,16 +213,10 @@ export default {
                 break;
             }
         } catch (error) {
-            await interaction.reply({
-                embeds: [{
-                    color: 0xFF0000,
-                    title: '[ERROR] Command Failed',
-                    description: 'An error occurred while configuring automod.',
-                    fields: [{ name: 'Error', value: safeError(error) }],
-                    timestamp: new Date().toISOString()
-                }],
-                flags: 64
-            });
+            const userMessage = handleDiscordError(error);
+            if (userMessage) {
+                await safeReply(interaction, userMessage);
+            }
         }
     }
 };
