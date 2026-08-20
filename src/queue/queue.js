@@ -14,11 +14,18 @@ const queues = new Map();
 export async function createQueue(name, queueConfig = config.queue) {
     if (queues.has(name)) {return queues.get(name);}
 
+    // Determine shard-specific queue prefix
+    const SHARD_ID = process.env.SHARD_ID ? parseInt(process.env.SHARD_ID, 10) : undefined;
+    const IS_SHARD_WORKER = typeof SHARD_ID !== 'undefined' && !isNaN(SHARD_ID);
+    const queuePrefix = IS_SHARD_WORKER
+        ? `${config.shard.queuePrefixBase}:shard-${SHARD_ID}`
+        : config.queue.prefix;
+
     let q;
     if (queueConfig.enabled) {
         const conn = getRedis('queue', { family: 4 });
         await conn.connect();
-        q = new Queue(name, {
+        q = new Queue(`${queuePrefix}:${name}`, {
             connection: conn,
             defaultJobOptions: {
                 attempts: 3,
