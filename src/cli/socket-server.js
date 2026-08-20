@@ -2,17 +2,18 @@ import net from 'net';
 import fs from 'fs';
 import { join } from 'node:path';
 
-const SOCKET_PATH = process.env.APOLLO_SOCKET_PATH || join(process.cwd(), 'data', 'apollo.sock');
+const DEFAULT_SOCKET_PATH = process.env.APOLLO_SOCKET_PATH || join(process.cwd(), 'data', 'apollo.sock');
 const SOCKET_TOKEN = process.env.APOLLO_SOCKET_TOKEN;
 
 class SocketServer {
-    constructor(pluginManager) {
+    constructor(pluginManager, socketPath = DEFAULT_SOCKET_PATH) {
         this.pluginManager = pluginManager;
+        this.socketPath = socketPath;
         this.server = null;
     }
 
     async start() {
-        try { await fs.promises.unlink(SOCKET_PATH); } catch {
+        try { await fs.promises.unlink(this.socketPath); } catch {
             // Ignore if file doesn't exist
         }
         this.server = net.createServer((socket) => {
@@ -34,8 +35,8 @@ class SocketServer {
             socket.on('error', () => {});
         });
         return new Promise((resolve) => {
-            this.server.listen(SOCKET_PATH, () => {
-                try { fs.chmodSync(SOCKET_PATH, 0o600); } catch {
+            this.server.listen(this.socketPath, () => {
+                try { fs.chmodSync(this.socketPath, 0o600); } catch {
                     // Ignore chmod failures (e.g. on Windows)
                 }
                 resolve();
@@ -71,10 +72,10 @@ class SocketServer {
             this.server.close();
             this.server = null;
         }
-        try { await fs.promises.unlink(SOCKET_PATH); } catch {
+        try { await fs.promises.unlink(this.socketPath); } catch {
             // Ignore if file doesn't exist
         }
     }
 }
 
-export { SocketServer, SOCKET_PATH };
+export { SocketServer, DEFAULT_SOCKET_PATH };
