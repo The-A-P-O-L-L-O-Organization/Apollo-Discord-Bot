@@ -37,7 +37,7 @@ export default {
                 content: ticketNumber 
                     ? `Ticket #${ticketNumber} not found.`
                     : 'This channel is not a ticket channel. Use the `number` option to view a specific ticket.',
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -171,6 +171,6 @@ export default {
             });
         }
 
-        return interaction.reply({ embeds: [embed], ephemeral: true });
+        return interaction.reply({ embeds: [embed], flags: 64 });
     }
 };

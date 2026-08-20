@@ -142,7 +142,7 @@ client.on('interactionCreate', async(interaction) => {
                 if (interaction.deferred || interaction.replied) {
                     await interaction.editReply({ content: 'An error occurred.' });
                 } else {
-                    await interaction.reply({ content: 'An error occurred.', ephemeral: true });
+                    await interaction.reply({ content: 'An error occurred.', flags: 64 });
                 }
             } catch (e) {
                 console.error('[ERROR] Failed to send error response:', e);
@@ -170,7 +170,7 @@ client.on('interactionCreate', async(interaction) => {
                 if (interaction.deferred || interaction.replied) {
                     await interaction.editReply({ content: 'An error occurred.' });
                 } else {
-                    await interaction.reply({ content: 'An error occurred.', ephemeral: true });
+                    await interaction.reply({ content: 'An error occurred.', flags: 64 });
                 }
             } catch (e) {
                 console.error('[ERROR] Failed to send error response:', e);

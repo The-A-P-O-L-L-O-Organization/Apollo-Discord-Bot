@@ -23,7 +23,7 @@ export default {
         if (activeReminders.length === 0) {
             return interaction.reply({
                 content: 'You have no active reminders.\n\nUse `/remind` to create one!',
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -58,6 +58,6 @@ export default {
             });
         }
 
-        return interaction.reply({ embeds: [embed], ephemeral: true });
+        return interaction.reply({ embeds: [embed], flags: 64 });
     }
 };

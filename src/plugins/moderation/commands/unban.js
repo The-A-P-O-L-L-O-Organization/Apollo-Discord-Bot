@@ -48,7 +48,7 @@ export default {
                     ],
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             // Validate user ID format
@@ -59,7 +59,7 @@ export default {
                     description: 'Please provide a valid Discord user ID (17-19 digits).',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             // Check if the user is actually banned
@@ -72,7 +72,7 @@ export default {
                     description: 'This user is not banned from the server.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             // Get the banned user object for logging
@@ -160,7 +160,7 @@ export default {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
         }
     }

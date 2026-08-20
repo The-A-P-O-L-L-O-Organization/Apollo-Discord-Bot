@@ -93,7 +93,7 @@ describe('SetLogChannel Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('set to');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should suggest using /logging command', async() => {
@@ -113,7 +113,7 @@ describe('SetLogChannel Command', () => {
             expect(setGuildData).not.toHaveBeenCalled();
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('don\'t have permission');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should preserve existing config', async() => {
@@ -152,7 +152,7 @@ describe('SetLogChannel Command', () => {
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('removed');
             expect(replyCall.content).toContain('disabled');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should handle no channel configured', async() => {
@@ -163,7 +163,7 @@ describe('SetLogChannel Command', () => {
             expect(setGuildData).not.toHaveBeenCalled();
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('No logging channel');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
     });
 
@@ -179,7 +179,7 @@ describe('SetLogChannel Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('111222333');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should suggest /logging status command', async() => {
@@ -199,7 +199,7 @@ describe('SetLogChannel Command', () => {
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('No logging channel');
             expect(replyCall.content).toContain('/setlogchannel set');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should handle deleted channel', async() => {
@@ -210,7 +210,7 @@ describe('SetLogChannel Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('no longer exists');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should handle channel returning null', async() => {

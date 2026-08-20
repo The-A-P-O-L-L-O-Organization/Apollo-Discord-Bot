@@ -114,7 +114,7 @@ async function handleAdd(interaction) {
                     description: 'You cannot blacklist yourself.',
                     timestamp: new Date().toISOString()
                 }],
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -127,7 +127,7 @@ async function handleAdd(interaction) {
                     description: 'You cannot blacklist the bot.',
                     timestamp: new Date().toISOString()
                 }],
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -143,7 +143,7 @@ async function handleAdd(interaction) {
                     description: `${user.tag} is already on the blacklist.\nReason: ${entries[user.id].reason}`,
                     timestamp: new Date().toISOString()
                 }],
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -209,7 +209,7 @@ async function handleRemove(interaction) {
                     description: `${user.tag} is not on the blacklist.`,
                     timestamp: new Date().toISOString()
                 }],
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -260,7 +260,7 @@ async function handleView(interaction) {
                     description: 'The blacklist is currently empty.',
                     timestamp: new Date().toISOString()
                 }],
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -280,7 +280,7 @@ async function handleView(interaction) {
             .setFooter({ text: `${list.length} total entr${list.length === 1 ? 'y' : 'ies'}${list.length > PAGE_SIZE ? ` (showing first ${PAGE_SIZE})` : ''}` })
             .setTimestamp();
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.reply({ embeds: [embed], flags: 64 });
 
     } catch (error) {
         console.error('[ERROR] Blacklist view error:', error);
@@ -302,7 +302,7 @@ async function handleGlobal(interaction) {
                     description: 'This command is restricted to the bot owner only.',
                     timestamp: new Date().toISOString()
                 }],
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -322,7 +322,7 @@ async function handleGlobal(interaction) {
                         description: 'Both user and reason are required to add to global blacklist.',
                         timestamp: new Date().toISOString()
                     }],
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -334,7 +334,7 @@ async function handleGlobal(interaction) {
                         description: 'You cannot blacklist yourself globally.',
                         timestamp: new Date().toISOString()
                     }],
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -346,7 +346,7 @@ async function handleGlobal(interaction) {
                         description: `${user.tag} is already on the global blacklist.\nReason: ${entries[user.id].reason}`,
                         timestamp: new Date().toISOString()
                     }],
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -387,7 +387,7 @@ async function handleGlobal(interaction) {
                         description: 'User is required to remove from global blacklist.',
                         timestamp: new Date().toISOString()
                     }],
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -399,7 +399,7 @@ async function handleGlobal(interaction) {
                         description: `${user.tag} is not on the global blacklist.`,
                         timestamp: new Date().toISOString()
                     }],
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -437,7 +437,7 @@ async function handleGlobal(interaction) {
                         description: 'The global blacklist is currently empty.',
                         timestamp: new Date().toISOString()
                     }],
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -456,7 +456,7 @@ async function handleGlobal(interaction) {
                 .setFooter({ text: `${list.length} total entr${list.length === 1 ? 'y' : 'ies'}${list.length > PAGE_SIZE ? ` (showing first ${PAGE_SIZE})` : ''}` })
                 .setTimestamp();
 
-            await interaction.reply({ embeds: [embed], ephemeral: true });
+            await interaction.reply({ embeds: [embed], flags: 64 });
         }
 
     } catch (error) {
@@ -479,6 +479,6 @@ async function replyError(interaction, error) {
     if (interaction.replied || interaction.deferred) {
         await interaction.editReply({ embeds: [errorEmbed] });
     } else {
-        await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        await interaction.reply({ embeds: [errorEmbed], flags: 64 });
     }
 }

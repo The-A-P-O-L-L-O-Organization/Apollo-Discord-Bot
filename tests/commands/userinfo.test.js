@@ -289,7 +289,7 @@ describe('Userinfo Command', () => {
             expect(mockInteraction.reply).toHaveBeenCalled();
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('[ERROR]');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
     });
 

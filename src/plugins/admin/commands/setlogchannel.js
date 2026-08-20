@@ -45,7 +45,7 @@ export default {
             if (!permissions.has('SendMessages') || !permissions.has('EmbedLinks')) {
                 return interaction.reply({
                     content: `I don't have permission to send messages or embeds in ${channel}. Please grant me the required permissions.`,
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -59,7 +59,7 @@ export default {
 
             return interaction.reply({
                 content: `Logging channel has been set to ${channel}.\n\nUse \`/logging\` to configure which events are logged.`,
-                ephemeral: true
+                flags: 64
             });
 
         } else if (subcommand === 'remove') {
@@ -68,7 +68,7 @@ export default {
             if (!existingConfig.channelId) {
                 return interaction.reply({
                     content: 'No logging channel is currently set.',
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -81,7 +81,7 @@ export default {
 
             return interaction.reply({
                 content: 'Logging channel has been removed. Server event logging is now disabled.',
-                ephemeral: true
+                flags: 64
             });
 
         } else if (subcommand === 'view') {
@@ -90,7 +90,7 @@ export default {
             if (!config.channelId) {
                 return interaction.reply({
                     content: 'No logging channel is currently set.\n\nUse `/setlogchannel set` to configure one.',
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -99,7 +99,7 @@ export default {
                 if (channel) {
                     return interaction.reply({
                         content: `Current logging channel: ${channel}\n\nUse \`/logging status\` to see which events are being logged.`,
-                        ephemeral: true
+                        flags: 64
                     });
                 }
             } catch (error) {
@@ -107,7 +107,7 @@ export default {
 
             return interaction.reply({
                 content: 'The configured logging channel no longer exists. Please set a new one with `/setlogchannel set`.',
-                ephemeral: true
+                flags: 64
             });
         }
     }

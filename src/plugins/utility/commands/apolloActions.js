@@ -19,7 +19,7 @@ export default {
                     title: '[ERROR] Access Denied',
                     description: 'Only the bot owner can use this command.'
                 }],
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -32,7 +32,7 @@ export default {
                     title: '[ERROR] Self Action',
                     description: 'You cannot globally ban yourself.'
                 }],
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -43,7 +43,7 @@ export default {
                     title: '[ERROR] Bot Protection',
                     description: 'You cannot globally ban the bot.'
                 }],
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -81,7 +81,7 @@ export default {
                         title: '[WARNING] Already Blacklisted',
                         description: `${targetUser.tag} is already on the global blacklist.\nReason: ${entries[targetUser.id].reason}`
                     }],
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -111,7 +111,7 @@ export default {
                     thumbnail: { url: targetUser.displayAvatarURL() },
                     timestamp: new Date().toISOString()
                 }],
-                ephemeral: true
+                flags: 64
             });
 
             console.log(`[GLOBAL BAN] User ${targetUser.tag} globally blacklisted by ${interaction.user.tag}. Reason: ${reason}`);
@@ -128,7 +128,7 @@ export default {
                         title: '[ERROR] Command Failed',
                         description: 'An error occurred while processing the global ban.'
                     }],
-                    ephemeral: true
+                    flags: 64
                 });
             } catch (e) {
                 console.error('[GLOBAL BAN] Failed to send error response:', e.message);

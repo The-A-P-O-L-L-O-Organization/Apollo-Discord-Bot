@@ -177,7 +177,7 @@ describe('Unban Command', () => {
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.embeds[0].title).toContain('[ERROR]');
             expect(replyCall.embeds[0].title).toContain('Missing User ID');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should reject invalid user ID format (too short)', async() => {
@@ -190,7 +190,7 @@ describe('Unban Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.embeds[0].title).toContain('Invalid User ID');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should reject invalid user ID format (non-numeric)', async() => {
@@ -212,7 +212,7 @@ describe('Unban Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.embeds[0].title).toContain('Not Banned');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should handle ban fetch returning null', async() => {
@@ -232,7 +232,7 @@ describe('Unban Command', () => {
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.embeds[0].title).toContain('[ERROR]');
             expect(replyCall.embeds[0].title).toContain('Command Failed');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
     });
 

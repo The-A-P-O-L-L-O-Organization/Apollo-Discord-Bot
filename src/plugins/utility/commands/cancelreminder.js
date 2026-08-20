@@ -28,7 +28,7 @@ export default {
         if (!reminder) {
             return interaction.reply({
                 content: `Could not find a reminder with ID \`${reminderId}\`.\n\nUse \`/reminders\` to see your active reminders and their IDs.`,
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -38,13 +38,13 @@ export default {
         if (!cancelled) {
             return interaction.reply({
                 content: 'Failed to cancel the reminder. It may have already been sent or deleted.',
-                ephemeral: true
+                flags: 64
             });
         }
 
         return interaction.reply({
             content: `Reminder cancelled!\n\n**Message:** ${reminder.message}`,
-            ephemeral: true
+            flags: 64
         });
     }
 };

@@ -255,7 +255,7 @@ describe('Mute Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.embeds[0].title).toContain('Invalid Duration');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should reject duration over 28 days', async() => {
@@ -268,7 +268,7 @@ describe('Mute Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.embeds[0].title).toContain('Duration Too Long');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
     });
 
@@ -280,7 +280,7 @@ describe('Mute Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.embeds[0].title).toContain('Missing User');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should reject self-mute', async() => {

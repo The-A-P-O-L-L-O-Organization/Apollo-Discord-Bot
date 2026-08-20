@@ -58,7 +58,7 @@ export default {
                     description: 'Please specify a valid user to ban.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             // Parse duration (supports: 1m, 1h, 1d, 1w)
@@ -70,7 +70,7 @@ export default {
                     description: 'Invalid duration format. Use: 1m (minutes), 1h (hours), 1d (days), 1w (weeks)',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             const value = parseInt(match[1]);
@@ -106,7 +106,7 @@ export default {
                     description: 'Minimum tempban duration is 1 minute.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             // Get the guild member if they're in the server
@@ -120,7 +120,7 @@ export default {
                     description: 'I cannot ban this user. They may have higher permissions than me.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             // Check if the user is trying to ban themselves
@@ -131,7 +131,7 @@ export default {
                     description: 'You cannot ban yourself.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             // Check if the user is trying to ban the bot
@@ -142,7 +142,7 @@ export default {
                     description: 'You cannot ban the bot.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             // Calculate unban time
@@ -263,7 +263,7 @@ export default {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
         }
     }

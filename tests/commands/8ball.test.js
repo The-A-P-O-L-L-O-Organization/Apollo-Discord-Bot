@@ -128,7 +128,7 @@ describe('8ball Command', () => {
 
             expect(mockInteraction.reply).toHaveBeenCalled();
             const replyCall = mockInteraction.reply.mock.calls[0][0];
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
             expect(replyCall).toHaveProperty('embeds');
             expect(replyCall.embeds).toHaveLength(1);
 

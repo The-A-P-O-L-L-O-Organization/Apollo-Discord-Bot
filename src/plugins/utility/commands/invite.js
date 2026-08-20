@@ -69,7 +69,7 @@ export default {
                 if (!interaction.guild) {
                     return interaction.reply({
                         content: '[ERROR] Server invites can only be created in a server.',
-                        ephemeral: true
+                        flags: 64
                     });
                 }
                 
@@ -77,7 +77,7 @@ export default {
                 if (!interaction.guild.members.me.permissions.has(PermissionsBitField.Flags.CreateInstantInvite)) {
                     return interaction.reply({
                         content: '[ERROR] I do not have permission to create invites.',
-                        ephemeral: true
+                        flags: 64
                     });
                 }
                 
@@ -144,7 +144,7 @@ export default {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
         }
     }
 };

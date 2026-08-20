@@ -94,7 +94,7 @@ export default {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
         }
     }
 };
@@ -114,7 +114,7 @@ async function handleCreate(interaction) {
                 description: 'Use format like 1h, 30m, 1d, 7d',
                 timestamp: new Date().toISOString()
             }],
-            ephemeral: true
+            flags: 64
         });
     }
     
@@ -180,7 +180,7 @@ async function handleCreate(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.followUp({ embeds: [successEmbed], ephemeral: true });
+    await interaction.followUp({ embeds: [successEmbed], flags: 64 });
 }
 
 async function handleEnd(interaction) {
@@ -197,7 +197,7 @@ async function handleEnd(interaction) {
                 description: 'No active giveaway found with that ID.',
                 timestamp: new Date().toISOString()
             }],
-            ephemeral: true
+            flags: 64
         });
     }
     
@@ -209,7 +209,7 @@ async function handleEnd(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+    await interaction.reply({ embeds: [successEmbed], flags: 64 });
 }
 
 async function handleReroll(interaction) {
@@ -222,7 +222,7 @@ async function handleReroll(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+    await interaction.reply({ embeds: [successEmbed], flags: 64 });
 }
 
 function parseDuration(str) {

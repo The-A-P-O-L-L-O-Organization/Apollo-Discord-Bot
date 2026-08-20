@@ -26,7 +26,7 @@ export default {
         if (!member) {
             await interaction.reply({
                 content: '[ERROR] Could not find that user in this server.',
-                ephemeral: true
+                flags: 64
             });
             return;
         }

@@ -98,7 +98,7 @@ describe('Logging Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('enabled');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
     });
 
@@ -141,7 +141,7 @@ describe('Logging Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('disabled');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
     });
 

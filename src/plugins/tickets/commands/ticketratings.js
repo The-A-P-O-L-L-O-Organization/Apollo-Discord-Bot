@@ -45,7 +45,7 @@ export default {
     category: 'utility',
 
     async execute(interaction) {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: 64 });
 
         const guildId = interaction.guild.id;
         const subcommand = interaction.options.getSubcommand();

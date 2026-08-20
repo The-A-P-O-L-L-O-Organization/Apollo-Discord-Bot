@@ -49,7 +49,7 @@ export default {
     category: 'utility',
 
     async execute(interaction) {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: 64 });
 
         const guildId = interaction.guild.id;
         const filter = interaction.options.getString('filter') || 'all';
@@ -198,7 +198,7 @@ export default {
                 if (i.user.id !== interaction.user.id) {
                     return i.reply({
                         content: 'These buttons are not for you!',
-                        ephemeral: true
+                        flags: 64
                     });
                 }
 

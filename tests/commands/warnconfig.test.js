@@ -244,7 +244,7 @@ describe('WarnConfig Command', () => {
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.embeds[0].title).toContain('[ERROR]');
             expect(replyCall.embeds[0].description).toContain('Mute threshold must be less than kick');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should reject kick >= ban threshold', async() => {
@@ -259,7 +259,7 @@ describe('WarnConfig Command', () => {
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.embeds[0].title).toContain('[ERROR]');
             expect(replyCall.embeds[0].description).toContain('Kick threshold must be less than ban');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should reject mute >= ban threshold', async() => {
@@ -274,7 +274,7 @@ describe('WarnConfig Command', () => {
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.embeds[0].title).toContain('[ERROR]');
             expect(replyCall.embeds[0].description).toContain('Mute threshold must be less than ban');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
     });
 
@@ -363,7 +363,7 @@ describe('WarnConfig Command', () => {
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.embeds[0].title).toContain('[ERROR]');
             expect(replyCall.embeds[0].description).toContain('valid duration');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should reject duration without unit', async() => {
@@ -432,7 +432,7 @@ describe('WarnConfig Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.embeds[0].title).toContain('[ERROR]');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should include error message in response', async() => {

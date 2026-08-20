@@ -72,7 +72,7 @@ describe('Embed Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('successfully');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should create embed with description only', async() => {
@@ -143,7 +143,7 @@ describe('Embed Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('must provide at least a title or description');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should reject invalid hex color', async() => {
@@ -159,7 +159,7 @@ describe('Embed Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('Invalid color format');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should reject invalid image URL', async() => {
@@ -175,7 +175,7 @@ describe('Embed Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('Invalid image URL');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should reject invalid thumbnail URL', async() => {
@@ -191,7 +191,7 @@ describe('Embed Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('Invalid thumbnail URL');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should reject invalid title URL', async() => {
@@ -207,7 +207,7 @@ describe('Embed Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('Invalid URL');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should handle send failure gracefully', async() => {
@@ -221,7 +221,7 @@ describe('Embed Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('Failed to create');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
     });
 
@@ -292,7 +292,7 @@ describe('Embed Command', () => {
             expect(mockChannel.send).not.toHaveBeenCalled();
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('banned word');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should reject embed with banned word in description', async() => {
@@ -418,7 +418,7 @@ describe('Embed Command', () => {
             expect(mockChannel.send).not.toHaveBeenCalled();
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('.md');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should fetch and parse .md attachment', async() => {

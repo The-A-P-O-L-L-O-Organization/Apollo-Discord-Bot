@@ -16,7 +16,7 @@ export async function handleReportSubmission(interaction, _client) {
         if (!messageId) {
             await interaction.reply({
                 content: '[ERROR] Could not find the original message. The report has been cancelled.',
-                ephemeral: true
+                flags: 64
             });
             return true;
         }
@@ -30,7 +30,7 @@ export async function handleReportSubmission(interaction, _client) {
         } catch {
             await interaction.reply({
                 content: '[ERROR] Could not fetch the message. It may have been deleted.',
-                ephemeral: true
+                flags: 64
             });
             return true;
         }
@@ -93,7 +93,7 @@ export async function handleReportSubmission(interaction, _client) {
             timestamp: new Date().toISOString()
         };
         
-        await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+        await interaction.reply({ embeds: [successEmbed], flags: 64 });
         
         // Send report to moderators
         const reportEmbed = {

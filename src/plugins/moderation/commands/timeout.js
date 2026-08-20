@@ -50,7 +50,7 @@ export default {
                     description: 'Please specify a valid user to timeout.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             // Parse and validate duration
@@ -62,7 +62,7 @@ export default {
                     description: validation.error,
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             const durationMs = validation.durationMs;
@@ -76,7 +76,7 @@ export default {
                     description: 'This user is not in the server. Use /forceban to ban by ID.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             if (!member.moderatable) {
@@ -86,7 +86,7 @@ export default {
                     description: 'I cannot timeout this user. They may have higher permissions than me.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             if (user.id === interaction.user.id) {
@@ -96,7 +96,7 @@ export default {
                     description: 'You cannot timeout yourself.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             if (user.id === interaction.client.user.id) {
@@ -106,7 +106,7 @@ export default {
                     description: 'You cannot timeout the bot.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             const hierarchy = canModerate(interaction.guild, interaction.member, member);
@@ -117,7 +117,7 @@ export default {
                     description: hierarchy.reason,
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             // Apply timeout
@@ -180,7 +180,7 @@ export default {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
         }
     }

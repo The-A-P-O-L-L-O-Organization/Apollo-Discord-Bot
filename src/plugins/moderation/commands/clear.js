@@ -42,7 +42,7 @@ export default {
                         title: '[ERROR] Invalid Channel',
                         description: 'Messages can only be cleared in text channels.'
                     }],
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -61,7 +61,7 @@ export default {
                     title: '[ERROR] Command Failed',
                     description: safeError(error)
                 }],
-                ephemeral: true
+                flags: 64
             });
         }
     },
@@ -76,7 +76,7 @@ export default {
                     title: '[WARNING] No Messages',
                     description: 'No messages found to delete.'
                 }],
-                ephemeral: true
+                flags: 64
             });
         }
 

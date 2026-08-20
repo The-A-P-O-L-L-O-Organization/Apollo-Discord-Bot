@@ -117,7 +117,7 @@ describe('ReactionRole Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('Reaction role added');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should use specified channel', async() => {
@@ -139,7 +139,7 @@ describe('ReactionRole Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('higher than');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should reject @everyone role', async() => {
@@ -149,7 +149,7 @@ describe('ReactionRole Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('@everyone');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should handle message not found', async() => {
@@ -159,7 +159,7 @@ describe('ReactionRole Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('Could not find');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should handle invalid emoji', async() => {
@@ -226,7 +226,7 @@ describe('ReactionRole Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('No reaction roles');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should handle reaction role not found', async() => {

@@ -56,14 +56,14 @@ export default {
         if (options.length < 2) {
             return interaction.reply({
                 content: 'A poll must have at least 2 options. Separate options with `|`.',
-                ephemeral: true
+                flags: 64
             });
         }
 
         if (options.length > config.polls.maxOptions) {
             return interaction.reply({
                 content: `A poll can have a maximum of ${config.polls.maxOptions} options.`,
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -74,7 +74,7 @@ export default {
             if (!duration) {
                 return interaction.reply({
                     content: 'Invalid duration format. Use formats like: `1h` (1 hour), `6h` (6 hours), `1d` (1 day).',
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -82,7 +82,7 @@ export default {
                 const maxDays = Math.floor(config.polls.maxDuration / (1000 * 60 * 60 * 24));
                 return interaction.reply({
                     content: `Poll duration cannot exceed ${maxDays} days.`,
-                    ephemeral: true
+                    flags: 64
                 });
             }
 

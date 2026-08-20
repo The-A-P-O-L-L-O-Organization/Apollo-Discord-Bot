@@ -83,7 +83,7 @@ export default {
             const eventDisplay = event === 'all' ? 'All events' : getEventDisplayName(event);
             return interaction.reply({
                 content: `${eventDisplay} logging has been **${enabled ? 'enabled' : 'disabled'}**.`,
-                ephemeral: true
+                flags: 64
             });
 
         } else if (subcommand === 'status') {
@@ -145,7 +145,7 @@ export default {
                 .setFooter({ text: 'Use /logging enable or /logging disable to change settings' })
                 .setTimestamp();
 
-            return interaction.reply({ embeds: [embed], ephemeral: true });
+            return interaction.reply({ embeds: [embed], flags: 64 });
         }
     }
 };

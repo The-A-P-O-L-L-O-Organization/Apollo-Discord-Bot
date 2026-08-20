@@ -88,7 +88,7 @@ describe('Remind Command', () => {
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('Reminder set');
             expect(replyCall.content).toContain('Test reminder');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should include reminder ID in response', async() => {
@@ -134,7 +134,7 @@ describe('Remind Command', () => {
             expect(addReminder).not.toHaveBeenCalled();
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('Invalid time format');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should reject zero duration', async() => {
@@ -180,7 +180,7 @@ describe('Remind Command', () => {
             expect(addReminder).not.toHaveBeenCalled();
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('cannot exceed');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
     });
 

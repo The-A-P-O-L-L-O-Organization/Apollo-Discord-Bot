@@ -53,7 +53,7 @@ export default {
                             description: 'There are no pending reports.',
                             timestamp: new Date().toISOString()
                         }],
-                        ephemeral: true
+                        flags: 64
                     });
                 }
                 
@@ -77,7 +77,7 @@ export default {
                     embed.setFooter({ text: `Showing 10 of ${pending.length} reports` });
                 }
                 
-                await interaction.reply({ embeds: [embed], ephemeral: true });
+                await interaction.reply({ embeds: [embed], flags: 64 });
                 
             } else if (action === 'all') {
                 // Show all reports
@@ -89,7 +89,7 @@ export default {
                             description: 'There are no reports in this server.',
                             timestamp: new Date().toISOString()
                         }],
-                        ephemeral: true
+                        flags: 64
                     });
                 }
                 
@@ -120,7 +120,7 @@ export default {
                     embed.setFooter({ text: `Showing 10 most recent of ${reports.length} reports` });
                 }
                 
-                await interaction.reply({ embeds: [embed], ephemeral: true });
+                await interaction.reply({ embeds: [embed], flags: 64 });
                 
             } else if (action === 'view') {
                 // View specific report
@@ -132,7 +132,7 @@ export default {
                             description: 'Please provide a report ID to view.',
                             timestamp: new Date().toISOString()
                         }],
-                        ephemeral: true
+                        flags: 64
                     });
                 }
                 
@@ -146,7 +146,7 @@ export default {
                             description: `No report found with ID: ${reportId}`,
                             timestamp: new Date().toISOString()
                         }],
-                        ephemeral: true
+                        flags: 64
                     });
                 }
                 
@@ -165,7 +165,7 @@ export default {
                     )
                     .setTimestamp();
                 
-                await interaction.reply({ embeds: [embed], ephemeral: true });
+                await interaction.reply({ embeds: [embed], flags: 64 });
                 
             } else if (action === 'dismiss') {
                 // Dismiss a report
@@ -177,7 +177,7 @@ export default {
                             description: 'Please provide a report ID to dismiss.',
                             timestamp: new Date().toISOString()
                         }],
-                        ephemeral: true
+                        flags: 64
                     });
                 }
                 
@@ -191,7 +191,7 @@ export default {
                             description: `No report found with ID: ${reportId}`,
                             timestamp: new Date().toISOString()
                         }],
-                        ephemeral: true
+                        flags: 64
                     });
                 }
                 
@@ -213,7 +213,7 @@ export default {
                         description: `Report ${reportId} has been dismissed.`,
                         timestamp: new Date().toISOString()
                     }],
-                    ephemeral: true
+                    flags: 64
                 });
                 
                 console.log(`[REPORT] Report ${reportId} dismissed by ${interaction.user.tag}`);
@@ -231,7 +231,7 @@ export default {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
         }
     }

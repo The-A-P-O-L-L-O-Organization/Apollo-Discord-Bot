@@ -135,7 +135,7 @@ describe('InteractionCreate Event', () => {
         it('should create a new ticket channel', async() => {
             await interactionCreateEvent.execute(mockInteraction, mockClient);
             
-            expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+            expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: 64 });
             expect(mockGuild.channels.create).toHaveBeenCalled();
         });
 
@@ -161,7 +161,7 @@ describe('InteractionCreate Event', () => {
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     content: expect.stringContaining('already have an open ticket'),
-                    ephemeral: true
+                    flags: 64
                 })
             );
             expect(mockGuild.channels.create).not.toHaveBeenCalled();
@@ -239,7 +239,7 @@ describe('InteractionCreate Event', () => {
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     content: expect.stringContaining('not a ticket'),
-                    ephemeral: true
+                    flags: 64
                 })
             );
         });
@@ -253,7 +253,7 @@ describe('InteractionCreate Event', () => {
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     content: expect.stringContaining('do not have permission'),
-                    ephemeral: true
+                    flags: 64
                 })
             );
         });

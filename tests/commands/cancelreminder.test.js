@@ -59,7 +59,7 @@ describe('CancelReminder Command', () => {
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('Reminder cancelled');
             expect(replyCall.content).toContain('Test reminder message');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
     });
 
@@ -74,7 +74,7 @@ describe('CancelReminder Command', () => {
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('Could not find');
             expect(replyCall.content).toContain('reminder-123');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should handle cancellation failure', async() => {
@@ -90,7 +90,7 @@ describe('CancelReminder Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('Failed to cancel');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should handle reminder belonging to different user', async() => {
@@ -100,7 +100,7 @@ describe('CancelReminder Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('Could not find');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
     });
 

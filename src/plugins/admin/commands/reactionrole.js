@@ -92,14 +92,14 @@ export default {
             if (role.position >= botMember.roles.highest.position) {
                 return interaction.reply({
                     content: 'I cannot assign this role because it is higher than or equal to my highest role.',
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
             if (role.id === interaction.guild.id) {
                 return interaction.reply({
                     content: 'You cannot use the @everyone role for reaction roles.',
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -109,7 +109,7 @@ export default {
             } catch (error) {
                 return interaction.reply({
                     content: `Could not find a message with ID \`${messageId}\` in ${channel}.`,
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -117,7 +117,7 @@ export default {
             if (!emoji) {
                 return interaction.reply({
                     content: 'Invalid emoji. Please use a standard emoji or a custom emoji from this server.',
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -126,7 +126,7 @@ export default {
             } catch (error) {
                 return interaction.reply({
                     content: 'Failed to react to the message. Make sure I have permission to add reactions and the emoji is valid.',
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -156,7 +156,7 @@ export default {
 
             return interaction.reply({
                 content: `Reaction role added! Users who react with ${emoji.display} on [this message](${message.url}) will receive the ${role} role.`,
-                ephemeral: true
+                flags: 64
             });
 
         } else if (subcommand === 'remove') {
@@ -167,7 +167,7 @@ export default {
             if (!emoji) {
                 return interaction.reply({
                     content: 'Invalid emoji format.',
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -175,7 +175,7 @@ export default {
             if (!reactionRoles.roles || reactionRoles.roles.length === 0) {
                 return interaction.reply({
                     content: 'No reaction roles are configured in this server.',
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -186,7 +186,7 @@ export default {
             if (index === -1) {
                 return interaction.reply({
                     content: 'No reaction role found for that message and emoji combination.',
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -202,7 +202,7 @@ export default {
 
             return interaction.reply({
                 content: `Reaction role removed for ${emoji.display}.`,
-                ephemeral: true
+                flags: 64
             });
 
         } else if (subcommand === 'list') {
@@ -211,7 +211,7 @@ export default {
             if (!reactionRoles.roles || reactionRoles.roles.length === 0) {
                 return interaction.reply({
                     content: 'No reaction roles are configured in this server.',
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -246,7 +246,7 @@ export default {
                 });
             }
 
-            return interaction.reply({ embeds: [embed], ephemeral: true });
+            return interaction.reply({ embeds: [embed], flags: 64 });
 
         } else if (subcommand === 'clear') {
             const messageId = interaction.options.getString('message_id');
@@ -255,7 +255,7 @@ export default {
             if (!reactionRoles.roles || reactionRoles.roles.length === 0) {
                 return interaction.reply({
                     content: 'No reaction roles are configured in this server.',
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -263,7 +263,7 @@ export default {
             if (toRemove.length === 0) {
                 return interaction.reply({
                     content: 'No reaction roles found for that message.',
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -283,7 +283,7 @@ export default {
 
             return interaction.reply({
                 content: `Cleared ${toRemove.length} reaction role(s) from that message.`,
-                ephemeral: true
+                flags: 64
             });
         }
     }

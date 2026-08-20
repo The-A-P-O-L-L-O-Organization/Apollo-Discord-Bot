@@ -27,7 +27,7 @@ export default {
         if (!ticket) {
             return interaction.reply({
                 content: 'This channel is not a ticket channel.',
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -38,7 +38,7 @@ export default {
         if (!hasSupport && !isAdmin) {
             return interaction.reply({
                 content: 'You do not have permission to assign tickets.',
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -47,7 +47,7 @@ export default {
         if (ticket.assignedTo.includes(assignUser.id)) {
             return interaction.reply({
                 content: `${assignUser} is already assigned to this ticket.`,
-                ephemeral: true
+                flags: 64
             });
         }
 

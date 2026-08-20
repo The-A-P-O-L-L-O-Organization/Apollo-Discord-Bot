@@ -220,7 +220,7 @@ export default {
                     fields: [{ name: 'Error', value: safeError(error) }],
                     timestamp: new Date().toISOString()
                 }],
-                ephemeral: true
+                flags: 64
             });
         }
     }
@@ -327,7 +327,7 @@ async function handleAddWord(interaction) {
                 description: `The word \`${word}\` is already in the banned list.`,
                 timestamp: new Date().toISOString()
             }],
-            ephemeral: true
+            flags: 64
         });
     }
     
@@ -341,7 +341,7 @@ async function handleAddWord(interaction) {
         .addFields({ name: 'Total Banned Words', value: `${guildConfig.bannedWords.length}` })
         .setTimestamp();
     
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await interaction.reply({ embeds: [embed], flags: 64 });
     console.log(`[AUTOMOD] Added banned word in ${interaction.guild.name}`);
 }
 
@@ -357,7 +357,7 @@ async function handleRemoveWord(interaction) {
                 description: `The word \`${word}\` is not in the banned list.`,
                 timestamp: new Date().toISOString()
             }],
-            ephemeral: true
+            flags: 64
         });
     }
     
@@ -371,7 +371,7 @@ async function handleRemoveWord(interaction) {
         .addFields({ name: 'Total Banned Words', value: `${guildConfig.bannedWords.length}` })
         .setTimestamp();
     
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await interaction.reply({ embeds: [embed], flags: 64 });
     console.log(`[AUTOMOD] Removed banned word in ${interaction.guild.name}`);
 }
 
@@ -386,7 +386,7 @@ async function handleListWords(interaction) {
                 description: 'No banned words configured.\n\nUse `/automod addword <word>` to add words.',
                 timestamp: new Date().toISOString()
             }],
-            ephemeral: true
+            flags: 64
         });
     }
     
@@ -403,7 +403,7 @@ async function handleListWords(interaction) {
         .setTimestamp()
         .setFooter({ text: 'Words are partially censored for safety' });
     
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await interaction.reply({ embeds: [embed], flags: 64 });
 }
 
 async function handleSet(interaction) {
@@ -427,7 +427,7 @@ async function handleSet(interaction) {
                     description: `Please provide a number for ${setting}.`,
                     timestamp: new Date().toISOString()
                 }],
-                ephemeral: true
+                flags: 64
             });
         }
         
@@ -440,7 +440,7 @@ async function handleSet(interaction) {
                     description: 'Max caps percent must be between 0 and 100.',
                     timestamp: new Date().toISOString()
                 }],
-                ephemeral: true
+                flags: 64
             });
         }
         
@@ -448,7 +448,7 @@ async function handleSet(interaction) {
         if (setting !== 'maxCapsPercent' && value <= 0) {
             return interaction.reply({
                 content: `${setting} must be a positive number greater than zero.`,
-                ephemeral: true
+                flags: 64
             });
         }
     }
@@ -485,7 +485,7 @@ async function handleExemptChannel(interaction) {
                     description: `${channel} is already exempt from automod.`,
                     timestamp: new Date().toISOString()
                 }],
-                ephemeral: true
+                flags: 64
             });
         }
         
@@ -509,7 +509,7 @@ async function handleExemptChannel(interaction) {
                     description: `${channel} is not currently exempt.`,
                     timestamp: new Date().toISOString()
                 }],
-                ephemeral: true
+                flags: 64
             });
         }
         
@@ -545,7 +545,7 @@ async function handleExemptRole(interaction) {
                     description: `${role} is already exempt from automod.`,
                     timestamp: new Date().toISOString()
                 }],
-                ephemeral: true
+                flags: 64
             });
         }
         
@@ -569,7 +569,7 @@ async function handleExemptRole(interaction) {
                     description: `${role} is not currently exempt.`,
                     timestamp: new Date().toISOString()
                 }],
-                ephemeral: true
+                flags: 64
             });
         }
         
@@ -597,7 +597,7 @@ async function handleScan(interaction) {
         // Check if NSFW filter is enabled for this guild
         const cfg = await getAutomodConfig(interaction.guild.id);
         if (!cfg.nsfwFilter) {
-            return interaction.reply({ content: 'NSFW filter is disabled for this server.', ephemeral: true });
+            return interaction.reply({ content: 'NSFW filter is disabled for this server.', flags: 64 });
         }
 
         // Validate channel is text-based and in guild
@@ -609,7 +609,7 @@ async function handleScan(interaction) {
                     description: 'Please select a text channel in this server.',
                     timestamp: new Date().toISOString()
                 }],
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -622,11 +622,11 @@ async function handleScan(interaction) {
                     description: 'I cannot view messages in that channel.',
                     timestamp: new Date().toISOString()
                 }],
-                ephemeral: true
+                flags: 64
             });
         }
 
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: 64 });
 
         let messagesScanned = 0;
         let nsfwFound = 0;

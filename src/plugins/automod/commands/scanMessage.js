@@ -23,7 +23,7 @@ export default {
                         description: 'I cannot view this channel.',
                         timestamp: new Date().toISOString()
                     }],
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -31,7 +31,7 @@ export default {
             const targetMessage = interaction.targetMessage;
 
             // Defer reply since NSFW detection might take a moment
-            await interaction.deferReply({ ephemeral: true });
+            await interaction.deferReply({ flags: 64 });
 
             // Check the message attachments for NSFW content
             const result = await checkMessageAttachments(interaction.guild.id, targetMessage);

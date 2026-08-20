@@ -51,18 +51,18 @@ export default {
             ],
             timestamp: new Date().toISOString()
           }],
-          ephemeral: true
+          flags: 64
         });
       } catch (err) {
         return interaction.reply({
           embeds: [{ color: 0xFF0000, title: '[ERROR] Migration Status Failed', description: safeError(err) }],
-          ephemeral: true
+          flags: 64
         });
       }
     }
 
     if (subcommand === 'run') {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ flags: 64 });
 
       try {
         await runMigrations();

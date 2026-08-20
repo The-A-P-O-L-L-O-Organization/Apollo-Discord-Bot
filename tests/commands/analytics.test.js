@@ -455,7 +455,7 @@ describe('Analytics Command', () => {
         it('should handle export analytics subcommand', async() => {
             await analyticsCommand.execute(interaction);
 
-            expect(interaction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+            expect(interaction.deferReply).toHaveBeenCalledWith({ flags: 64 });
             expect(exportAnalytics).toHaveBeenCalledWith('123456789', 'csv', {
                 types: ['commands', 'messages', 'violations', 'modactions', 'members'],
                 days: 30

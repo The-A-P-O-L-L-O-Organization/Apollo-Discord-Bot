@@ -32,7 +32,7 @@ export default {
                         description: 'You cannot report your own messages.',
                         timestamp: new Date().toISOString()
                     }],
-                    ephemeral: true
+                    flags: 64
                 });
             }
             
@@ -45,7 +45,7 @@ export default {
                         description: 'You cannot report bot messages.',
                         timestamp: new Date().toISOString()
                     }],
-                    ephemeral: true
+                    flags: 64
                 });
             }
             
@@ -156,7 +156,7 @@ export default {
                     ],
                     timestamp: new Date().toISOString()
                 }],
-                ephemeral: true
+                flags: 64
             });
             
             console.log(`[REPORT] Message ${message.id} reported by ${interaction.user.tag} (Report ID: ${reportId})`);
@@ -175,7 +175,7 @@ export default {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
         }
     }

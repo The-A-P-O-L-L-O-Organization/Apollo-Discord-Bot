@@ -34,7 +34,7 @@ export default {
         if (!ticket) {
             return interaction.reply({
                 content: 'This channel is not a ticket channel.',
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -45,7 +45,7 @@ export default {
         if (!hasSupport && !isAdmin) {
             return interaction.reply({
                 content: 'You do not have permission to change ticket priority.',
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -54,7 +54,7 @@ export default {
         if (oldPriority === newPriority) {
             return interaction.reply({
                 content: `This ticket is already set to **${newPriority}** priority.`,
-                ephemeral: true
+                flags: 64
             });
         }
 

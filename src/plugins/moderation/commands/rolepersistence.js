@@ -74,7 +74,7 @@ export default {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
         }
     }
 };
@@ -132,7 +132,7 @@ async function handleView(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [viewEmbed], ephemeral: true });
+    await interaction.reply({ embeds: [viewEmbed], flags: 64 });
 }
 
 async function handleClear(interaction) {
@@ -148,7 +148,7 @@ async function handleClear(interaction) {
                 description: `No roles are saved for ${user.tag}.`,
                 timestamp: new Date().toISOString()
             }],
-            ephemeral: true
+            flags: 64
         });
     }
     
