@@ -405,7 +405,7 @@ describe('Automod Command', () => {
             await automodCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
-            expect(replyCall.embeds[0].title).toContain('Command Failed');
+            expect(replyCall.embeds[0].title).toContain('Error');
             expect(replyCall.flags).toBe(64);
         });
     });
