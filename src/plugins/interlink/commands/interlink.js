@@ -93,7 +93,7 @@ export default {
     ],
 
     async execute(interaction) {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: 64 });
 
         if (!isOwner(interaction.user.id)) {
             return interaction.editReply({
@@ -215,7 +215,7 @@ export default {
             console.warn(`[INTERLINK] Failed to DM API key to ${interaction.user.tag}, falling back to ephemeral message: ${dmError.message}`);
             await interaction.followUp({
                 content: `**[WARNING] API Key for ${name} (shown once):**\n\`\`\`${result.rawKey}\`\`\`\nStore this securely. It will not be shown again.`,
-                ephemeral: true
+                flags: 64
             });
         }
     },
@@ -332,7 +332,7 @@ export default {
             console.warn(`[INTERLINK] Failed to DM API key to ${interaction.user.tag}, falling back to ephemeral message: ${dmError.message}`);
             await interaction.followUp({
                 content: `**[WARNING] New API Key for ${name} (shown once):**\n\`\`\`${rawKey}\`\`\`\nStore this securely. The old key is no longer valid.`,
-                ephemeral: true
+                flags: 64
             });
         }
     },

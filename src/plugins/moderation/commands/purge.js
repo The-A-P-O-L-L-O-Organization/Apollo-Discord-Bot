@@ -51,7 +51,7 @@ export default {
                     description: 'Please specify a number between 1 and 100.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             // Get the channel
@@ -65,7 +65,7 @@ export default {
                     description: 'I do not have permission to delete messages in this channel.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             // Fetch messages
@@ -90,7 +90,7 @@ export default {
                         description: hierarchy.reason,
                         timestamp: new Date().toISOString()
                     };
-                    return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                    return interaction.reply({ embeds: [errorEmbed], flags: 64 });
                 }
             }
             
@@ -104,7 +104,7 @@ export default {
                         : 'No messages found to delete.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             // Bulk delete messages
@@ -114,7 +114,7 @@ export default {
             if (deletedMessages.size === 0 && messages.size > 0) {
                 return interaction.reply({
                     content: 'Could not delete messages - they may be older than 14 days.',
-                    ephemeral: true
+                    flags: 64
                 });
             }
             
@@ -188,7 +188,7 @@ export default {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
         }
     }

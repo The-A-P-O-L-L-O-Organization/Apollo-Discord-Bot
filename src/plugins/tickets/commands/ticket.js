@@ -56,14 +56,14 @@ export default {
         if (existingTicket) {
             return interaction.reply({
                 content: `You already have an open ticket: <#${existingTicket.channelId}>`,
-                ephemeral: true
+                flags: 64
             });
         }
 
         if (!interaction.guild.members.me.permissions.has(PermissionFlagsBits.ManageChannels)) {
             return interaction.reply({
                 content: 'I do not have permission to manage channels.',
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -129,7 +129,7 @@ export default {
             console.error('[ERROR] Failed to create ticket channel:', error);
             return interaction.reply({
                 content: 'Failed to create ticket channel. Please contact an administrator.',
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -194,7 +194,7 @@ export default {
 
         return interaction.reply({
             content: `Your ticket has been created: ${ticketChannel}`,
-            ephemeral: true
+            flags: 64
         });
     }
 };

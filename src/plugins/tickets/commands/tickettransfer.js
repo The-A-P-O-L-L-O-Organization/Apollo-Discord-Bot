@@ -34,7 +34,7 @@ export default {
         if (!ticket) {
             return interaction.reply({
                 content: 'This channel is not a ticket channel.',
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -47,14 +47,14 @@ export default {
         if (!isAssigned && !isClaimed && !hasSupport && !isAdmin) {
             return interaction.reply({
                 content: 'You do not have permission to transfer this ticket.',
-                ephemeral: true
+                flags: 64
             });
         }
 
         if (transferUser.id === interaction.user.id) {
             return interaction.reply({
                 content: 'You cannot transfer a ticket to yourself.',
-                ephemeral: true
+                flags: 64
             });
         }
 

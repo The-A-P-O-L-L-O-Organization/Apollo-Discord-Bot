@@ -67,7 +67,7 @@ export default {
         fields,
         timestamp: new Date().toISOString()
       }],
-      ephemeral: true
+      flags: 64
     });
   }
 };

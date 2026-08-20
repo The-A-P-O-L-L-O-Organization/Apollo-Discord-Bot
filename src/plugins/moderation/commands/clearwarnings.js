@@ -51,7 +51,7 @@ export default {
                         description: 'Please specify a valid user.',
                         timestamp: new Date().toISOString()
                     }],
-                    ephemeral: true
+                    flags: 64
                 });
             }
             
@@ -66,7 +66,7 @@ export default {
                         description: `${user.tag} has no warnings to clear.`,
                         timestamp: new Date().toISOString()
                     }],
-                    ephemeral: true
+                    flags: 64
                 });
             }
             
@@ -89,7 +89,7 @@ export default {
                             }],
                             timestamp: new Date().toISOString()
                         }],
-                        ephemeral: true
+                        flags: 64
                     });
                 }
                 
@@ -119,7 +119,7 @@ export default {
                             description: `${user.tag} has no active warnings to clear.`,
                             timestamp: new Date().toISOString()
                         }],
-                        ephemeral: true
+                        flags: 64
                     });
                 }
                 
@@ -210,7 +210,7 @@ export default {
                     fields: [{ name: 'Error', value: error.message, inline: true }],
                     timestamp: new Date().toISOString()
                 }],
-                ephemeral: true
+                flags: 64
             });
         }
     }

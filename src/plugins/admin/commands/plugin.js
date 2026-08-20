@@ -109,7 +109,7 @@ export default {
     ],
 
     async execute(interaction) {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: 64 });
         const denial = await requireOwner(interaction);
         if (denial) {
             return interaction.editReply(denial);
@@ -146,7 +146,7 @@ export default {
                     ],
                     timestamp: new Date().toISOString()
                 };
-                return interaction.editReply({ embeds: [embed], ephemeral: true });
+                return interaction.editReply({ embeds: [embed], flags: 64 });
             }
 
             case 'enable': {
@@ -160,14 +160,14 @@ export default {
                             description: '**' + name + '** has been enabled.',
                             timestamp: new Date().toISOString()
                         }],
-                        ephemeral: true
+                        flags: 64
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
-                        ephemeral: true
+                        flags: 64
                     });
                 }
             }
@@ -183,14 +183,14 @@ export default {
                             description: '**' + name + '** has been disabled.',
                             timestamp: new Date().toISOString()
                         }],
-                        ephemeral: true
+                        flags: 64
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
-                        ephemeral: true
+                        flags: 64
                     });
                 }
             }
@@ -206,14 +206,14 @@ export default {
                             description: '**' + name + '** has been hot-reloaded.',
                             timestamp: new Date().toISOString()
                         }],
-                        ephemeral: true
+                        flags: 64
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
-                        ephemeral: true
+                        flags: 64
                     });
                 }
             }
@@ -231,14 +231,14 @@ export default {
                             description: '**' + name + '** v' + plugin.constructor.version + ' loaded and enabled.',
                             timestamp: new Date().toISOString()
                         }],
-                        ephemeral: true
+                        flags: 64
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
-                        ephemeral: true
+                        flags: 64
                     });
                 }
             }
@@ -256,7 +256,7 @@ export default {
                                 'Re-run with `confirm: true` to proceed.',
                             timestamp: new Date().toISOString()
                         }],
-                        ephemeral: true
+                        flags: 64
                     });
                 }
                 try {
@@ -289,14 +289,14 @@ export default {
                             description: '**' + name + '** has been removed.',
                             timestamp: new Date().toISOString()
                         }],
-                        ephemeral: true
+                        flags: 64
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
-                        ephemeral: true
+                        flags: 64
                     });
                 }
             }
@@ -321,7 +321,7 @@ export default {
                         }] : [],
                         timestamp: new Date().toISOString()
                     }],
-                    ephemeral: true
+                    flags: 64
                 });
             }
 

@@ -40,7 +40,7 @@ export default {
                         description: 'Please specify a valid user.',
                         timestamp: new Date().toISOString()
                     }],
-                    ephemeral: true
+                    flags: 64
                 });
             }
             
@@ -141,7 +141,7 @@ export default {
                     fields: [{ name: 'Error', value: error.message, inline: true }],
                     timestamp: new Date().toISOString()
                 }],
-                ephemeral: true
+                flags: 64
             });
         }
     }

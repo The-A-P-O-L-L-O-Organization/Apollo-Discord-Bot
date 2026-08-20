@@ -91,7 +91,7 @@ export default {
             if (!fileAttachment.name.toLowerCase().endsWith('.md')) {
                 return interaction.reply({
                     content: 'Only `.md` files are supported. Please upload a markdown file.',
-                    ephemeral: true,
+                    flags: 64,
                 });
             }
             try {
@@ -100,14 +100,14 @@ export default {
                 if (!content.trim()) {
                     return interaction.reply({
                         content: 'The uploaded .md file is empty.',
-                        ephemeral: true,
+                        flags: 64,
                     });
                 }
                 parsed = parseMarkdownToEmbed(content, fileAttachment.name, { title, description });
             } catch {
                 return interaction.reply({
                     content: 'Could not read the attached file. Please try again.',
-                    ephemeral: true,
+                    flags: 64,
                 });
             }
         }
@@ -116,7 +116,7 @@ export default {
         if (!title && !description && !fileAttachment) {
             return interaction.reply({
                 content: 'You must provide at least a title or description for the embed.',
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -147,7 +147,7 @@ export default {
             } else {
                 return interaction.reply({
                     content: 'Invalid color format. Please use a hex color code (e.g., #FF0000 or FF0000).',
-                    ephemeral: true
+                    flags: 64
                 });
             }
         } else {
@@ -159,7 +159,7 @@ export default {
             if (!isValidUrl(image)) {
                 return interaction.reply({
                     content: 'Invalid image URL. Please provide a valid URL.',
-                    ephemeral: true
+                    flags: 64
                 });
             }
             embed.setImage(image);
@@ -170,7 +170,7 @@ export default {
             if (!isValidUrl(thumbnail)) {
                 return interaction.reply({
                     content: 'Invalid thumbnail URL. Please provide a valid URL.',
-                    ephemeral: true
+                    flags: 64
                 });
             }
             embed.setThumbnail(thumbnail);
@@ -191,7 +191,7 @@ export default {
             if (!isValidUrl(url)) {
                 return interaction.reply({
                     content: 'Invalid URL. Please provide a valid URL.',
-                    ephemeral: true
+                    flags: 64
                 });
             }
             embed.setURL(url);
@@ -230,7 +230,7 @@ export default {
             if (matchedWord) {
                 return interaction.reply({
                     content: 'Your embed contains a banned word and cannot be sent.',
-                    ephemeral: true
+                    flags: 64
                 });
             }
         }
@@ -240,13 +240,13 @@ export default {
             await interaction.channel.send({ embeds: [embed] });
             return interaction.reply({
                 content: 'Embed created successfully!',
-                ephemeral: true
+                flags: 64
             });
         } catch (error) {
             console.error('[ERROR] Failed to send embed:', error);
             return interaction.reply({
                 content: 'Failed to create the embed. Please check your inputs and try again.',
-                ephemeral: true
+                flags: 64
             });
         }
     }
