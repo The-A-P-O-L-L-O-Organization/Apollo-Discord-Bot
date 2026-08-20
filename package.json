@@ -13,7 +13,7 @@
     "start:gateway": "RUN_MODE=gateway node src/index.js",
     "start:worker": "RUN_MODE=worker node src/index.js",
     "dev": "node --watch src/index.js",
-    "deploy": "node deploy-commands.js",
+    "deploy:commands": "node scripts/deploy-commands.js",
     "postinstall": "pnpm rebuild better-sqlite3",
     "test": "vitest run",
     "test:watch": "vitest",
