@@ -16,6 +16,9 @@ export const config = {
     // Discord Guild ID (for dev guild-specific command deployment)
     GUILD_ID: process.env.GUILD_ID || '',
 
+    // Encryption key for data at rest (32-byte base64)
+    ENCRYPTION_KEY: process.env.ENCRYPTION_KEY || '',
+
     // Bot Activity/Status
     activity: {
         name: 'for new members join',
