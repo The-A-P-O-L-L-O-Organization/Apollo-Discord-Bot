@@ -12,6 +12,33 @@ export function assertDiscordToken(token) {
     }
 }
 
+export function assertEncryptionKey(key) {
+    if (!key) {
+        throw new Error(
+            '[FATAL] ENCRYPTION_KEY is missing. ' +
+            'Generate a 32-byte base64 key (e.g., `openssl rand -base64 32`) ' +
+            'and set it in your .env file before starting.'
+        );
+    }
+    
+    let decoded;
+    try {
+        decoded = Buffer.from(key, 'base64');
+    } catch {
+        throw new Error(
+            '[FATAL] ENCRYPTION_KEY is not valid base64. ' +
+            'Generate a 32-byte base64 key (e.g., `openssl rand -base64 32`).'
+        );
+    }
+    
+    if (decoded.length !== 32) {
+        throw new Error(
+            `[FATAL] ENCRYPTION_KEY decodes to ${decoded.length} bytes, expected 32. ` +
+            'Generate a 32-byte base64 key (e.g., `openssl rand -base64 32`).'
+        );
+    }
+}
+
 export function assertOperatorAgreement(operator) {
     if (!operator || typeof operator !== 'object') {
         throw new Error(
