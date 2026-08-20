@@ -27,7 +27,7 @@ export default {
         if (!ticket) {
             return interaction.reply({
                 content: 'This channel is not a ticket channel.',
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -40,7 +40,7 @@ export default {
         if (!isTicketOwner && !isAssigned && !hasSupport && !isAdmin) {
             return interaction.reply({
                 content: 'You do not have permission to add users to this ticket.',
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -49,7 +49,7 @@ export default {
         if (ticket.participants.includes(addUser.id)) {
             return interaction.reply({
                 content: `${addUser} is already in this ticket.`,
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -73,7 +73,7 @@ export default {
             console.error('[ERROR] Failed to update channel permissions:', error);
             return interaction.reply({
                 content: 'Failed to add user to ticket. Please check my permissions.',
-                ephemeral: true
+                flags: 64
             });
         }
 

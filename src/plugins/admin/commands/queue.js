@@ -24,11 +24,11 @@ export default {
           description: 'Set `QUEUE_ENABLED=true` and configure `REDIS_HOST`/`REDIS_PORT` to enable the work queue.',
           timestamp: new Date().toISOString()
         }],
-        ephemeral: true
+        flags: 64
       });
     }
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: 64 });
 
     const metrics = await getQueueMetrics(config.queue);
 

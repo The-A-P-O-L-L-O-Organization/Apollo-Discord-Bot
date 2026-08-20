@@ -96,7 +96,7 @@ describe('Ticket Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('ticket has been created');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should send welcome message in ticket', async() => {
@@ -185,7 +185,7 @@ describe('Ticket Command', () => {
             expect(mockGuild.channels.create).not.toHaveBeenCalled();
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('already have an open ticket');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should handle channel creation failure', async() => {
@@ -195,7 +195,7 @@ describe('Ticket Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('Failed to create');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should handle missing category gracefully', async() => {

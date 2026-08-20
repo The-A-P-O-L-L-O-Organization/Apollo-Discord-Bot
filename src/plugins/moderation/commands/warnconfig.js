@@ -93,7 +93,7 @@ export default {
                     fields: [{ name: 'Error', value: error.message }],
                     timestamp: new Date().toISOString()
                 }],
-                ephemeral: true
+                flags: 64
             });
         }
     }
@@ -166,7 +166,7 @@ async function handleSet(interaction) {
                 description: 'Mute threshold must be less than kick threshold.',
                 timestamp: new Date().toISOString()
             }],
-            ephemeral: true
+            flags: 64
         });
     }
     if (kick && ban && kick >= ban) {
@@ -177,7 +177,7 @@ async function handleSet(interaction) {
                 description: 'Kick threshold must be less than ban threshold.',
                 timestamp: new Date().toISOString()
             }],
-            ephemeral: true
+            flags: 64
         });
     }
     if (mute && ban && mute >= ban) {
@@ -188,7 +188,7 @@ async function handleSet(interaction) {
                 description: 'Mute threshold must be less than ban threshold.',
                 timestamp: new Date().toISOString()
             }],
-            ephemeral: true
+            flags: 64
         });
     }
     
@@ -224,7 +224,7 @@ async function handleSetMuteDuration(interaction) {
                 description: 'Please use a valid duration format: `1m`, `1h`, `1d`, `1w`',
                 timestamp: new Date().toISOString()
             }],
-            ephemeral: true
+            flags: 64
         });
     }
     

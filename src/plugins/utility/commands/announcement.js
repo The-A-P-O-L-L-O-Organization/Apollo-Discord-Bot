@@ -85,7 +85,7 @@ export default {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
         }
     }
 };
@@ -105,7 +105,7 @@ async function handleSchedule(interaction) {
                 description: 'Use format like 1h, 30m, 1d',
                 timestamp: new Date().toISOString()
             }],
-            ephemeral: true
+            flags: 64
         });
     }
     
@@ -152,7 +152,7 @@ async function handleSchedule(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+    await interaction.reply({ embeds: [successEmbed], flags: 64 });
     
     console.log(`[ANNOUNCEMENT] Scheduled by ${interaction.user.tag} for ${channel.name}`);
 }
@@ -168,7 +168,7 @@ async function handleView(interaction) {
                 description: 'There are no scheduled announcements.',
                 timestamp: new Date().toISOString()
             }],
-            ephemeral: true
+            flags: 64
         });
     }
     
@@ -183,7 +183,7 @@ async function handleView(interaction) {
                 description: 'All announcements have been sent.',
                 timestamp: new Date().toISOString()
             }],
-            ephemeral: true
+            flags: 64
         });
     }
     
@@ -199,7 +199,7 @@ async function handleView(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [viewEmbed], ephemeral: true });
+    await interaction.reply({ embeds: [viewEmbed], flags: 64 });
 }
 
 async function handleCancel(interaction) {
@@ -215,7 +215,7 @@ async function handleCancel(interaction) {
                 description: 'No announcement found with that ID.',
                 timestamp: new Date().toISOString()
             }],
-            ephemeral: true
+            flags: 64
         });
     }
     
@@ -229,7 +229,7 @@ async function handleCancel(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+    await interaction.reply({ embeds: [successEmbed], flags: 64 });
 }
 
 function parseDelay(str) {

@@ -48,7 +48,7 @@ export default {
                         description: 'Please specify a valid user to strike.',
                         timestamp: new Date().toISOString()
                     }],
-                    ephemeral: true
+                    flags: 64
                 });
             }
             
@@ -60,7 +60,7 @@ export default {
                         description: 'You cannot strike bots.',
                         timestamp: new Date().toISOString()
                     }],
-                    ephemeral: true
+                    flags: 64
                 });
             }
             
@@ -72,7 +72,7 @@ export default {
                         description: 'You cannot strike yourself.',
                         timestamp: new Date().toISOString()
                     }],
-                    ephemeral: true
+                    flags: 64
                 });
             }
             
@@ -86,7 +86,7 @@ export default {
                         description: 'This user is not a member of the server.',
                         timestamp: new Date().toISOString()
                     }],
-                    ephemeral: true
+                    flags: 64
                 });
             }
             
@@ -99,7 +99,7 @@ export default {
                     description: hierarchy.reason,
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             // Create strike object
@@ -231,7 +231,7 @@ export default {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
         }
     }

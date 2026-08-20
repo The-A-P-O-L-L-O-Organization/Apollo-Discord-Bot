@@ -120,7 +120,7 @@ describe('Report Command', () => {
             expect(interaction.showModal).not.toHaveBeenCalled();
             expect(interaction.reply).toHaveBeenCalledWith({
                 content: '[ERROR] Could not find the message to report.',
-                ephemeral: true
+                flags: 64
             });
         });
 
@@ -133,7 +133,7 @@ describe('Report Command', () => {
             expect(interaction.showModal).not.toHaveBeenCalled();
             expect(interaction.reply).toHaveBeenCalledWith({
                 content: '[ERROR] You cannot report your own message.',
-                ephemeral: true
+                flags: 64
             });
         });
 
@@ -149,7 +149,7 @@ describe('Report Command', () => {
                     title: '[ERROR] Report Failed',
                     color: 0xFF0000
                 })],
-                ephemeral: true
+                flags: 64
             });
         });
     });
@@ -268,7 +268,7 @@ describe('Report Handler', () => {
             expect(result).toBe(true);
             expect(interaction.reply).toHaveBeenCalledWith({
                 content: '[ERROR] Could not find the original message. The report has been cancelled.',
-                ephemeral: true
+                flags: 64
             });
         });
 
@@ -280,7 +280,7 @@ describe('Report Handler', () => {
             expect(result).toBe(true);
             expect(interaction.reply).toHaveBeenCalledWith({
                 content: '[ERROR] Could not fetch the message. It may have been deleted.',
-                ephemeral: true
+                flags: 64
             });
         });
 
@@ -305,7 +305,7 @@ describe('Report Handler', () => {
                         expect.objectContaining({ name: '[INFO] Channel', value: '<#channel123>' })
                     ])
                 })],
-                ephemeral: true
+                flags: 64
             });
         });
 

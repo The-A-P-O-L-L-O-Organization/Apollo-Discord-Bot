@@ -29,7 +29,7 @@ export default {
         if (ticketIndex === -1 || ticketIndex === undefined) {
             return interaction.reply({
                 content: 'This channel is not a ticket channel.',
-                ephemeral: true
+                flags: 64
             });
         }
 
@@ -43,7 +43,7 @@ export default {
         if (!isTicketOwner && !hasSupport && !isAdmin) {
             return interaction.reply({
                 content: 'You do not have permission to close this ticket.',
-                ephemeral: true
+                flags: 64
             });
         }
 

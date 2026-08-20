@@ -42,7 +42,7 @@ export default {
                     description: 'Please specify a valid user to unmute.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             const member = await fetchMember(interaction.guild, user.id);
@@ -54,7 +54,7 @@ export default {
                     description: 'This user is not in the server.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             if (!member.voice.channel) {
@@ -64,7 +64,7 @@ export default {
                     description: `${user.tag} is not currently in a voice channel.`,
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             if (!member.voice.serverMute) {
@@ -74,7 +74,7 @@ export default {
                     description: `${user.tag} is not currently server muted.`,
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             if (!member.voice.channel.permissionsFor(interaction.guild.members.me).has('MuteMembers')) {
@@ -84,7 +84,7 @@ export default {
                     description: 'I do not have permission to mute members in that voice channel.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             if (user.id === interaction.user.id) {
@@ -94,7 +94,7 @@ export default {
                     description: 'You cannot unmute yourself using this command.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             if (user.id === interaction.client.user.id) {
@@ -104,7 +104,7 @@ export default {
                     description: 'You cannot unmute the bot.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             const hierarchy = canModerate(interaction.guild, interaction.member, member);
@@ -115,7 +115,7 @@ export default {
                     description: hierarchy.reason,
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             const channelName = member.voice.channel.name;
@@ -178,7 +178,7 @@ export default {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
         }
     }

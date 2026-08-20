@@ -81,7 +81,7 @@ export default {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
         }
     }
 };
@@ -98,7 +98,7 @@ async function handleSetRole(interaction) {
                 description: 'I cannot assign roles that are higher than or equal to my highest role.',
                 timestamp: new Date().toISOString()
             }],
-            ephemeral: true
+            flags: 64
         });
     }
     
@@ -111,7 +111,7 @@ async function handleSetRole(interaction) {
                 description: 'You cannot set @everyone as the auto-role.',
                 timestamp: new Date().toISOString()
             }],
-            ephemeral: true
+            flags: 64
         });
     }
     
@@ -160,7 +160,7 @@ async function handleRemoveRole(interaction) {
                 description: 'There is no auto-role configured.',
                 timestamp: new Date().toISOString()
             }],
-            ephemeral: true
+            flags: 64
         });
     }
     
@@ -195,7 +195,7 @@ async function handleToggle(interaction) {
                 description: 'Please set an auto-role first.',
                 timestamp: new Date().toISOString()
             }],
-            ephemeral: true
+            flags: 64
         });
     }
     
@@ -235,7 +235,7 @@ async function handleView(interaction) {
                 description: 'Use `/autorole set` to configure auto-role.',
                 timestamp: new Date().toISOString()
             }],
-            ephemeral: true
+            flags: 64
         });
     }
     
@@ -264,5 +264,5 @@ async function handleView(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [viewEmbed], ephemeral: true });
+    await interaction.reply({ embeds: [viewEmbed], flags: 64 });
 }

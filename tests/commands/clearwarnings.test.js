@@ -158,7 +158,7 @@ describe('ClearWarnings Command', () => {
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.embeds[0].title).toContain('[ERROR]');
             expect(replyCall.embeds[0].title).toContain('Missing User');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should handle user with no warnings', async() => {
@@ -168,7 +168,7 @@ describe('ClearWarnings Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.embeds[0].title).toContain('No Warnings');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should handle invalid warning ID', async() => {
@@ -182,7 +182,7 @@ describe('ClearWarnings Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.embeds[0].title).toContain('Warning Not Found');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should handle no active warnings when all are cleared', async() => {
@@ -195,7 +195,7 @@ describe('ClearWarnings Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.embeds[0].title).toContain('No Active Warnings');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should handle errors gracefully', async() => {
@@ -207,7 +207,7 @@ describe('ClearWarnings Command', () => {
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.embeds[0].title).toContain('[ERROR]');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
     });
 

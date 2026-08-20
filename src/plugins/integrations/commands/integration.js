@@ -79,7 +79,7 @@ async function handleAdd(interaction) {
     const channel = interaction.options.getChannel('channel');
 
     if (!channel.isTextBased()) {
-        return interaction.reply({ content: 'Please select a text channel.', ephemeral: true });
+        return interaction.reply({ content: 'Please select a text channel.', flags: 64 });
     }
 
     const data = await getData('integrations') || { nextId: 1, subscriptions: [] };
@@ -102,7 +102,7 @@ async function handleAdd(interaction) {
 
     await interaction.reply({
         content: `✅ Added **${typeNames[type] || type}** subscription for \`${target}\` → ${channel}. ID: \`${id}\``,
-        ephemeral: true,
+        flags: 64,
     });
 }
 
@@ -115,13 +115,13 @@ async function handleRemove(interaction) {
     );
 
     if (idx === -1) {
-        return interaction.reply({ content: `❌ Subscription \`${id}\` not found.`, ephemeral: true });
+        return interaction.reply({ content: `❌ Subscription \`${id}\` not found.`, flags: 64 });
     }
 
     data.subscriptions.splice(idx, 1);
     await setData('integrations', data);
 
-    await interaction.reply({ content: `✅ Removed subscription \`${id}\`.`, ephemeral: true });
+    await interaction.reply({ content: `✅ Removed subscription \`${id}\`.`, flags: 64 });
 }
 
 async function handleList(interaction) {
@@ -130,7 +130,7 @@ async function handleList(interaction) {
     const guildSubs = data.subscriptions.filter(s => s.guild_id === interaction.guildId);
 
     if (guildSubs.length === 0) {
-        return interaction.reply({ content: 'No integrations configured.', ephemeral: true });
+        return interaction.reply({ content: 'No integrations configured.', flags: 64 });
     }
 
     const lines = guildSubs.map(s =>
@@ -144,6 +144,6 @@ async function handleList(interaction) {
             description: lines.join('\n'),
             footer: { text: `${guildSubs.length} subscription(s)` },
         }],
-        ephemeral: true,
+        flags: 64,
     });
 }

@@ -29,7 +29,7 @@ export default {
                         description: 'Dice notation is too long. Please use format like "2d6" or "1d20".',
                         timestamp: new Date().toISOString()
                     }],
-                    ephemeral: true
+                    flags: 64
                 });
             }
             
@@ -44,7 +44,7 @@ export default {
                         description: 'Please use dice notation (e.g., 2d6, 1d20). Maximum 10 dice with up to 100 sides each.',
                         timestamp: new Date().toISOString()
                     }],
-                    ephemeral: true
+                    flags: 64
                 });
             }
             
@@ -60,7 +60,7 @@ export default {
                         description: 'You must roll at least 1 die.',
                         timestamp: new Date().toISOString()
                     }],
-                    ephemeral: true
+                    flags: 64
                 });
             }
             
@@ -72,7 +72,7 @@ export default {
                         description: 'Dice must have at least 2 sides.',
                         timestamp: new Date().toISOString()
                     }],
-                    ephemeral: true
+                    flags: 64
                 });
             }
             
@@ -138,7 +138,7 @@ export default {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
         }
     }
 };

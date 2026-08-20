@@ -10,7 +10,7 @@ export default {
         if (!translationService) {
             await interaction.reply({
                 content: 'Translation service is not available.',
-                ephemeral: true
+                flags: 64
             });
             return;
         }
@@ -21,7 +21,7 @@ export default {
         if (!textToTranslate || textToTranslate.trim().length === 0) {
             await interaction.reply({
                 content: 'That message doesn\'t have any text to translate.',
-                ephemeral: true
+                flags: 64
             });
             return;
         }
@@ -50,7 +50,7 @@ export default {
 
             const targetLanguage = modalSubmit.fields.getTextInputValue('target_language').trim() || 'EN';
 
-            await modalSubmit.deferReply({ ephemeral: true });
+            await modalSubmit.deferReply({ flags: 64 });
 
             const translation = await translationService.translate(textToTranslate, targetLanguage);
 
@@ -72,7 +72,7 @@ export default {
                 errorMessage = 'Too many translation requests. Please wait a moment.';
             }
 
-            await interaction.followUp({ content: errorMessage, ephemeral: true });
+            await interaction.followUp({ content: errorMessage, flags: 64 });
         }
     }
 };

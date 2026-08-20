@@ -52,7 +52,7 @@ export default {
                     description: 'Please specify a valid user to mute.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             // Get the guild member using improved fetching
@@ -65,7 +65,7 @@ export default {
                     description: 'This user is not a member of the server.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             // Check if the member can be muted
@@ -76,7 +76,7 @@ export default {
                     description: 'I cannot mute this user. They may have higher permissions than me.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             // Check if the user is trying to mute themselves
@@ -87,7 +87,7 @@ export default {
                     description: 'You cannot mute yourself.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             // Hierarchy check
@@ -99,7 +99,7 @@ export default {
                     description: hierarchy.reason,
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             // Parse duration (supports: 1m, 1h, 1d, 1w)
@@ -115,7 +115,7 @@ export default {
                         description: 'Invalid duration format. Use: 1m (minutes), 1h (hours), 1d (days), 1w (weeks)',
                         timestamp: new Date().toISOString()
                     };
-                    return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                    return interaction.reply({ embeds: [errorEmbed], flags: 64 });
                 }
                 
                 const value = parseInt(match[1]);
@@ -150,7 +150,7 @@ export default {
                     description: 'Maximum mute duration is 28 days (4 weeks).',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             // Store user's current roles before muting (for restoration on unmute)
@@ -188,7 +188,7 @@ export default {
                             description: 'Could not find or create a "Muted" role. Please create it manually.',
                             timestamp: new Date().toISOString()
                         };
-                        return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                        return interaction.reply({ embeds: [errorEmbed], flags: 64 });
                     }
                 }
                 
@@ -281,7 +281,7 @@ export default {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
         }
     }

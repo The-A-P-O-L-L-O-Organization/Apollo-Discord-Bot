@@ -33,11 +33,11 @@ async function handleCreateTicket(interaction) {
     if (existingTicket) {
         return interaction.reply({
             content: `You already have an open ticket: <#${existingTicket.channelId}>`,
-            ephemeral: true
+            flags: 64
         });
     }
     
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: 64 });
     
     const botMember = interaction.guild.members?.me;
     if (!botMember?.permissions?.has?.(PermissionFlagsBits.ManageChannels)) {
@@ -169,7 +169,7 @@ async function handleCloseTicket(interaction) {
     if (ticketIndex === undefined || ticketIndex === -1) {
         return interaction.reply({
             content: 'This channel is not a ticket channel.',
-            ephemeral: true
+            flags: 64
         });
     }
     
@@ -183,7 +183,7 @@ async function handleCloseTicket(interaction) {
     if (!isTicketOwner && !hasSupport && !isAdmin) {
         return interaction.reply({
             content: 'You do not have permission to close this ticket.',
-            ephemeral: true
+            flags: 64
         });
     }
     

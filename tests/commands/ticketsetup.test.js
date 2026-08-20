@@ -149,7 +149,7 @@ describe('Ticket Setup Command', () => {
             expect(mockInteraction.reply).toHaveBeenCalled();
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('Ticket panel created');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
 
         it('should use custom title when provided', async() => {
@@ -192,7 +192,7 @@ describe('Ticket Setup Command', () => {
             expect(mockInteraction.reply).toHaveBeenCalled();
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('Failed to create the ticket panel');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
     });
 
@@ -219,7 +219,7 @@ describe('Ticket Setup Command', () => {
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('Ticket category set to');
             expect(replyCall.content).toContain('Support Tickets');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
     });
 
@@ -244,7 +244,7 @@ describe('Ticket Setup Command', () => {
             expect(mockInteraction.reply).toHaveBeenCalled();
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             expect(replyCall.content).toContain('Support role set to');
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
     });
 
@@ -336,7 +336,7 @@ describe('Ticket Setup Command', () => {
             await ticketsetupCommand.execute(mockInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0][0];
-            expect(replyCall.ephemeral).toBe(true);
+            expect(replyCall.flags).toBe(64);
         });
     });
 });

@@ -20,7 +20,7 @@ export default {
             if (!message) {
                 return interaction.reply({ 
                     content: '[ERROR] Could not find the message to report.',
-                    ephemeral: true 
+                    flags: 64 
                 });
             }
             
@@ -28,7 +28,7 @@ export default {
             if (message.author.id === interaction.user.id) {
                 return interaction.reply({
                     content: '[ERROR] You cannot report your own message.',
-                    ephemeral: true
+                    flags: 64
                 });
             }
             
@@ -73,7 +73,7 @@ export default {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
         }
     }
 };

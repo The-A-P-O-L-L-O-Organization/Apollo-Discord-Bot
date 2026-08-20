@@ -89,7 +89,7 @@ export default {
             if (templates.list.find(t => t.name.toLowerCase() === name.toLowerCase())) {
                 return interaction.reply({
                     content: `A template named **${name}** already exists. Delete it first to create a new one with this name.`,
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -122,7 +122,7 @@ export default {
                 )
                 .setTimestamp();
 
-            return interaction.reply({ embeds: [embed], ephemeral: true });
+            return interaction.reply({ embeds: [embed], flags: 64 });
 
         } else if (subcommand === 'delete') {
             const name = interaction.options.getString('name');
@@ -135,7 +135,7 @@ export default {
             if (templateIndex === -1) {
                 return interaction.reply({
                     content: `Template **${name}** not found.`,
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -149,7 +149,7 @@ export default {
 
             return interaction.reply({
                 content: `Template **${deletedTemplate.name}** has been deleted.`,
-                ephemeral: true
+                flags: 64
             });
 
         } else if (subcommand === 'list') {
@@ -158,7 +158,7 @@ export default {
             if (!templates.list || templates.list.length === 0) {
                 return interaction.reply({
                     content: 'No templates have been created yet. Use `/tickettemplate create` to create one.',
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -176,7 +176,7 @@ export default {
                 });
             });
 
-            return interaction.reply({ embeds: [embed], ephemeral: true });
+            return interaction.reply({ embeds: [embed], flags: 64 });
 
         } else if (subcommand === 'view') {
             const name = interaction.options.getString('name');
@@ -189,7 +189,7 @@ export default {
             if (!template) {
                 return interaction.reply({
                     content: `Template **${name}** not found.`,
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -204,7 +204,7 @@ export default {
                 )
                 .setTimestamp();
 
-            return interaction.reply({ embeds: [embed], ephemeral: true });
+            return interaction.reply({ embeds: [embed], flags: 64 });
         }
     }
 };

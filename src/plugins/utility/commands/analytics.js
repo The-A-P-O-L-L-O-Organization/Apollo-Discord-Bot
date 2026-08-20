@@ -586,7 +586,7 @@ async function handleUserStats(interaction) {
  * Handles analytics export
  */
 async function handleExport(interaction) {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: 64 });
     
     const format = interaction.options.getString('format');
     const days = interaction.options.getInteger('days') || 30;

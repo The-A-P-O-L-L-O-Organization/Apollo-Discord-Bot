@@ -100,13 +100,13 @@ export default {
 
                 return interaction.reply({
                     content: `Ticket panel created in ${channel}!`,
-                    ephemeral: true
+                    flags: 64
                 });
             } catch (error) {
                 console.error('[ERROR] Failed to create ticket panel:', error);
                 return interaction.reply({
                     content: 'Failed to create the ticket panel. Make sure I have permission to send messages in that channel.',
-                    ephemeral: true
+                    flags: 64
                 });
             }
 
@@ -120,7 +120,7 @@ export default {
 
             return interaction.reply({
                 content: `Ticket category set to **${category.name}**. New tickets will be created in this category.`,
-                ephemeral: true
+                flags: 64
             });
 
         } else if (subcommand === 'supportrole') {
@@ -133,7 +133,7 @@ export default {
 
             return interaction.reply({
                 content: `Support role set to ${role}. Members with this role can see all tickets.`,
-                ephemeral: true
+                flags: 64
             });
 
         } else if (subcommand === 'status') {
@@ -179,7 +179,7 @@ export default {
                 { name: 'Ticket Panel', value: panelStatus, inline: false }
             );
 
-            return interaction.reply({ embeds: [embed], ephemeral: true });
+            return interaction.reply({ embeds: [embed], flags: 64 });
         }
     }
 };

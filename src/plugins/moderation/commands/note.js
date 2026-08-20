@@ -79,7 +79,7 @@ export default {
                     description: 'Please specify a valid user.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
             
             if (subcommand === 'add') {
@@ -110,7 +110,7 @@ export default {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
         }
     }
@@ -158,7 +158,7 @@ async function handleAddNote(interaction, user) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+    await interaction.reply({ embeds: [successEmbed], flags: 64 });
     
     // Log the action
     console.log(`[MODERATION] Note added for user ${user.tag} by ${interaction.user.tag}. Note ID: ${note.id}`);
@@ -175,7 +175,7 @@ async function handleViewNotes(interaction, user) {
             description: `No notes found for ${user.tag}.`,
             timestamp: new Date().toISOString()
         };
-        return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed], flags: 64 });
     }
     
     // Sort notes by timestamp (newest first)
@@ -197,7 +197,7 @@ async function handleViewNotes(interaction, user) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [notesEmbed], ephemeral: true });
+    await interaction.reply({ embeds: [notesEmbed], flags: 64 });
 }
 
 async function handleRemoveNote(interaction, user) {
@@ -216,7 +216,7 @@ async function handleRemoveNote(interaction, user) {
             description: `No note with ID \`${noteId}\` found for ${user.tag}.`,
             timestamp: new Date().toISOString()
         };
-        return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed], flags: 64 });
     }
     
     // Remove note
@@ -253,7 +253,7 @@ async function handleRemoveNote(interaction, user) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+    await interaction.reply({ embeds: [successEmbed], flags: 64 });
     
     // Log the action
     console.log(`[MODERATION] Note ${noteId} removed for user ${user.tag} by ${interaction.user.tag}`);

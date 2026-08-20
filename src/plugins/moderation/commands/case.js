@@ -148,7 +148,7 @@ export default {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
         }
     }
@@ -169,7 +169,7 @@ async function handleViewCase(interaction) {
             description: `No case with ID #${caseId} found.`,
             timestamp: new Date().toISOString()
         };
-        return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed], flags: 64 });
     }
     
     // Get action colors
@@ -236,7 +236,7 @@ async function handleViewCase(interaction) {
         });
     }
     
-    await interaction.reply({ embeds: [caseEmbed], ephemeral: true });
+    await interaction.reply({ embeds: [caseEmbed], flags: 64 });
 }
 
 async function handleSearchCases(interaction) {
@@ -262,7 +262,7 @@ async function handleSearchCases(interaction) {
             description: `No ${typeFilter ? typeFilter + ' ' : ''}cases found for ${user.tag}.`,
             timestamp: new Date().toISOString()
         };
-        return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed], flags: 64 });
     }
     
     // Sort by newest first
@@ -284,7 +284,7 @@ async function handleSearchCases(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [casesEmbed], ephemeral: true });
+    await interaction.reply({ embeds: [casesEmbed], flags: 64 });
 }
 
 async function handleEditCase(interaction) {
@@ -324,7 +324,7 @@ async function handleEditCase(interaction) {
             description: `No case with ID #${caseId} found.`,
             timestamp: new Date().toISOString()
         };
-        return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed], flags: 64 });
     }
     
     if (result.error === 'deleted') {
@@ -334,7 +334,7 @@ async function handleEditCase(interaction) {
             description: `Case #${caseId} has been deleted and cannot be edited.`,
             timestamp: new Date().toISOString()
         };
-        return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed], flags: 64 });
     }
     
     // Create success embed
@@ -362,7 +362,7 @@ async function handleEditCase(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+    await interaction.reply({ embeds: [successEmbed], flags: 64 });
     
     // Log the action
     console.log(`[MODERATION] Case #${caseId} edited by ${interaction.user.tag}`);
@@ -402,7 +402,7 @@ async function handleDeleteCase(interaction) {
             description: `No case with ID #${caseId} found.`,
             timestamp: new Date().toISOString()
         };
-        return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed], flags: 64 });
     }
     
     if (result.error === 'already_deleted') {
@@ -412,7 +412,7 @@ async function handleDeleteCase(interaction) {
             description: `Case #${caseId} has already been deleted.`,
             timestamp: new Date().toISOString()
         };
-        return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed], flags: 64 });
     }
     
     // Create success embed
@@ -440,7 +440,7 @@ async function handleDeleteCase(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+    await interaction.reply({ embeds: [successEmbed], flags: 64 });
     
     // Log the action
     console.log(`[MODERATION] Case #${caseId} deleted by ${interaction.user.tag}. Reason: ${reason}`);
@@ -463,7 +463,7 @@ async function handleListCases(interaction) {
             description: 'No active cases found for this server.',
             timestamp: new Date().toISOString()
         };
-        return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        return interaction.reply({ embeds: [errorEmbed], flags: 64 });
     }
     
     // Sort by newest first
@@ -485,7 +485,7 @@ async function handleListCases(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [casesEmbed], ephemeral: true });
+    await interaction.reply({ embeds: [casesEmbed], flags: 64 });
 }
 
 /**

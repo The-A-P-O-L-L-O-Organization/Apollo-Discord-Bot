@@ -41,7 +41,7 @@ export default {
                         description: 'Please specify a valid user.',
                         timestamp: new Date().toISOString()
                     }],
-                    ephemeral: true
+                    flags: 64
                 });
             }
             
@@ -56,7 +56,7 @@ export default {
                         description: `${user.tag} has no strikes to clear.`,
                         timestamp: new Date().toISOString()
                     }],
-                    ephemeral: true
+                    flags: 64
                 });
             }
             
@@ -75,7 +75,7 @@ export default {
                             description: `Strike with ID ${strikeId} not found.`,
                             timestamp: new Date().toISOString()
                         }],
-                        ephemeral: true
+                        flags: 64
                     });
                 }
                 
@@ -138,7 +138,7 @@ export default {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
         }
     }
