@@ -21,8 +21,10 @@ export async function createQueue(name, queueConfig = config.queue) {
         q = new Queue(name, {
             connection: conn,
             defaultJobOptions: {
+                attempts: 3,
+                backoff: { type: 'exponential', delay: 1000 },
                 removeOnComplete: { age: 3600 },
-                removeOnFail: { age: 86400 }
+                removeOnFail: { age: 86400, count: 1000 }
             }
         });
     } else {

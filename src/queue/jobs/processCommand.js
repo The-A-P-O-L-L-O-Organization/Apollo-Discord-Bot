@@ -35,8 +35,8 @@ export async function enqueueCommand(interaction) {
 
   const queue = await createQueue(config.queue.prefix);
   const job = await queue.add(JobNames.PROCESS_COMMAND, data, {
-    removeOnComplete: { age: 3600 },
-    removeOnFail: { age: 86400 },
+    jobId: interaction.id,
+    deduplication: { id: interaction.id, ttl: 300000 },
   });
 
   return job;
