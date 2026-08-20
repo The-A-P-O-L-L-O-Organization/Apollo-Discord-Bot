@@ -343,6 +343,9 @@ if (RUN_MODE === 'worker') {
 
     process.on('unhandledRejection', (error) => {
         console.error('[ERROR] Unhandled promise rejection:', error);
+        if (process.env.NODE_ENV === 'production') {
+            process.exit(1);
+        }
     });
 
     process.on('uncaughtException', (error) => {
