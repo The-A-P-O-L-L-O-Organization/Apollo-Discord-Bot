@@ -56,7 +56,8 @@ export default {
         try {
             // Per-user violation cooldown (prevent spam)
             const violationCooldownKey = `automod_violation_${message.guild.id}_${message.author.id}`;
-            const lastViolation = await getUserData(violationCooldownKey, message.guild.id, message.author.id);
+            const violations = await getUserData(violationCooldownKey, message.guild.id, message.author.id);
+            const lastViolation = Array.isArray(violations) && violations.length > 0 ? violations[violations.length - 1] : violations;
             if (lastViolation && Date.now() - lastViolation < 5000) {
                 return; // Skip if user had violation in last 5 seconds
             }
@@ -139,15 +140,14 @@ export default {
                 if (config.automod.useRedisSpamTracking) {
                     const redis = await getLockRedis();
                     if (redis) {
-                        await trackMessageRedis(message.guild.id, message.author.id, Date.now());
-                        isSpam = await checkSpamRedis(message.guild.id, message.author.id, cfg.spamThreshold, cfg.spamInterval, Date.now());
+                        isSpam = await checkSpam(message, cfg.spamThreshold, cfg.spamInterval, true);
                     } else {
                         // Fallback to in-memory
-                        isSpam = checkSpam(message, cfg.spamThreshold, cfg.spamInterval);
+                        isSpam = checkSpam(message, cfg.spamThreshold, cfg.spamInterval, false);
                     }
                 } else {
                     // Use in-memory detection
-                    isSpam = checkSpam(message, cfg.spamThreshold, cfg.spamInterval);
+                    isSpam = checkSpam(message, cfg.spamThreshold, cfg.spamInterval, false);
                 }
                 
                 if (isSpam) {

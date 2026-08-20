@@ -27,11 +27,12 @@ describe('Automod Redis spam tracking', () => {
     it('should track messages via redis sorted sets', async() => {
         const { trackMessageRedis, checkSpamRedis } = await import('../../src/utils/automod.js');
         
-        await trackMessageRedis('guild-1', 'user-1', Date.now());
+        await trackMessageRedis('guild-1', 'user-1', Date.now(), 5000);
         const isSpam = await checkSpamRedis('guild-1', 'user-1', 5, 5000, Date.now());
 
         expect(mockRedis.zadd).toHaveBeenCalled();
-        expect(mockRedis.expire).toHaveBeenCalledWith(expect.stringContaining('apollo:spam:guild-1:user-1'), 60);
+        // TTL = interval (5000ms) + 60000ms buffer = 65000ms = 65 seconds
+        expect(mockRedis.expire).toHaveBeenCalledWith(expect.stringContaining('apollo:spam:guild-1:user-1'), 65);
         expect(mockRedis.zcount).toHaveBeenCalled();
         expect(isSpam).toBe(false);
     });

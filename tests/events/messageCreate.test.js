@@ -374,7 +374,7 @@ describe('MessageCreate Event', () => {
             
             await messageCreateEvent.execute(mockMessage, mockClient);
             
-            expect(checkSpam).toHaveBeenCalledWith(mockMessage, 5, 5000);
+            expect(checkSpam).toHaveBeenCalledWith(mockMessage, 5, 5000, false);
         });
 
         it('should not check spam when threshold is 0', async() => {

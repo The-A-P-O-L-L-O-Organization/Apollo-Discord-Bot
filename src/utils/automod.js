@@ -35,14 +35,17 @@ async function getSpamRedis() {
  * @param {string} guildId - Guild ID
  * @param {string} userId - User ID
  * @param {number} timestamp - Message timestamp
+ * @param {number} intervalMs - Time interval in ms (for TTL calculation)
  */
-export async function trackMessageRedis(guildId, userId, timestamp) {
+export async function trackMessageRedis(guildId, userId, timestamp, intervalMs = 60000) {
     const redis = await getSpamRedis();
     if (!redis) {return;}
 
     const key = `${SPAM_KEY_PREFIX}${guildId}:${userId}`;
     await redis.zadd(key, timestamp, `${timestamp}:${userId}`);
-    await redis.expire(key, 60); // 1 minute TTL
+    // TTL = interval + 60s buffer to ensure key survives the check window
+    const ttlSeconds = Math.ceil((intervalMs + 60000) / 1000);
+    await redis.expire(key, ttlSeconds);
 }
 
 /**
@@ -279,18 +282,21 @@ export function checkCapsSpam(content, maxPercent, minLength = 10) {
  * @param {Message} message - The Discord message
  * @param {number} threshold - Max messages in interval
  * @param {number} interval - Time interval in ms
+ * @param {boolean} useRedis - Whether to use Redis (respects config flag)
  * @returns {Promise<boolean>} Whether spam was detected
  */
-export async function checkSpam(message, threshold, interval) {
+export async function checkSpam(message, threshold, interval, useRedis = false) {
     const guildId = message.guild.id;
     const userId = message.author.id;
     const now = Date.now();
     
-    // Try Redis first
-    const redis = await getSpamRedis();
-    if (redis) {
-        await trackMessageRedis(guildId, userId, now);
-        return checkSpamRedis(guildId, userId, threshold, interval, now);
+    // Try Redis first (only if explicitly requested)
+    if (useRedis) {
+        const redis = await getSpamRedis();
+        if (redis) {
+            await trackMessageRedis(guildId, userId, now, interval);
+            return checkSpamRedis(guildId, userId, threshold, interval, now);
+        }
     }
     
     // Fallback to in-memory
