@@ -27,6 +27,7 @@ import {
 } from '../../../utils/exportAnalytics.js';
 import { getGuildData, getUserData } from '../../../utils/db.js';
 import { readFileSync } from 'fs';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -132,23 +133,34 @@ export default {
     category: 'analytics',
 
     async execute(interaction) {
-        const subcommand = interaction.options.getSubcommand();
+        try {
+            const subcommand = interaction.options.getSubcommand();
 
-        switch (subcommand) {
-        case 'server':
-            return handleServerStats(interaction);
-        case 'commands':
-            return handleCommandStats(interaction);
-        case 'activity':
-            return handleActivityStats(interaction);
-        case 'moderation':
-            return handleModerationStats(interaction);
-        case 'user':
-            return handleUserStats(interaction);
-        case 'export':
-            return handleExport(interaction);
+            switch (subcommand) {
+            case 'server':
+                return handleServerStats(interaction);
+            case 'commands':
+                return handleCommandStats(interaction);
+            case 'activity':
+                return handleActivityStats(interaction);
+            case 'moderation':
+                return handleModerationStats(interaction);
+            case 'user':
+                return handleUserStats(interaction);
+            case 'export':
+                return handleExport(interaction);
+            }
+        
+        } catch (error) {
+            const errorMessage = handleDiscordError(error);
+            if (interaction.replied || interaction.deferred) {
+                await safeFollowUp(interaction, errorMessage);
+            } else {
+                await safeReply(interaction, errorMessage);
+            }
         }
     }
+
 };
 
 /**

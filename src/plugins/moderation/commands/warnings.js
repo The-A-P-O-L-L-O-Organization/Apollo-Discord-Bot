@@ -3,6 +3,7 @@
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { getUserData } from '../../../utils/db.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
     name: 'warnings',
@@ -28,8 +29,9 @@ export default {
     
     async execute(interaction) {
         try {
-            const user = interaction.options.getUser('user');
-            const showInactive = interaction.options.getBoolean('show-inactive') || false;
+            try {
+                const user = interaction.options.getUser('user');
+                const showInactive = interaction.options.getBoolean('show-inactive') || false;
             
             // Check if user exists
             if (!user) {
@@ -143,6 +145,15 @@ export default {
                 }],
                 flags: 64
             });
+        }
+    
+} catch (error) {
+            const errorMessage = handleDiscordError(error);
+            if (interaction.replied || interaction.deferred) {
+                await safeFollowUp(interaction, errorMessage);
+            } else {
+                await safeReply(interaction, errorMessage);
+            }
         }
     }
 };

@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
     name: 'ticketsetup',
@@ -62,10 +63,11 @@ export default {
     category: 'admin',
 
     async execute(interaction) {
-        const subcommand = interaction.options.getSubcommand();
-        const guildId = interaction.guild.id;
+        try {
+            const subcommand = interaction.options.getSubcommand();
+            const guildId = interaction.guild.id;
 
-        if (subcommand === 'panel') {
+            if (subcommand === 'panel') {
             const channel = interaction.options.getChannel('channel');
             const title = interaction.options.getString('title') || 'Support Tickets';
             const description = interaction.options.getString('description') || 
@@ -181,5 +183,14 @@ export default {
 
             return interaction.reply({ embeds: [embed], flags: 64 });
         }
+    
+    } catch (error) {
+        const errorMessage = handleDiscordError(error);
+        if (interaction.replied || interaction.deferred) {
+            await safeFollowUp(interaction, errorMessage);
+        } else {
+            await safeReply(interaction, errorMessage);
+        }
     }
+}
 };

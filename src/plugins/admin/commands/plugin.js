@@ -1,5 +1,6 @@
 import { safeError } from '../../../utils/safeError.js';
 import { requireOwner } from '../../../utils/accessControl.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
     name: 'plugin',
@@ -109,16 +110,17 @@ export default {
     ],
 
     async execute(interaction) {
-        await interaction.deferReply({ flags: 64 });
-        const denial = await requireOwner(interaction);
-        if (denial) {
-            return interaction.editReply(denial);
-        }
+        try {
+            await interaction.deferReply({ flags: 64 });
+            const denial = await requireOwner(interaction);
+            if (denial) {
+                return interaction.editReply(denial);
+            }
 
-        const subcommand = interaction.options.getSubcommand();
-        const manager = interaction.client.manager;
+            const subcommand = interaction.options.getSubcommand();
+            const manager = interaction.client.manager;
 
-        switch (subcommand) {
+            switch (subcommand) {
             case 'list': {
                 const plugins = manager.listPlugins();
                 const discovered = manager.scanPlugins();
@@ -347,5 +349,14 @@ export default {
                 }
             }
         }
+    
+} catch (error) {
+        const errorMessage = handleDiscordError(error);
+        if (interaction.replied || interaction.deferred) {
+            await safeFollowUp(interaction, errorMessage);
+        } else {
+            await safeReply(interaction, errorMessage);
+        }
     }
+}
 };

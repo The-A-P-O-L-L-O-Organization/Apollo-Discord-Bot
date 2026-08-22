@@ -12,13 +12,16 @@ import {
 } from 'discord.js';
 import { generateId, appendToGuildArray } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
     data: new ContextMenuCommandBuilder()
         .setName('Report Message')
         .setType(ApplicationCommandType.Message),
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             // Get the target message
             const message = interaction.targetMessage;
@@ -178,5 +181,21 @@ export default {
                 await interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

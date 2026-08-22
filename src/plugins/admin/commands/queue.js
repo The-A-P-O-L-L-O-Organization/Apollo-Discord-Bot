@@ -1,6 +1,7 @@
 import { config } from '../../../config/config.js';
 import { getQueueMetrics } from '../../../queue/metrics.js';
 import { requireOwner } from '../../../utils/accessControl.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
     name: 'queue',
@@ -10,7 +11,9 @@ export default {
     canQueue: false,
     options: [],
 
-  async execute(interaction) {
+  async execute(interaction) {try {
+try {
+
     const denial = await requireOwner(interaction);
     if (denial) {
       return interaction.reply(denial);
@@ -47,5 +50,21 @@ export default {
         timestamp: new Date().toISOString()
       }]
     });
+  
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
   }
 };

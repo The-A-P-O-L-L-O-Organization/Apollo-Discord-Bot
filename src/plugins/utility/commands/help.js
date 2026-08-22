@@ -2,6 +2,7 @@
 // Dynamically displays all available commands with descriptions and usage
 
 import { EmbedBuilder, PermissionsBitField } from 'discord.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 // Map permission flags to human-readable names
 const permissionNames = {
@@ -44,7 +45,8 @@ export default {
     category: 'Utility',
     
     async execute(interaction) {
-        // Get all commands from the client
+        try {
+            // Get all commands from the client
         const commands = interaction.client.commands;
         
         // Group commands by category
@@ -131,5 +133,14 @@ export default {
         await interaction.reply({ embeds: [helpEmbed], ephemeral: false });
         
         console.log(`[SUCCESS] Help command executed by ${interaction.user.tag}`);
+    
+    } catch (error) {
+        const errorMessage = handleDiscordError(error);
+        if (interaction.replied || interaction.deferred) {
+            await safeFollowUp(interaction, errorMessage);
+        } else {
+            await safeReply(interaction, errorMessage);
+        }
     }
+}
 };

@@ -5,6 +5,7 @@ import { PermissionsBitField } from 'discord.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { createModCase } from './case.js';
 import { removeTempban } from '../../../utils/tempbanScheduler.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
     name: 'unban',
@@ -30,9 +31,10 @@ export default {
     
     async execute(interaction) {
         try {
-            // Get the user ID to unban
-            const userId = interaction.options.getString('user-id');
-            const reason = interaction.options.getString('reason') || 'No reason provided';
+            try {
+                // Get the user ID to unban
+                const userId = interaction.options.getString('user-id');
+                const reason = interaction.options.getString('reason') || 'No reason provided';
             
             // Check if user ID is provided
             if (!userId) {
@@ -161,6 +163,15 @@ export default {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
                 await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            }
+        }
+    
+} catch (error) {
+            const errorMessage = handleDiscordError(error);
+            if (interaction.replied || interaction.deferred) {
+                await safeFollowUp(interaction, errorMessage);
+            } else {
+                await safeReply(interaction, errorMessage);
             }
         }
     }

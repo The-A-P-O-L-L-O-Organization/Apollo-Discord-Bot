@@ -2,6 +2,7 @@ import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
 import { saveTranscripts } from '../../../utils/transcriptGenerator.js';
 import { clearSlaAlert } from '../../../plugins/tickets/events/slaMonitor.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
     name: 'closeticket',
@@ -18,34 +19,35 @@ export default {
     category: 'utility',
 
     async execute(interaction) {
-        const guildId = interaction.guild.id;
-        const channelId = interaction.channel.id;
-        const reason = interaction.options.getString('reason') || 'No reason provided';
+        try {
+            const guildId = interaction.guild.id;
+            const channelId = interaction.channel.id;
+            const reason = interaction.options.getString('reason') || 'No reason provided';
 
-        const ticketConfig = await getGuildData('tickets', guildId);
+            const ticketConfig = await getGuildData('tickets', guildId);
 
-        const ticketIndex = ticketConfig.openTickets?.findIndex(t => t.channelId === channelId);
-        
-        if (ticketIndex === -1 || ticketIndex === undefined) {
-            return interaction.reply({
-                content: 'This channel is not a ticket channel.',
-                flags: 64
-            });
-        }
+            const ticketIndex = ticketConfig.openTickets?.findIndex(t => t.channelId === channelId);
+            
+            if (ticketIndex === -1 || ticketIndex === undefined) {
+                return interaction.reply({
+                    content: 'This channel is not a ticket channel.',
+                    flags: 64
+                });
+            }
 
-        const ticket = ticketConfig.openTickets[ticketIndex];
+            const ticket = ticketConfig.openTickets[ticketIndex];
 
-        const member = interaction.member;
-        const isTicketOwner = ticket.userId === interaction.user.id;
-        const hasSupport = ticketConfig.supportRoleId && member.roles.cache.has(ticketConfig.supportRoleId);
-        const isAdmin = member.permissions.has(PermissionFlagsBits.Administrator);
+            const member = interaction.member;
+            const isTicketOwner = ticket.userId === interaction.user.id;
+            const hasSupport = ticketConfig.supportRoleId && member.roles.cache.has(ticketConfig.supportRoleId);
+            const isAdmin = member.permissions.has(PermissionFlagsBits.Administrator);
 
-        if (!isTicketOwner && !hasSupport && !isAdmin) {
-            return interaction.reply({
-                content: 'You do not have permission to close this ticket.',
-                flags: 64
-            });
-        }
+            if (!isTicketOwner && !hasSupport && !isAdmin) {
+                return interaction.reply({
+                    content: 'You do not have permission to close this ticket.',
+                    flags: 64
+                });
+            }
 
         await interaction.reply({
             content: 'Closing ticket and saving transcript...',
@@ -180,5 +182,14 @@ export default {
                 console.error('[ERROR] Failed to delete ticket channel:', error);
             }
         }, 3000);
+    
+        } catch (error) {
+            const errorMessage = handleDiscordError(error);
+            if (interaction.replied || interaction.deferred) {
+                await safeFollowUp(interaction, errorMessage);
+            } else {
+                await safeReply(interaction, errorMessage);
+            }
+        }
     }
 };

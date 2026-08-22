@@ -4,6 +4,7 @@ import MessageBus from '../messageBus.js';
 import { generateApiKey } from '../auth.js';
 import { safeError } from '../../../utils/safeError.js';
 import { isOwner, getOwnerIds } from '../../../utils/accessControl.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 const SEND_CONFIG = { requestTimeout: 5000, maxRetries: 3 };
 
@@ -93,47 +94,57 @@ export default {
     ],
 
     async execute(interaction) {
-        await interaction.deferReply({ flags: 64 });
-
-        if (!isOwner(interaction.user.id)) {
-            return interaction.editReply({
-                embeds: [{
-                    color: 0xFF0000,
-                    title: '[ERROR] Access Denied',
-                    description: 'Only bot owners can use this command.'
-                }]
-            });
-        }
-
-        const sub = interaction.options.getSubcommand();
-
         try {
-            switch (sub) {
-                case 'list':
-                    return await this._list(interaction);
-                case 'register':
-                    return await this._register(interaction);
-                case 'remove':
-                    return await this._remove(interaction);
-                case 'send':
-                    return await this._send(interaction);
-                case 'broadcast':
-                    return await this._broadcast(interaction);
-                case 'rotate-key':
-                    return await this._rotateKey(interaction);
-                case 'override':
-                    return await this._override(interaction);
-                default:
-                    return interaction.editReply({ embeds: [{ color: 0xFF0000, title: '[ERROR] Unknown subcommand' }] });
+            await interaction.deferReply({ flags: 64 });
+
+            if (!isOwner(interaction.user.id)) {
+                return interaction.editReply({
+                    embeds: [{
+                        color: 0xFF0000,
+                        title: '[ERROR] Access Denied',
+                        description: 'Only bot owners can use this command.'
+                    }]
+                });
             }
-        } catch (err) {
-            return interaction.editReply({
-                embeds: [{
-                    color: 0xFF0000,
-                    title: '[ERROR] Command Failed',
-                    description: safeError(err)
-                }]
-            });
+
+            const sub = interaction.options.getSubcommand();
+
+            try {
+                switch (sub) {
+                    case 'list':
+                        return await this._list(interaction);
+                    case 'register':
+                        return await this._register(interaction);
+                    case 'remove':
+                        return await this._remove(interaction);
+                    case 'send':
+                        return await this._send(interaction);
+                    case 'broadcast':
+                        return await this._broadcast(interaction);
+                    case 'rotate-key':
+                        return await this._rotateKey(interaction);
+                    case 'override':
+                        return await this._override(interaction);
+                    default:
+                        return interaction.editReply({ embeds: [{ color: 0xFF0000, title: '[ERROR] Unknown subcommand' }] });
+                }
+            } catch (err) {
+                return interaction.editReply({
+                    embeds: [{
+                        color: 0xFF0000,
+                        title: '[ERROR] Command Failed',
+                        description: safeError(err)
+                    }]
+                });
+            }
+    
+        } catch (error) {
+            const errorMessage = handleDiscordError(error);
+            if (interaction.replied || interaction.deferred) {
+                await safeFollowUp(interaction, errorMessage);
+            } else {
+                await safeReply(interaction, errorMessage);
+            }
         }
     },
 

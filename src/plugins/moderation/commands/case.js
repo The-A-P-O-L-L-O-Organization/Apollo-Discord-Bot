@@ -3,6 +3,7 @@
 
 import { PermissionsBitField } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
     name: 'case',

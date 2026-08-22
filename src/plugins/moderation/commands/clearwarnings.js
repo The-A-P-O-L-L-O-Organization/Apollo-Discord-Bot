@@ -7,6 +7,7 @@ import {
     setUserData
 } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
     name: 'clearwarnings',

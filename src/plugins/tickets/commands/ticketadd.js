@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
     name: 'ticketadd',
@@ -15,7 +16,9 @@ export default {
         .setDMPermission(false),
     category: 'utility',
 
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         const guildId = interaction.guild.id;
         const channelId = interaction.channel.id;
         const addUser = interaction.options.getUser('user');
@@ -106,5 +109,21 @@ export default {
             await addUser.send({ embeds: [dmEmbed] });
         } catch (error) {
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

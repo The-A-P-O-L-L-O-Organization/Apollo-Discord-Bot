@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { getGuildData } from '../../../utils/db.js';
 import { formatTime, getPriorityColor, getPriorityEmoji } from '../../../utils/slaTracker.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
     name: 'ticketinfo',
@@ -17,7 +18,9 @@ export default {
         .setDMPermission(false),
     category: 'utility',
 
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         const guildId = interaction.guild.id;
         const channelId = interaction.channel.id;
         const ticketNumber = interaction.options.getInteger('number');
@@ -172,5 +175,21 @@ export default {
         }
 
         return interaction.reply({ embeds: [embed], flags: 64 });
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

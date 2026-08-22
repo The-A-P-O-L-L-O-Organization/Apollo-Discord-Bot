@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
 import { getAllGuildData, setGuildData, getUserData, setUserData } from '../../../utils/db.js';
 import { logSecurityEvent } from '../../../utils/securityLog.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 const GUILD_ARRAY_STORES = {
     warnings: { key: 'warnings', match: (item, userId) => item.userId === userId },
@@ -115,34 +116,35 @@ export default {
     dmPermission: true,
 
     async execute(interaction) {
-        const userId = interaction.user.id;
+        try {
+            const userId = interaction.user.id;
 
-        const confirmEmbed = new EmbedBuilder()
-            .setColor(0xFF0000)
-            .setTitle('Data Deletion Request')
-            .setDescription(
-                'This will permanently delete all data the bot has stored about you across all servers, including:\n'
-                + '- Warnings, strikes, and moderator notes\n'
-                + '- XP, level, and message counts\n'
-                + '- Reminders, polls, giveaways, and tags you created\n'
-                + '- Tickets you opened or participated in\n\n'
-                + '**This action is permanent and cannot be undone.**\n'
-                + 'Discord message logs in channels are not affected (those belong to Discord, not this bot).'
-            )
-            .setFooter({ text: 'You can also contact the bot operator directly to request deletion.' })
-            .setTimestamp();
+            const confirmEmbed = new EmbedBuilder()
+                .setColor(0xFF0000)
+                .setTitle('Data Deletion Request')
+                .setDescription(
+                    'This will permanently delete all data the bot has stored about you across all servers, including:\n'
+                    + '- Warnings, strikes, and moderator notes\n'
+                    + '- XP, level, and message counts\n'
+                    + '- Reminders, polls, giveaways, and tags you created\n'
+                    + '- Tickets you opened or participated in\n\n'
+                    + '**This action is permanent and cannot be undone.**\n'
+                    + 'Discord message logs in channels are not affected (those belong to Discord, not this bot).'
+                )
+                .setFooter({ text: 'You can also contact the bot operator directly to request deletion.' })
+                .setTimestamp();
 
-        const row = new ActionRowBuilder()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId('data_deletion_accept')
-                    .setLabel('Delete My Data')
-                    .setStyle(ButtonStyle.Danger),
-                new ButtonBuilder()
-                    .setCustomId('data_deletion_cancel')
-                    .setLabel('Cancel')
-                    .setStyle(ButtonStyle.Secondary)
-            );
+            const row = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId('data_deletion_accept')
+                        .setLabel('Delete My Data')
+                        .setStyle(ButtonStyle.Danger),
+                    new ButtonBuilder()
+                        .setCustomId('data_deletion_cancel')
+                        .setLabel('Cancel')
+                        .setStyle(ButtonStyle.Secondary)
+                );
 
         await interaction.reply({
             embeds: [confirmEmbed],
@@ -220,5 +222,14 @@ export default {
         } catch {
             // user may have DMs disabled
         }
+
+    } catch (error) {
+        const errorMessage = handleDiscordError(error);
+        if (interaction.replied || interaction.deferred) {
+            await safeFollowUp(interaction, errorMessage);
+        } else {
+            await safeReply(interaction, errorMessage);
+        }
     }
+}
 };

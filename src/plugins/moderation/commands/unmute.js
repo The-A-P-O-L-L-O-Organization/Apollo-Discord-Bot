@@ -4,6 +4,7 @@
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { getUserData, setUserData } from '../../../utils/db.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
     name: 'unmute',
@@ -29,9 +30,10 @@ export default {
     
     async execute(interaction) {
         try {
-            // Get the user to unmute
-            const user = interaction.options.getUser('user');
-            const reason = interaction.options.getString('reason') || 'No reason provided';
+            try {
+                // Get the user to unmute
+                const user = interaction.options.getUser('user');
+                const reason = interaction.options.getString('reason') || 'No reason provided';
             
             // Check if user exists
             if (!user) {
@@ -189,6 +191,15 @@ export default {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
                 await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            }
+        }
+    
+} catch (error) {
+            const errorMessage = handleDiscordError(error);
+            if (interaction.replied || interaction.deferred) {
+                await safeFollowUp(interaction, errorMessage);
+            } else {
+                await safeReply(interaction, errorMessage);
             }
         }
     }

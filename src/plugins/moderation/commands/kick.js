@@ -7,6 +7,7 @@ import { createModCase } from './case.js';
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 import { canModerate } from '../../../utils/moderation.js';
 import { safeError } from '../../../utils/safeError.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
     name: 'kick',
@@ -32,9 +33,10 @@ export default {
     
     async execute(interaction) {
         try {
-            // Get the user to kick
-            const user = interaction.options.getUser('user');
-            const reason = interaction.options.getString('reason') || 'No reason provided';
+            try {
+                // Get the user to kick
+                const user = interaction.options.getUser('user');
+                const reason = interaction.options.getString('reason') || 'No reason provided';
             
             // Check if user exists
             if (!user) {
@@ -176,6 +178,15 @@ export default {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
                 await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            }
+        }
+    
+        } catch (error) {
+            const errorMessage = handleDiscordError(error);
+            if (interaction.replied || interaction.deferred) {
+                await safeFollowUp(interaction, errorMessage);
+            } else {
+                await safeReply(interaction, errorMessage);
             }
         }
     }

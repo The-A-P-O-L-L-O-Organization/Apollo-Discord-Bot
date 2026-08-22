@@ -3,6 +3,7 @@ import { getDb, runMigrations } from '../../../db/knex.js';
 import { safeError } from '../../../utils/safeError.js';
 import { requireOwner } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
     name: 'migrate',
@@ -23,7 +24,9 @@ export default {
     },
   ],
 
-async execute(interaction) {
+async execute(interaction) {try {
+try {
+
      try {
        const denial = await requireOwner(interaction);
        if (denial) {
@@ -88,5 +91,21 @@ async execute(interaction) {
          await safeReply(interaction, userMessage);
        }
      }
-   }
+   
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

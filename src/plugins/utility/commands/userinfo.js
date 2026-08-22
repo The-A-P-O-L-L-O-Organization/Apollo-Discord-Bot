@@ -2,6 +2,7 @@
 // Displays detailed information about a user
 
 import { EmbedBuilder } from 'discord.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
     name: 'userinfo',
@@ -18,10 +19,11 @@ export default {
     ],
     
     async execute(interaction) {
-        // Get the target user (mention or self)
-        const targetUser = interaction.options.getUser('user') || interaction.user;
-        const member = interaction.guild.members.cache.get(targetUser.id) || 
-                      await interaction.guild.members.fetch(targetUser.id);
+        try {
+            // Get the target user (mention or self)
+            const targetUser = interaction.options.getUser('user') || interaction.user;
+            const member = interaction.guild.members.cache.get(targetUser.id) || 
+                          await interaction.guild.members.fetch(targetUser.id);
         
         if (!member) {
             await interaction.reply({
@@ -132,6 +134,15 @@ export default {
         await interaction.reply({ embeds: [userInfoEmbed] });
         
         console.log(`[SUCCESS] Userinfo command executed by ${interaction.user.tag} for ${targetUser.tag}`);
+    
+    } catch (error) {
+        const errorMessage = handleDiscordError(error);
+        if (interaction.replied || interaction.deferred) {
+            await safeFollowUp(interaction, errorMessage);
+        } else {
+            await safeReply(interaction, errorMessage);
+        }
     }
+}
 };
 

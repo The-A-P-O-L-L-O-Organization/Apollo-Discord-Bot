@@ -1,6 +1,7 @@
 import { config } from '../../../config/config.js';
 import { requireOwner } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 function formatDuration(ms) {
   const totalSeconds = Math.floor(ms / 1000);
@@ -24,7 +25,9 @@ export default {
   canQueue: false,
   options: [],
 
-async execute(interaction) {
+async execute(interaction) {try {
+try {
+
      try {
          const denial = await requireOwner(interaction);
          if (denial) {
@@ -77,5 +80,21 @@ async execute(interaction) {
            await safeReply(interaction, userMessage);
          }
        }
-   }
+   
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

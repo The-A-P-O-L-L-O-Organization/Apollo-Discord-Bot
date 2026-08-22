@@ -4,6 +4,7 @@
 import { PermissionsBitField } from 'discord.js';
 import { setGuildData, getGuildData } from '../../../utils/db.js';
 import { safeError } from '../../../utils/safeError.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 const ALLOWED_EMBED_KEYS = ['title', 'description', 'color', 'fields', 'image', 'thumbnail', 'footer', 'author'];
 const MAX_EMBED_JSON_LENGTH = 2048;
@@ -98,36 +99,46 @@ export default {
     
     async execute(interaction) {
         try {
-            const subcommand = interaction.options.getSubcommand();
-            
-            if (subcommand === 'create') {
-                await handleCreate(interaction);
-            } else if (subcommand === 'show') {
-                await handleShow(interaction);
-            } else if (subcommand === 'delete') {
-                await handleDelete(interaction);
-            } else if (subcommand === 'list') {
-                await handleList(interaction);
-            } else if (subcommand === 'info') {
-                await handleInfo(interaction);
+            try {
+                const subcommand = interaction.options.getSubcommand();
+                
+                if (subcommand === 'create') {
+                    await handleCreate(interaction);
+                } else if (subcommand === 'show') {
+                    await handleShow(interaction);
+                } else if (subcommand === 'delete') {
+                    await handleDelete(interaction);
+                } else if (subcommand === 'list') {
+                    await handleList(interaction);
+                } else if (subcommand === 'info') {
+                    await handleInfo(interaction);
+                }
+                
+            } catch (error) {
+                const errorEmbed = {
+                    color: 0xFF0000,
+                    title: '[ERROR] Command Failed',
+                    description: 'An error occurred.',
+                    fields: [
+                        {
+                            name: '[ERROR] Details',
+                            value: safeError(error),
+                            inline: true
+                        }
+                    ],
+                    timestamp: new Date().toISOString()
+                };
+                
+                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
-            
+    
         } catch (error) {
-            const errorEmbed = {
-                color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred.',
-                fields: [
-                    {
-                        name: '[ERROR] Details',
-                        value: safeError(error),
-                        inline: true
-                    }
-                ],
-                timestamp: new Date().toISOString()
-            };
-            
-            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            const errorMessage = handleDiscordError(error);
+            if (interaction.replied || interaction.deferred) {
+                await safeFollowUp(interaction, errorMessage);
+            } else {
+                await safeReply(interaction, errorMessage);
+            }
         }
     }
 };
