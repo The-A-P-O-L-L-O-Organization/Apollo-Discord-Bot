@@ -34,6 +34,7 @@ export function getDb() {
                 client: 'better-sqlite3',
                 connection: { filename: ':memory:' },
                 useNullAsDefault: true,
+                acquireConnectionTimeout: 10000,
                 pool: { min: 1, max: 1 },
                 migrations: {
                     directory: new URL('./migrations', import.meta.url).pathname,
@@ -47,6 +48,7 @@ export function getDb() {
                 client: 'better-sqlite3',
                 connection: { filename: path.join(DATA_DIR, 'apollo.db') },
                 useNullAsDefault: true,
+                acquireConnectionTimeout: 10000,
                 pool: { min: 1, max: 1 }, // SQLite: single writer
                 migrations: {
                     directory: new URL('./migrations', import.meta.url).pathname,
