@@ -2,7 +2,7 @@
 // Exposes /health, /ready, and /metrics endpoints for monitoring
 
 import { createServer } from 'http';
-import { register } from './metrics.js';
+import { register, recordGatewayLatency } from './metrics.js';
 import { getLockRedis } from './lock.js';
 import { getDb as getKnex } from '../db/knex.js';
 import { config } from '../config/config.js';
@@ -197,6 +197,22 @@ export async function startHealthServer(client) {
         }
     });
     
+    // Record gateway latency every 15 seconds
+    const latencyInterval = setInterval(() => {
+        if (client && client.ws && client.ws.shards) {
+            client.ws.shards.forEach((shard, shardId) => {
+                if (shard.ping !== undefined) {
+                    recordGatewayLatency(String(shardId), shard.ping);
+                }
+            });
+        }
+    }, 15000);
+
+    // Clear interval when server stops
+    healthServer.on('close', () => {
+        clearInterval(latencyInterval);
+    });
+
     return new Promise((resolve, reject) => {
         healthServer.listen(port, host, () => {
             console.log(`[HEALTH] Health server listening on ${host}:${port}`);
@@ -225,23 +241,9 @@ export async function stopHealthServer() {
                 console.log('[HEALTH] Health server stopped');
                 healthServer = null;
                 resolve();
-});
-
-    // Record gateway latency every 15 seconds
-    const latencyInterval = setInterval(() => {
-        if (client && client.ws && client.ws.shards) {
-            client.ws.shards.forEach((shard, shardId) => {
-                if (shard.ping !== undefined) {
-                    recordGatewayLatency(String(shardId), shard.ping);
-                }
             });
-        }
-    }, 15000);
 
-    // Clear interval when server stops
-    healthServer.on('close', () => {
-        clearInterval(latencyInterval);
-    });
+    
         });
     }
 }
