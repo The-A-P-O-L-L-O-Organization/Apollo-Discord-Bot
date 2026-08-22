@@ -225,7 +225,23 @@ export async function stopHealthServer() {
                 console.log('[HEALTH] Health server stopped');
                 healthServer = null;
                 resolve();
+});
+
+    // Record gateway latency every 15 seconds
+    const latencyInterval = setInterval(() => {
+        if (client && client.ws && client.ws.shards) {
+            client.ws.shards.forEach((shard, shardId) => {
+                if (shard.ping !== undefined) {
+                    recordGatewayLatency(String(shardId), shard.ping);
+                }
             });
+        }
+    }, 15000);
+
+    // Clear interval when server stops
+    healthServer.on('close', () => {
+        clearInterval(latencyInterval);
+    });
         });
     }
 }
