@@ -4,6 +4,7 @@
 import { ShardingManager } from 'discord.js';
 import { config } from './config/config.js';
 import { setupLogger } from './utils/logger.js';
+import { logger } from 'utils/logger.js';
 
 const logger = setupLogger('ShardManager');
 
@@ -20,7 +21,7 @@ const shardOptions = {
     shardArgs: ['--shard'], // Pass --shard flag to worker to indicate shard mode
     mode: 'process',
     respawn: true,
-    execArgv: process.execArgv.filter(arg => !arg.startsWith('--inspect')), // Avoid port conflicts
+    execArgv: process.execArgv.filter(arg => !arg.startsWith('--inspect')) // Avoid port conflicts
 };
 
 // Create ShardingManager instance
@@ -47,7 +48,7 @@ manager.on('shardReady', (shard) => {
 });
 
 // Graceful shutdown
-process.on('SIGTERM', async () => {
+process.on('SIGTERM', async() => {
     logger.info('[ShardManager] Received SIGTERM, initiating graceful shutdown...');
     try {
         // Broadcast exit signal to all shards
@@ -60,7 +61,7 @@ process.on('SIGTERM', async () => {
     }
 });
 
-process.on('SIGINT', async () => {
+process.on('SIGINT', async() => {
     logger.info('[ShardManager] Received SIGINT, initiating graceful shutdown...');
     try {
         await manager.broadcastEval('process.exit(0)');

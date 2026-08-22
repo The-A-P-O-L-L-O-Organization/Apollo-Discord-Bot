@@ -2,8 +2,10 @@ import { ContextMenuCommandBuilder, ApplicationCommandType, ModalBuilder, TextIn
 import { getData, updateGuildData } from '../../../utils/db.js';
 import { isOwner } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { logger } from './utils/logger.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     data: new ContextMenuCommandBuilder()
         .setName('Global Ban')
         .setType(ApplicationCommandType.User)
@@ -117,13 +119,13 @@ try {
                 flags: 64
             });
 
-            console.log(`[GLOBAL BAN] User ${targetUser.tag} globally blacklisted by ${interaction.user.tag}. Reason: ${reason}`);
+            logger.info(`[GLOBAL BAN] User ${targetUser.tag} globally blacklisted by ${interaction.user.tag}. Reason: ${reason}`);
 
         } catch (error) {
             if (error.message?.includes('time') || error.code === 'InteractionCollectorError') {
                 return;
             }
-            console.error('[GLOBAL BAN] Error:', error.message);
+            logger.error('[GLOBAL BAN] Error:', error.message);
             try {
                 await interaction.followUp({
                     embeds: [{
@@ -134,7 +136,7 @@ try {
                     flags: 64
                 });
             } catch (e) {
-                console.error('[GLOBAL BAN] Failed to send error response:', e.message);
+                logger.error('[GLOBAL BAN] Failed to send error response:', e.message);
             }
         }
     

@@ -1,5 +1,6 @@
 // Analytics Commands
 // Provides comprehensive analytics and statistics for server management
+import { logger } from './utils/logger.js';
 
 import { 
     SlashCommandBuilder, 
@@ -30,6 +31,7 @@ import { readFileSync } from 'fs';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     data: new SlashCommandBuilder()
         .setName('analytics')
         .setDescription('View server analytics and statistics')
@@ -626,7 +628,7 @@ async function handleExport(interaction) {
         }, 5000);
         
     } catch (error) {
-        console.error('[ERROR] Analytics export failed:', error);
+        logger.error('[ERROR] Analytics export failed:', error);
         await interaction.editReply({
             content: '❌ Failed to export analytics. Please try again later.'
         });

@@ -1,5 +1,6 @@
 // Warning Config Command
 // Configure warning thresholds per server
+import { logger } from './utils/logger.js';
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
@@ -7,6 +8,7 @@ import { config } from '../../../config/config.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'warnconfig',
     description: 'Configure warning system thresholds',
     category: 'Moderation',
@@ -85,7 +87,7 @@ export default {
                     break;
                 }
             } catch (error) {
-                console.error('[ERROR] Warn config command error:', error);
+                logger.error('[ERROR] Warn config command error:', error);
                 
                 await interaction.reply({
                     embeds: [{
@@ -218,7 +220,7 @@ async function handleSet(interaction) {
     
     await interaction.reply({ embeds: [embed] });
     
-    console.log(`[CONFIG] Warning ${action} threshold set to ${warnings} in ${interaction.guild.name}`);
+    logger.info(`[CONFIG] Warning ${action} threshold set to ${warnings} in ${interaction.guild.name}`);
 }
 
 async function handleSetMuteDuration(interaction) {
@@ -254,7 +256,7 @@ async function handleSetMuteDuration(interaction) {
     
     await interaction.reply({ embeds: [embed] });
     
-    console.log(`[CONFIG] Warning mute duration set to ${ms}ms in ${interaction.guild.name}`);
+    logger.info(`[CONFIG] Warning mute duration set to ${ms}ms in ${interaction.guild.name}`);
 }
 
 async function handleReset(interaction) {
@@ -275,7 +277,7 @@ async function handleReset(interaction) {
     
     await interaction.reply({ embeds: [embed] });
     
-    console.log(`[CONFIG] Warning config reset in ${interaction.guild.name}`);
+    logger.info(`[CONFIG] Warning config reset in ${interaction.guild.name}`);
 }
 
 function parseDuration(str) {

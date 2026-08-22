@@ -1,5 +1,6 @@
 // Report Message Context Menu Command
 // Allows users to report messages to moderators
+import { logger } from './utils/logger.js';
 
 import { 
     ContextMenuCommandBuilder, 
@@ -15,6 +16,7 @@ import { config } from '../../../config/config.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     data: new ContextMenuCommandBuilder()
         .setName('Report Message')
         .setType(ApplicationCommandType.Message),
@@ -162,10 +164,10 @@ try {
                 flags: 64
             });
             
-            console.log(`[REPORT] Message ${message.id} reported by ${interaction.user.tag} (Report ID: ${reportId})`);
+            logger.info(`[REPORT] Message ${message.id} reported by ${interaction.user.tag} (Report ID: ${reportId})`);
             
         } catch (error) {
-            console.error('[ERROR] Report message error:', error);
+            logger.error('[ERROR] Report message error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,

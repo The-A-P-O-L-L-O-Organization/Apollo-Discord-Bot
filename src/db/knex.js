@@ -1,9 +1,9 @@
-/* eslint-disable no-console */
 import knex from 'knex';
 import { config } from '../config/config.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync, mkdirSync, unlinkSync } from 'fs';
+import { logger } from '../utils/logger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, '../data');
@@ -65,7 +65,7 @@ export function getDb() {
 export async function runMigrations() {
     const db = getDb();
     await db.migrate.latest();
-    console.log('[DB] Migrations up to date');
+    logger.info('[DB] Migrations up to date');
 }
 
 export async function closeDb() {

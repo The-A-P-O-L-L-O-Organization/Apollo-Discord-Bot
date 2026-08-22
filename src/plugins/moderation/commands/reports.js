@@ -1,5 +1,6 @@
 // Reports Command
 // View and manage user reports
+import { logger } from './utils/logger.js';
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
@@ -7,6 +8,7 @@ import { safeError } from '../../../utils/safeError.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'reports',
     description: 'View and manage message reports',
     category: 'Moderation',
@@ -219,7 +221,7 @@ try {
                     flags: 64
                 });
                 
-                console.log(`[REPORT] Report ${reportId} dismissed by ${interaction.user.tag}`);
+                logger.info(`[REPORT] Report ${reportId} dismissed by ${interaction.user.tag}`);
             }
             
         } catch (error) {

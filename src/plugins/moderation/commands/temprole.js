@@ -1,11 +1,13 @@
 // Temprole Command
 // Assign temporary roles that automatically expire
+import { logger } from './utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'temprole',
     description: 'Assign a temporary role that expires after a set duration',
     category: 'Moderation',
@@ -85,7 +87,7 @@ try {
             }
             
         } catch (error) {
-            console.error('[ERROR] Temprole command error:', error);
+            logger.error('[ERROR] Temprole command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,
@@ -229,7 +231,7 @@ async function handleAdd(interaction) {
     
     await interaction.reply({ embeds: [successEmbed] });
     
-    console.log(`[MODERATION] Temp role ${role.name} assigned to ${user.tag} for ${durationStr}`);
+    logger.info(`[MODERATION] Temp role ${role.name} assigned to ${user.tag} for ${durationStr}`);
 }
 
 async function handleRemove(interaction) {

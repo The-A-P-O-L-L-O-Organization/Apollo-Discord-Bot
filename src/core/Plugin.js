@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger.js';
 /* eslint-disable no-console */
 import { readdirSync } from 'fs';
 import path from 'path';
@@ -58,7 +59,7 @@ export default class Plugin {
                     }
                 }
             } catch (err) {
-                console.error(`[Plugin] Failed to load command ${file}:`, err.message);
+                logger.error(`[Plugin] Failed to load command ${file}:`, err.message);
             }
         }
     }
@@ -88,7 +89,7 @@ export default class Plugin {
                 this.client[once ? 'once' : 'on'](name, handler);
                 this.eventHandlers.push({ name, handler, once });
             } catch (err) {
-                console.error(`[Plugin] Failed to load event ${file}:`, err.message);
+                logger.error(`[Plugin] Failed to load event ${file}:`, err.message);
             }
         }
     }

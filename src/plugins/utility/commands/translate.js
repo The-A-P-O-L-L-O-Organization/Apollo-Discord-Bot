@@ -1,7 +1,9 @@
 import { ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { logger } from './utils/logger.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'Translate',
     type: 3,
     category: 'Utility',
@@ -60,12 +62,12 @@ try {
             const response = `> **${translation.sourceLangName}:**\n> ${translation.original}\n\n**${translation.targetLangName}:**\n${translation.translated}`;
 
             await modalSubmit.editReply({ content: response });
-            console.log(`[TRANSLATE] ${interaction.user.tag} translated from ${translation.sourceLangName} to ${translation.targetLangName}`);
+            logger.info(`[TRANSLATE] ${interaction.user.tag} translated from ${translation.sourceLangName} to ${translation.targetLangName}`);
         } catch (error) {
             if (error.message?.includes('time') || error.code === 'InteractionCollectorError') {
                 return;
             }
-            console.error('[TRANSLATE] Error:', error.message);
+            logger.error('[TRANSLATE] Error:', error.message);
 
             let errorMessage = 'Translation failed. Please try again.';
             if (error.message.includes('Unsupported language')) {

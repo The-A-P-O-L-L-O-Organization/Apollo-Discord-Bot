@@ -5,6 +5,7 @@ import { generateApiKey } from '../auth.js';
 import { safeError } from '../../../utils/safeError.js';
 import { isOwner, getOwnerIds } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { logger } from './utils/logger.js';
 
 const SEND_CONFIG = { requestTimeout: 5000, maxRetries: 3 };
 
@@ -17,6 +18,7 @@ function createBus() {
 }
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'interlink',
     description: 'Manage cross-bot communication (bot owner only)',
     category: 'Developer',
@@ -57,7 +59,7 @@ export default {
                     { name: 'command', value: 'command' },
                     { name: 'event', value: 'event' },
                     { name: 'custom', value: 'custom' }
-                ]},
+                ] },
                 { name: 'payload', description: 'JSON payload (valid JSON string)', type: 3, required: true }
             ]
         },
@@ -71,7 +73,7 @@ export default {
                     { name: 'command', value: 'command' },
                     { name: 'event', value: 'event' },
                     { name: 'custom', value: 'custom' }
-                ]},
+                ] },
                 { name: 'payload', description: 'JSON payload (valid JSON string)', type: 3, required: true }
             ]
         },
@@ -111,22 +113,22 @@ export default {
 
             try {
                 switch (sub) {
-                    case 'list':
-                        return await this._list(interaction);
-                    case 'register':
-                        return await this._register(interaction);
-                    case 'remove':
-                        return await this._remove(interaction);
-                    case 'send':
-                        return await this._send(interaction);
-                    case 'broadcast':
-                        return await this._broadcast(interaction);
-                    case 'rotate-key':
-                        return await this._rotateKey(interaction);
-                    case 'override':
-                        return await this._override(interaction);
-                    default:
-                        return interaction.editReply({ embeds: [{ color: 0xFF0000, title: '[ERROR] Unknown subcommand' }] });
+                case 'list':
+                    return await this._list(interaction);
+                case 'register':
+                    return await this._register(interaction);
+                case 'remove':
+                    return await this._remove(interaction);
+                case 'send':
+                    return await this._send(interaction);
+                case 'broadcast':
+                    return await this._broadcast(interaction);
+                case 'rotate-key':
+                    return await this._rotateKey(interaction);
+                case 'override':
+                    return await this._override(interaction);
+                default:
+                    return interaction.editReply({ embeds: [{ color: 0xFF0000, title: '[ERROR] Unknown subcommand' }] });
                 }
             } catch (err) {
                 return interaction.editReply({
@@ -223,7 +225,7 @@ export default {
             });
         } catch (dmError) {
             // Fallback to ephemeral followUp if DM fails
-            console.warn(`[INTERLINK] Failed to DM API key to ${interaction.user.tag}, falling back to ephemeral message: ${dmError.message}`);
+            logger.warn(`[INTERLINK] Failed to DM API key to ${interaction.user.tag}, falling back to ephemeral message: ${dmError.message}`);
             await interaction.followUp({
                 content: `**[WARNING] API Key for ${name} (shown once):**\n\`\`\`${result.rawKey}\`\`\`\nStore this securely. It will not be shown again.`,
                 flags: 64
@@ -340,7 +342,7 @@ export default {
             });
         } catch (dmError) {
             // Fallback to ephemeral followUp if DM fails
-            console.warn(`[INTERLINK] Failed to DM API key to ${interaction.user.tag}, falling back to ephemeral message: ${dmError.message}`);
+            logger.warn(`[INTERLINK] Failed to DM API key to ${interaction.user.tag}, falling back to ephemeral message: ${dmError.message}`);
             await interaction.followUp({
                 content: `**[WARNING] New API Key for ${name} (shown once):**\n\`\`\`${rawKey}\`\`\`\nStore this securely. The old key is no longer valid.`,
                 flags: 64

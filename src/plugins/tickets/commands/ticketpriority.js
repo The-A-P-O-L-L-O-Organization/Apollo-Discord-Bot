@@ -2,8 +2,10 @@ import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.
 import { updateGuildData } from '../../../utils/db.js';
 import { getPriorityColor, getPriorityEmoji } from '../../../utils/slaTracker.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { logger } from './utils/logger.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'ticketpriority',
     data: new SlashCommandBuilder()
         .setName('ticketpriority')
@@ -76,7 +78,7 @@ try {
             const newTopic = `${getPriorityEmoji(newPriority)} Ticket #${ticket.ticketNumber} | ${ticket.category || 'general'} | ${newPriority} priority | Created by ${(await interaction.guild.members.fetch(ticket.userId).catch(() => null))?.user?.tag || 'Unknown'}`;
             await interaction.channel.setTopic(newTopic);
         } catch (error) {
-            console.error('[ERROR] Failed to update channel topic:', error);
+            logger.error('[ERROR] Failed to update channel topic:', error);
         }
 
         const embed = new EmbedBuilder()

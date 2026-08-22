@@ -1,10 +1,12 @@
 // Invite Command
 // Generate an invite link for the bot or create a server invite
+import { logger } from './utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'invite',
     description: 'Generate an invite link or create a server invite',
     category: 'Utility',
@@ -127,11 +129,11 @@ try {
                 
                 await interaction.reply({ embeds: [inviteEmbed] });
                 
-                console.log(`[INFO] Invite created by ${interaction.user.tag}: ${invite.url}`);
+                logger.info(`[INFO] Invite created by ${interaction.user.tag}: ${invite.url}`);
             }
             
         } catch (error) {
-            console.error('[ERROR] Invite command error:', error);
+            logger.error('[ERROR] Invite command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,

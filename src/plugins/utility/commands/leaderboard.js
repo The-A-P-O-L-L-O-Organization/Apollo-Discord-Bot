@@ -1,10 +1,12 @@
 // Leaderboard Command
 // Show the top users by level/XP
+import { logger } from './utils/logger.js';
 
 import { getAllUserData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'leaderboard',
     description: 'Show the top users by level or XP',
     category: 'Utility',
@@ -109,7 +111,7 @@ try {
             await interaction.reply({ embeds: [leaderboardEmbed] });
             
         } catch (error) {
-            console.error('[ERROR] Leaderboard command error:', error);
+            logger.error('[ERROR] Leaderboard command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,

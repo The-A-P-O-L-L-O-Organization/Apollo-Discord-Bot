@@ -1,11 +1,13 @@
 // Slowmode Command
 // Sets channel slowmode programmatically
+import { logger } from './utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'slowmode',
     description: 'Set channel slowmode (rate limit)',
     category: 'Moderation',
@@ -137,7 +139,7 @@ try {
                     };
                     await channel.send({ embeds: [slowmodeNotice] });
                 } catch (err) {
-                    console.log('[WARNING] Could not send slowmode notice to channel:', err.message);
+                    logger.info('[WARNING] Could not send slowmode notice to channel:', err.message);
                 }
             }
             
@@ -155,10 +157,10 @@ try {
             });
             
             // Log the action
-            console.log(`[MODERATION] Slowmode ${duration === 0 ? 'disabled' : 'set to ' + duration + 's'} for channel ${channel.name} by ${interaction.user.tag}. Reason: ${reason}`);
+            logger.info(`[MODERATION] Slowmode ${duration === 0 ? 'disabled' : 'set to ' + duration + 's'} for channel ${channel.name} by ${interaction.user.tag}. Reason: ${reason}`);
             
         } catch (error) {
-            console.error('[ERROR] Slowmode command error:', error);
+            logger.error('[ERROR] Slowmode command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,

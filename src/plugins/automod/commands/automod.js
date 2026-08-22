@@ -1,5 +1,6 @@
 // Automod Command
 // Configure automatic moderation settings per server
+import { logger } from './utils/logger.js';
 
 import { PermissionsBitField, EmbedBuilder, ChannelType } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
@@ -9,6 +10,7 @@ import { checkMessageAttachments } from '../../../utils/nsfwDetection.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'automod',
     description: 'Configure automatic moderation',
     category: 'Moderation',
@@ -260,7 +262,7 @@ async function handleEnable(interaction) {
         .setTimestamp();
     
     await interaction.reply({ embeds: [embed] });
-    console.log(`[AUTOMOD] Enabled for ${interaction.guild.name}`);
+    logger.info(`[AUTOMOD] Enabled for ${interaction.guild.name}`);
 }
 
 async function handleDisable(interaction) {
@@ -275,7 +277,7 @@ async function handleDisable(interaction) {
         .setTimestamp();
     
     await interaction.reply({ embeds: [embed] });
-    console.log(`[AUTOMOD] Disabled for ${interaction.guild.name}`);
+    logger.info(`[AUTOMOD] Disabled for ${interaction.guild.name}`);
 }
 
 async function handleStatus(interaction) {
@@ -337,7 +339,7 @@ async function handleAddWord(interaction) {
         .setTimestamp();
     
     await interaction.reply({ embeds: [embed], flags: 64 });
-    console.log(`[AUTOMOD] Added banned word in ${interaction.guild.name}`);
+    logger.info(`[AUTOMOD] Added banned word in ${interaction.guild.name}`);
 }
 
 async function handleRemoveWord(interaction) {
@@ -367,7 +369,7 @@ async function handleRemoveWord(interaction) {
         .setTimestamp();
     
     await interaction.reply({ embeds: [embed], flags: 64 });
-    console.log(`[AUTOMOD] Removed banned word in ${interaction.guild.name}`);
+    logger.info(`[AUTOMOD] Removed banned word in ${interaction.guild.name}`);
 }
 
 async function handleListWords(interaction) {
@@ -459,7 +461,7 @@ async function handleSet(interaction) {
         .setTimestamp();
     
     await interaction.reply({ embeds: [embed] });
-    console.log(`[AUTOMOD] Set ${setting}=${value} in ${interaction.guild.name}`);
+    logger.info(`[AUTOMOD] Set ${setting}=${value} in ${interaction.guild.name}`);
 }
 
 async function handleExemptChannel(interaction) {
@@ -662,7 +664,7 @@ async function handleScan(interaction) {
                                 await msg.delete();
                                 messagesDeleted++;
                             } catch (delError) {
-                                console.error(`[ERROR] Failed to delete NSFW message ${msg.id}:`, delError);
+                                logger.error(`[ERROR] Failed to delete NSFW message ${msg.id}:`, delError);
                             }
                         }
                     }
@@ -723,7 +725,7 @@ async function handleScan(interaction) {
         }
 
         await interaction.editReply({ embeds: [embed] });
-        console.log(`[AUTOMOD] NSFW scan completed in ${channel.name} for ${interaction.guild.name}`);
+        logger.info(`[AUTOMOD] NSFW scan completed in ${channel.name} for ${interaction.guild.name}`);
 
     } catch (error) {
         await interaction.editReply({
@@ -735,6 +737,6 @@ async function handleScan(interaction) {
                 timestamp: new Date().toISOString()
             }]
         });
-        console.error('[ERROR] NSFW scan error:', error);
+        logger.error('[ERROR] NSFW scan error:', error);
     }
 }

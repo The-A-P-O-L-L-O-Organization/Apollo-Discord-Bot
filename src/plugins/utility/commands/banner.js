@@ -1,8 +1,10 @@
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 // Banner Command
 // Display a user's banner image (requires Nitro)
+import { logger } from './utils/logger.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'banner',
     description: 'Display a user\'s banner image (requires Nitro)',
     category: 'Utility',
@@ -74,7 +76,7 @@ try {
             await interaction.reply({ embeds: [bannerEmbed] });
             
         } catch (error) {
-            console.error('[ERROR] Banner command error:', error);
+            logger.error('[ERROR] Banner command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,

@@ -1,3 +1,4 @@
+import { logger } from './utils/logger.js';
 /* eslint-disable no-console */
 // Tempban Scheduler
 // Background task that checks and unbans users with expired tempbans
@@ -25,10 +26,10 @@ export function initTempbanScheduler(discordClient) {
         }
     }, 30000);
     
-    console.log('[INFO] Tempban scheduler started (checking every 30s)');
+    logger.info('[INFO] Tempban scheduler started (checking every 30s)');
     
     // Run an immediate check
-    checkTempbans().catch(err => console.error('[ERROR] Tempban check failed:', err));
+    checkTempbans().catch(err => logger.error('[ERROR] Tempban check failed:', err));
 }
 
 /**
@@ -38,7 +39,7 @@ export function stopTempbanScheduler() {
     if (schedulerInterval) {
         clearInterval(schedulerInterval);
         schedulerInterval = null;
-        console.log('[INFO] Tempban scheduler stopped');
+        logger.info('[INFO] Tempban scheduler stopped');
     }
 }
 
@@ -68,11 +69,11 @@ async function checkTempbans() {
         await setData('tempbans', data);
         
         if (expiredBans.length > 0) {
-            console.log(`[INFO] Processed ${expiredBans.length} expired tempban(s)`);
+            logger.info(`[INFO] Processed ${expiredBans.length} expired tempban(s)`);
         }
         
     } catch (error) {
-        console.error('[ERROR] Tempban scheduler error:', error);
+        logger.error('[ERROR] Tempban scheduler error:', error);
     }
 }
 
@@ -86,14 +87,14 @@ async function processTempbanExpiry(tempban) {
         const guild = await client.guilds.fetch(tempban.guildId).catch(() => null);
         
         if (!guild) {
-            console.log(`[WARNING] Guild ${tempban.guildId} not found for tempban expiry`);
+            logger.info(`[WARNING] Guild ${tempban.guildId} not found for tempban expiry`);
             return;
         }
         
         // Try to unban the user
         try {
             await guild.bans.remove(tempban.userId, 'Temporary ban expired');
-            console.log(`[MODERATION] User ${tempban.userId} unbanned automatically (tempban expired)`);
+            logger.info(`[MODERATION] User ${tempban.userId} unbanned automatically (tempban expired)`);
             
             // Try to send a notification to the mod log channel
             const logChannel = guild.channels.cache.find(
@@ -133,21 +134,21 @@ async function processTempbanExpiry(tempban) {
                 };
                 
                 await logChannel.send({ embeds: [unbanEmbed] }).catch(err => {
-                    console.log('[WARNING] Could not send tempban expiry log:', err.message);
+                    logger.info('[WARNING] Could not send tempban expiry log:', err.message);
                 });
             }
             
         } catch (unbanError) {
             // User might not be banned anymore
             if (unbanError.code === 10026) {
-                console.log(`[INFO] User ${tempban.userId} is no longer banned in guild ${tempban.guildId}`);
+                logger.info(`[INFO] User ${tempban.userId} is no longer banned in guild ${tempban.guildId}`);
             } else {
-                console.error(`[ERROR] Failed to unban user ${tempban.userId}:`, unbanError);
+                logger.error(`[ERROR] Failed to unban user ${tempban.userId}:`, unbanError);
             }
         }
         
     } catch (error) {
-        console.error(`[ERROR] Failed to process tempban expiry for user ${tempban.userId}:`, error);
+        logger.error(`[ERROR] Failed to process tempban expiry for user ${tempban.userId}:`, error);
     }
 }
 
@@ -164,7 +165,7 @@ export async function addTempban(tempbanData) {
     data.tempbans.push(tempbanData);
     await setData('tempbans', data);
     
-    console.log(`[INFO] Tempban added for user ${tempbanData.userId} in guild ${tempbanData.guildId}`);
+    logger.info(`[INFO] Tempban added for user ${tempbanData.userId} in guild ${tempbanData.guildId}`);
 }
 
 /**
@@ -186,7 +187,7 @@ export async function removeTempban(guildId, userId) {
     data.tempbans.splice(index, 1);
     await setData('tempbans', data);
     
-    console.log(`[INFO] Tempban removed for user ${userId} in guild ${guildId}`);
+    logger.info(`[INFO] Tempban removed for user ${userId} in guild ${guildId}`);
     return true;
 }
 

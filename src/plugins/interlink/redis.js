@@ -1,6 +1,8 @@
 import { getRedis } from '../../utils/redis.js';
+import { logger } from './utils/logger.js';
 
 export default class RedisTransport {
+import { logger } from '../../utils/logger.js';
     constructor(config) {
         this.channelPrefix = config.channelPrefix || 'apollo:interlink';
         this._messageChannel = `${this.channelPrefix}:message`;
@@ -35,7 +37,7 @@ export default class RedisTransport {
                     const data = JSON.parse(message);
                     this._messageHandler(data);
                 } catch (err) {
-                    console.error('[Interlink:Redis] Failed to parse message:', err.message);
+                    logger.error('[Interlink:Redis] Failed to parse message:', err.message);
                 }
             }
         });
@@ -44,10 +46,10 @@ export default class RedisTransport {
     }
 
     publishResponse(botId, envelope) {
-        if (!this._pub) return;
+        if (!this._pub) {return;}
         const channel = this._responseChannel(botId);
         this._pub.publish(channel, JSON.stringify(envelope)).catch(err => {
-            console.error('[Interlink:Redis] Failed to publish response:', err.message);
+            logger.error('[Interlink:Redis] Failed to publish response:', err.message);
         });
     }
 

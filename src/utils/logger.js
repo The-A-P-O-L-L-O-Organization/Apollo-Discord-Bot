@@ -1,10 +1,23 @@
-/* eslint-disable no-console */
-// Logger Utility
-// Centralized logging function for all server events
-
+import pino from 'pino';
 import { EmbedBuilder } from 'discord.js';
-import { getGuildData } from './db.js';
 import { config } from '../config/config.js';
+import { hostname } from 'os';
+import { randomUUID as cryptoRandomUUID } from 'crypto';
+
+// Generate a traceId for the service instance
+const traceId = cryptoRandomUUID();
+
+// Create a logger instance for this module
+const logger = pino({
+    level: process.env.LOG_LEVEL || 'info',
+    base: {
+        service: 'apollo',
+        pid: process.pid,
+        hostname: hostname(),
+        traceId
+    },
+    timestamp: pino.stdTimeFunctions.isoTime
+});
 
 /**
  * Gets logging configuration for a guild
@@ -12,6 +25,7 @@ import { config } from '../config/config.js';
  * @returns {Object} Logging configuration
  */
 export async function getLoggingConfig(guildId) {
+    const { getGuildData } = await import('./db.js');
     const guildConfig = await getGuildData('logging', guildId);
     return {
         channelId: guildConfig.channelId || null,
@@ -53,7 +67,7 @@ export async function getLogChannel(guild) {
             return channel;
         }
     } catch (error) {
-        console.error(`[ERROR] Could not fetch log channel for ${guild.name}:`, error.message);
+        logger.error(`[ERROR] Could not fetch log channel for ${guild.name}:`, { error: error.message });
     }
     
     return null;
@@ -74,7 +88,7 @@ export async function logEvent(guild, eventType, embed) {
     try {
         await logChannel.send({ embeds: [embed] });
     } catch (error) {
-        console.error(`[ERROR] Failed to send log to ${guild.name}:`, error.message);
+        logger.error(`[ERROR] Failed to send log to ${guild.name}:`, { error: error.message });
     }
 }
 
@@ -315,3 +329,15 @@ export function createVoiceChangeEmbed(oldState, newState) {
     
     return embed;
 }
+
+/**
+ * Factory function to create a Pino logger with context
+ * @param {Object} context - Context object to add to log output
+ * @returns {import('pino').Logger} Logger instance
+ */
+export function createLogger(context) {
+    return logger.child(context);
+}
+
+// Export the default logger for use across the application
+export { logger };

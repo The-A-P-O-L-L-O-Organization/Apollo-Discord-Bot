@@ -1,5 +1,6 @@
 // Clear Strikes Command
 // Remove strikes from a user
+import { logger } from './utils/logger.js';
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { getUserData, setUserData } from '../../../utils/db.js';
@@ -8,6 +9,7 @@ import { safeError } from '../../../utils/safeError.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'clearstrikes',
     description: 'Remove strikes from a user',
     category: 'Moderation',
@@ -127,7 +129,7 @@ try {
                 }
             });
             
-            console.log(`[MODERATION] ${removed} strike(s) cleared for ${user.tag} by ${interaction.user.tag}`);
+            logger.info(`[MODERATION] ${removed} strike(s) cleared for ${user.tag} by ${interaction.user.tag}`);
             
         } catch (error) {
             const errorEmbed = {
