@@ -1,8 +1,10 @@
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 // Avatar Command
 // Display a user's avatar
+import { logger } from './utils/logger.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'avatar',
     description: 'Display a user\'s avatar',
     category: 'Utility',
@@ -77,7 +79,7 @@ try {
             await interaction.reply({ embeds: [avatarEmbed] });
             
         } catch (error) {
-            console.error('[ERROR] Avatar command error:', error);
+            logger.error('[ERROR] Avatar command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,

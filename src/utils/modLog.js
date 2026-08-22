@@ -1,3 +1,4 @@
+import { logger } from './utils/logger.js';
 /* eslint-disable no-console */
 // Mod Log Utility
 // Sends moderation action logs to a designated channel
@@ -29,7 +30,7 @@ export async function sendModLog(guild, options) {
         );
 
         if (!logChannel) {
-            console.log(`[WARNING] Mod-log channel "${config.moderation.moderationLogChannel}" not found in guild ${guild.name}`);
+            logger.info(`[WARNING] Mod-log channel "${config.moderation.moderationLogChannel}" not found in guild ${guild.name}`);
             return;
         }
 
@@ -95,10 +96,10 @@ export async function sendModLog(guild, options) {
 
         // Send the log
         await logChannel.send({ embeds: [logEmbed] });
-        console.log(`[MOD-LOG] ${options.action} logged for ${options.target.tag}`);
+        logger.info(`[MOD-LOG] ${options.action} logged for ${options.target.tag}`);
 
     } catch (error) {
-        console.error('[ERROR] Failed to send mod log:', error);
+        logger.error('[ERROR] Failed to send mod log:', error);
     }
 }
 
@@ -120,7 +121,7 @@ export async function fetchMember(guild, userId) {
         
         return member;
     } catch (error) {
-        console.error(`[ERROR] Failed to fetch member ${userId}:`, error);
+        logger.error(`[ERROR] Failed to fetch member ${userId}:`, error);
         return null;
     }
 }

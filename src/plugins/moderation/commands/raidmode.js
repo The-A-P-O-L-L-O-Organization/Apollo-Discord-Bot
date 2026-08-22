@@ -1,11 +1,13 @@
 // Raidmode Command
 // Manually enable/disable raid mode lockdown
+import { logger } from './utils/logger.js';
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { enableRaidMode, disableRaidMode, isRaidModeEnabled } from '../../../utils/raidDetection.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'raidmode',
     description: 'Enable or disable raid mode (locks all channels)',
     category: 'Moderation',
@@ -88,7 +90,7 @@ try {
                 
                 await interaction.editReply({ embeds: [embed] });
                 
-                console.log(`[RAID] Raid mode enabled by ${interaction.user.tag} in ${interaction.guild.name}`);
+                logger.info(`[RAID] Raid mode enabled by ${interaction.user.tag} in ${interaction.guild.name}`);
                 
             } else if (action === 'disable') {
                 await interaction.deferReply();
@@ -121,11 +123,11 @@ try {
                 
                 await interaction.editReply({ embeds: [embed] });
                 
-                console.log(`[RAID] Raid mode disabled by ${interaction.user.tag} in ${interaction.guild.name}`);
+                logger.info(`[RAID] Raid mode disabled by ${interaction.user.tag} in ${interaction.guild.name}`);
             }
             
         } catch (error) {
-            console.error('[ERROR] Raidmode command error:', error);
+            logger.error('[ERROR] Raidmode command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,

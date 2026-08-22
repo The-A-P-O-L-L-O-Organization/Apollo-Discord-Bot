@@ -1,5 +1,6 @@
 // Clear Warnings Command
 // Clears warnings for a user (single or all)
+import { logger } from './utils/logger.js';
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import {
@@ -10,6 +11,7 @@ import { sendModLog } from '../../../utils/modLog.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'clearwarnings',
     description: 'Clear warnings for a user',
     category: 'Moderation',
@@ -198,10 +200,10 @@ export default {
                 }
             });
             
-            console.log(`[MODERATION] ${clearedCount} warning(s) cleared for ${user.tag} by ${interaction.user.tag}`);
+            logger.info(`[MODERATION] ${clearedCount} warning(s) cleared for ${user.tag} by ${interaction.user.tag}`);
             
         } catch (error) {
-            console.error('[ERROR] Clear warnings command error:', error);
+            logger.error('[ERROR] Clear warnings command error:', error);
             
             await interaction.reply({
                 embeds: [{

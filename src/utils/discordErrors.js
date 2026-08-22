@@ -1,5 +1,6 @@
 // Discord REST Error Code Handling
 // Centralized error handling for Discord API errors
+import { logger } from './utils/logger.js';
 
 import { EmbedBuilder, MessageFlags } from 'discord.js';
 
@@ -213,7 +214,7 @@ export async function safeReply(interaction, message, ephemeral = true) {
         if (error.code === DiscordErrorCodes.UNKNOWN_INTERACTION) {
             return false;
         }
-        console.error('[ERROR] Failed to send error reply:', error);
+        logger.error('[ERROR] Failed to send error reply:', error);
         return false;
     }
 }
@@ -236,7 +237,7 @@ export async function safeFollowUp(interaction, message, ephemeral = true) {
         if (error.code === DiscordErrorCodes.UNKNOWN_INTERACTION) {
             return false;
         }
-        console.error('[ERROR] Failed to send error followup:', error);
+        logger.error('[ERROR] Failed to send error followup:', error);
         return false;
     }
 }

@@ -1,8 +1,10 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import { updateGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { logger } from './utils/logger.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'tickettransfer',
     data: new SlashCommandBuilder()
         .setName('tickettransfer')
@@ -85,7 +87,7 @@ try {
                 AttachFiles: true
             });
         } catch (error) {
-            console.error('[ERROR] Failed to update channel permissions:', error);
+            logger.error('[ERROR] Failed to update channel permissions:', error);
         }
 
         const embed = new EmbedBuilder()

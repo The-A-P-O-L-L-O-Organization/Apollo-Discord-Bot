@@ -1,3 +1,4 @@
+import { logger } from './utils/logger.js';
 /* eslint-disable no-console */
 import { createHmac, timingSafeEqual } from 'crypto';
 import { formatGithubPushNotification, formatGithubPrNotification, formatGithubIssueNotification } from './integrationFormatters.js';
@@ -91,7 +92,7 @@ export async function startWebhookServer(port, secret, discordClient) {
     });
 
     server.listen(port, () => {
-        console.log(`[Integrations] GitHub webhook server listening on port ${port}`);
+        logger.info(`[Integrations] GitHub webhook server listening on port ${port}`);
     });
 }
 

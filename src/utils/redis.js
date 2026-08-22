@@ -1,5 +1,6 @@
 // Centralized Redis Connection Pool
 // Single source of truth for all Redis connections in the application
+import { logger } from './utils/logger.js';
 
 import Redis from 'ioredis';
 
@@ -47,19 +48,19 @@ export function getRedis(nameOrOptions, options = {}) {
         const redis = new Redis(config);
         
         redis.on('error', (err) => {
-            console.error(`[REDIS:${name}] Connection error:`, err.message);
+            logger.error(`[REDIS:${name}] Connection error:`, err.message);
         });
         
         redis.on('connect', () => {
-            console.log(`[REDIS:${name}] Connected`);
+            logger.info(`[REDIS:${name}] Connected`);
         });
         
         redis.on('ready', () => {
-            console.log(`[REDIS:${name}] Ready`);
+            logger.info(`[REDIS:${name}] Ready`);
         });
         
         redis.on('close', () => {
-            console.log(`[REDIS:${name}] Connection closed`);
+            logger.info(`[REDIS:${name}] Connection closed`);
         });
         
         global._redisMap.set(name, redis);

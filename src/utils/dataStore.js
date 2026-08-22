@@ -1,3 +1,4 @@
+import { logger } from './utils/logger.js';
 /* eslint-disable no-console */
 // Data Store Utility
 // Handles all JSON file-based data persistence
@@ -19,7 +20,7 @@ const writeQueue = new Map();
 function ensureDataDir() {
     if (!existsSync(DATA_DIR)) {
         mkdirSync(DATA_DIR, { recursive: true });
-        console.log('[INFO] Created data directory');
+        logger.info('[INFO] Created data directory');
     }
 }
 
@@ -32,7 +33,7 @@ export function ensureSubDir(subdir) {
     const subdirPath = path.join(DATA_DIR, subdir);
     if (!existsSync(subdirPath)) {
         mkdirSync(subdirPath, { recursive: true });
-        console.log(`[INFO] Created data subdirectory: ${subdir}`);
+        logger.info(`[INFO] Created data subdirectory: ${subdir}`);
     }
     return subdirPath;
 }
@@ -62,7 +63,7 @@ export function getData(filename) {
         }
         return {};
     } catch (error) {
-        console.error(`[ERROR] Failed to read ${filename}.json:`, error);
+        logger.error(`[ERROR] Failed to read ${filename}.json:`, error);
         return {};
     }
 }
@@ -78,7 +79,7 @@ export function setData(filename, data) {
     try {
         writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
     } catch (error) {
-        console.error(`[ERROR] Failed to write ${filename}.json:`, error);
+        logger.error(`[ERROR] Failed to write ${filename}.json:`, error);
     }
 }
 
@@ -390,8 +391,8 @@ export function writeToSubDir(subdir, filename, data) {
     
     try {
         writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
-        console.log(`[INFO] Wrote file: ${subdir}/${filename}`);
+        logger.info(`[INFO] Wrote file: ${subdir}/${filename}`);
     } catch (error) {
-        console.error(`[ERROR] Failed to write ${subdir}/${filename}:`, error);
+        logger.error(`[ERROR] Failed to write ${subdir}/${filename}:`, error);
     }
 }

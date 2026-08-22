@@ -1,5 +1,6 @@
 // SLA Monitor Event
 // Periodically checks open tickets for SLA breaches and sends alerts
+import { logger } from './utils/logger.js';
 
 import { EmbedBuilder, ChannelType } from 'discord.js';
 import { getGuildData, getAllGuildIds } from '../../../utils/db.js';
@@ -22,7 +23,7 @@ const ALERT_COOLDOWN = 30 * 60 * 1000;
  * @param {Client} client - Discord client
  */
 export function startSlaMonitor(client) {
-    console.log('[SLA] Starting SLA monitor...');
+    logger.info('[SLA] Starting SLA monitor...');
     
     // Initial check
     checkAllTickets(client);
@@ -48,11 +49,11 @@ async function checkAllTickets(client) {
         for (let i = 0; i < guildIds.length; i += BATCH_SIZE) {
             const batch = guildIds.slice(i, i + BATCH_SIZE);
             
-            await Promise.all(batch.map(async (guildId) => {
+            await Promise.all(batch.map(async(guildId) => {
                 try {
                     await checkGuildTickets(client, guildId);
                 } catch (error) {
-                    console.error(`[SLA] Error checking guild ${guildId}:`, error);
+                    logger.error(`[SLA] Error checking guild ${guildId}:`, error);
                 }
             }));
             
@@ -62,7 +63,7 @@ async function checkAllTickets(client) {
             }
         }
     } catch (error) {
-        console.error('[SLA] Error checking tickets:', error);
+        logger.error('[SLA] Error checking tickets:', error);
     }
 }
 
@@ -173,7 +174,7 @@ async function handleSlaBreach(guild, ticket, slaThresholds, client) {
             
             await modChannel.send({ content, embeds: [alertEmbed] });
         } catch (error) {
-            console.error('[SLA] Failed to send breach alert to mod channel:', error);
+            logger.error('[SLA] Failed to send breach alert to mod channel:', error);
         }
     }
     
@@ -193,7 +194,7 @@ async function handleSlaBreach(guild, ticket, slaThresholds, client) {
             
             await ticketChannel.send({ embeds: [channelAlertEmbed] });
         } catch (error) {
-            console.error('[SLA] Failed to send breach alert to ticket channel:', error);
+            logger.error('[SLA] Failed to send breach alert to ticket channel:', error);
         }
     }
     
@@ -215,10 +216,10 @@ async function handleSlaBreach(guild, ticket, slaThresholds, client) {
             }
         });
     } catch (error) {
-        console.error('[SLA] Failed to log SLA breach:', error);
+        logger.error('[SLA] Failed to log SLA breach:', error);
     }
     
-    console.log(`[SLA] Breach alert sent for ticket #${ticket.ticketNumber} in ${guild.name}`);
+    logger.info(`[SLA] Breach alert sent for ticket #${ticket.ticketNumber} in ${guild.name}`);
 }
 
 /**
@@ -242,6 +243,7 @@ export function getAlertedTickets(guildId) {
 }
 
 export default {
+import { logger } from '../../../utils/logger.js';
     startSlaMonitor,
     handleSlaBreach,
     clearSlaAlert,

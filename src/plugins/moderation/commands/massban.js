@@ -1,5 +1,6 @@
 // Mass Ban Command
 // Bans multiple users by ID
+import { logger } from './utils/logger.js';
 
 import { PermissionsBitField, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } from 'discord.js';
 import { sendModLog } from '../../../utils/modLog.js';
@@ -9,6 +10,7 @@ import { safeError } from '../../../utils/safeError.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'massban',
     description: 'Ban multiple users by ID',
     category: 'Moderation',
@@ -239,7 +241,7 @@ try {
                     
                     await interaction.editReply({ embeds: [successEmbed] });
                     
-                    console.log(`[MODERATION] Mass ban by ${interaction.user.tag}: ${results.success.length} success, ${results.failed.length} failed. Reason: ${reason}`);
+                    logger.info(`[MODERATION] Mass ban by ${interaction.user.tag}: ${results.success.length} success, ${results.failed.length} failed. Reason: ${reason}`);
                 }
             });
             

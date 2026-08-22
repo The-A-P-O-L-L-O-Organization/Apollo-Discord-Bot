@@ -225,7 +225,11 @@ export function startWalCheckpointInterval(intervalMs = 5 * 60 * 1000) {
             try {
                 _sqliteDb.db.pragma('wal_checkpoint(TRUNCATE)');
             } catch (err) {
-                console.warn('[DB] WAL checkpoint failed:', err.message);
+                import('./utils/logger.js').then(({ logger }) => {
+                    logger.warn('[DB] WAL checkpoint failed:', err.message);
+                }).catch(err => {
+                    console.warn('[DB] WAL checkpoint failed (logger import error):', err.message);
+                });
             }
         }
     }, intervalMs);

@@ -1,3 +1,4 @@
+import { logger } from './utils/logger.js';
 /* eslint-disable no-console */
 import { createServiceBreaker } from './circuitBreaker.js';
 
@@ -11,7 +12,7 @@ let apiKey = null;
 export function initializeModeration() {
     apiKey = process.env.OPENAI_API_KEY || null;
     if (!apiKey) {
-        console.log('[INFO] OPENAI_API_KEY not set - AI moderation disabled');
+        logger.info('[INFO] OPENAI_API_KEY not set - AI moderation disabled');
     }
     return !!apiKey;
 }
@@ -45,7 +46,7 @@ export async function checkModeration(content) {
 
             if (!response.ok) {
                 if (response.status === 429) {
-                    console.log('[WARN] OpenAI Moderation rate limited');
+                    logger.info('[WARN] OpenAI Moderation rate limited');
                 }
                 // Throw error to trigger circuit breaker
                 const error = new Error(`OpenAI API error: ${response.status}`);
@@ -60,10 +61,10 @@ export async function checkModeration(content) {
         return result;
     } catch (error) {
         if (error.name === 'CircuitBreakerOpenError') {
-            console.log('[CIRCUIT] OpenAI circuit breaker open, skipping moderation check');
+            logger.info('[CIRCUIT] OpenAI circuit breaker open, skipping moderation check');
             return null;
         }
-        console.error('[ERROR] OpenAI Moderation failed:', error.message);
+        logger.error('[ERROR] OpenAI Moderation failed:', error.message);
         return null;
     }
 }

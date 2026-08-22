@@ -4,8 +4,10 @@
 
 import { updateGuildData, generateId } from '../utils/db.js';
 import { flushAnalyticsCritical } from './analyticsCollector.js';
+import { logger } from './utils/logger.js';
 
 export async function handleReportSubmission(interaction, _client) {
+import { logger } from 'logger.js';
     try {
         if (!interaction.isModalSubmit()) {return false;}
         if (interaction.customId !== 'report_reason_modal') {return false;}
@@ -190,12 +192,12 @@ export async function handleReportSubmission(interaction, _client) {
             }
         }
         
-        console.log(`[MODERATION] Report #${reportId} submitted by ${reporter.tag} against ${author.tag}`);
+        logger.info(`[MODERATION] Report #${reportId} submitted by ${reporter.tag} against ${author.tag}`);
         
         return true;
         
     } catch (error) {
-        console.error('[ERROR] Report submission error:', error);
+        logger.error('[ERROR] Report submission error:', error);
         return false;
     }
 }

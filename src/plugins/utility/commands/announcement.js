@@ -1,10 +1,12 @@
 // Announcement Command
 // Schedule announcements to be sent later
+import { logger } from './utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'announcement',
     description: 'Schedule an announcement to be sent',
     category: 'Utility',
@@ -72,7 +74,7 @@ try {
             }
             
         } catch (error) {
-            console.error('[ERROR] Announcement command error:', error);
+            logger.error('[ERROR] Announcement command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,
@@ -173,7 +175,7 @@ async function handleSchedule(interaction) {
     
     await interaction.reply({ embeds: [successEmbed], flags: 64 });
     
-    console.log(`[ANNOUNCEMENT] Scheduled by ${interaction.user.tag} for ${channel.name}`);
+    logger.info(`[ANNOUNCEMENT] Scheduled by ${interaction.user.tag} for ${channel.name}`);
 }
 
 async function handleView(interaction) {

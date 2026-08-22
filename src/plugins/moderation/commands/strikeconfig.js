@@ -1,11 +1,13 @@
 // Strike Config Command
 // Configure strike system settings
+import { logger } from './utils/logger.js';
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'strikeconfig',
     description: 'Configure strike system settings',
     category: 'Moderation',
@@ -89,7 +91,7 @@ try {
                     }]
                 });
                 
-                console.log(`[CONFIG] Ban threshold set to ${value} in ${interaction.guild.name}`);
+                logger.info(`[CONFIG] Ban threshold set to ${value} in ${interaction.guild.name}`);
                 
             } else if (action === 'kick_threshold') {
                 if (!value) {
@@ -116,7 +118,7 @@ try {
                     }]
                 });
                 
-                console.log(`[CONFIG] Kick threshold set to ${value} in ${interaction.guild.name}`);
+                logger.info(`[CONFIG] Kick threshold set to ${value} in ${interaction.guild.name}`);
                 
             } else if (action === 'auto_kick') {
                 const currentState = guildSettings.autoKick ?? true;
@@ -134,11 +136,11 @@ try {
                     }]
                 });
                 
-                console.log(`[CONFIG] Auto-kick ${newState ? 'enabled' : 'disabled'} in ${interaction.guild.name}`);
+                logger.info(`[CONFIG] Auto-kick ${newState ? 'enabled' : 'disabled'} in ${interaction.guild.name}`);
             }
             
         } catch (error) {
-            console.error('[ERROR] Strike config command error:', error);
+            logger.error('[ERROR] Strike config command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,

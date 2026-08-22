@@ -1,5 +1,6 @@
 // Lockdown Command
 // Locks channels during raids by preventing @everyone from sending messages
+import { logger } from './utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { setGuildData, getGuildData } from '../../../utils/db.js';
@@ -7,6 +8,7 @@ import { sendModLog } from '../../../utils/modLog.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'lockdown',
     description: 'Lock a channel to prevent @everyone from sending messages',
     category: 'Moderation',
@@ -137,7 +139,7 @@ try {
                 };
                 await channel.send({ embeds: [lockNotice] });
             } catch (err) {
-                console.log('[WARNING] Could not send lock notice to channel:', err.message);
+                logger.info('[WARNING] Could not send lock notice to channel:', err.message);
             }
             
             // Send mod log
@@ -152,10 +154,10 @@ try {
             });
             
             // Log the action
-            console.log(`[MODERATION] Channel ${channel.name} was locked by ${interaction.user.tag}. Reason: ${reason}`);
+            logger.info(`[MODERATION] Channel ${channel.name} was locked by ${interaction.user.tag}. Reason: ${reason}`);
             
         } catch (error) {
-            console.error('[ERROR] Lockdown command error:', error);
+            logger.error('[ERROR] Lockdown command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,

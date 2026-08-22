@@ -1,5 +1,6 @@
 // Tempban Command
 // Temporarily ban a user with automatic unban
+import { logger } from './utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
@@ -8,6 +9,7 @@ import { createModCase } from './case.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'tempban',
     description: 'Temporarily ban a user from the server',
     category: 'Moderation',
@@ -244,10 +246,10 @@ try {
             });
             
             // Log the action
-            console.log(`[MODERATION] User ${user.tag} was temporarily banned by ${interaction.user.tag}. Duration: ${durationText}. Reason: ${reason}. Case ID: ${caseId}`);
+            logger.info(`[MODERATION] User ${user.tag} was temporarily banned by ${interaction.user.tag}. Duration: ${durationText}. Reason: ${reason}. Case ID: ${caseId}`);
             
         } catch (error) {
-            console.error('[ERROR] Tempban command error:', error);
+            logger.error('[ERROR] Tempban command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,

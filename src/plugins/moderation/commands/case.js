@@ -1,5 +1,6 @@
 // Case Command
 // Professional mod tracking with case IDs for all moderation actions
+import { logger } from './utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
@@ -130,7 +131,7 @@ export default {
             }
             
         } catch (error) {
-            console.error('[ERROR] Case command error:', error);
+            logger.error('[ERROR] Case command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,
@@ -366,7 +367,7 @@ async function handleEditCase(interaction) {
     await interaction.reply({ embeds: [successEmbed], flags: 64 });
     
     // Log the action
-    console.log(`[MODERATION] Case #${caseId} edited by ${interaction.user.tag}`);
+    logger.info(`[MODERATION] Case #${caseId} edited by ${interaction.user.tag}`);
 }
 
 async function handleDeleteCase(interaction) {
@@ -444,7 +445,7 @@ async function handleDeleteCase(interaction) {
     await interaction.reply({ embeds: [successEmbed], flags: 64 });
     
     // Log the action
-    console.log(`[MODERATION] Case #${caseId} deleted by ${interaction.user.tag}. Reason: ${reason}`);
+    logger.info(`[MODERATION] Case #${caseId} deleted by ${interaction.user.tag}. Reason: ${reason}`);
 }
 
 async function handleListCases(interaction) {
@@ -496,6 +497,7 @@ async function handleListCases(interaction) {
  * @returns {number} The case ID
  */
 export async function createModCase(guildId, caseInfo) {
+import { logger } from '../../../utils/logger.js';
     const data = await updateGuildData('mod-cases', guildId, current => {
         if (!current.cases) {current.cases = [];}
         if (!current.nextCaseId) {current.nextCaseId = 1;}

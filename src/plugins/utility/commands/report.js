@@ -1,11 +1,13 @@
 // Report Command
 // Context menu command for users to report messages to moderators
+import { logger } from './utils/logger.js';
 
 import { ContextMenuCommandBuilder } from '@discordjs/builders';
 import { ApplicationCommandType } from 'discord.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     data: new ContextMenuCommandBuilder()
         .setName('ReportMessage')
         .setType(ApplicationCommandType.Message),
@@ -59,7 +61,7 @@ export default {
                 // This will be handled by the modal handler
                 
             } catch (error) {
-                console.error('[ERROR] Report command error:', error);
+                logger.error('[ERROR] Report command error:', error);
                 
                 const errorEmbed = {
                     color: 0xFF0000,

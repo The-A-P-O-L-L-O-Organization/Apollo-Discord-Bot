@@ -1,8 +1,10 @@
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 // Joke Command
 // Get a random joke
+import { logger } from './utils/logger.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'joke',
     description: 'Get a random joke',
     category: 'Fun',
@@ -49,7 +51,7 @@ export default {
                 await interaction.reply({ embeds: [jokeEmbed] });
                 
             } catch (error) {
-                console.error('[ERROR] Joke command error:', error);
+                logger.error('[ERROR] Joke command error:', error);
                 
                 const errorEmbed = {
                     color: 0xFF0000,

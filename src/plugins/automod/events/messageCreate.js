@@ -1,5 +1,6 @@
 // Message Create Event
 // Handles automod checks on new messages
+import { logger } from './utils/logger.js';
 
 import { EmbedBuilder } from 'discord.js';
 import {
@@ -27,6 +28,7 @@ import { checkMessageAttachments } from '../../../utils/nsfwDetection.js';
 import { getLockRedis } from '../../../utils/lock.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'messageCreate',
     once: false,
     
@@ -188,7 +190,7 @@ export default {
             }
             
         } catch (error) {
-            console.error('[ERROR] Automod check failed:', error);
+            logger.error('[ERROR] Automod check failed:', error);
         }
     }
 };
@@ -256,7 +258,7 @@ async function handleViolation(message, type, reason, client, deleteMessage = fa
         
         // Delete warning message after 10 seconds
         setTimeout(() => {
-            warningMsg.delete().catch(err => console.error('[WARN] Failed to delete warning message:', err.message));
+            warningMsg.delete().catch(err => logger.error('[WARN] Failed to delete warning message:', err.message));
         }, 10000);
         
         // Check for auto-punishment thresholds
@@ -274,7 +276,7 @@ async function handleViolation(message, type, reason, client, deleteMessage = fa
                 });
                 autoPunishment = 'banned';
             } catch (e) {
-                console.error('[AUTOMOD] Auto-ban failed:', e);
+                logger.error('[AUTOMOD] Auto-ban failed:', e);
             }
         } else if (thresholds.kick && warningCount >= thresholds.kick) {
             try {
@@ -283,7 +285,7 @@ async function handleViolation(message, type, reason, client, deleteMessage = fa
                     autoPunishment = 'kicked';
                 }
             } catch (e) {
-                console.error('[AUTOMOD] Auto-kick failed:', e);
+                logger.error('[AUTOMOD] Auto-kick failed:', e);
             }
         } else if (thresholds.mute && warningCount >= thresholds.mute) {
             try {
@@ -292,7 +294,7 @@ async function handleViolation(message, type, reason, client, deleteMessage = fa
                     autoPunishment = 'muted';
                 }
             } catch (e) {
-                console.error('[AUTOMOD] Auto-mute failed:', e);
+                logger.error('[AUTOMOD] Auto-mute failed:', e);
             }
         }
         
@@ -311,9 +313,9 @@ async function handleViolation(message, type, reason, client, deleteMessage = fa
             }
         });
         
-        console.log(`[AUTOMOD] ${type} violation by ${message.author.tag} in ${message.guild.name}`);
+        logger.info(`[AUTOMOD] ${type} violation by ${message.author.tag} in ${message.guild.name}`);
         
     } catch (error) {
-        console.error('[ERROR] Automod violation handling failed:', error);
+        logger.error('[ERROR] Automod violation handling failed:', error);
     }
 }

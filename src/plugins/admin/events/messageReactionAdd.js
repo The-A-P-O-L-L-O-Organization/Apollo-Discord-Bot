@@ -1,7 +1,9 @@
 import { getGuildData } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
+import { logger } from './utils/logger.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'messageReactionAdd',
     once: false,
     
@@ -12,7 +14,7 @@ export default {
             try {
                 await reaction.fetch();
             } catch (error) {
-                console.error('[ERROR] Failed to fetch reaction:', error);
+                logger.error('[ERROR] Failed to fetch reaction:', error);
                 return;
             }
         }
@@ -41,7 +43,7 @@ export default {
         try {
             member = await guild.members.fetch(user.id);
         } catch (error) {
-            console.error(`[ERROR] Failed to fetch member ${user.id}:`, error);
+            logger.error(`[ERROR] Failed to fetch member ${user.id}:`, error);
             return;
         }
         
@@ -51,7 +53,7 @@ export default {
         
         try {
             await member.roles.add(reactionRole.roleId, 'Reaction role');
-            console.log(`[INFO] Added role ${reactionRole.roleId} to ${user.tag} via reaction role`);
+            logger.info(`[INFO] Added role ${reactionRole.roleId} to ${user.tag} via reaction role`);
             
             if (config.reactionRoles.dmOnRole) {
                 try {
@@ -63,7 +65,7 @@ export default {
                 }
             }
         } catch (error) {
-            console.error(`[ERROR] Failed to add role ${reactionRole.roleId} to ${user.tag}:`, error);
+            logger.error(`[ERROR] Failed to add role ${reactionRole.roleId} to ${user.tag}:`, error);
         }
     }
 };

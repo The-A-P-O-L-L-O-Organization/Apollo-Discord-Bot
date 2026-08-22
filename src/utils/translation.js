@@ -1,3 +1,4 @@
+import { logger } from './utils/logger.js';
 /* eslint-disable no-console */
 const FETCH_TIMEOUT_MS = 30000;
 
@@ -38,9 +39,9 @@ class TranslationService {
                 language: lang.code.toUpperCase(),
                 name: lang.name
             }));
-            console.log(`[Translation] Initialized with ${this.cachedLanguages.length} supported languages`);
+            logger.info(`[Translation] Initialized with ${this.cachedLanguages.length} supported languages`);
         } catch (error) {
-            console.error('[Translation] Failed to initialize:', error.message);
+            logger.error('[Translation] Failed to initialize:', error.message);
             throw error;
         }
     }

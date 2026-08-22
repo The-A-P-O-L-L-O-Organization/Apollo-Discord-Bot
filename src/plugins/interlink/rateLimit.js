@@ -1,5 +1,6 @@
 // Distributed Rate Limiter
 // Redis-backed sliding window rate limiter for cross-pod synchronization
+import { logger } from './utils/logger.js';
 
 import { config } from '../../config/config.js';
 import { getLockRedis } from '../../utils/lock.js';
@@ -89,7 +90,7 @@ export class DistributedRateLimiter {
                 remaining: result[2]
             };
         } catch (err) {
-            console.error('[RATELIMIT] Redis error, allowing request:', err.message);
+            logger.error('[RATELIMIT] Redis error, allowing request:', err.message);
             // Fail open - allow request on Redis error
             return { allowed: true, retryAfter: 0, remaining: this.limit };
         }
@@ -204,7 +205,7 @@ export async function createRateLimiter(options = {}) {
     if (redis) {
         return new DistributedRateLimiter(options);
     }
-    console.warn('[RATELIMIT] Redis unavailable, using in-memory fallback');
+    logger.warn('[RATELIMIT] Redis unavailable, using in-memory fallback');
     return new MemoryRateLimiter(options);
 }
 
@@ -212,3 +213,4 @@ export async function createRateLimiter(options = {}) {
 export class RateLimiter extends MemoryRateLimiter {}
 
 export default RateLimiter;
+import { logger } from '../../utils/logger.js';

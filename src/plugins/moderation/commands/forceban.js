@@ -1,5 +1,6 @@
 // Forceban Command
 // Bans a user by ID without requiring them to be in the server
+import { logger } from './utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog } from '../../../utils/modLog.js';
@@ -9,6 +10,7 @@ import { safeError } from '../../../utils/safeError.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'forceban',
     description: 'Ban a user by ID (works even if user is not in the server)',
     category: 'Moderation',
@@ -149,7 +151,7 @@ try {
                 }
             });
             
-            console.log(`[MODERATION] User ${userTag} (${userId}) was forcebanned by ${interaction.user.tag}. Reason: ${reason}`);
+            logger.info(`[MODERATION] User ${userTag} (${userId}) was forcebanned by ${interaction.user.tag}. Reason: ${reason}`);
             
         } catch (error) {
             const errorEmbed = {

@@ -1,5 +1,6 @@
 // Level Command
 // View your current level and experience points
+import { logger } from './utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { getUserData } from '../../../utils/db.js';
@@ -7,6 +8,7 @@ import { calculateXPForLevel } from '../../../utils/xp.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'level',
     description: 'View your current level and experience points',
     category: 'Utility',
@@ -87,7 +89,7 @@ try {
             await interaction.reply({ embeds: [levelEmbed] });
             
         } catch (error) {
-            console.error('[ERROR] Level command error:', error);
+            logger.error('[ERROR] Level command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,

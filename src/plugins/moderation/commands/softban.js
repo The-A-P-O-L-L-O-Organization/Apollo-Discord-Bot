@@ -1,5 +1,6 @@
 // Softban Command
 // Bans a user and immediately unbans them to clear their messages
+import { logger } from './utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
@@ -10,6 +11,7 @@ import { safeError } from '../../../utils/safeError.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'softban',
     description: 'Softban a user (ban + immediate unban to clear messages)',
     category: 'Moderation',
@@ -158,7 +160,7 @@ try {
                 }
             });
             
-            console.log(`[MODERATION] User ${user.tag} was softbanned by ${interaction.user.tag}. Reason: ${reason}`);
+            logger.info(`[MODERATION] User ${user.tag} was softbanned by ${interaction.user.tag}. Reason: ${reason}`);
             
         } catch (error) {
             const errorEmbed = {

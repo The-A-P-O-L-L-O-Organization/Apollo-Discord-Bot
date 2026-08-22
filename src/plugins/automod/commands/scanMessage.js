@@ -1,5 +1,6 @@
 // Context Menu Command: Scan for NSFW
 // Right-click a message → "Scan for NSFW"
+import { logger } from './utils/logger.js';
 
 import { ApplicationCommandType, EmbedBuilder, PermissionsBitField } from 'discord.js';
 import { checkMessageAttachments, formatNsfwPredictions } from '../../../utils/nsfwDetection.js';
@@ -7,6 +8,7 @@ import { safeError } from '../../../utils/safeError.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'Scan for NSFW',
     description: 'Scan a message for NSFW content',
     type: ApplicationCommandType.Message,
@@ -90,7 +92,7 @@ try {
                         value: 'I don\'t have permission to delete this message.',
                         inline: false
                     });
-                    console.error('[ERROR] Failed to delete NSFW message:', deleteError);
+                    logger.error('[ERROR] Failed to delete NSFW message:', deleteError);
                 }
             }
 

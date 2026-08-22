@@ -1,5 +1,6 @@
 // Voice Move Command
 // Moves a user to a different voice channel
+import { logger } from './utils/logger.js';
 
 import { PermissionsBitField, ChannelType } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
@@ -10,6 +11,7 @@ import { safeError } from '../../../utils/safeError.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'voicemove',
     description: 'Move a user to a different voice channel',
     category: 'Moderation',
@@ -176,7 +178,7 @@ try {
                 }
             });
             
-            console.log(`[MODERATION] User ${user.tag} was moved from ${sourceChannelName} to ${targetChannelName} by ${interaction.user.tag}. Reason: ${reason}`);
+            logger.info(`[MODERATION] User ${user.tag} was moved from ${sourceChannelName} to ${targetChannelName} by ${interaction.user.tag}. Reason: ${reason}`);
             
         } catch (error) {
             const errorEmbed = {
