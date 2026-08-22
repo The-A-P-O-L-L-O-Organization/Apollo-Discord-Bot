@@ -3,6 +3,7 @@ import { getGuildData, getData, updateGuildData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { safeError } from '../../../utils/safeError.js';
 import { isOwner } from '../../../utils/accessControl.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
     name: 'blacklist',
@@ -82,7 +83,9 @@ export default {
         }
     ],
 
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         const subcommand = interaction.options.getSubcommand();
 
         if (subcommand === 'add') {
@@ -94,7 +97,23 @@ export default {
         } else if (subcommand === 'global') {
             await handleGlobal(interaction);
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };
 
 /**

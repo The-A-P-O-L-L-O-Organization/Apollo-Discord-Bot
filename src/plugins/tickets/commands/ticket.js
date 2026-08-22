@@ -45,7 +45,8 @@ export default {
     ],
 
     async execute(interaction) {
-        const guildId = interaction.guild.id;
+        try {
+            const guildId = interaction.guild.id;
         const userId = interaction.user.id;
         const reason = interaction.options.getString('reason') || 'No reason provided';
         const category = interaction.options.getString('category') || 'general';
@@ -197,5 +198,14 @@ export default {
             content: `Your ticket has been created: ${ticketChannel}`,
             flags: 64
         });
+    
+    } catch (error) {
+        const errorMessage = handleDiscordError(error);
+        if (interaction.replied || interaction.deferred) {
+            await safeFollowUp(interaction, errorMessage);
+        } else {
+            await safeReply(interaction, errorMessage);
+        }
     }
+}
 };

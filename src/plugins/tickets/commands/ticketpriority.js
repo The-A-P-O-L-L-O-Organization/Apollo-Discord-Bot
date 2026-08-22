@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import { updateGuildData } from '../../../utils/db.js';
 import { getPriorityColor, getPriorityEmoji } from '../../../utils/slaTracker.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
     name: 'ticketpriority',
@@ -22,7 +23,9 @@ export default {
         .setDMPermission(false),
     category: 'utility',
 
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         const guildId = interaction.guild.id;
         const channelId = interaction.channel.id;
         const newPriority = interaction.options.getString('priority');
@@ -87,5 +90,21 @@ export default {
             .setTimestamp();
 
         return interaction.reply({ embeds: [embed] });
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

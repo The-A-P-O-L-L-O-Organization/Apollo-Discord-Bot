@@ -11,6 +11,7 @@ import {
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { canModerate } from '../../../utils/moderation.js';
 import { safeError } from '../../../utils/safeError.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
     name: 'strike',
@@ -36,8 +37,9 @@ export default {
     
     async execute(interaction) {
         try {
-            const user = interaction.options.getUser('user');
-            const reason = interaction.options.getString('reason');
+            try {
+                const user = interaction.options.getUser('user');
+                const reason = interaction.options.getString('reason');
             
             // Validation checks
             if (!user) {
@@ -232,6 +234,15 @@ export default {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
                 await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            }
+        }
+    
+} catch (error) {
+            const errorMessage = handleDiscordError(error);
+            if (interaction.replied || interaction.deferred) {
+                await safeFollowUp(interaction, errorMessage);
+            } else {
+                await safeReply(interaction, errorMessage);
             }
         }
     }

@@ -4,6 +4,7 @@
 import { EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import { appendToGuildArray, generateId } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 // Emoji options for polls
 const POLL_EMOJIS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
@@ -42,9 +43,10 @@ export default {
     ],
 
     async execute(interaction) {
-        const question = interaction.options.getString('question');
-        const optionsInput = interaction.options.getString('options');
-        const durationInput = interaction.options.getString('duration');
+        try {
+            const question = interaction.options.getString('question');
+            const optionsInput = interaction.options.getString('options');
+            const durationInput = interaction.options.getString('duration');
         const anonymous = interaction.options.getBoolean('anonymous') || false;
 
         // Parse options
@@ -145,7 +147,16 @@ export default {
 
             await appendToGuildArray('polls', interaction.guild.id, 'active', pollData);
         }
+    
+    } catch (error) {
+        const errorMessage = handleDiscordError(error);
+        if (interaction.replied || interaction.deferred) {
+            await safeFollowUp(interaction, errorMessage);
+        } else {
+            await safeReply(interaction, errorMessage);
+        }
     }
+}
 };
 
 /**

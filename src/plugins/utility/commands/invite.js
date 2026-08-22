@@ -2,6 +2,7 @@
 // Generate an invite link for the bot or create a server invite
 
 import { PermissionsBitField } from 'discord.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
     name: 'invite',
@@ -40,7 +41,9 @@ export default {
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             const type = interaction.options.getString('type') || 'bot';
             
@@ -146,5 +149,21 @@ export default {
             
             await interaction.reply({ embeds: [errorEmbed], flags: 64 });
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

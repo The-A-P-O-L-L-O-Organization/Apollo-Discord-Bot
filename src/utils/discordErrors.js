@@ -69,7 +69,6 @@ export const DiscordErrorCodes = {
     UNKNOWN_TEMPLATE: 10057,
     UNKNOWN_DISCOVERABLE_SERVER_CATEGORY: 10059,
     UNKNOWN_STICKER: 10060,
-    UNKNOWN_INTERACTION: 10062,
     UNKNOWN_APPLICATION_COMMAND: 10063,
     UNKNOWN_APPLICATION_COMMAND_PERMISSIONS: 10066,
     UNKNOWN_STAGE_INSTANCE: 10067,
@@ -79,7 +78,7 @@ export const DiscordErrorCodes = {
     UNKNOWN_GUILD_SCHEDULED_EVENT_USER: 10070,
     UNKNOWN_AUTO_MOD_RULE: 10071,
     UNKNOWN_AUTO_MOD_ACTION: 10072,
-    UNKNOWN_AUTO_MOD_ACTION_METADATA: 10073,
+    UNKNOWN_AUTO_MOD_ACTION_METADATA: 10073
 };
 
 /**
@@ -106,7 +105,7 @@ const ERROR_MESSAGES = {
     [DiscordErrorCodes.UNKNOWN_STAGE_INSTANCE]: 'The stage instance was not found.',
     [DiscordErrorCodes.UNKNOWN_GUILD_MEMBER]: 'The member was not found.',
     [DiscordErrorCodes.UNKNOWN_GUILD_SCHEDULED_EVENT]: 'The scheduled event was not found.',
-    [DiscordErrorCodes.UNKNOWN_AUTO_MOD_RULE]: 'The auto-mod rule was not found.',
+    [DiscordErrorCodes.UNKNOWN_AUTO_MOD_RULE]: 'The auto-mod rule was not found.'
 };
 
 /**

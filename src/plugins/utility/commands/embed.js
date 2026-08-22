@@ -4,6 +4,7 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import { parseMarkdownToEmbed } from '../../../utils/markdownParser.js';
 import { getAutomodConfig, checkBannedWords } from '../../../utils/automod.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -74,16 +75,17 @@ export default {
     category: 'utility',
 
     async execute(interaction) {
-        const title = interaction.options.getString('title');
-        const description = interaction.options.getString('description');
-        const color = interaction.options.getString('color');
-        const image = interaction.options.getString('image');
-        const thumbnail = interaction.options.getString('thumbnail');
-        const footer = interaction.options.getString('footer');
-        const author = interaction.options.getString('author');
-        const url = interaction.options.getString('url');
-        const timestamp = interaction.options.getBoolean('timestamp');
-        const fileAttachment = interaction.options.getAttachment('file');
+        try {
+            const title = interaction.options.getString('title');
+            const description = interaction.options.getString('description');
+            const color = interaction.options.getString('color');
+            const image = interaction.options.getString('image');
+            const thumbnail = interaction.options.getString('thumbnail');
+            const footer = interaction.options.getString('footer');
+            const author = interaction.options.getString('author');
+            const url = interaction.options.getString('url');
+            const timestamp = interaction.options.getBoolean('timestamp');
+            const fileAttachment = interaction.options.getAttachment('file');
 
         // Handle .md file attachment
         let parsed = {};
@@ -249,7 +251,16 @@ export default {
                 flags: 64
             });
         }
+
+    } catch (error) {
+        const errorMessage = handleDiscordError(error);
+        if (interaction.replied || interaction.deferred) {
+            await safeFollowUp(interaction, errorMessage);
+        } else {
+            await safeReply(interaction, errorMessage);
+        }
     }
+}
 };
 
 /**

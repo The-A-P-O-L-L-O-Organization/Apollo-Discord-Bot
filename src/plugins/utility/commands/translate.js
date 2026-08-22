@@ -1,11 +1,14 @@
 import { ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
     name: 'Translate',
     type: 3,
     category: 'Utility',
 
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         const translationService = global.translationService;
         if (!translationService) {
             await interaction.reply({
@@ -74,5 +77,21 @@ export default {
 
             await interaction.followUp({ content: errorMessage, flags: 64 });
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

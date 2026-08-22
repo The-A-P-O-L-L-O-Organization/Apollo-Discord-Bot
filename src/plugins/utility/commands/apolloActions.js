@@ -1,6 +1,7 @@
 import { ContextMenuCommandBuilder, ApplicationCommandType, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from 'discord.js';
 import { getData, updateGuildData } from '../../../utils/db.js';
 import { isOwner } from '../../../utils/accessControl.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
     data: new ContextMenuCommandBuilder()
@@ -11,7 +12,9 @@ export default {
     type: 2,
     canQueue: false,
 
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         if (!isOwner(interaction.user.id)) {
             return interaction.reply({
                 embeds: [{
@@ -134,5 +137,21 @@ export default {
                 console.error('[GLOBAL BAN] Failed to send error response:', e.message);
             }
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

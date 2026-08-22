@@ -1,5 +1,6 @@
 import { PermissionFlagsBits } from 'discord.js';
 import { getData, setData } from '../../../utils/db.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
     name: 'integration',
@@ -60,17 +61,27 @@ export default {
     ],
 
     async execute(interaction) {
-        const subcommand = interaction.options.getSubcommand();
+        try {
+            const subcommand = interaction.options.getSubcommand();
 
-        switch (subcommand) {
-            case 'add':
-                return handleAdd(interaction);
-            case 'remove':
-                return handleRemove(interaction);
-            case 'list':
-                return handleList(interaction);
+            switch (subcommand) {
+                case 'add':
+                    return handleAdd(interaction);
+                case 'remove':
+                    return handleRemove(interaction);
+                case 'list':
+                    return handleList(interaction);
+            }
+    
+        } catch (error) {
+            const errorMessage = handleDiscordError(error);
+            if (interaction.replied || interaction.deferred) {
+                await safeFollowUp(interaction, errorMessage);
+            } else {
+                await safeReply(interaction, errorMessage);
+            }
         }
-    },
+    }
 };
 
 async function handleAdd(interaction) {

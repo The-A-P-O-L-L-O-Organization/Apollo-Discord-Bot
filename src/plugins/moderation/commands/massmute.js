@@ -8,6 +8,7 @@ import { flushAnalyticsCritical, trackModAction } from '../../../utils/analytics
 import { canModerate } from '../../../utils/moderation.js';
 import { safeError } from '../../../utils/safeError.js';
 import { parseDuration, formatDuration, validateDuration } from '../../../utils/duration.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
     name: 'massmute',
@@ -37,7 +38,9 @@ export default {
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             const userIdsStr = interaction.options.getString('user-ids');
             const durationStr = interaction.options.getString('duration');
@@ -228,5 +231,21 @@ export default {
                 await interaction.reply({ embeds: [errorEmbed], flags: 64 });
             }
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

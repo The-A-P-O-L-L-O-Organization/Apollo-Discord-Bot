@@ -64,21 +64,8 @@ export default {
             await interaction.reply({ embeds: [ballEmbed] });
             
         } catch (error) {
-            const errorEmbed = {
-                color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred.',
-                fields: [
-                    {
-                        name: '[ERROR] Details',
-                        value: error.message,
-                        inline: true
-                    }
-                ],
-                timestamp: new Date().toISOString()
-            };
-            
-            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            const errorMessage = handleDiscordError(error);
+            await safeReply(interaction, errorMessage);
         }
     }
 };
