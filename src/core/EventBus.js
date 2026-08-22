@@ -61,6 +61,11 @@ export default class EventBus {
                 await entry.handler(payload);
             } catch (err) {
                 console.error(`[EventBus] Error in handler for "${event}":`, err);
+                try {
+                    this.emit('error', err, event, payload);
+                } catch (e) {
+                    console.error('[EventBus] Error while emitting error event:', e);
+                }
             }
         }
 
@@ -114,6 +119,11 @@ export default class EventBus {
                 w.fn(value, oldValue);
             } catch (err) {
                 console.error(`[EventBus] Error in state watcher for "${key}":`, err);
+                try {
+                    this.emit('error', err, key, { value, oldValue });
+                } catch (e) {
+                    console.error('[EventBus] Error while emitting error event:', e);
+                }
             }
         }
 
@@ -225,6 +235,11 @@ export default class EventBus {
                             w.fn(data._stateValue, oldValue);
                         } catch (err) {
                             console.error(`[EventBus] Error in cross-pod state watcher for "${data._stateKey}":`, err);
+                            try {
+                                this.emit('error', err, data._stateKey, { value: data._stateValue, oldValue });
+                            } catch (e) {
+                                console.error('[EventBus] Error while emitting error event:', e);
+                            }
                         }
                     }
                 }
