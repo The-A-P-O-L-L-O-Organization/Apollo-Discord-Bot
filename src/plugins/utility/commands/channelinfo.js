@@ -1,3 +1,4 @@
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 // Channelinfo Command
 // Display detailed information about a channel
 
@@ -16,7 +17,9 @@ export default {
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             const channel = interaction.options.getChannel('channel') || interaction.channel;
             
@@ -159,5 +162,21 @@ export default {
             
             await interaction.reply({ embeds: [errorEmbed], flags: 64 });
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

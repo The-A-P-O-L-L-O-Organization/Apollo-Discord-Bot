@@ -133,7 +133,7 @@ describe('8ball Command', () => {
             expect(replyCall.embeds).toHaveLength(1);
 
             const embed = replyCall.embeds[0];
-            expect(embed.title).toBe('[ERROR] Command Failed');
+            expect(embed.title).toBe('Error');
             expect(embed.color).toBe(0xFF0000);
         });
     });

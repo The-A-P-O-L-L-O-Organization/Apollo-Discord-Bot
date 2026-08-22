@@ -4,6 +4,7 @@
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
     name: 'warnconfig',
@@ -65,36 +66,46 @@ export default {
     ],
     
     async execute(interaction) {
-        const subcommand = interaction.options.getSubcommand();
-        
         try {
-            switch (subcommand) {
-            case 'view':
-                await handleView(interaction);
-                break;
-            case 'set':
-                await handleSet(interaction);
-                break;
-            case 'setmuteduration':
-                await handleSetMuteDuration(interaction);
-                break;
-            case 'reset':
-                await handleReset(interaction);
-                break;
-            }
-        } catch (error) {
-            console.error('[ERROR] Warn config command error:', error);
+            const subcommand = interaction.options.getSubcommand();
             
-            await interaction.reply({
-                embeds: [{
-                    color: 0xFF0000,
-                    title: '[ERROR] Command Failed',
-                    description: 'An error occurred while configuring warnings.',
-                    fields: [{ name: 'Error', value: error.message }],
-                    timestamp: new Date().toISOString()
-                }],
-                flags: 64
-            });
+            try {
+                switch (subcommand) {
+                case 'view':
+                    await handleView(interaction);
+                    break;
+                case 'set':
+                    await handleSet(interaction);
+                    break;
+                case 'setmuteduration':
+                    await handleSetMuteDuration(interaction);
+                    break;
+                case 'reset':
+                    await handleReset(interaction);
+                    break;
+                }
+            } catch (error) {
+                console.error('[ERROR] Warn config command error:', error);
+                
+                await interaction.reply({
+                    embeds: [{
+                        color: 0xFF0000,
+                        title: '[ERROR] Command Failed',
+                        description: 'An error occurred while configuring warnings.',
+                        fields: [{ name: 'Error', value: error.message }],
+                        timestamp: new Date().toISOString()
+                    }],
+                    flags: 64
+                });
+            }
+    
+        } catch (error) {
+            const errorMessage = handleDiscordError(error);
+            if (interaction.replied || interaction.deferred) {
+                await safeFollowUp(interaction, errorMessage);
+            } else {
+                await safeReply(interaction, errorMessage);
+            }
         }
     }
 };

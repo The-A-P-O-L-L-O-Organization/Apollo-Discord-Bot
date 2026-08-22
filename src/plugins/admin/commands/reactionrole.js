@@ -1,5 +1,6 @@
 import { PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
     name: 'reactionrole',
@@ -79,10 +80,11 @@ export default {
     ],
 
     async execute(interaction) {
-        const subcommand = interaction.options.getSubcommand();
-        const guildId = interaction.guild.id;
+        try {
+            const subcommand = interaction.options.getSubcommand();
+            const guildId = interaction.guild.id;
 
-        if (subcommand === 'add') {
+            if (subcommand === 'add') {
             const messageId = interaction.options.getString('message_id');
             const emojiInput = interaction.options.getString('emoji');
             const role = interaction.options.getRole('role');
@@ -286,7 +288,16 @@ export default {
                 flags: 64
             });
         }
+    
+    } catch (error) {
+        const errorMessage = handleDiscordError(error);
+        if (interaction.replied || interaction.deferred) {
+            await safeFollowUp(interaction, errorMessage);
+        } else {
+            await safeReply(interaction, errorMessage);
+        }
     }
+}
 };
 
 function parseEmoji(input) {

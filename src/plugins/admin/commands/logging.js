@@ -59,28 +59,29 @@ export default {
 
     async execute(interaction) {
         try {
-            const subcommand = interaction.options.getSubcommand();
-            const guildId = interaction.guild.id;
+            try {
+                const subcommand = interaction.options.getSubcommand();
+                const guildId = interaction.guild.id;
 
-            if (subcommand === 'enable' || subcommand === 'disable') {
-                const event = interaction.options.getString('event');
-                const enabled = subcommand === 'enable';
+                if (subcommand === 'enable' || subcommand === 'disable') {
+                    const event = interaction.options.getString('event');
+                    const enabled = subcommand === 'enable';
 
-                const existingConfig = await getGuildData('logging', guildId);
-                const events = existingConfig.events || { ...config.logging.defaultEvents };
+                    const existingConfig = await getGuildData('logging', guildId);
+                    const events = existingConfig.events || { ...config.logging.defaultEvents };
 
-                if (event === 'all') {
-                    for (const eventName of config.logging.availableEvents) {
-                        events[eventName] = enabled;
+                    if (event === 'all') {
+                        for (const eventName of config.logging.availableEvents) {
+                            events[eventName] = enabled;
+                        }
+                    } else {
+                        events[event] = enabled;
                     }
-                } else {
-                    events[event] = enabled;
-                }
 
-                await setGuildData('logging', guildId, {
-                    ...existingConfig,
-                    events
-                });
+                    await setGuildData('logging', guildId, {
+                        ...existingConfig,
+                        events
+                    });
 
 const eventDisplay = event === 'all' ? 'All events' : getEventDisplayName(event);
                  return interaction.reply({
@@ -152,6 +153,15 @@ const embed = new EmbedBuilder()
             const userMessage = handleDiscordError(error);
             if (userMessage) {
                 await safeReply(interaction, userMessage);
+            }
+        }
+    
+} catch (error) {
+            const errorMessage = handleDiscordError(error);
+            if (interaction.replied || interaction.deferred) {
+                await safeFollowUp(interaction, errorMessage);
+            } else {
+                await safeReply(interaction, errorMessage);
             }
         }
     }

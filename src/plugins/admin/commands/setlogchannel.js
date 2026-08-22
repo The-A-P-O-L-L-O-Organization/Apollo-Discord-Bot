@@ -35,10 +35,11 @@ export default {
 
     async execute(interaction) {
         try {
-            const subcommand = interaction.options.getSubcommand();
-            const guildId = interaction.guild.id;
+            try {
+                const subcommand = interaction.options.getSubcommand();
+                const guildId = interaction.guild.id;
 
-            if (subcommand === 'set') {
+                if (subcommand === 'set') {
                 const channel = interaction.options.getChannel('channel');
 
                 const botMember = interaction.guild.members.me;
@@ -118,5 +119,14 @@ export default {
                 await safeReply(interaction, userMessage);
             }
         }
+    
+    } catch (error) {
+        const errorMessage = handleDiscordError(error);
+        if (interaction.replied || interaction.deferred) {
+            await safeFollowUp(interaction, errorMessage);
+        } else {
+            await safeReply(interaction, errorMessage);
+        }
     }
+}
 };

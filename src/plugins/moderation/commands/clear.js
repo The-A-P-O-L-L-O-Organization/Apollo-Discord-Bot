@@ -4,6 +4,7 @@
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { safeError } from '../../../utils/safeError.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
     name: 'clear',

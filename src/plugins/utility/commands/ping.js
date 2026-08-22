@@ -2,7 +2,7 @@
 // Measures bot latency and response time
 
 import { EmbedBuilder } from 'discord.js';
-import { handleDiscordError, safeReply } from '../../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
     name: 'ping',
@@ -11,9 +11,10 @@ export default {
     
     
 async execute(interaction) {
-         try {
-             // Defer the reply to get accurate latency
-             await interaction.deferReply();
+        try {
+            try {
+                // Defer the reply to get accurate latency
+                await interaction.deferReply();
              
              // Calculate round-trip time
              const timestamp = interaction.createdTimestamp;
@@ -65,13 +66,22 @@ async execute(interaction) {
              // Send the embed
              await interaction.editReply({ embeds: [pingEmbed] });
              
-             console.log(`[SUCCESS] Ping command executed by ${interaction.user.tag}`);
-         } catch (error) {
-             const userMessage = handleDiscordError(error);
-             if (userMessage) {
-                 await safeReply(interaction, userMessage);
-             }
-         }
-     }
+console.log(`[SUCCESS] Ping command executed by ${interaction.user.tag}`);
+        } catch (error) {
+            const userMessage = handleDiscordError(error);
+            if (userMessage) {
+                await safeReply(interaction, userMessage);
+            }
+        }
+    
+    } catch (error) {
+        const errorMessage = handleDiscordError(error);
+        if (interaction.replied || interaction.deferred) {
+            await safeFollowUp(interaction, errorMessage);
+        } else {
+            await safeReply(interaction, errorMessage);
+        }
+    }
+}
 };
 
