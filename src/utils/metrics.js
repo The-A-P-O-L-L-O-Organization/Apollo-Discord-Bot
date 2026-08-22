@@ -118,6 +118,14 @@ export const startupDuration = new Histogram({
     registers: [register]
 });
 
+export const gatewayLatencyMs = new Histogram({
+    name: 'apollo_gateway_latency_ms',
+    help: 'Gateway latency in milliseconds',
+    labelNames: ['shard'],
+    buckets: [10, 20, 50, 100, 200, 500, 1000, 2000],
+    registers: [register]
+});
+
 // Helper functions
 export function recordCommand(command, guild, status) {
     commandsTotal.inc({ command, guild: guild || 'dm', status });
@@ -176,6 +184,10 @@ export function recordStartupDuration(durationMs) {
     startupDuration.observe(durationMs / 1000);
 }
 
+export function recordGatewayLatency(shard, latencyMs) {
+    gatewayLatencyMs.observe({ shard }, latencyMs);
+}
+
 export default {
     register,
     commandsTotal,
@@ -193,6 +205,7 @@ export default {
     errorsTotal,
     pluginLoadDuration,
     startupDuration,
+    gatewayLatencyMs,
     recordCommand,
     recordCommandDuration,
     setQueueDepth,
@@ -206,7 +219,8 @@ export default {
     recordHttpRequest,
     recordError,
     recordPluginLoad,
-    recordStartupDuration
+    recordStartupDuration,
+    recordGatewayLatency
 };
 
 /**
