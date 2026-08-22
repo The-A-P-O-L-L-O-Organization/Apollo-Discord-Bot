@@ -1,5 +1,6 @@
 // Mass Mute Command
 // Timeouts multiple users
+import { logger } from './utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
@@ -11,6 +12,7 @@ import { parseDuration, formatDuration, validateDuration } from '../../../utils/
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'massmute',
     description: 'Timeout multiple users',
     category: 'Moderation',
@@ -212,7 +214,7 @@ try {
             
             await interaction.editReply({ embeds: [successEmbed] });
             
-            console.log(`[MODERATION] Mass mute by ${interaction.user.tag}: ${results.success.length} success, ${results.failed.length} failed. Duration: ${durationDisplay}. Reason: ${reason}`);
+            logger.info(`[MODERATION] Mass mute by ${interaction.user.tag}: ${results.success.length} success, ${results.failed.length} failed. Duration: ${durationDisplay}. Reason: ${reason}`);
             
         } catch (error) {
             const errorEmbed = {

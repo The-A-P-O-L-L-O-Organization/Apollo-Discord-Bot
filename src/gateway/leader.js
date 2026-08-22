@@ -1,3 +1,4 @@
+import { logger } from './utils/logger.js';
 /* eslint-disable no-console */
 export const LeaderElectionMode = {
     GLOBAL: 'global',
@@ -51,7 +52,7 @@ export async function startHeartbeat(redis, lockKey, podId, ttlMs = 10000) {
         try {
             await redis.set(lockKey, podId, 'XX', 'PX', ttlMs);
         } catch (err) {
-            console.error('[Leader] Heartbeat failed:', err.message);
+            logger.error('[Leader] Heartbeat failed:', err.message);
         }
     };
     _lockTimer = setInterval(refresh, ttlMs / 3);

@@ -1,5 +1,6 @@
 // Timeout Command
 // Applies Discord native timeout to a member
+import { logger } from './utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
@@ -11,6 +12,7 @@ import { parseDuration, formatDuration, validateDuration } from '../../../utils/
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'timeout',
     description: 'Timeout a user (Discord native timeout)',
     category: 'Moderation',
@@ -167,7 +169,7 @@ try {
                 }
             });
             
-            console.log(`[MODERATION] User ${user.tag} was timed out by ${interaction.user.tag} for ${durationDisplay}. Reason: ${reason}`);
+            logger.info(`[MODERATION] User ${user.tag} was timed out by ${interaction.user.tag} for ${durationDisplay}. Reason: ${reason}`);
             
         } catch (error) {
             const errorEmbed = {

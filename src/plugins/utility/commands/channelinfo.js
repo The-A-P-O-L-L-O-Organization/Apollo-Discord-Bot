@@ -1,8 +1,10 @@
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 // Channelinfo Command
 // Display detailed information about a channel
+import { logger } from './utils/logger.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'channelinfo',
     description: 'Display detailed information about a channel',
     category: 'Utility',
@@ -144,7 +146,7 @@ try {
             await interaction.reply({ embeds: [channelEmbed] });
             
         } catch (error) {
-            console.error('[ERROR] Channelinfo command error:', error);
+            logger.error('[ERROR] Channelinfo command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,

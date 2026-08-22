@@ -1,8 +1,10 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { logger } from './utils/logger.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'ticketadd',
     data: new SlashCommandBuilder()
         .setName('ticketadd')
@@ -73,7 +75,7 @@ try {
                 AttachFiles: true
             });
         } catch (error) {
-            console.error('[ERROR] Failed to update channel permissions:', error);
+            logger.error('[ERROR] Failed to update channel permissions:', error);
             return interaction.reply({
                 content: 'Failed to add user to ticket. Please check my permissions.',
                 flags: 64

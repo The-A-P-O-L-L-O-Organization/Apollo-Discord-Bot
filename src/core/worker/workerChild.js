@@ -1,8 +1,10 @@
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createRequest, createResponse, isRequest, isResponse, isOversize } from './rpc.js';
+import { logger } from './utils/logger.js';
 
 export async function runChild({ pluginDir, env, processLike = process, loader }) {
+import { logger } from '../../utils/logger.js';
     const loadPlugin = loader || (async() => import(pathToFileURL(join(pluginDir, 'plugin.js')).href + '?t=' + Date.now()));
 
     const mod = await loadPlugin();
@@ -87,7 +89,7 @@ if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) 
     runChild({ pluginDir, env: process.env }).then(child => {
         process.on('message', (msg) => child.handleMessage(msg));
     }).catch(err => {
-        console.error('[WORKER] Failed to start:', err);
+        logger.error('[WORKER] Failed to start:', err);
         process.exit(1);
     });
 }

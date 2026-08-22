@@ -1,8 +1,10 @@
 import { EmbedBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { getGuildData, updateGuildData, generateId, writeToSubDir } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
+import { logger } from './utils/logger.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'interactionCreate',
     once: false,
     
@@ -105,7 +107,7 @@ async function handleCreateTicket(interaction) {
             topic: `Ticket #${ticketNumber} | Created by ${interaction.user.tag}`
         });
     } catch (error) {
-        console.error('[ERROR] Failed to create ticket channel:', error);
+        logger.error('[ERROR] Failed to create ticket channel:', error);
         return interaction.editReply({
             content: 'Failed to create ticket channel. Please contact an administrator.'
         });
@@ -155,7 +157,7 @@ async function handleCreateTicket(interaction) {
     
     return interaction.editReply({
         content: `Your ticket has been created: ${ticketChannel}`
-    }).catch(err => console.error('[WARN] Failed to delete message:', err.message));
+    }).catch(err => logger.error('[WARN] Failed to delete message:', err.message));
 }
 
 async function handleCloseTicket(interaction) {
@@ -210,7 +212,7 @@ async function handleCloseTicket(interaction) {
             if (allMessages.length >= 1000) {break;}
         }
     } catch (error) {
-        console.error('[ERROR] Failed to fetch messages for transcript:', error);
+        logger.error('[ERROR] Failed to fetch messages for transcript:', error);
     }
     
     allMessages.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
@@ -299,7 +301,7 @@ async function handleCloseTicket(interaction) {
             const channel = await interaction.client.channels.fetch(channelId);
             await channel.delete(`Ticket closed by ${interaction.user.tag}`);
         } catch (error) {
-            console.error('[ERROR] Failed to delete ticket channel:', error);
+            logger.error('[ERROR] Failed to delete ticket channel:', error);
         }
     }, 3000);
 }

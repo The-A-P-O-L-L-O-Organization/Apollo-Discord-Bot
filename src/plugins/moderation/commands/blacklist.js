@@ -4,8 +4,10 @@ import { sendModLog } from '../../../utils/modLog.js';
 import { safeError } from '../../../utils/safeError.js';
 import { isOwner } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { logger } from './utils/logger.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'blacklist',
     description: 'Manage the server join blacklist',
     category: 'Moderation',
@@ -202,10 +204,10 @@ async function handleAdd(interaction) {
             reason: reason
         });
 
-        console.log(`[MODERATION] User ${user.tag} blacklisted by ${interaction.user.tag}. Reason: ${reason}`);
+        logger.info(`[MODERATION] User ${user.tag} blacklisted by ${interaction.user.tag}. Reason: ${reason}`);
 
     } catch (error) {
-        console.error('[ERROR] Blacklist add error:', error);
+        logger.error('[ERROR] Blacklist add error:', error);
         await replyError(interaction, error);
     }
 }
@@ -254,10 +256,10 @@ async function handleRemove(interaction) {
 
         await interaction.reply({ embeds: [successEmbed] });
 
-        console.log(`[MODERATION] User ${user.tag} removed from blacklist by ${interaction.user.tag}`);
+        logger.info(`[MODERATION] User ${user.tag} removed from blacklist by ${interaction.user.tag}`);
 
     } catch (error) {
-        console.error('[ERROR] Blacklist remove error:', error);
+        logger.error('[ERROR] Blacklist remove error:', error);
         await replyError(interaction, error);
     }
 }
@@ -302,7 +304,7 @@ async function handleView(interaction) {
         await interaction.reply({ embeds: [embed], flags: 64 });
 
     } catch (error) {
-        console.error('[ERROR] Blacklist view error:', error);
+        logger.error('[ERROR] Blacklist view error:', error);
         await replyError(interaction, error);
     }
 }
@@ -395,7 +397,7 @@ async function handleGlobal(interaction) {
                 .setTimestamp();
 
             await interaction.reply({ embeds: [successEmbed] });
-            console.log(`[MODERATION] User ${user.tag} globally blacklisted by ${interaction.user.tag}. Reason: ${reason}`);
+            logger.info(`[MODERATION] User ${user.tag} globally blacklisted by ${interaction.user.tag}. Reason: ${reason}`);
 
         } else if (action === 'remove') {
             if (!user) {
@@ -443,7 +445,7 @@ async function handleGlobal(interaction) {
                 .setTimestamp();
 
             await interaction.reply({ embeds: [successEmbed] });
-            console.log(`[MODERATION] User ${user.tag} removed from global blacklist by ${interaction.user.tag}`);
+            logger.info(`[MODERATION] User ${user.tag} removed from global blacklist by ${interaction.user.tag}`);
 
         } else if (action === 'view') {
             const list = Object.values(entries);
@@ -479,7 +481,7 @@ async function handleGlobal(interaction) {
         }
 
     } catch (error) {
-        console.error('[ERROR] Global blacklist error:', error);
+        logger.error('[ERROR] Global blacklist error:', error);
         await replyError(interaction, error);
     }
 }

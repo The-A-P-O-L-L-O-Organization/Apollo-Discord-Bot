@@ -1,11 +1,13 @@
 // Strikes Command
 // View a user's strike history
+import { logger } from './utils/logger.js';
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { getUserData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'strikes',
     description: 'View a user\'s strike history',
     category: 'Moderation',
@@ -80,7 +82,7 @@ try {
             await interaction.reply({ embeds: [embed] });
             
         } catch (error) {
-            console.error('[ERROR] Strikes command error:', error);
+            logger.error('[ERROR] Strikes command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,

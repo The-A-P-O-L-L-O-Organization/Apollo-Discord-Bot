@@ -1,3 +1,4 @@
+import { logger } from './utils/logger.js';
 /* eslint-disable no-console */
 import { Queue } from 'bullmq';
 import { config } from '../config/config.js';
@@ -39,7 +40,7 @@ export async function createQueue(name, queueConfig = config.queue) {
             name,
             _enabled: false,
             async add(jobName, data, _opts) {
-                console.log(`[Queue] Would add job ${jobName} (queue disabled)`);
+                logger.info(`[Queue] Would add job ${jobName} (queue disabled)`);
                 return { id: 'noop', name: jobName, data };
             },
             async close() {}

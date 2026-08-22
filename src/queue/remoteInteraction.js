@@ -1,3 +1,4 @@
+import { logger } from './utils/logger.js';
 /* eslint-disable no-console */
 import { Routes, Collection } from 'discord.js';
 
@@ -96,7 +97,7 @@ export default class RemoteInteraction {
             await this._rest.patch(Routes.webhookMessage(this.applicationId, this.token), { body });
             this._replied = true;
         } catch (err) {
-            console.error('[RemoteInteraction] reply failed:', err.message);
+            logger.error('[RemoteInteraction] reply failed:', err.message);
             throw err;
         }
     }
@@ -107,7 +108,7 @@ export default class RemoteInteraction {
             await this._rest.patch(Routes.webhookMessage(this.applicationId, this.token), { body });
             this._replied = true;
         } catch (err) {
-            console.error('[RemoteInteraction] editReply failed:', err.message);
+            logger.error('[RemoteInteraction] editReply failed:', err.message);
             throw err;
         }
     }
@@ -122,7 +123,7 @@ export default class RemoteInteraction {
         try {
             await this._rest.post(Routes.webhook(this.applicationId, this.token), { body });
         } catch (err) {
-            console.error('[RemoteInteraction] followUp failed:', err.message);
+            logger.error('[RemoteInteraction] followUp failed:', err.message);
             throw err;
         }
     }
@@ -131,7 +132,7 @@ export default class RemoteInteraction {
         try {
             await this._rest.delete(Routes.webhookMessage(this.applicationId, this.token));
         } catch (err) {
-            console.error('[RemoteInteraction] deleteReply failed:', err.message);
+            logger.error('[RemoteInteraction] deleteReply failed:', err.message);
         }
     }
 
@@ -140,7 +141,7 @@ export default class RemoteInteraction {
             const msg = await this._rest.get(Routes.webhookMessage(this.applicationId, this.token));
             return msg;
         } catch (err) {
-            console.error('[RemoteInteraction] fetchReply failed:', err.message);
+            logger.error('[RemoteInteraction] fetchReply failed:', err.message);
             return null;
         }
     }
@@ -292,7 +293,7 @@ class RemoteGuildChannels {
             });
             return new RemoteChannel(data.id, data.name, this._api);
         } catch (err) {
-            console.error('[RemoteGuildChannels] create failed:', err.message);
+            logger.error('[RemoteGuildChannels] create failed:', err.message);
             throw err;
         }
     }
@@ -327,7 +328,7 @@ class RemoteGuildBans {
                 body: { delete_message_seconds: options.deleteMessageSeconds, reason: options.reason }
             });
         } catch (err) {
-            console.error('[RemoteGuildBans] create failed:', err.message);
+            logger.error('[RemoteGuildBans] create failed:', err.message);
             throw err;
         }
     }
@@ -345,7 +346,7 @@ class RemoteGuildBans {
         try {
             await this._api.rest.delete(Routes.guildBan(this._guildId, userId));
         } catch (err) {
-            console.error('[RemoteGuildBans] remove failed:', err.message);
+            logger.error('[RemoteGuildBans] remove failed:', err.message);
             throw err;
         }
     }
@@ -366,7 +367,7 @@ class RemoteChannel {
             const msg = await this._api.rest.post(Routes.channelMessages(this.id), { body });
             return msg;
         } catch (err) {
-            console.error('[RemoteChannel] send failed:', err.message);
+            logger.error('[RemoteChannel] send failed:', err.message);
             throw err;
         }
     }
@@ -378,7 +379,7 @@ class RemoteChannel {
             });
             return { code: invite.code, url: `https://discord.gg/${invite.code}` };
         } catch (err) {
-            console.error('[RemoteChannel] createInvite failed:', err.message);
+            logger.error('[RemoteChannel] createInvite failed:', err.message);
             throw err;
         }
     }
@@ -387,7 +388,7 @@ class RemoteChannel {
         try {
             await this._api.rest.patch(Routes.channel(this.id), { body: { topic } });
         } catch (err) {
-            console.error('[RemoteChannel] setTopic failed:', err.message);
+            logger.error('[RemoteChannel] setTopic failed:', err.message);
         }
     }
 }
@@ -422,7 +423,7 @@ class RemotePermissionOverwrites {
                 body: { type: options.type || 1, allow, deny }
             });
         } catch (err) {
-            console.error('[RemotePermissionOverwrites] edit failed:', err.message);
+            logger.error('[RemotePermissionOverwrites] edit failed:', err.message);
         }
     }
 }

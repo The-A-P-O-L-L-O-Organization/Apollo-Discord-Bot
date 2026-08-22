@@ -1,3 +1,4 @@
+import { logger } from './utils/logger.js';
 /* eslint-disable no-console */
 // Automod Utility
 // Core automod checking functions
@@ -411,7 +412,7 @@ export function stopSpamTrackerCleanup() {
     if (spamTrackerCleanupInterval) {
         clearInterval(spamTrackerCleanupInterval);
         spamTrackerCleanupInterval = null;
-        console.log('[INFO] Spam tracker cleanup interval stopped');
+        logger.info('[INFO] Spam tracker cleanup interval stopped');
     }
 }
 

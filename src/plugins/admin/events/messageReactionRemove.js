@@ -1,6 +1,8 @@
 import { getGuildData } from '../../../utils/db.js';
+import { logger } from './utils/logger.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'messageReactionRemove',
     once: false,
     
@@ -11,7 +13,7 @@ export default {
             try {
                 await reaction.fetch();
             } catch (error) {
-                console.error('[ERROR] Failed to fetch reaction:', error);
+                logger.error('[ERROR] Failed to fetch reaction:', error);
                 return;
             }
         }
@@ -40,7 +42,7 @@ export default {
         try {
             member = await guild.members.fetch(user.id);
         } catch (error) {
-            console.error(`[ERROR] Failed to fetch member ${user.id}:`, error);
+            logger.error(`[ERROR] Failed to fetch member ${user.id}:`, error);
             return;
         }
         
@@ -50,9 +52,9 @@ export default {
         
         try {
             await member.roles.remove(reactionRole.roleId, 'Reaction role removed');
-            console.log(`[INFO] Removed role ${reactionRole.roleId} from ${user.tag} via reaction role`);
+            logger.info(`[INFO] Removed role ${reactionRole.roleId} from ${user.tag} via reaction role`);
         } catch (error) {
-            console.error(`[ERROR] Failed to remove role ${reactionRole.roleId} from ${user.tag}:`, error);
+            logger.error(`[ERROR] Failed to remove role ${reactionRole.roleId} from ${user.tag}:`, error);
         }
     }
 };

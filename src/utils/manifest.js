@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, relative, sep, dirname } from 'node:path';
 import { logSecurityEvent } from './securityLog.js';
+import { logger } from './utils/logger.js';
 
 function hashFile(filePath) {
     return createHash('sha256').update(readFileSync(filePath)).digest('hex');
@@ -61,9 +62,9 @@ export async function verifyPluginManifest({
     }
 
     if (errors.length > 0) {
-        console.error('[SECURITY] Plugin integrity verification failed:');
+        logger.error('[SECURITY] Plugin integrity verification failed:');
         for (const err of errors) {
-            console.error('  -', err);
+            logger.error('  -', err);
         }
         return { ok: false, errors };
     }

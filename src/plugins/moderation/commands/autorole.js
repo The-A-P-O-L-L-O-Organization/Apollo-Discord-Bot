@@ -1,11 +1,13 @@
 // Autorole Command
 // Configure automatic role assignment for new members
+import { logger } from './utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'autorole',
     description: 'Configure automatic role assignment for new members',
     category: 'Moderation',
@@ -68,7 +70,7 @@ try {
             }
             
         } catch (error) {
-            console.error('[ERROR] Autorole command error:', error);
+            logger.error('[ERROR] Autorole command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,
@@ -165,7 +167,7 @@ async function handleSetRole(interaction) {
     
     await interaction.reply({ embeds: [successEmbed] });
     
-    console.log(`[CONFIG] Auto-role set to ${role.name} in ${interaction.guild.name}`);
+    logger.info(`[CONFIG] Auto-role set to ${role.name} in ${interaction.guild.name}`);
 }
 
 async function handleRemoveRole(interaction) {
@@ -198,7 +200,7 @@ async function handleRemoveRole(interaction) {
     
     await interaction.reply({ embeds: [successEmbed] });
     
-    console.log(`[CONFIG] Auto-role removed in ${interaction.guild.name}`);
+    logger.info(`[CONFIG] Auto-role removed in ${interaction.guild.name}`);
 }
 
 async function handleToggle(interaction) {

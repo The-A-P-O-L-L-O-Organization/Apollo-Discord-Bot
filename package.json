@@ -25,7 +25,7 @@
   },
   "author": "CodeMaster013",
   "license": "GPLv3",
-  "dependencies": {
+"dependencies": {
     "@discordjs/builders": "^1.14.1",
     "@discordjs/rest": "^2.6.3",
     "@tensorflow/tfjs-node": "^4.22.0",
@@ -42,6 +42,8 @@
     "knex": "^3.3.0",
     "nsfwjs": "^4.4.0",
     "pg": "^8.23.0",
+    "pino": "^10.3.1",
+    "pino-pretty": "^11.2.2",
     "prom-client": "^15.1.3"
   },
   "devDependencies": {

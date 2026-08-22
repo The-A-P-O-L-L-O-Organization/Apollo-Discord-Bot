@@ -1,3 +1,4 @@
+import { logger } from './utils/logger.js';
 /* eslint-disable no-console */
 // Raid Detection Utility
 // Monitors join patterns and auto-locks server during raids
@@ -206,14 +207,14 @@ function checkRaidPatternMemory(guildId, member, now, accountAgeDays, thresholds
     
     // Pattern 1: Too many joins in short time
     if (recentJoins >= thresholds.joinCount) {
-        console.log(`[RAID] Pattern detected: ${recentJoins} joins in ${thresholds.timeWindow}ms`);
+        logger.info(`[RAID] Pattern detected: ${recentJoins} joins in ${thresholds.timeWindow}ms`);
         return true;
     }
     
     // Pattern 2: Multiple new accounts joining
     const newAccounts = state.joins.filter(j => j.accountAge < thresholds.newAccountAge);
     if (newAccounts.length >= 3 && recentJoins >= 4) {
-        console.log(`[RAID] Pattern detected: ${newAccounts.length} new accounts in recent joins`);
+        logger.info(`[RAID] Pattern detected: ${newAccounts.length} new accounts in recent joins`);
         return true;
     }
     
@@ -222,7 +223,7 @@ function checkRaidPatternMemory(guildId, member, now, accountAgeDays, thresholds
         const usernames = state.joins.map(j => j.username);
         const similarCount = countSimilarNames(usernames);
         if (similarCount >= 3) {
-            console.log(`[RAID] Pattern detected: ${similarCount} similar usernames`);
+            logger.info(`[RAID] Pattern detected: ${similarCount} similar usernames`);
             return true;
         }
     }
@@ -279,7 +280,7 @@ export async function handleRaidDetected(guild, member) {
     );
     
     if (!modChannel) {
-        console.log('[RAID] No mod channel found to send raid alert');
+        logger.info('[RAID] No mod channel found to send raid alert');
         return;
     }
     
@@ -325,7 +326,7 @@ export async function handleRaidDetected(guild, member) {
         embeds: [alertEmbed] 
     });
     
-    console.log(`[RAID] Raid alert sent to ${guild.name}`);
+    logger.info(`[RAID] Raid alert sent to ${guild.name}`);
 }
 
 /**
@@ -357,7 +358,7 @@ export async function enableRaidMode(guild) {
             });
             locked++;
         } catch (error) {
-            console.error(`[RAID] Failed to lock channel ${channel.name}:`, error.message);
+            logger.error(`[RAID] Failed to lock channel ${channel.name}:`, error.message);
             failed++;
         }
     }
@@ -370,7 +371,7 @@ export async function enableRaidMode(guild) {
     state.raidMode = true;
     raidState.set(guild.id, state);
     
-    console.log(`[RAID] Raid mode enabled in ${guild.name}. Locked: ${locked}, Failed: ${failed}`);
+    logger.info(`[RAID] Raid mode enabled in ${guild.name}. Locked: ${locked}, Failed: ${failed}`);
     
     return { 
         success: true, 
@@ -411,7 +412,7 @@ export async function disableRaidMode(guild) {
             });
             unlocked++;
         } catch (error) {
-            console.error(`[RAID] Failed to unlock channel ${channel.name}:`, error.message);
+            logger.error(`[RAID] Failed to unlock channel ${channel.name}:`, error.message);
             failed++;
         }
     }
@@ -424,7 +425,7 @@ export async function disableRaidMode(guild) {
         memState.joins = []; // Clear join history
     }
     
-    console.log(`[RAID] Raid mode disabled in ${guild.name}. Unlocked: ${unlocked}, Failed: ${failed}`);
+    logger.info(`[RAID] Raid mode disabled in ${guild.name}. Unlocked: ${unlocked}, Failed: ${failed}`);
     
     return { 
         success: true, 

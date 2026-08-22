@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { createAuthMiddleware } from './auth.js';
+import { logger } from './utils/logger.js';
 
 export default function createRoutes({ registry, messageBus }) {
+import { logger } from '../../utils/logger.js';
     const router = Router();
     const authMiddleware = createAuthMiddleware(registry);
 
@@ -9,7 +11,7 @@ export default function createRoutes({ registry, messageBus }) {
         res.json({ status: 'ok', service: 'interlink', timestamp: Date.now() });
     });
 
-    router.post('/message', authMiddleware, async (req, res) => {
+    router.post('/message', authMiddleware, async(req, res) => {
         try {
             const envelope = req.body;
             if (!envelope || !envelope.type || !envelope.protocol) {
@@ -33,7 +35,7 @@ export default function createRoutes({ registry, messageBus }) {
             }
             res.json({ status: 'accepted', id: envelope.id });
         } catch (err) {
-            console.error('[Interlink:Routes] Error handling message:', err.message);
+            logger.error('[Interlink:Routes] Error handling message:', err.message);
             res.status(500).json({ error: 'Internal server error' });
         }
     });

@@ -1,5 +1,6 @@
 // Mass Kick Command
 // Kicks multiple users
+import { logger } from './utils/logger.js';
 
 import { PermissionsBitField, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
@@ -10,6 +11,7 @@ import { safeError } from '../../../utils/safeError.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
+import { logger } from '../../../utils/logger.js';
     name: 'masskick',
     description: 'Kick multiple users',
     category: 'Moderation',
@@ -223,7 +225,7 @@ try {
                     
                     await interaction.editReply({ embeds: [successEmbed] });
                     
-                    console.log(`[MODERATION] Mass kick by ${interaction.user.tag}: ${results.success.length} success, ${results.failed.length} failed. Reason: ${reason}`);
+                    logger.info(`[MODERATION] Mass kick by ${interaction.user.tag}: ${results.success.length} success, ${results.failed.length} failed. Reason: ${reason}`);
                 }
             });
             
