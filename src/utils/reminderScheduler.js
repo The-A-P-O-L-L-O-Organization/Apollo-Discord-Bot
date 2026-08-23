@@ -1,5 +1,5 @@
-import { logger } from './utils/logger.js';
-/* eslint-disable no-console */
+import { logger } from '../utils/logger.js';
+ 
 // Reminder Scheduler
 // Background task that checks and sends due reminders
 

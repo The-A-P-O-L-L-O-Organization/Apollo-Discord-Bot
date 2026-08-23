@@ -1,5 +1,5 @@
-import { logger } from './utils/logger.js';
-/* eslint-disable no-console */
+import { logger } from '../utils/logger.js';
+ 
 // Analytics Collector
 // Background service for collecting and aggregating analytics data
 

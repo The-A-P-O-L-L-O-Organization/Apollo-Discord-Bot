@@ -1,12 +1,11 @@
 // Message Create Event (Utility)
 // Awards XP for messages and announces level-ups
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { EmbedBuilder } from 'discord.js';
 import { getLevelsConfig, isOnCooldown, awardXp } from '../../../utils/xp.js';
 
 export default {
-import { logger } from '../../../utils/logger.js';
     name: 'messageCreate',
     once: false,
     

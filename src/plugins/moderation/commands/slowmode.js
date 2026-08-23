@@ -1,13 +1,12 @@
 // Slowmode Command
+export default {
 // Sets channel slowmode programmatically
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
-export default {
-import { logger } from '../../../utils/logger.js';
     name: 'slowmode',
     description: 'Set channel slowmode (rate limit)',
     category: 'Moderation',

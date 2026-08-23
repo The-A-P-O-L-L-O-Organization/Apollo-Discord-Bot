@@ -1,5 +1,6 @@
 // Deploy Commands Script
 // Registers slash commands with Discord for immediate use in a specific guild
+import { logger } from './utils/logger.js';
 
 import 'dotenv/config';
 import { REST } from '@discordjs/rest';
@@ -8,6 +9,7 @@ import { config } from '../src/config/config.js';
 import { readdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { logger } from '../src/utils/logger.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -54,7 +56,7 @@ function parseArgs() {
             options.help = true;
             break;
         default:
-            console.error(`[ERROR] Unknown argument: ${arg}`);
+            logger.error(`[ERROR] Unknown argument: ${arg}`);
             process.exit(EXIT_CODES.CONFIG_ERROR);
         }
     }
@@ -63,25 +65,25 @@ function parseArgs() {
 }
 
 function printHelp() {
-    console.log('Discord Bot - Command Deployment');
-    console.log('===================================\n');
-    console.log('Usage: node scripts/deploy-commands.js [options]\n');
-    console.log('Options:');
-    console.log('  --guild <id>     Deploy to specific guild (overrides GUILD_ID env)');
-    console.log('  --global         Force global deployment (ignores GUILD_ID)');
-    console.log('  --dry-run        Print commands without deploying');
-    console.log('  --clear          Delete all commands (guild or global)');
-    console.log('  --json           Output JSON array of deployed commands');
-    console.log('  --help, -h       Show this help message');
-    console.log('\nEnvironment variables:');
-    console.log('  DISCORD_TOKEN    Bot token (required)');
-    console.log('  CLIENT_ID        Application ID (required)');
-    console.log('  GUILD_ID         Guild ID for development deployment (optional)');
-    console.log('\nExit codes:');
-    console.log('  0  Success');
-    console.log('  1  Configuration error');
-    console.log('  2  Validation error');
-    console.log('  3  Deployment error');
+    logger.info('Discord Bot - Command Deployment');
+    logger.info('===================================\n');
+    logger.info('Usage: node scripts/deploy-commands.js [options]\n');
+    logger.info('Options:');
+    logger.info('  --guild <id>     Deploy to specific guild (overrides GUILD_ID env)');
+    logger.info('  --global         Force global deployment (ignores GUILD_ID)');
+    logger.info('  --dry-run        Print commands without deploying');
+    logger.info('  --clear          Delete all commands (guild or global)');
+    logger.info('  --json           Output JSON array of deployed commands');
+    logger.info('  --help, -h       Show this help message');
+    logger.info('\nEnvironment variables:');
+    logger.info('  DISCORD_TOKEN    Bot token (required)');
+    logger.info('  CLIENT_ID        Application ID (required)');
+    logger.info('  GUILD_ID         Guild ID for development deployment (optional)');
+    logger.info('\nExit codes:');
+    logger.info('  0  Success');
+    logger.info('  1  Configuration error');
+    logger.info('  2  Validation error');
+    logger.info('  3  Deployment error');
 }
 
 // Command validation
@@ -159,7 +161,7 @@ async function loadCommands() {
         }
 
     } catch (error) {
-        console.error('[ERROR] Error loading commands:', error);
+        logger.error('[ERROR] Error loading commands:', error);
         process.exit(EXIT_CODES.CONFIG_ERROR);
     }
 
@@ -170,14 +172,14 @@ async function loadCommands() {
 async function deployCommands(commands, options) {
     // Check if token is set
     if (config.DISCORD_TOKEN === 'your-token-here' || !config.DISCORD_TOKEN) {
-        console.error('[ERROR] Please set your Discord bot token in .env file first!');
-        console.error('[HINT] Copy .env.example to .env and add your token');
+        logger.error('[ERROR] Please set your Discord bot token in .env file first!');
+        logger.error('[HINT] Copy .env.example to .env and add your token');
         process.exit(EXIT_CODES.CONFIG_ERROR);
     }
 
     // Check if CLIENT_ID is set
     if (!config.CLIENT_ID || config.CLIENT_ID === 'your-bot-id') {
-        console.error('[ERROR] CLIENT_ID is not configured. Please set it in your .env file.');
+        logger.error('[ERROR] CLIENT_ID is not configured. Please set it in your .env file.');
         process.exit(EXIT_CODES.CONFIG_ERROR);
     }
 
@@ -191,47 +193,47 @@ async function deployCommands(commands, options) {
     try {
         if (options.clear) {
             if (isGlobal) {
-                console.log('[INFO] Clearing all global commands...');
+                logger.info('[INFO] Clearing all global commands...');
                 await rest.put(
                     Routes.applicationCommands(config.CLIENT_ID),
                     { body: [] }
                 );
-                console.log('[SUCCESS] All global commands cleared!');
+                logger.info('[SUCCESS] All global commands cleared!');
             } else {
-                console.log(`[INFO] Clearing all commands for guild ${guildId}...`);
+                logger.info(`[INFO] Clearing all commands for guild ${guildId}...`);
                 await rest.put(
                     Routes.applicationGuildCommands(config.CLIENT_ID, guildId),
                     { body: [] }
                 );
-                console.log(`[SUCCESS] All commands cleared for guild ${guildId}!`);
+                logger.info(`[SUCCESS] All commands cleared for guild ${guildId}!`);
             }
             return [];
         }
 
         if (!options.dryRun) {
             if (isGlobal) {
-                console.log('[INFO] Deploying globally (production mode)...');
+                logger.info('[INFO] Deploying globally (production mode)...');
                 await rest.put(
                     Routes.applicationCommands(config.CLIENT_ID),
                     { body: commands }
                 );
-                console.log('[SUCCESS] Commands deployed globally successfully!');
-                console.log('[INFO] Global commands may take up to 1 hour to appear in all servers');
+                logger.info('[SUCCESS] Commands deployed globally successfully!');
+                logger.info('[INFO] Global commands may take up to 1 hour to appear in all servers');
             } else {
-                console.log(`[INFO] Deploying to guild ${guildId} (development mode)...`);
+                logger.info(`[INFO] Deploying to guild ${guildId} (development mode)...`);
                 await rest.put(
                     Routes.applicationGuildCommands(config.CLIENT_ID, guildId),
                     { body: commands }
                 );
-                console.log(`[SUCCESS] Commands deployed to guild ${guildId} successfully!`);
-                console.log('[INFO] Commands will appear instantly in the specified server');
+                logger.info(`[SUCCESS] Commands deployed to guild ${guildId} successfully!`);
+                logger.info('[INFO] Commands will appear instantly in the specified server');
             }
         }
 
         return commands;
 
     } catch (error) {
-        console.error('[ERROR] Error deploying commands:', error);
+        logger.error('[ERROR] Error deploying commands:', error);
         process.exit(EXIT_CODES.DEPLOYMENT_ERROR);
     }
 }
@@ -248,22 +250,22 @@ async function main() {
     // For --clear --dry-run, we don't need to load commands
     if (options.clear && options.dryRun) {
         if (!options.json) {
-            console.log('Discord Bot - Command Deployment');
-            console.log('===================================\n');
+            logger.info('Discord Bot - Command Deployment');
+            logger.info('===================================\n');
         }
         const guildId = options.guild || (options.global ? null : config.GUILD_ID);
         const isGlobal = options.global || !guildId;
         if (isGlobal) {
-            console.log('[DRY-RUN] Would clear all global commands');
+            logger.info('[DRY-RUN] Would clear all global commands');
         } else {
-            console.log(`[DRY-RUN] Would clear all commands for guild ${guildId}`);
+            logger.info(`[DRY-RUN] Would clear all commands for guild ${guildId}`);
         }
         process.exit(EXIT_CODES.SUCCESS);
     }
 
     if (!options.json) {
-        console.log('Discord Bot - Command Deployment');
-        console.log('===================================\n');
+        logger.info('Discord Bot - Command Deployment');
+        logger.info('===================================\n');
     }
 
     const commands = await loadCommands();
@@ -272,20 +274,20 @@ async function main() {
     const warnings = validateCommands(commands);
     if (warnings.length > 0) {
         for (const warning of warnings) {
-            console.warn(`[WARN] ${warning}`);
+            logger.warn(`[WARN] ${warning}`);
         }
         if (!options.dryRun && !options.json) {
-            console.log(''); // spacing
+            logger.info(''); // spacing
         }
     }
 
     if (options.dryRun) {
         if (options.json) {
-            console.log(JSON.stringify(commands, null, 2));
+            logger.info(JSON.stringify(commands, null, 2));
         } else {
-            console.log(`[DRY-RUN] Would deploy ${commands.length} commands:`);
+            logger.info(`[DRY-RUN] Would deploy ${commands.length} commands:`);
             commands.forEach((cmd, index) => {
-                console.log(`  ${index + 1}. /${cmd.name} - ${cmd.description || '(no description)'}`);
+                logger.info(`  ${index + 1}. /${cmd.name} - ${cmd.description || '(no description)'}`);
             });
         }
         process.exit(EXIT_CODES.SUCCESS);
@@ -294,13 +296,13 @@ async function main() {
     const deployedCommands = await deployCommands(commands, options);
 
     if (options.json) {
-        console.log(JSON.stringify(deployedCommands, null, 2));
+        logger.info(JSON.stringify(deployedCommands, null, 2));
     } else {
-        console.log('\n[INFO] Deployed Commands:');
+        logger.info('\n[INFO] Deployed Commands:');
         deployedCommands.forEach((cmd, index) => {
-            console.log(`  ${index + 1}. /${cmd.name} - ${cmd.description || '(no description)'}`);
+            logger.info(`  ${index + 1}. /${cmd.name} - ${cmd.description || '(no description)'}`);
         });
-        console.log('\n[SUCCESS] Deployment complete!');
+        logger.info('\n[SUCCESS] Deployment complete!');
     }
 
     process.exit(EXIT_CODES.SUCCESS);

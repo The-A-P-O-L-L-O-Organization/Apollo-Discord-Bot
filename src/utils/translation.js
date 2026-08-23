@@ -1,5 +1,5 @@
-import { logger } from './utils/logger.js';
-/* eslint-disable no-console */
+import { logger } from '../utils/logger.js';
+ 
 const FETCH_TIMEOUT_MS = 30000;
 
 class TranslationService {

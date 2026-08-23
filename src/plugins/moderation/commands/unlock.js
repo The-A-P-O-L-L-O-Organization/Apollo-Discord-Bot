@@ -1,14 +1,13 @@
 // Unlock Command
+export default {
 // Unlocks previously locked channels and restores original permissions
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { setGuildData, getGuildData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
-export default {
-import { logger } from '../../../utils/logger.js';
     name: 'unlock',
     description: 'Unlock a previously locked channel',
     category: 'Moderation',

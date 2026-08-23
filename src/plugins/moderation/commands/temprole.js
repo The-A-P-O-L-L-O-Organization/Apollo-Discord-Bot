@@ -1,13 +1,12 @@
 // Temprole Command
+export default {
 // Assign temporary roles that automatically expire
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
-export default {
-import { logger } from '../../../utils/logger.js';
     name: 'temprole',
     description: 'Assign a temporary role that expires after a set duration',
     category: 'Moderation',

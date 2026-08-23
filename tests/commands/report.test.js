@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+ 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock the database utilities
@@ -15,11 +15,15 @@ vi.mock('../../src/utils/modLog.js', () => ({
 
 // Mock the logger utility
 vi.mock('../../src/utils/logger.js', () => ({
-    getLoggingConfig: vi.fn()
+    getLoggingConfig: vi.fn(),
+    logger: {
+        error: vi.fn(),
+        info: vi.fn()
+    }
 }));
 
 import { updateGuildData, generateId } from '../../src/utils/db.js';
-import { getLoggingConfig } from '../../src/utils/logger.js';
+import { getLoggingConfig, logger } from '../../src/utils/logger.js';
 import reportCommand from '../../src/plugins/utility/commands/report.js';
 import { handleReportSubmission } from '../../src/utils/reportHandler.js';
 
@@ -406,7 +410,7 @@ describe('Report Handler', () => {
             const result = await handleReportSubmission(interaction, client);
 
             expect(result).toBe(false);
-            expect(console.error).toHaveBeenCalledWith('[ERROR] Report submission error:', expect.any(Error));
+            expect(logger.error).toHaveBeenCalledWith('[ERROR] Report submission error:', expect.any(Error));
         });
     });
 });

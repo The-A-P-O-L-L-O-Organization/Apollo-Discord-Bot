@@ -1,14 +1,19 @@
-// Embed Command
-// Allows users to create custom embeds
-import { logger } from './utils/logger.js';
-
+import { logger } from '../../../utils/logger.js';
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import { parseMarkdownToEmbed } from '../../../utils/markdownParser.js';
 import { getAutomodConfig, checkBannedWords } from '../../../utils/automod.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
+function isValidUrl(string) {
+    try {
+        new URL(string);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 export default {
-import { logger } from '../../../utils/logger.js';
     data: new SlashCommandBuilder()
         .setName('embed')
         .setDescription('Create a custom embed message')
@@ -89,7 +94,6 @@ import { logger } from '../../../utils/logger.js';
             const timestamp = interaction.options.getBoolean('timestamp');
             const fileAttachment = interaction.options.getAttachment('file');
 
-            // Handle .md file attachment
             let parsed = {};
             if (fileAttachment) {
                 if (!fileAttachment.name.toLowerCase().endsWith('.md')) {
@@ -116,7 +120,6 @@ import { logger } from '../../../utils/logger.js';
                 }
             }
 
-            // Must have at least title or description (or a file)
             if (!title && !description && !fileAttachment) {
                 return interaction.reply({
                     content: 'You must provide at least a title or description for the embed.',
@@ -124,26 +127,21 @@ import { logger } from '../../../utils/logger.js';
                 });
             }
 
-            // Create the embed
             const embed = new EmbedBuilder();
 
-            // Set title
             if (title) {
                 embed.setTitle(title);
             } else if (parsed.title) {
                 embed.setTitle(parsed.title);
             }
 
-            // Set description
             if (description) {
                 embed.setDescription(description);
             } else if (parsed.description) {
                 embed.setDescription(parsed.description);
             }
 
-            // Set color
             if (color) {
-            // Validate hex color
                 const hexRegex = /^#?([0-9A-Fa-f]{6})$/;
                 const match = color.match(hexRegex);
                 if (match) {
@@ -155,10 +153,9 @@ import { logger } from '../../../utils/logger.js';
                     });
                 }
             } else {
-                embed.setColor('#3498DB'); // Default blue color
+                embed.setColor('#3498DB');
             }
 
-            // Set image
             if (image) {
                 if (!isValidUrl(image)) {
                     return interaction.reply({
@@ -169,7 +166,6 @@ import { logger } from '../../../utils/logger.js';
                 embed.setImage(image);
             }
 
-            // Set thumbnail
             if (thumbnail) {
                 if (!isValidUrl(thumbnail)) {
                     return interaction.reply({
@@ -180,17 +176,14 @@ import { logger } from '../../../utils/logger.js';
                 embed.setThumbnail(thumbnail);
             }
 
-            // Set footer
             if (footer) {
                 embed.setFooter({ text: footer });
             }
 
-            // Set author
             if (author) {
                 embed.setAuthor({ name: author });
             }
 
-            // Set URL
             if (url) {
                 if (!isValidUrl(url)) {
                     return interaction.reply({
@@ -201,12 +194,10 @@ import { logger } from '../../../utils/logger.js';
                 embed.setURL(url);
             }
 
-            // Set timestamp
             if (timestamp) {
                 embed.setTimestamp();
             }
 
-            // Add parsed fields and footer from .md file
             if (parsed.fields) {
                 for (const field of parsed.fields) {
                     embed.addFields(field);
@@ -216,7 +207,6 @@ import { logger } from '../../../utils/logger.js';
                 embed.setFooter(parsed.footer);
             }
 
-            // Check embed content against banned words
             const cfg = await getAutomodConfig(interaction.guild.id);
             if (cfg.enabled && cfg.bannedWords.length > 0) {
                 const embedTexts = [];
@@ -239,7 +229,6 @@ import { logger } from '../../../utils/logger.js';
                 }
             }
 
-            // Send the embed
             try {
                 await interaction.channel.send({ embeds: [embed] });
                 return interaction.reply({
@@ -264,17 +253,3 @@ import { logger } from '../../../utils/logger.js';
         }
     }
 };
-
-/**
- * Validates a URL string
- * @param {string} string - The string to validate
- * @returns {boolean} Whether the string is a valid URL
- */
-function isValidUrl(string) {
-    try {
-        new URL(string);
-        return true;
-    } catch {
-        return false;
-    }
-}

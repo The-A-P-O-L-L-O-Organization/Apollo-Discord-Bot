@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, relative, sep, dirname } from 'node:path';
 import { logSecurityEvent } from './securityLog.js';
-import { logger } from './utils/logger.js';
+import { logger } from '../utils/logger.js';
 
 function hashFile(filePath) {
     return createHash('sha256').update(readFileSync(filePath)).digest('hex');

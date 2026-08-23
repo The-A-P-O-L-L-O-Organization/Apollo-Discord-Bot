@@ -1,6 +1,7 @@
 // Tempban Command
+export default {
 // Temporarily ban a user with automatic unban
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
@@ -8,8 +9,6 @@ import { addTempban } from '../../../utils/tempbanScheduler.js';
 import { createModCase } from './case.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
-export default {
-import { logger } from '../../../utils/logger.js';
     name: 'tempban',
     description: 'Temporarily ban a user from the server',
     category: 'Moderation',

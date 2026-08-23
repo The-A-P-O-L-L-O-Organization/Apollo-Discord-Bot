@@ -3,8 +3,6 @@
 // Optionally cleans up stored data (currently logs only, preserves data for potential rejoin)
 import { logger } from './utils/logger.js';
 
-export default {
-import { logger } from '../../../utils/logger.js';
     name: 'guildDelete',
     once: false,
     async execute(guild, client) {

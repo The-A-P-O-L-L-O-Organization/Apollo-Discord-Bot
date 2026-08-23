@@ -1,12 +1,11 @@
 // Invite Command
+export default {
 // Generate an invite link for the bot or create a server invite
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
-export default {
-import { logger } from '../../../utils/logger.js';
     name: 'invite',
     description: 'Generate an invite link or create a server invite',
     category: 'Utility',

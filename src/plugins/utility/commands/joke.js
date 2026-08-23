@@ -1,10 +1,9 @@
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 // Joke Command
 // Get a random joke
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 export default {
-import { logger } from '../../../utils/logger.js';
     name: 'joke',
     description: 'Get a random joke',
     category: 'Fun',

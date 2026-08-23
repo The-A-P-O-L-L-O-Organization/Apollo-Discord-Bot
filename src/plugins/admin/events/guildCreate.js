@@ -1,13 +1,12 @@
 // Guild Create Event
 // Triggered when the bot joins a new server
 // Initializes default settings for the guild
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { setGuildData } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
 
-export default {
-import { logger } from '../../../utils/logger.js';
+    export default {
     name: 'guildCreate',
     once: false,
     async execute(guild, client) {

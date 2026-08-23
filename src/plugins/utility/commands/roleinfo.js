@@ -1,12 +1,11 @@
 // Roleinfo Command
+export default {
 // Display detailed information about a role
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
-export default {
-import { logger } from '../../../utils/logger.js';
     name: 'roleinfo',
     description: 'Display detailed information about a role',
     category: 'Utility',

@@ -1,5 +1,5 @@
-import { logger } from './utils/logger.js';
-/* eslint-disable no-console */
+import { logger } from '../utils/logger.js';
+ 
 import { Routes, Collection } from 'discord.js';
 
 export default class RemoteInteraction {

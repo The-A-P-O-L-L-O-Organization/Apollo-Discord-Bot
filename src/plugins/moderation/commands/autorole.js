@@ -1,13 +1,12 @@
 // Autorole Command
+export default {
 // Configure automatic role assignment for new members
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
-export default {
-import { logger } from '../../../utils/logger.js';
     name: 'autorole',
     description: 'Configure automatic role assignment for new members',
     category: 'Moderation',

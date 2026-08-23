@@ -1,6 +1,7 @@
 // Mass Kick Command
+export default {
 // Kicks multiple users
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
@@ -10,8 +11,6 @@ import { canModerate } from '../../../utils/moderation.js';
 import { safeError } from '../../../utils/safeError.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
-export default {
-import { logger } from '../../../utils/logger.js';
     name: 'masskick',
     description: 'Kick multiple users',
     category: 'Moderation',

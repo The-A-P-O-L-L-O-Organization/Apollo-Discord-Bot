@@ -1,6 +1,6 @@
 // Transcript Generator Utility
 // Generates HTML and text transcripts for tickets
-import { logger } from './utils/logger.js';
+import { logger } from '../utils/logger.js';
 
 import { writeToSubDir } from './db.js';
 
