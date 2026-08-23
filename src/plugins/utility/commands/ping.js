@@ -1,13 +1,12 @@
 // Ping Command
 // Measures bot latency and response time
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { EmbedBuilder } from 'discord.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
-export default {
-import { logger } from '../../../utils/logger.js';
-    name: 'ping',
+    export default {
+     name: 'ping',
     description: 'Check the bot\'s latency and response time',
     category: 'Utility',
     

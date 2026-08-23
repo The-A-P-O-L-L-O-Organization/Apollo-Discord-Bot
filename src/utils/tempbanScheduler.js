@@ -1,5 +1,5 @@
-import { logger } from './utils/logger.js';
-/* eslint-disable no-console */
+import { logger } from '../utils/logger.js';
+ 
 // Tempban Scheduler
 // Background task that checks and unbans users with expired tempbans
 

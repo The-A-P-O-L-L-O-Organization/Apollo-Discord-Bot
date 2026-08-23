@@ -1,7 +1,6 @@
 // Message Create Event
 // Handles automod checks on new messages
-import { logger } from './utils/logger.js';
-
+import { logger } from '../../../utils/logger.js';
 import { EmbedBuilder } from 'discord.js';
 import {
     getAutomodConfig,
@@ -28,7 +27,6 @@ import { checkMessageAttachments } from '../../../utils/nsfwDetection.js';
 import { getLockRedis } from '../../../utils/lock.js';
 
 export default {
-import { logger } from '../../../utils/logger.js';
     name: 'messageCreate',
     once: false,
     

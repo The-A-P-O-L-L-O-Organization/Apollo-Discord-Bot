@@ -1,6 +1,6 @@
 // Automod Command
 // Configure automatic moderation settings per server
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField, EmbedBuilder, ChannelType } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
@@ -10,7 +10,6 @@ import { checkMessageAttachments } from '../../../utils/nsfwDetection.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
-import { logger } from '../../../utils/logger.js';
     name: 'automod',
     description: 'Configure automatic moderation',
     category: 'Moderation',

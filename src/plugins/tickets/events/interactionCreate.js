@@ -1,10 +1,9 @@
 import { EmbedBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { getGuildData, updateGuildData, generateId, writeToSubDir } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 export default {
-import { logger } from '../../../utils/logger.js';
     name: 'interactionCreate',
     once: false,
     

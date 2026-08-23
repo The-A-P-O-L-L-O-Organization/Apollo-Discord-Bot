@@ -1,7 +1,6 @@
 // SLA Monitor Event
 // Periodically checks open tickets for SLA breaches and sends alerts
-import { logger } from './utils/logger.js';
-
+import { logger } from '../../../utils/logger.js';
 import { EmbedBuilder, ChannelType } from 'discord.js';
 import { getGuildData, getAllGuildIds } from '../../../utils/db.js';
 import { hasBreachedSLA, DEFAULT_SLA_THRESHOLDS, formatTime, getPriorityColor, getPriorityEmoji } from '../../../utils/slaTracker.js';
@@ -241,11 +240,3 @@ export function clearSlaAlert(guildId, ticketId) {
 export function getAlertedTickets(guildId) {
     return alertedTickets.get(guildId) || new Map();
 }
-
-export default {
-import { logger } from '../../../utils/logger.js';
-    startSlaMonitor,
-    handleSlaBreach,
-    clearSlaAlert,
-    getAlertedTickets
-};

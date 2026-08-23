@@ -1,6 +1,7 @@
 // Report Message Context Menu Command
+export default {
 // Allows users to report messages to moderators
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { 
     ContextMenuCommandBuilder, 
@@ -15,8 +16,6 @@ import { generateId, appendToGuildArray } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
-export default {
-import { logger } from '../../../utils/logger.js';
     data: new ContextMenuCommandBuilder()
         .setName('Report Message')
         .setType(ApplicationCommandType.Message),

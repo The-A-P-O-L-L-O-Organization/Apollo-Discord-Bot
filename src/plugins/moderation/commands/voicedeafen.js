@@ -1,6 +1,7 @@
 // Voice Deafen Command
+export default {
 // Server deafens a user in a voice channel
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
@@ -10,8 +11,6 @@ import { canModerate } from '../../../utils/moderation.js';
 import { safeError } from '../../../utils/safeError.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
-export default {
-import { logger } from '../../../utils/logger.js';
     name: 'voicedeafen',
     description: 'Server deafen a user in a voice channel',
     category: 'Moderation',

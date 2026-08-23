@@ -2,10 +2,9 @@ import { ContextMenuCommandBuilder, ApplicationCommandType, ModalBuilder, TextIn
 import { getData, updateGuildData } from '../../../utils/db.js';
 import { isOwner } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
-import { logger } from './utils/logger.js';
-
-export default {
 import { logger } from '../../../utils/logger.js';
+export default {
+
     data: new ContextMenuCommandBuilder()
         .setName('Global Ban')
         .setType(ApplicationCommandType.User)

@@ -1,6 +1,7 @@
 // Timeout Command
+export default {
 // Applies Discord native timeout to a member
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
@@ -11,8 +12,6 @@ import { safeError } from '../../../utils/safeError.js';
 import { parseDuration, formatDuration, validateDuration } from '../../../utils/duration.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
-export default {
-import { logger } from '../../../utils/logger.js';
     name: 'timeout',
     description: 'Timeout a user (Discord native timeout)',
     category: 'Moderation',

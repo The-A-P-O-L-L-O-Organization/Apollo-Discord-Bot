@@ -1,13 +1,12 @@
 // Strike Config Command
+export default {
 // Configure strike system settings
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
-export default {
-import { logger } from '../../../utils/logger.js';
     name: 'strikeconfig',
     description: 'Configure strike system settings',
     category: 'Moderation',

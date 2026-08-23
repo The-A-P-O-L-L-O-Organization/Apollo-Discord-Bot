@@ -7,8 +7,6 @@ import { checkMessageAttachments, formatNsfwPredictions } from '../../../utils/n
 import { safeError } from '../../../utils/safeError.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
-export default {
-import { logger } from '../../../utils/logger.js';
     name: 'Scan for NSFW',
     description: 'Scan a message for NSFW content',
     type: ApplicationCommandType.Message,

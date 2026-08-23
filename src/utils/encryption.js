@@ -1,6 +1,6 @@
 // Encryption Utility
 // AES-GCM encryption for sensitive data at rest
-import { logger } from './utils/logger.js';
+import { logger } from '../utils/logger.js';
 
 import crypto from 'crypto';
 

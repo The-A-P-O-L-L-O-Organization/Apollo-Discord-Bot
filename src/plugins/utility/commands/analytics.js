@@ -1,6 +1,6 @@
 // Analytics Commands
 // Provides comprehensive analytics and statistics for server management
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { 
     SlashCommandBuilder, 
@@ -31,7 +31,6 @@ import { readFileSync } from 'fs';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
-import { logger } from '../../../utils/logger.js';
     data: new SlashCommandBuilder()
         .setName('analytics')
         .setDescription('View server analytics and statistics')

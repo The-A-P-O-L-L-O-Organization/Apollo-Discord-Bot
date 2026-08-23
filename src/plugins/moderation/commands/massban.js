@@ -1,6 +1,7 @@
 // Mass Ban Command
+export default {
 // Bans multiple users by ID
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } from 'discord.js';
 import { sendModLog } from '../../../utils/modLog.js';
@@ -9,8 +10,6 @@ import { flushAnalyticsCritical, trackModAction } from '../../../utils/analytics
 import { safeError } from '../../../utils/safeError.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
-export default {
-import { logger } from '../../../utils/logger.js';
     name: 'massban',
     description: 'Ban multiple users by ID',
     category: 'Moderation',

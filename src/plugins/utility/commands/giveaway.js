@@ -1,13 +1,12 @@
 // Giveaway Command
+export default {
 // Create and manage giveaways
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
-export default {
-import { logger } from '../../../utils/logger.js';
     name: 'giveaway',
     description: 'Create and manage giveaways',
     category: 'Fun',

@@ -1,20 +1,19 @@
-/* eslint-disable no-console */
+ 
 // Report Modal Handler
 // Handles report submissions from users
 
 import { updateGuildData, generateId } from '../utils/db.js';
 import { flushAnalyticsCritical } from './analyticsCollector.js';
-import { logger } from './utils/logger.js';
+import { logger } from '../utils/logger.js';
 
 export async function handleReportSubmission(interaction, _client) {
-import { logger } from 'logger.js';
     try {
         if (!interaction.isModalSubmit()) {return false;}
         if (interaction.customId !== 'report_reason_modal') {return false;}
-        
+
         const reason = interaction.fields.getTextInputValue('reason');
         const messageId = interaction.message?.reference?.messageId;
-        
+
         if (!messageId) {
             await interaction.reply({
                 content: '[ERROR] Could not find the original message. The report has been cancelled.',
@@ -22,11 +21,11 @@ import { logger } from 'logger.js';
             });
             return true;
         }
-        
+
         // Fetch the reported message
         const channel = interaction.channel;
         let reportedMessage;
-        
+
         try {
             reportedMessage = await channel.messages.fetch(messageId);
         } catch {
@@ -36,10 +35,10 @@ import { logger } from 'logger.js';
             });
             return true;
         }
-        
+
         const reporter = interaction.user;
         const author = reportedMessage.author;
-        
+
         // Create report
         const reportId = generateId();
         const reportData = {
@@ -59,17 +58,17 @@ import { logger } from 'logger.js';
             reviewedAt: null,
             resolution: null
         };
-        
+
         // Save report to database
         await updateGuildData('reports', interaction.guild.id, data => {
             if (!data.reports) {data.reports = [];}
             data.reports.push(reportData);
             return data;
         });
-        
+
         // Flush critical analytics for report submission
         await flushAnalyticsCritical();
-        
+
         // Create success embed for user
         const successEmbed = {
             color: 0x00FF00,
@@ -94,9 +93,9 @@ import { logger } from 'logger.js';
             ],
             timestamp: new Date().toISOString()
         };
-        
+
         await interaction.reply({ embeds: [successEmbed], flags: 64 });
-        
+
         // Send report to moderators
         const reportEmbed = {
             color: 0xFFA500, // Orange
@@ -138,7 +137,7 @@ import { logger } from 'logger.js';
                 text: `Use /reports view ${reportId} to manage this report`
             }
         };
-        
+
         // Add message link
         const messageLink = `https://discord.com/channels/${interaction.guild.id}/${channel.id}/${reportedMessage.id}`;
         reportEmbed.fields.push({
@@ -146,17 +145,17 @@ import { logger } from 'logger.js';
             value: messageLink,
             inline: false
         });
-        
+
         // Add thumbnail if author has avatar
         if (author.displayAvatarURL()) {
             reportEmbed.thumbnail = {
                 url: author.displayAvatarURL({ dynamic: true })
             };
         }
-        
+
         // Get logging channel and send report
         const logConfig = await import('../utils/logger.js').then(m => m.getLoggingConfig(interaction.guild.id));
-        
+
         if (logConfig && logConfig.channelId) {
             const logChannel = interaction.guild.channels.cache.get(logConfig.channelId);
             if (logChannel) {
@@ -184,18 +183,18 @@ import { logger } from 'logger.js';
                         }
                     ]
                 };
-                
-                await logChannel.send({ 
+
+                await logChannel.send({
                     embeds: [reportEmbed],
                     components: [actionRow]
                 });
             }
         }
-        
+
         logger.info(`[MODERATION] Report #${reportId} submitted by ${reporter.tag} against ${author.tag}`);
-        
+
         return true;
-        
+
     } catch (error) {
         logger.error('[ERROR] Report submission error:', error);
         return false;

@@ -1,6 +1,6 @@
 // Circuit Breaker Utility
 // Implements circuit breaker pattern for external API resilience
-import { logger } from './utils/logger.js';
+import { logger } from '../utils/logger.js';
 
 import { EventEmitter } from 'events';
 

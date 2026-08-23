@@ -1,10 +1,9 @@
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+export default {
 // Avatar Command
 // Display a user's avatar
-import { logger } from './utils/logger.js';
-
-export default {
 import { logger } from '../../../utils/logger.js';
+
     name: 'avatar',
     description: 'Display a user\'s avatar',
     category: 'Utility',

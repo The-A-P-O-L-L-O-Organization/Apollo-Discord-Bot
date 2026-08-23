@@ -3,10 +3,9 @@ import { getGuildData, updateGuildData } from '../../../utils/db.js';
 import { saveTranscripts } from '../../../utils/transcriptGenerator.js';
 import { clearSlaAlert } from '../../../plugins/tickets/events/slaMonitor.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 export default {
-import { logger } from '../../../utils/logger.js';
     name: 'closeticket',
     data: new SlashCommandBuilder()
         .setName('closeticket')

@@ -1,6 +1,7 @@
 import { PermissionFlagsBits } from 'discord.js';
 import { getData, setData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { logger } from '../../../utils/logger.js';
 
 export default {
     name: 'integration',

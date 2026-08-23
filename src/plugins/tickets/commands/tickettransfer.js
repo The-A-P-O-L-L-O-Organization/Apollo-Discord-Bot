@@ -1,10 +1,9 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import { updateGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
-import { logger } from './utils/logger.js';
-
-export default {
 import { logger } from '../../../utils/logger.js';
+export default {
+
     name: 'tickettransfer',
     data: new SlashCommandBuilder()
         .setName('tickettransfer')

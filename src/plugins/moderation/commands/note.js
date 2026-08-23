@@ -1,14 +1,13 @@
 // Note Command
+export default {
 // Add internal mod notes on users (not visible to the user)
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { getUserData, setUserData, appendToUserArray } from '../../../utils/db.js';
 import { generateId } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
-export default {
-import { logger } from '../../../utils/logger.js';
     name: 'note',
     description: 'Manage internal moderator notes on users',
     category: 'Moderation',

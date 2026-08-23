@@ -1,6 +1,6 @@
 // Help Command
 // Dynamically displays all available commands with descriptions and usage
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { EmbedBuilder, PermissionsBitField } from 'discord.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
@@ -40,8 +40,7 @@ function getPermissionName(permissions) {
     return permissionNames[permissions] || 'Special Permission';
 }
 
-export default {
-import { logger } from '../../../utils/logger.js';
+    export default {
     name: 'help',
     description: 'Shows all available commands with descriptions and usage',
     category: 'Utility',

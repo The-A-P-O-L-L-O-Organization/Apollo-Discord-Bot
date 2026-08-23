@@ -1,6 +1,6 @@
 // Centralized Redis Connection Pool
 // Single source of truth for all Redis connections in the application
-import { logger } from './utils/logger.js';
+import { logger } from '../utils/logger.js';
 
 import Redis from 'ioredis';
 

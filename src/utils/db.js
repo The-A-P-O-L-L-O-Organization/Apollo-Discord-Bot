@@ -228,6 +228,7 @@ export function startWalCheckpointInterval(intervalMs = 5 * 60 * 1000) {
                 import('./utils/logger.js').then(({ logger }) => {
                     logger.warn('[DB] WAL checkpoint failed:', err.message);
                 }).catch(err => {
+                    // eslint-disable-next-line no-console
                     console.warn('[DB] WAL checkpoint failed (logger import error):', err.message);
                 });
             }

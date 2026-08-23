@@ -5,7 +5,7 @@ import { generateApiKey } from '../auth.js';
 import { safeError } from '../../../utils/safeError.js';
 import { isOwner, getOwnerIds } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 const SEND_CONFIG = { requestTimeout: 5000, maxRetries: 3 };
 
@@ -18,7 +18,6 @@ function createBus() {
 }
 
 export default {
-import { logger } from '../../../utils/logger.js';
     name: 'interlink',
     description: 'Manage cross-bot communication (bot owner only)',
     category: 'Developer',

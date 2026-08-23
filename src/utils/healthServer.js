@@ -1,6 +1,6 @@
 // Health Check & Metrics Server
 // Exposes /health, /ready, and /metrics endpoints for monitoring
-import { logger } from './utils/logger.js';
+import { logger } from '../utils/logger.js';
 
 import { createServer } from 'http';
 import { register, recordGatewayLatency } from './metrics.js';

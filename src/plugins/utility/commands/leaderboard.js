@@ -1,12 +1,11 @@
 // Leaderboard Command
+export default {
 // Show the top users by level/XP
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { getAllUserData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
-export default {
-import { logger } from '../../../utils/logger.js';
     name: 'leaderboard',
     description: 'Show the top users by level or XP',
     category: 'Utility',

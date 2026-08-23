@@ -1,13 +1,12 @@
 // Role Persistence Command
+export default {
 // Configure role persistence to restore roles when users rejoin
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
-export default {
-import { logger } from '../../../utils/logger.js';
     name: 'rolepersistence',
     description: 'Configure role persistence for members who rejoin',
     category: 'Moderation',

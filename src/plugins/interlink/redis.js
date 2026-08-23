@@ -1,8 +1,7 @@
 import { getRedis } from '../../utils/redis.js';
-import { logger } from './utils/logger.js';
+import { logger } from '../../utils/logger.js';
 
 export default class RedisTransport {
-import { logger } from '../../utils/logger.js';
     constructor(config) {
         this.channelPrefix = config.channelPrefix || 'apollo:interlink';
         this._messageChannel = `${this.channelPrefix}:message`;

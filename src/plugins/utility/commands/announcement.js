@@ -1,12 +1,11 @@
 // Announcement Command
 // Schedule announcements to be sent later
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
-export default {
-import { logger } from '../../../utils/logger.js';
+    export default {
     name: 'announcement',
     description: 'Schedule an announcement to be sent',
     category: 'Utility',
@@ -270,6 +269,7 @@ function parseDelay(str) {
 }
 
 function generateId() {
-    return `ANN-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-}
+     return `ANN-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+ }
+};
 

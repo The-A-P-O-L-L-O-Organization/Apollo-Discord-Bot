@@ -1,5 +1,5 @@
 import { logger } from '../utils/logger.js';
-/* eslint-disable no-console */
+ 
 import { readdirSync } from 'fs';
 import path from 'path';
 import { pathToFileURL } from 'url';

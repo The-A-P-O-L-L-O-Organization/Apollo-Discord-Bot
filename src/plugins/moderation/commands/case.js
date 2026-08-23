@@ -1,6 +1,6 @@
 // Case Command
 // Professional mod tracking with case IDs for all moderation actions
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
@@ -497,7 +497,6 @@ async function handleListCases(interaction) {
  * @returns {number} The case ID
  */
 export async function createModCase(guildId, caseInfo) {
-import { logger } from '../../../utils/logger.js';
     const data = await updateGuildData('mod-cases', guildId, current => {
         if (!current.cases) {current.cases = [];}
         if (!current.nextCaseId) {current.nextCaseId = 1;}
