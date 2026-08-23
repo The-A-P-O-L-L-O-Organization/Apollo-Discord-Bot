@@ -1,17 +1,31 @@
-// Poll Command
-// Creates polls with optional duration for auto-tally
-import { logger } from './utils/logger.js';
-
+import { logger } from '../../../utils/logger.js';
 import { EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import { appendToGuildArray, generateId } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
-// Emoji options for polls
 const POLL_EMOJIS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
 
+function parseTimeString(timeString) {
+    const regex = /^(\d+)(m|h|d|w)$/i;
+    const match = timeString.trim().match(regex);
+
+    if (!match) {return null;}
+
+    const value = parseInt(match[1], 10);
+    const unit = match[2].toLowerCase();
+
+    const multipliers = {
+        'm': 60 * 1000,
+        'h': 60 * 60 * 1000,
+        'd': 24 * 60 * 60 * 1000,
+        'w': 7 * 24 * 60 * 60 * 1000
+    };
+
+    return value * multipliers[unit];
+}
+
 export default {
-import { logger } from '../../../utils/logger.js';
     name: 'poll',
     description: 'Create a poll',
     category: 'utility',
@@ -21,25 +35,25 @@ import { logger } from '../../../utils/logger.js';
         {
             name: 'question',
             description: 'The poll question',
-            type: 3, // STRING type
+            type: 3,
             required: true
         },
         {
             name: 'options',
             description: 'Poll options separated by | (e.g., "Yes | No | Maybe")',
-            type: 3, // STRING type
+            type: 3,
             required: true
         },
         {
             name: 'duration',
             description: 'Poll duration (e.g., 1h, 6h, 1d, 3d). Leave empty for no auto-close.',
-            type: 3, // STRING type
+            type: 3,
             required: false
         },
         {
             name: 'anonymous',
             description: 'Hide who voted for what (default: false)',
-            type: 5, // BOOLEAN type
+            type: 5,
             required: false
         }
     ],
@@ -51,7 +65,6 @@ import { logger } from '../../../utils/logger.js';
             const durationInput = interaction.options.getString('duration');
             const anonymous = interaction.options.getBoolean('anonymous') || false;
 
-            // Parse options
             const options = optionsInput
                 .split('|')
                 .map(opt => opt.trim())
@@ -71,7 +84,6 @@ import { logger } from '../../../utils/logger.js';
                 });
             }
 
-            // Parse duration if provided
             let endTime = null;
             if (durationInput) {
                 const duration = parseTimeString(durationInput);
@@ -93,23 +105,20 @@ import { logger } from '../../../utils/logger.js';
                 endTime = Date.now() + duration;
             }
 
-            // Build the poll embed
             const embed = new EmbedBuilder()
                 .setColor('#9B59B6')
                 .setTitle('[Poll] ' + question)
-                .setFooter({ 
-                    text: `Poll by ${interaction.user.tag}${anonymous ? ' • Anonymous voting' : ''}` 
+                .setFooter({
+                    text: `Poll by ${interaction.user.tag}${anonymous ? ' • Anonymous voting' : ''}`
                 })
                 .setTimestamp();
 
-            // Build options string
             let optionsText = '';
             for (let i = 0; i < options.length; i++) {
                 optionsText += `${POLL_EMOJIS[i]} ${options[i]}\n`;
             }
             embed.setDescription(optionsText);
 
-            // Add end time if set
             if (endTime) {
                 const timestamp = Math.floor(endTime / 1000);
                 embed.addFields({
@@ -119,11 +128,9 @@ import { logger } from '../../../utils/logger.js';
                 });
             }
 
-            // Send the poll
             await interaction.deferReply();
             const pollMessage = await interaction.editReply({ embeds: [embed] });
 
-            // Add reactions for each option
             for (let i = 0; i < options.length; i++) {
                 try {
                     await pollMessage.react(POLL_EMOJIS[i]);
@@ -132,7 +139,6 @@ import { logger } from '../../../utils/logger.js';
                 }
             }
 
-            // If there's a duration, save the poll for auto-tally
             if (endTime) {
                 const pollId = generateId();
                 const pollData = {
@@ -149,7 +155,7 @@ import { logger } from '../../../utils/logger.js';
 
                 await appendToGuildArray('polls', interaction.guild.id, 'active', pollData);
             }
-    
+
         } catch (error) {
             const errorMessage = handleDiscordError(error);
             if (interaction.replied || interaction.deferred) {
@@ -160,27 +166,3 @@ import { logger } from '../../../utils/logger.js';
         }
     }
 };
-
-/**
- * Parses a time string into milliseconds
- * @param {string} timeString - The time string (e.g., "1h", "6h", "1d")
- * @returns {number|null} Duration in milliseconds or null if invalid
- */
-function parseTimeString(timeString) {
-    const regex = /^(\d+)(m|h|d|w)$/i;
-    const match = timeString.trim().match(regex);
-
-    if (!match) {return null;}
-
-    const value = parseInt(match[1], 10);
-    const unit = match[2].toLowerCase();
-
-    const multipliers = {
-        'm': 60 * 1000,               // minutes
-        'h': 60 * 60 * 1000,          // hours
-        'd': 24 * 60 * 60 * 1000,     // days
-        'w': 7 * 24 * 60 * 60 * 1000  // weeks
-    };
-
-    return value * multipliers[unit];
-}

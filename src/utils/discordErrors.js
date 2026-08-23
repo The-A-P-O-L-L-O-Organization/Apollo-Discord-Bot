@@ -1,6 +1,6 @@
 // Discord REST Error Code Handling
 // Centralized error handling for Discord API errors
-import { logger } from './utils/logger.js';
+import { logger } from '../utils/logger.js';
 
 import { EmbedBuilder, MessageFlags } from 'discord.js';
 

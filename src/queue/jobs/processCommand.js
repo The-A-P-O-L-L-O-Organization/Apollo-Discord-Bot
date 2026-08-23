@@ -9,7 +9,7 @@ import { serializeInteraction } from '../serializeInteraction.js';
 import { registerHandler } from '../jobHandler.js';
 import { createQueue } from '../queue.js';
 import { recordCommand, recordCommandDuration, recordError } from '../../utils/metrics.js';
-import { logger } from './utils/logger.js';
+import { logger } from '../../utils/logger.js';
 
 export const JobNames = {
     PROCESS_COMMAND: 'process-command'
@@ -44,7 +44,6 @@ export async function enqueueCommand(interaction) {
 }
 
 export default function register() {
-import { logger } from '../../utils/logger.js';
     registerHandler(JobNames.PROCESS_COMMAND, async(job) => {
         const data = job.data;
         logger.info(`[Worker] Processing /${data.commandName} in guild ${data.guildId}`);

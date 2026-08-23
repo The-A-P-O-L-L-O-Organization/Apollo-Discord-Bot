@@ -1,6 +1,6 @@
 // Clear Warnings Command
 // Clears warnings for a user (single or all)
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import {
@@ -11,7 +11,7 @@ import { sendModLog } from '../../../utils/modLog.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
-import { logger } from '../../../utils/logger.js';
+
     name: 'clearwarnings',
     description: 'Clear warnings for a user',
     category: 'Moderation',

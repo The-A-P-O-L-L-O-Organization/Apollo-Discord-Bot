@@ -1,5 +1,5 @@
-import { logger } from './utils/logger.js';
-/* eslint-disable no-console */
+import { logger } from '../utils/logger.js';
+ 
 import { createServiceBreaker } from './circuitBreaker.js';
 
 const MODERATION_URL = 'https://api.openai.com/v1/moderations';

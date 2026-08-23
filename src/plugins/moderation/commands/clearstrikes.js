@@ -1,6 +1,7 @@
 // Clear Strikes Command
+export default {
 // Remove strikes from a user
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { getUserData, setUserData } from '../../../utils/db.js';
@@ -8,8 +9,6 @@ import { sendModLog } from '../../../utils/modLog.js';
 import { safeError } from '../../../utils/safeError.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
-export default {
-import { logger } from '../../../utils/logger.js';
     name: 'clearstrikes',
     description: 'Remove strikes from a user',
     category: 'Moderation',

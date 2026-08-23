@@ -1,9 +1,8 @@
 import { Router } from 'express';
 import { createAuthMiddleware } from './auth.js';
-import { logger } from './utils/logger.js';
+import { logger } from '../../utils/logger.js';
 
 export default function createRoutes({ registry, messageBus }) {
-import { logger } from '../../utils/logger.js';
     const router = Router();
     const authMiddleware = createAuthMiddleware(registry);
 

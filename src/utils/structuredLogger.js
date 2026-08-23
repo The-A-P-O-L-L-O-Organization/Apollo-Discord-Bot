@@ -1,5 +1,5 @@
-import { logger } from './utils/logger.js';
-/* eslint-disable no-console */
+import { logger } from '../utils/logger.js';
+ 
 // Structured Logger
 // JSON logging with levels, correlation IDs, and structured fields
 

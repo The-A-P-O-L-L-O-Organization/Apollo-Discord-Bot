@@ -3,10 +3,9 @@ import { getGuildData, updateGuildData, generateId } from '../../../utils/db.js'
 import { config } from '../../../config/config.js';
 import { getPriorityColor, getPriorityEmoji } from '../../../utils/slaTracker.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 export default {
-import { logger } from '../../../utils/logger.js';
     name: 'ticket',
     description: 'Create a support ticket',
     category: 'utility',
@@ -165,7 +164,7 @@ import { logger } from '../../../utils/logger.js';
                         .setStyle(ButtonStyle.Danger)
                 );
 
-            await ticketChannel.send({ 
+            await ticketChannel.send({
                 content: `${interaction.user} ${ticketConfig.supportRoleId ? `<@&${ticketConfig.supportRoleId}>` : ''}`,
                 embeds: [embed],
                 components: [row]
@@ -200,7 +199,7 @@ import { logger } from '../../../utils/logger.js';
                 content: `Your ticket has been created: ${ticketChannel}`,
                 flags: 64
             });
-    
+
         } catch (error) {
             const errorMessage = handleDiscordError(error);
             if (interaction.replied || interaction.deferred) {

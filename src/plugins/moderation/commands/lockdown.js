@@ -1,14 +1,13 @@
 // Lockdown Command
+export default {
 // Locks channels during raids by preventing @everyone from sending messages
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { setGuildData, getGuildData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
-export default {
-import { logger } from '../../../utils/logger.js';
     name: 'lockdown',
     description: 'Lock a channel to prevent @everyone from sending messages',
     category: 'Moderation',

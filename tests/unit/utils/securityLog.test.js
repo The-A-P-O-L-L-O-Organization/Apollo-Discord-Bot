@@ -1,12 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { logSecurityEvent, pruneSecurityLog, SECURITY_LOG_ENTRY_KEYS } from '../../../src/utils/securityLog.js';
+import { logger } from '../../../src/utils/logger.js';
 
 describe('securityLog', () => {
     let lines;
 
     beforeEach(() => {
         lines = [];
-        vi.spyOn(console, 'log').mockImplementation((line) => lines.push(line));
+        vi.spyOn(logger, 'info').mockImplementation((line) => lines.push(line));
     });
 
     afterEach(() => {

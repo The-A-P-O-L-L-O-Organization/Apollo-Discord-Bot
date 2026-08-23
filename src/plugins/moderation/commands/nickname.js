@@ -1,14 +1,13 @@
 // Nickname Command
+export default {
 // Force nickname changes for users
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { safeError } from '../../../utils/safeError.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
-export default {
-import { logger } from '../../../utils/logger.js';
     name: 'nickname',
     description: 'Change a user\'s nickname',
     category: 'Moderation',

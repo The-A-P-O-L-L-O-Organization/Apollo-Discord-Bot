@@ -1,6 +1,6 @@
 import { safeFetch } from './safeFetch.js';
 import { createServiceBreaker } from './circuitBreaker.js';
-import { logger } from './utils/logger.js';
+import { logger } from '../utils/logger.js';
 
 // Create circuit breakers for each service
 const twitchBreaker = createServiceBreaker('twitch');

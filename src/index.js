@@ -15,7 +15,7 @@ import { safeError } from './utils/safeError.js';
 import { assertDiscordToken, assertOperatorAgreement, assertEncryptionKey } from './utils/startupChecks.js';
 import { closeAll as closeRedis } from './utils/redis.js';
 import { startHealthServer, stopHealthServer } from './utils/healthServer.js';
-import { logger } from './utils/logger.js';
+import { logger } from '../utils/logger.js';
 
 // Determine if we are running as a shard worker
 const SHARD_ID = process.env.SHARD_ID ? parseInt(process.env.SHARD_ID, 10) : undefined;

@@ -1,10 +1,9 @@
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+export default {
 // Banner Command
 // Display a user's banner image (requires Nitro)
-import { logger } from './utils/logger.js';
-
-export default {
 import { logger } from '../../../utils/logger.js';
+
     name: 'banner',
     description: 'Display a user\'s banner image (requires Nitro)',
     category: 'Utility',

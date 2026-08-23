@@ -1,10 +1,9 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 export default {
-import { logger } from '../../../utils/logger.js';
     name: 'ticketsetup',
     data: new SlashCommandBuilder()
         .setName('ticketsetup')
@@ -72,7 +71,7 @@ import { logger } from '../../../utils/logger.js';
             if (subcommand === 'panel') {
                 const channel = interaction.options.getChannel('channel');
                 const title = interaction.options.getString('title') || 'Support Tickets';
-                const description = interaction.options.getString('description') || 
+                const description = interaction.options.getString('description') ||
                 'Click the button below to create a support ticket.\n\nA staff member will assist you shortly.';
 
                 const embed = new EmbedBuilder()
@@ -91,9 +90,9 @@ import { logger } from '../../../utils/logger.js';
                     );
 
                 try {
-                    const panelMessage = await channel.send({ 
-                        embeds: [embed], 
-                        components: [row] 
+                    const panelMessage = await channel.send({
+                        embeds: [embed],
+                        components: [row]
                     });
 
                     await updateGuildData('tickets', guildId, (data) => {
@@ -185,7 +184,7 @@ import { logger } from '../../../utils/logger.js';
 
                 return interaction.reply({ embeds: [embed], flags: 64 });
             }
-    
+
         } catch (error) {
             const errorMessage = handleDiscordError(error);
             if (interaction.replied || interaction.deferred) {

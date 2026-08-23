@@ -1,9 +1,8 @@
 import { ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
-import { logger } from './utils/logger.js';
-
-export default {
 import { logger } from '../../../utils/logger.js';
+export default {
+
     name: 'Translate',
     type: 3,
     category: 'Utility',

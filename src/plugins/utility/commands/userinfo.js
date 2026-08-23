@@ -1,32 +1,27 @@
-// User Info Command
-// Displays detailed information about a user
-import { logger } from './utils/logger.js';
-
+import { logger } from '../../../utils/logger.js';
 import { EmbedBuilder } from 'discord.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
-import { logger } from '../../../utils/logger.js';
     name: 'userinfo',
     description: 'Displays information about a user',
     category: 'Utility',
-    
+
     options: [
         {
             name: 'user',
-            type: 6, // USER type
+            type: 6,
             description: 'The user to get information about',
             required: false
         }
     ],
-    
+
     async execute(interaction) {
         try {
-            // Get the target user (mention or self)
             const targetUser = interaction.options.getUser('user') || interaction.user;
-            const member = interaction.guild.members.cache.get(targetUser.id) || 
+            const member = interaction.guild.members.cache.get(targetUser.id) ||
                           await interaction.guild.members.fetch(targetUser.id);
-        
+
             if (!member) {
                 await interaction.reply({
                     content: '[ERROR] Could not find that user in this server.',
@@ -34,16 +29,13 @@ import { logger } from '../../../utils/logger.js';
                 });
                 return;
             }
-        
-            // Calculate account age
+
             const accountAge = Date.now() - targetUser.createdTimestamp;
             const daysOld = Math.floor(accountAge / (1000 * 60 * 60 * 24));
-        
-            // Calculate server join age
+
             const joinAge = Date.now() - member.joinedTimestamp;
             const daysInServer = Math.floor(joinAge / (1000 * 60 * 60 * 24));
-        
-            // Get user status (if available)
+
             const status = member.presence?.status || 'offline';
             let statusIndicator;
             if (status === 'online') {
@@ -55,20 +47,14 @@ import { logger } from '../../../utils/logger.js';
             } else {
                 statusIndicator = '[OFFLINE]';
             }
-        
-            // Get top role
+
             const topRole = member.roles.highest;
-        
-            // Count roles (excluding @everyone)
             const roleCount = member.roles.cache.size - 1;
-        
-            // Create user info embed
+
             const userInfoEmbed = new EmbedBuilder()
                 .setColor('#0099FF')
                 .setTitle(`User Information - ${statusIndicator}`)
-                .setThumbnail(targetUser.displayAvatarURL({ 
-                    size: 256 
-                }))
+                .setThumbnail(targetUser.displayAvatarURL({ size: 256 }))
                 .addFields(
                     {
                         name: 'Username',
@@ -114,29 +100,26 @@ import { logger } from '../../../utils/logger.js';
                     },
                     {
                         name: 'Position',
-                        value: `${member.joinedTimestamp ? 
-                            (interaction.guild.members.cache.filter(m => m.joinedTimestamp).sort((a, b) => a.joinedTimestamp - b.joinedTimestamp).map(m => m.id).indexOf(member.id) + 1) : 
+                        value: `${member.joinedTimestamp ?
+                            (interaction.guild.members.cache.filter(m => m.joinedTimestamp).sort((a, b) => a.joinedTimestamp - b.joinedTimestamp).map(m => m.id).indexOf(member.id) + 1) :
                             'Unknown'} of ${interaction.guild.memberCount}`,
                         inline: true
                     }
                 );
-        
-            // Add role color if available
+
             if (member.displayColor !== 0) {
                 userInfoEmbed.setColor(member.displayHexColor);
             }
-        
-            // Add footer and timestamp
+
             userInfoEmbed.setFooter({
                 text: `Requested by ${interaction.user.tag}`,
                 iconURL: interaction.user.displayAvatarURL()
             }).setTimestamp();
-        
-            // Send the embed
+
             await interaction.reply({ embeds: [userInfoEmbed] });
-        
+
             logger.info(`[SUCCESS] Userinfo command executed by ${interaction.user.tag} for ${targetUser.tag}`);
-    
+
         } catch (error) {
             const errorMessage = handleDiscordError(error);
             if (interaction.replied || interaction.deferred) {
@@ -147,4 +130,3 @@ import { logger } from '../../../utils/logger.js';
         }
     }
 };
-

@@ -1,4 +1,4 @@
-import { logger } from './utils/logger.js';
+import { logger } from '../utils/logger.js';
 
 export const SECURITY_LOG_ENTRY_KEYS = ['ts', 'event', 'pluginId', 'guildId', 'userId', 'targetId', 'reason', 'requestId'];
 

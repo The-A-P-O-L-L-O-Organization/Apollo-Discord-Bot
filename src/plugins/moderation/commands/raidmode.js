@@ -1,13 +1,12 @@
 // Raidmode Command
+export default {
 // Manually enable/disable raid mode lockdown
-import { logger } from './utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { enableRaidMode, disableRaidMode, isRaidModeEnabled } from '../../../utils/raidDetection.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
-export default {
-import { logger } from '../../../utils/logger.js';
     name: 'raidmode',
     description: 'Enable or disable raid mode (locks all channels)',
     category: 'Moderation',

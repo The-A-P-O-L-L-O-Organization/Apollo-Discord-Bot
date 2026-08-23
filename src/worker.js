@@ -52,7 +52,6 @@ export async function startWorker() {
 }
 
 export async function stopWorker() {
-import { logger } from 'utils/logger.js';
     if (worker) {
         await worker.close();
         worker = null;
