@@ -23,7 +23,7 @@ RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
 # Copy source code
 COPY src ./src
 COPY bin ./bin
-COPY deploy-commands.js ./
+COPY scripts/deploy-commands.js ./scripts/deploy-commands.js
 COPY plugin-manifest.json ./
 
 # Stage 2: Production stage (minimal)
@@ -46,7 +46,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/bin ./bin
 COPY --from=builder /app/src ./src
-COPY --from=builder /app/deploy-commands.js ./
+COPY --from=builder /app/scripts/deploy-commands.js ./scripts/deploy-commands.js
 COPY --from=builder /app/plugin-manifest.json ./
 
 # Create directories for persistent data
