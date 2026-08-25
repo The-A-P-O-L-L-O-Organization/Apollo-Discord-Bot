@@ -1,6 +1,6 @@
 // Message Create Event
 // Handles automod checks on new messages
-
+import { logger } from '../../../utils/logger.js';
 import { EmbedBuilder } from 'discord.js';
 import {
     getAutomodConfig,
@@ -56,7 +56,8 @@ export default {
         try {
             // Per-user violation cooldown (prevent spam)
             const violationCooldownKey = `automod_violation_${message.guild.id}_${message.author.id}`;
-            const lastViolation = await getUserData(violationCooldownKey, message.guild.id, message.author.id);
+            const violations = await getUserData(violationCooldownKey, message.guild.id, message.author.id);
+            const lastViolation = Array.isArray(violations) && violations.length > 0 ? violations[violations.length - 1] : violations;
             if (lastViolation && Date.now() - lastViolation < 5000) {
                 return; // Skip if user had violation in last 5 seconds
             }
@@ -139,15 +140,14 @@ export default {
                 if (config.automod.useRedisSpamTracking) {
                     const redis = await getLockRedis();
                     if (redis) {
-                        await trackMessageRedis(message.guild.id, message.author.id, Date.now());
-                        isSpam = await checkSpamRedis(message.guild.id, message.author.id, cfg.spamThreshold, cfg.spamInterval, Date.now());
+                        isSpam = await checkSpam(message, cfg.spamThreshold, cfg.spamInterval, true);
                     } else {
                         // Fallback to in-memory
-                        isSpam = checkSpam(message, cfg.spamThreshold, cfg.spamInterval);
+                        isSpam = checkSpam(message, cfg.spamThreshold, cfg.spamInterval, false);
                     }
                 } else {
                     // Use in-memory detection
-                    isSpam = checkSpam(message, cfg.spamThreshold, cfg.spamInterval);
+                    isSpam = checkSpam(message, cfg.spamThreshold, cfg.spamInterval, false);
                 }
                 
                 if (isSpam) {
@@ -188,7 +188,7 @@ export default {
             }
             
         } catch (error) {
-            console.error('[ERROR] Automod check failed:', error);
+            logger.error('[ERROR] Automod check failed:', error);
         }
     }
 };
@@ -256,7 +256,7 @@ async function handleViolation(message, type, reason, client, deleteMessage = fa
         
         // Delete warning message after 10 seconds
         setTimeout(() => {
-            warningMsg.delete().catch(err => console.error('[WARN] Failed to delete warning message:', err.message));
+            warningMsg.delete().catch(err => logger.error('[WARN] Failed to delete warning message:', err.message));
         }, 10000);
         
         // Check for auto-punishment thresholds
@@ -274,7 +274,7 @@ async function handleViolation(message, type, reason, client, deleteMessage = fa
                 });
                 autoPunishment = 'banned';
             } catch (e) {
-                console.error('[AUTOMOD] Auto-ban failed:', e);
+                logger.error('[AUTOMOD] Auto-ban failed:', e);
             }
         } else if (thresholds.kick && warningCount >= thresholds.kick) {
             try {
@@ -283,7 +283,7 @@ async function handleViolation(message, type, reason, client, deleteMessage = fa
                     autoPunishment = 'kicked';
                 }
             } catch (e) {
-                console.error('[AUTOMOD] Auto-kick failed:', e);
+                logger.error('[AUTOMOD] Auto-kick failed:', e);
             }
         } else if (thresholds.mute && warningCount >= thresholds.mute) {
             try {
@@ -292,7 +292,7 @@ async function handleViolation(message, type, reason, client, deleteMessage = fa
                     autoPunishment = 'muted';
                 }
             } catch (e) {
-                console.error('[AUTOMOD] Auto-mute failed:', e);
+                logger.error('[AUTOMOD] Auto-mute failed:', e);
             }
         }
         
@@ -311,9 +311,9 @@ async function handleViolation(message, type, reason, client, deleteMessage = fa
             }
         });
         
-        console.log(`[AUTOMOD] ${type} violation by ${message.author.tag} in ${message.guild.name}`);
+        logger.info(`[AUTOMOD] ${type} violation by ${message.author.tag} in ${message.guild.name}`);
         
     } catch (error) {
-        console.error('[ERROR] Automod violation handling failed:', error);
+        logger.error('[ERROR] Automod violation handling failed:', error);
     }
 }

@@ -1,5 +1,7 @@
 import { safeError } from '../../../utils/safeError.js';
 import { requireOwner } from '../../../utils/accessControl.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
 export default {
     name: 'plugin',
@@ -109,16 +111,17 @@ export default {
     ],
 
     async execute(interaction) {
-        await interaction.deferReply({ flags: 64 });
-        const denial = await requireOwner(interaction);
-        if (denial) {
-            return interaction.editReply(denial);
-        }
+        try {
+            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+            const denial = await requireOwner(interaction);
+            if (denial) {
+                return interaction.editReply(denial);
+            }
 
-        const subcommand = interaction.options.getSubcommand();
-        const manager = interaction.client.manager;
+            const subcommand = interaction.options.getSubcommand();
+            const manager = interaction.client.manager;
 
-        switch (subcommand) {
+            switch (subcommand) {
             case 'list': {
                 const plugins = manager.listPlugins();
                 const discovered = manager.scanPlugins();
@@ -146,7 +149,7 @@ export default {
                     ],
                     timestamp: new Date().toISOString()
                 };
-                return interaction.editReply({ embeds: [embed], flags: 64 });
+                return interaction.editReply({ embeds: [embed], flags: MessageFlags.Ephemeral });
             }
 
             case 'enable': {
@@ -160,14 +163,14 @@ export default {
                             description: '**' + name + '** has been enabled.',
                             timestamp: new Date().toISOString()
                         }],
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
             }
@@ -183,14 +186,14 @@ export default {
                             description: '**' + name + '** has been disabled.',
                             timestamp: new Date().toISOString()
                         }],
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
             }
@@ -206,14 +209,14 @@ export default {
                             description: '**' + name + '** has been hot-reloaded.',
                             timestamp: new Date().toISOString()
                         }],
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
             }
@@ -231,14 +234,14 @@ export default {
                             description: '**' + name + '** v' + plugin.constructor.version + ' loaded and enabled.',
                             timestamp: new Date().toISOString()
                         }],
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
             }
@@ -256,7 +259,7 @@ export default {
                                 'Re-run with `confirm: true` to proceed.',
                             timestamp: new Date().toISOString()
                         }],
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
                 try {
@@ -289,14 +292,14 @@ export default {
                             description: '**' + name + '** has been removed.',
                             timestamp: new Date().toISOString()
                         }],
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
             }
@@ -321,7 +324,7 @@ export default {
                         }] : [],
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -347,5 +350,14 @@ export default {
                 }
             }
         }
+    
+} catch (error) {
+        const errorMessage = handleDiscordError(error);
+        if (interaction.replied || interaction.deferred) {
+            await safeFollowUp(interaction, errorMessage);
+        } else {
+            await safeReply(interaction, errorMessage);
+        }
     }
+}
 };

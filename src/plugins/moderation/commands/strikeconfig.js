@@ -1,10 +1,13 @@
 // Strike Config Command
+export default {
 // Configure strike system settings
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
-export default {
     name: 'strikeconfig',
     description: 'Configure strike system settings',
     category: 'Moderation',
@@ -34,7 +37,9 @@ export default {
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             const action = interaction.options.getString('action');
             const value = interaction.options.getInteger('value');
@@ -70,7 +75,7 @@ export default {
                             description: 'Please provide a value for the ban threshold.',
                             timestamp: new Date().toISOString()
                         }],
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
                 
@@ -86,7 +91,7 @@ export default {
                     }]
                 });
                 
-                console.log(`[CONFIG] Ban threshold set to ${value} in ${interaction.guild.name}`);
+                logger.info(`[CONFIG] Ban threshold set to ${value} in ${interaction.guild.name}`);
                 
             } else if (action === 'kick_threshold') {
                 if (!value) {
@@ -97,7 +102,7 @@ export default {
                             description: 'Please provide a value for the kick threshold.',
                             timestamp: new Date().toISOString()
                         }],
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
                 
@@ -113,7 +118,7 @@ export default {
                     }]
                 });
                 
-                console.log(`[CONFIG] Kick threshold set to ${value} in ${interaction.guild.name}`);
+                logger.info(`[CONFIG] Kick threshold set to ${value} in ${interaction.guild.name}`);
                 
             } else if (action === 'auto_kick') {
                 const currentState = guildSettings.autoKick ?? true;
@@ -131,11 +136,11 @@ export default {
                     }]
                 });
                 
-                console.log(`[CONFIG] Auto-kick ${newState ? 'enabled' : 'disabled'} in ${interaction.guild.name}`);
+                logger.info(`[CONFIG] Auto-kick ${newState ? 'enabled' : 'disabled'} in ${interaction.guild.name}`);
             }
             
         } catch (error) {
-            console.error('[ERROR] Strike config command error:', error);
+            logger.error('[ERROR] Strike config command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,
@@ -148,8 +153,24 @@ export default {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

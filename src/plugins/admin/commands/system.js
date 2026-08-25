@@ -1,5 +1,8 @@
 import { config } from '../../../config/config.js';
 import { requireOwner } from '../../../utils/accessControl.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
 function formatDuration(ms) {
   const totalSeconds = Math.floor(ms / 1000);
@@ -23,51 +26,76 @@ export default {
   canQueue: false,
   options: [],
 
-  async execute(interaction) {
-    const denial = await requireOwner(interaction);
-    if (denial) {
-      return interaction.reply(denial);
-    }
+async execute(interaction) {try {
+try {
 
-    const uptime = Date.now() - interaction.client.stats.startTime;
-    const plugins = interaction.client.manager.listPlugins();
-    const runMode = process.env.RUN_MODE || 'gateway';
+     try {
+         const denial = await requireOwner(interaction);
+         if (denial) {
+           return interaction.reply(denial);
+         }
 
-    const fields = [
-      { name: 'Run Mode', value: runMode, inline: true },
-      { name: 'Database', value: config.database.type, inline: true },
-      { name: 'Pod ID', value: config.podId, inline: true },
-      { name: 'Queue', value: config.queue.enabled ? 'Enabled (' + config.queue.prefix + ')' : 'Disabled', inline: true },
-      { name: 'Plugins', value: plugins.length + ' loaded (' + plugins.filter(p => p.enabled).length + ' enabled)', inline: true },
-      { name: 'Uptime', value: formatDuration(uptime), inline: true },
-      { name: 'Commands Run', value: String(interaction.client.stats.commandsRan), inline: true },
-    ];
+         const uptime = Date.now() - interaction.client.stats.startTime;
+         const plugins = interaction.client.manager.listPlugins();
+         const runMode = process.env.RUN_MODE || 'gateway';
 
-    if (config.queue.enabled) {
-      try {
-        const { Redis } = await import('ioredis');
-        const redis = new Redis({
-          host: config.queue.redis.host,
-          port: config.queue.redis.port,
-          password: config.queue.redis.password || undefined,
-          maxRetriesPerRequest: null,
-        });
-        const leader = await redis.get('apollo:gateway:leader');
-        await redis.quit();
-        fields.push({ name: 'Leader', value: leader || 'None', inline: true });
-      } catch (err) {
-        fields.push({ name: 'Leader', value: 'Error: ' + err.message, inline: true });
-      }
-    }
+         const fields = [
+           { name: 'Run Mode', value: runMode, inline: true },
+           { name: 'Database', value: config.database.type, inline: true },
+           { name: 'Pod ID', value: config.podId, inline: true },
+           { name: 'Queue', value: config.queue.enabled ? 'Enabled (' + config.queue.prefix + ')' : 'Disabled', inline: true },
+           { name: 'Plugins', value: plugins.length + ' loaded (' + plugins.filter(p => p.enabled).length + ' enabled)', inline: true },
+           { name: 'Uptime', value: formatDuration(uptime), inline: true },
+           { name: 'Commands Run', value: String(interaction.client.stats.commandsRan), inline: true },
+         ];
 
-    return interaction.reply({
-      embeds: [{
-        color: 0x1E90FF,
-        title: 'System Status',
-        fields,
-        timestamp: new Date().toISOString()
-      }],
-      flags: 64
-    });
+         if (config.queue.enabled) {
+           try {
+             const { Redis } = await import('ioredis');
+             const redis = new Redis({
+               host: config.queue.redis.host,
+               port: config.queue.redis.port,
+               password: config.queue.redis.password || undefined,
+               maxRetriesPerRequest: null,
+             });
+             const leader = await redis.get('apollo:gateway:leader');
+             await redis.quit();
+             fields.push({ name: 'Leader', value: leader || 'None', inline: true });
+           } catch (err) {
+             fields.push({ name: 'Leader', value: 'Error: ' + err.message, inline: true });
+           }
+         }
+
+         return interaction.reply({
+           embeds: [{
+             color: 0x1E90FF,
+             title: 'System Status',
+             fields,
+             timestamp: new Date().toISOString()
+           }],
+           flags: MessageFlags.Ephemeral
+         });
+       } catch (error) {
+         const userMessage = handleDiscordError(error);
+         if (userMessage) {
+           await safeReply(interaction, userMessage);
+         }
+       }
+   
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
   }
 };

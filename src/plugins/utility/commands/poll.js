@@ -1,12 +1,29 @@
-// Poll Command
-// Creates polls with optional duration for auto-tally
-
-import { EmbedBuilder, PermissionFlagsBits } from 'discord.js';
+import { logger } from '../../../utils/logger.js';
+import { EmbedBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { appendToGuildArray, generateId } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
-// Emoji options for polls
 const POLL_EMOJIS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
+
+function parseTimeString(timeString) {
+    const regex = /^(\d+)(m|h|d|w)$/i;
+    const match = timeString.trim().match(regex);
+
+    if (!match) {return null;}
+
+    const value = parseInt(match[1], 10);
+    const unit = match[2].toLowerCase();
+
+    const multipliers = {
+        'm': 60 * 1000,
+        'h': 60 * 60 * 1000,
+        'd': 24 * 60 * 60 * 1000,
+        'w': 7 * 24 * 60 * 60 * 1000
+    };
+
+    return value * multipliers[unit];
+}
 
 export default {
     name: 'poll',
@@ -18,156 +35,134 @@ export default {
         {
             name: 'question',
             description: 'The poll question',
-            type: 3, // STRING type
+            type: 3,
             required: true
         },
         {
             name: 'options',
             description: 'Poll options separated by | (e.g., "Yes | No | Maybe")',
-            type: 3, // STRING type
+            type: 3,
             required: true
         },
         {
             name: 'duration',
             description: 'Poll duration (e.g., 1h, 6h, 1d, 3d). Leave empty for no auto-close.',
-            type: 3, // STRING type
+            type: 3,
             required: false
         },
         {
             name: 'anonymous',
             description: 'Hide who voted for what (default: false)',
-            type: 5, // BOOLEAN type
+            type: 5,
             required: false
         }
     ],
 
     async execute(interaction) {
-        const question = interaction.options.getString('question');
-        const optionsInput = interaction.options.getString('options');
-        const durationInput = interaction.options.getString('duration');
-        const anonymous = interaction.options.getBoolean('anonymous') || false;
+        try {
+            const question = interaction.options.getString('question');
+            const optionsInput = interaction.options.getString('options');
+            const durationInput = interaction.options.getString('duration');
+            const anonymous = interaction.options.getBoolean('anonymous') || false;
 
-        // Parse options
-        const options = optionsInput
-            .split('|')
-            .map(opt => opt.trim())
-            .filter(opt => opt.length > 0);
+            const options = optionsInput
+                .split('|')
+                .map(opt => opt.trim())
+                .filter(opt => opt.length > 0);
 
-        if (options.length < 2) {
-            return interaction.reply({
-                content: 'A poll must have at least 2 options. Separate options with `|`.',
-                flags: 64
-            });
-        }
-
-        if (options.length > config.polls.maxOptions) {
-            return interaction.reply({
-                content: `A poll can have a maximum of ${config.polls.maxOptions} options.`,
-                flags: 64
-            });
-        }
-
-        // Parse duration if provided
-        let endTime = null;
-        if (durationInput) {
-            const duration = parseTimeString(durationInput);
-            if (!duration) {
+            if (options.length < 2) {
                 return interaction.reply({
-                    content: 'Invalid duration format. Use formats like: `1h` (1 hour), `6h` (6 hours), `1d` (1 day).',
-                    flags: 64
+                    content: 'A poll must have at least 2 options. Separate options with `|`.',
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
-            if (duration > config.polls.maxDuration) {
-                const maxDays = Math.floor(config.polls.maxDuration / (1000 * 60 * 60 * 24));
+            if (options.length > config.polls.maxOptions) {
                 return interaction.reply({
-                    content: `Poll duration cannot exceed ${maxDays} days.`,
-                    flags: 64
+                    content: `A poll can have a maximum of ${config.polls.maxOptions} options.`,
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
-            endTime = Date.now() + duration;
-        }
+            let endTime = null;
+            if (durationInput) {
+                const duration = parseTimeString(durationInput);
+                if (!duration) {
+                    return interaction.reply({
+                        content: 'Invalid duration format. Use formats like: `1h` (1 hour), `6h` (6 hours), `1d` (1 day).',
+                        flags: MessageFlags.Ephemeral
+                    });
+                }
 
-        // Build the poll embed
-        const embed = new EmbedBuilder()
-            .setColor('#9B59B6')
-            .setTitle('[Poll] ' + question)
-            .setFooter({ 
-                text: `Poll by ${interaction.user.tag}${anonymous ? ' • Anonymous voting' : ''}` 
-            })
-            .setTimestamp();
+                if (duration > config.polls.maxDuration) {
+                    const maxDays = Math.floor(config.polls.maxDuration / (1000 * 60 * 60 * 24));
+                    return interaction.reply({
+                        content: `Poll duration cannot exceed ${maxDays} days.`,
+                        flags: MessageFlags.Ephemeral
+                    });
+                }
 
-        // Build options string
-        let optionsText = '';
-        for (let i = 0; i < options.length; i++) {
-            optionsText += `${POLL_EMOJIS[i]} ${options[i]}\n`;
-        }
-        embed.setDescription(optionsText);
-
-        // Add end time if set
-        if (endTime) {
-            const timestamp = Math.floor(endTime / 1000);
-            embed.addFields({
-                name: 'Poll Ends',
-                value: `<t:${timestamp}:R> (<t:${timestamp}:f>)`,
-                inline: false
-            });
-        }
-
-        // Send the poll
-        await interaction.deferReply();
-        const pollMessage = await interaction.editReply({ embeds: [embed] });
-
-        // Add reactions for each option
-        for (let i = 0; i < options.length; i++) {
-            try {
-                await pollMessage.react(POLL_EMOJIS[i]);
-            } catch (error) {
-                console.error(`[ERROR] Failed to add reaction ${POLL_EMOJIS[i]}:`, error);
+                endTime = Date.now() + duration;
             }
-        }
 
-        // If there's a duration, save the poll for auto-tally
-        if (endTime) {
-            const pollId = generateId();
-            const pollData = {
-                id: pollId,
-                messageId: pollMessage.id,
-                channelId: interaction.channel.id,
-                question,
-                options,
-                anonymous,
-                createdBy: interaction.user.id,
-                createdAt: Date.now(),
-                endTime
-            };
+            const embed = new EmbedBuilder()
+                .setColor('#9B59B6')
+                .setTitle('[Poll] ' + question)
+                .setFooter({
+                    text: `Poll by ${interaction.user.tag}${anonymous ? ' • Anonymous voting' : ''}`
+                })
+                .setTimestamp();
 
-            await appendToGuildArray('polls', interaction.guild.id, 'active', pollData);
+            let optionsText = '';
+            for (let i = 0; i < options.length; i++) {
+                optionsText += `${POLL_EMOJIS[i]} ${options[i]}\n`;
+            }
+            embed.setDescription(optionsText);
+
+            if (endTime) {
+                const timestamp = Math.floor(endTime / 1000);
+                embed.addFields({
+                    name: 'Poll Ends',
+                    value: `<t:${timestamp}:R> (<t:${timestamp}:f>)`,
+                    inline: false
+                });
+            }
+
+            await interaction.deferReply();
+            const pollMessage = await interaction.editReply({ embeds: [embed] });
+
+            for (let i = 0; i < options.length; i++) {
+                try {
+                    await pollMessage.react(POLL_EMOJIS[i]);
+                } catch (error) {
+                    logger.error(`[ERROR] Failed to add reaction ${POLL_EMOJIS[i]}:`, error);
+                }
+            }
+
+            if (endTime) {
+                const pollId = generateId();
+                const pollData = {
+                    id: pollId,
+                    messageId: pollMessage.id,
+                    channelId: interaction.channel.id,
+                    question,
+                    options,
+                    anonymous,
+                    createdBy: interaction.user.id,
+                    createdAt: Date.now(),
+                    endTime
+                };
+
+                await appendToGuildArray('polls', interaction.guild.id, 'active', pollData);
+            }
+
+        } catch (error) {
+            const errorMessage = handleDiscordError(error);
+            if (interaction.replied || interaction.deferred) {
+                await safeFollowUp(interaction, errorMessage);
+            } else {
+                await safeReply(interaction, errorMessage);
+            }
         }
     }
 };
-
-/**
- * Parses a time string into milliseconds
- * @param {string} timeString - The time string (e.g., "1h", "6h", "1d")
- * @returns {number|null} Duration in milliseconds or null if invalid
- */
-function parseTimeString(timeString) {
-    const regex = /^(\d+)(m|h|d|w)$/i;
-    const match = timeString.trim().match(regex);
-
-    if (!match) {return null;}
-
-    const value = parseInt(match[1], 10);
-    const unit = match[2].toLowerCase();
-
-    const multipliers = {
-        'm': 60 * 1000,               // minutes
-        'h': 60 * 60 * 1000,          // hours
-        'd': 24 * 60 * 60 * 1000,     // days
-        'w': 7 * 24 * 60 * 60 * 1000  // weeks
-    };
-
-    return value * multipliers[unit];
-}

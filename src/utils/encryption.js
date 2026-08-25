@@ -1,5 +1,6 @@
 // Encryption Utility
 // AES-GCM encryption for sensitive data at rest
+import { logger } from '../utils/logger.js';
 
 import crypto from 'crypto';
 
@@ -156,7 +157,7 @@ export function decryptFields(obj, fields) {
                 result[field] = decrypt(result[field]);
             } catch (err) {
                 // If decryption fails, leave as-is (might be unencrypted legacy data)
-                console.warn(`[ENCRYPTION] Failed to decrypt field ${field}: ${err.message}`);
+                logger.warn(`[ENCRYPTION] Failed to decrypt field ${field}: ${err.message}`);
             }
         }
     }

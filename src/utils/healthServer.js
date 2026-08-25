@@ -1,8 +1,9 @@
 // Health Check & Metrics Server
 // Exposes /health, /ready, and /metrics endpoints for monitoring
+import { logger } from '../utils/logger.js';
 
 import { createServer } from 'http';
-import { register } from './metrics.js';
+import { register, recordGatewayLatency } from './metrics.js';
 import { getLockRedis } from './lock.js';
 import { getDb as getKnex } from '../db/knex.js';
 import { config } from '../config/config.js';
@@ -136,7 +137,7 @@ export async function startHealthServer(client) {
     const host = process.env.HEALTH_HOST || '0.0.0.0';
     
     if (healthServer) {
-        console.log('[HEALTH] Health server already running');
+        logger.info('[HEALTH] Health server already running');
         return healthServer;
     }
     
@@ -191,24 +192,40 @@ export async function startHealthServer(client) {
                 res.end(JSON.stringify({ error: 'Not found', path: url.pathname }));
             }
         } catch (error) {
-            console.error('[HEALTH] Error handling request:', error);
+            logger.error('[HEALTH] Error handling request:', error);
             res.writeHead(500, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ error: 'Internal server error' }));
         }
     });
     
+    // Record gateway latency every 15 seconds
+    const latencyInterval = setInterval(() => {
+        if (client && client.ws && client.ws.shards) {
+            client.ws.shards.forEach((shard, shardId) => {
+                if (shard.ping !== undefined) {
+                    recordGatewayLatency(String(shardId), shard.ping);
+                }
+            });
+        }
+    }, 15000);
+
+    // Clear interval when server stops
+    healthServer.on('close', () => {
+        clearInterval(latencyInterval);
+    });
+
     return new Promise((resolve, reject) => {
         healthServer.listen(port, host, () => {
-            console.log(`[HEALTH] Health server listening on ${host}:${port}`);
-            console.log('[HEALTH] Endpoints: /health, /ready, /metrics, /metrics/json');
+            logger.info(`[HEALTH] Health server listening on ${host}:${port}`);
+            logger.info('[HEALTH] Endpoints: /health, /ready, /metrics, /metrics/json');
             if (HEALTH_AUTH_TOKEN) {
-                console.log('[HEALTH] Authentication enabled (Bearer token required)');
+                logger.info('[HEALTH] Authentication enabled (Bearer token required)');
             }
             resolve(healthServer);
         });
         
         healthServer.on('error', (error) => {
-            console.error('[HEALTH] Server error:', error);
+            logger.error('[HEALTH] Server error:', error);
             reject(error);
         });
     });
@@ -222,10 +239,12 @@ export async function stopHealthServer() {
     if (healthServer) {
         return new Promise((resolve) => {
             healthServer.close(() => {
-                console.log('[HEALTH] Health server stopped');
+                logger.info('[HEALTH] Health server stopped');
                 healthServer = null;
                 resolve();
             });
+
+    
         });
     }
 }

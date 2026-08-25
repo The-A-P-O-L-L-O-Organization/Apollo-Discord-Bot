@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import { getGuildData } from '../../../utils/db.js';
-
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 export default {
     name: 'ticketratings',
     data: new SlashCommandBuilder()
@@ -44,8 +45,10 @@ export default {
         .setDMPermission(false),
     category: 'utility',
 
-    async execute(interaction) {
-        await interaction.deferReply({ flags: 64 });
+    async execute(interaction) {try {
+try {
+
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         const guildId = interaction.guild.id;
         const subcommand = interaction.options.getSubcommand();
@@ -228,6 +231,21 @@ export default {
             }
 
             return interaction.editReply({ embeds: [embed] });
-        }
+        
+} catch (error) {
+    const errorMessage = handleDiscordError(error);
+    if (interaction.replied || interaction.deferred) {
+        await safeFollowUp(interaction, errorMessage);
+    } else {
+        await safeReply(interaction, errorMessage);
+    }
+}
+
+} catch (error) {
+    const errorMessage = handleDiscordError(error);
+    if (interaction.replied || interaction.deferred) {
+        await safeFollowUp(interaction, errorMessage);
+    } else {
+        await safeReply(interaction, errorMessage);
     }
 };

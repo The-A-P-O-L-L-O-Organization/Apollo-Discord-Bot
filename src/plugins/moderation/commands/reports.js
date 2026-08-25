@@ -1,11 +1,14 @@
 // Reports Command
+export default {
 // View and manage user reports
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
 import { safeError } from '../../../utils/safeError.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
-export default {
     name: 'reports',
     description: 'View and manage message reports',
     category: 'Moderation',
@@ -33,7 +36,9 @@ export default {
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             const action = interaction.options.getString('action');
             const reportId = interaction.options.getString('report_id');
@@ -53,7 +58,7 @@ export default {
                             description: 'There are no pending reports.',
                             timestamp: new Date().toISOString()
                         }],
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
                 
@@ -77,7 +82,7 @@ export default {
                     embed.setFooter({ text: `Showing 10 of ${pending.length} reports` });
                 }
                 
-                await interaction.reply({ embeds: [embed], flags: 64 });
+                await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
                 
             } else if (action === 'all') {
                 // Show all reports
@@ -89,7 +94,7 @@ export default {
                             description: 'There are no reports in this server.',
                             timestamp: new Date().toISOString()
                         }],
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
                 
@@ -120,7 +125,7 @@ export default {
                     embed.setFooter({ text: `Showing 10 most recent of ${reports.length} reports` });
                 }
                 
-                await interaction.reply({ embeds: [embed], flags: 64 });
+                await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
                 
             } else if (action === 'view') {
                 // View specific report
@@ -132,7 +137,7 @@ export default {
                             description: 'Please provide a report ID to view.',
                             timestamp: new Date().toISOString()
                         }],
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
                 
@@ -146,7 +151,7 @@ export default {
                             description: `No report found with ID: ${reportId}`,
                             timestamp: new Date().toISOString()
                         }],
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
                 
@@ -165,7 +170,7 @@ export default {
                     )
                     .setTimestamp();
                 
-                await interaction.reply({ embeds: [embed], flags: 64 });
+                await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
                 
             } else if (action === 'dismiss') {
                 // Dismiss a report
@@ -177,7 +182,7 @@ export default {
                             description: 'Please provide a report ID to dismiss.',
                             timestamp: new Date().toISOString()
                         }],
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
                 
@@ -191,7 +196,7 @@ export default {
                             description: `No report found with ID: ${reportId}`,
                             timestamp: new Date().toISOString()
                         }],
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
                 
@@ -213,10 +218,10 @@ export default {
                         description: `Report ${reportId} has been dismissed.`,
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
                 
-                console.log(`[REPORT] Report ${reportId} dismissed by ${interaction.user.tag}`);
+                logger.info(`[REPORT] Report ${reportId} dismissed by ${interaction.user.tag}`);
             }
             
         } catch (error) {
@@ -231,8 +236,24 @@ export default {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

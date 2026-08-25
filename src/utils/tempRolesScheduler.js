@@ -1,4 +1,5 @@
-/* eslint-disable no-console */
+import { logger } from '../utils/logger.js';
+ 
 // Temporary Roles Scheduler
 // Automatically removes temporary roles when they expire
 
@@ -11,7 +12,7 @@ const CHECK_DELAY = 60000; // Check every minute
 
 export function initTempRolesScheduler(client) {
     if (checkInterval) {
-        console.log('[INFO] Temp roles scheduler already running');
+        logger.info('[INFO] Temp roles scheduler already running');
         return;
     }
     
@@ -24,14 +25,14 @@ export function initTempRolesScheduler(client) {
         }
     }, CHECK_DELAY);
     
-    console.log('[SUCCESS] Temporary roles scheduler started');
+    logger.info('[SUCCESS] Temporary roles scheduler started');
 }
 
 export function stopTempRolesScheduler() {
     if (checkInterval) {
         clearInterval(checkInterval);
         checkInterval = null;
-        console.log('[INFO] Temporary roles scheduler stopped');
+        logger.info('[INFO] Temporary roles scheduler stopped');
     }
 }
 
@@ -61,7 +62,7 @@ async function checkExpiredTempRoles(client) {
                         if (member && role && member.roles.cache.has(role.id)) {
                             await member.roles.remove(role, 'Temporary role expired');
                             
-                            console.log(`[INFO] Removed temp role ${role.name} from ${member.user.tag}`);
+                            logger.info(`[INFO] Removed temp role ${role.name} from ${member.user.tag}`);
                             
                             // Try to notify user
                             try {
@@ -74,14 +75,14 @@ async function checkExpiredTempRoles(client) {
                                     }]
                                 });
                             } catch (dmError) {
-                                console.log(`[INFO] Could not DM ${member.user.tag}: ${dmError.message}`);
+                                logger.info(`[INFO] Could not DM ${member.user.tag}: ${dmError.message}`);
                             }
                         }
                         
                         // Remove from storage
                         delete tempRoles[userId];
                     } catch (error) {
-                        console.error(`[ERROR] Failed to remove temp role for user ${userId}:`, error);
+                        logger.error(`[ERROR] Failed to remove temp role for user ${userId}:`, error);
                     }
                 }
             }
@@ -90,6 +91,6 @@ async function checkExpiredTempRoles(client) {
             await setGuildData('temp-roles', guildId, tempRoles);
         }
     } catch (error) {
-        console.error('[ERROR] Temp roles scheduler error:', error);
+        logger.error('[ERROR] Temp roles scheduler error:', error);
     }
 }

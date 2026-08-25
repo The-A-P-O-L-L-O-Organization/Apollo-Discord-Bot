@@ -1,4 +1,5 @@
-/* eslint-disable no-console */
+import { logger } from '../utils/logger.js';
+ 
 // NSFW Detection Utility
 // Scans image attachments for NSFW content using TensorFlow.js
 
@@ -18,15 +19,15 @@ export async function initializeNsfwModel() {
     if (modelPromise) {return modelPromise;}
     modelPromise = (async() => {
         try {
-            console.log('[INFO] Loading NSFW detection model...');
+            logger.info('[INFO] Loading NSFW detection model...');
             tfModule = await import('@tensorflow/tfjs-node');
             const nsfwjs = await import('nsfwjs');
             model = await nsfwjs.load();
             modelLoaded = true;
-            console.log('[INFO] NSFW detection model loaded successfully');
+            logger.info('[INFO] NSFW detection model loaded successfully');
             return true;
         } catch (error) {
-            console.error('[ERROR] Failed to load NSFW detection model:', error);
+            logger.error('[ERROR] Failed to load NSFW detection model:', error);
             modelLoaded = false;
             modelPromise = null;
             return false;
@@ -105,7 +106,7 @@ export async function analyzeImage(imageUrl) {
         return result;
         
     } catch (error) {
-        console.error('[ERROR] NSFW detection error:', error.message);
+        logger.error('[ERROR] NSFW detection error:', error.message);
         return null;
     }
 }
@@ -176,7 +177,7 @@ export async function checkMessageAttachments(guildId, message, enabledOverride 
                 });
             }
         } catch (error) {
-            console.error(`[ERROR] Failed to analyze attachment ${attachment.name}:`, error.message);
+            logger.error(`[ERROR] Failed to analyze attachment ${attachment.name}:`, error.message);
         }
     }
     

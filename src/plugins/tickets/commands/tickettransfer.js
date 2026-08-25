@@ -1,7 +1,10 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import { updateGuildData } from '../../../utils/db.js';
-
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { logger } from '../../../utils/logger.js';
+import { MessageFlags } from 'discord.js';
 export default {
+
     name: 'tickettransfer',
     data: new SlashCommandBuilder()
         .setName('tickettransfer')
@@ -21,7 +24,9 @@ export default {
         .setDMPermission(false),
     category: 'utility',
 
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         const guildId = interaction.guild.id;
         const channelId = interaction.channel.id;
         const transferUser = interaction.options.getUser('user');
@@ -34,7 +39,7 @@ export default {
         if (!ticket) {
             return interaction.reply({
                 content: 'This channel is not a ticket channel.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -47,14 +52,14 @@ export default {
         if (!isAssigned && !isClaimed && !hasSupport && !isAdmin) {
             return interaction.reply({
                 content: 'You do not have permission to transfer this ticket.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
         if (transferUser.id === interaction.user.id) {
             return interaction.reply({
                 content: 'You cannot transfer a ticket to yourself.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -82,7 +87,7 @@ export default {
                 AttachFiles: true
             });
         } catch (error) {
-            console.error('[ERROR] Failed to update channel permissions:', error);
+            logger.error('[ERROR] Failed to update channel permissions:', error);
         }
 
         const embed = new EmbedBuilder()
@@ -137,6 +142,21 @@ export default {
                 await oldAssignee.send({ embeds: [dmEmbed] });
             } catch (error) {
             }
-        }
+        
+} catch (error) {
+    const errorMessage = handleDiscordError(error);
+    if (interaction.replied || interaction.deferred) {
+        await safeFollowUp(interaction, errorMessage);
+    } else {
+        await safeReply(interaction, errorMessage);
+    }
+}
+
+} catch (error) {
+    const errorMessage = handleDiscordError(error);
+    if (interaction.replied || interaction.deferred) {
+        await safeFollowUp(interaction, errorMessage);
+    } else {
+        await safeReply(interaction, errorMessage);
     }
 };

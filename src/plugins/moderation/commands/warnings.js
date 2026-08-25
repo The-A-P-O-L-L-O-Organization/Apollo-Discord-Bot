@@ -1,37 +1,35 @@
-// Warnings Command
-// Displays all warnings for a user
-
+import { logger } from '../../../utils/logger.js';
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { getUserData } from '../../../utils/db.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
 export default {
     name: 'warnings',
     description: 'View warnings for a user',
     category: 'Moderation',
-    
     defaultMemberPermissions: PermissionsBitField.Flags.ModerateMembers,
     dmPermission: false,
     options: [
         {
             name: 'user',
             description: 'The user to check warnings for',
-            type: 6, // USER type
+            type: 6,
             required: true
         },
         {
             name: 'show-inactive',
             description: 'Include cleared/inactive warnings',
-            type: 5, // BOOLEAN type
+            type: 5,
             required: false
         }
     ],
-    
+
     async execute(interaction) {
         try {
             const user = interaction.options.getUser('user');
             const showInactive = interaction.options.getBoolean('show-inactive') || false;
-            
-            // Check if user exists
+
             if (!user) {
                 return interaction.reply({
                     embeds: [{
@@ -40,25 +38,22 @@ export default {
                         description: 'Please specify a valid user.',
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
-            
-            // Get warnings for the user
+
             const allWarnings = await getUserData('warnings', interaction.guild.id, user.id) || [];
-            
-            // Filter based on active status
-            const warnings = showInactive 
-                ? allWarnings 
+
+            const warnings = showInactive
+                ? allWarnings
                 : allWarnings.filter(w => w.active !== false);
-            
-            // No warnings
+
             if (warnings.length === 0) {
                 return interaction.reply({
                     embeds: [{
                         color: 0x00FF00,
                         title: 'No Warnings Found',
-                        description: showInactive 
+                        description: showInactive
                             ? `${user.tag} has no warnings on record.`
                             : `${user.tag} has no active warnings.\n\nUse \`/warnings user:${user.tag} show-inactive:true\` to see cleared warnings.`,
                         thumbnail: { url: user.displayAvatarURL() },
@@ -66,36 +61,33 @@ export default {
                     }]
                 });
             }
-            
-            // Count active vs inactive
+
             const activeCount = allWarnings.filter(w => w.active !== false).length;
             const inactiveCount = allWarnings.length - activeCount;
-            
-            // Create the embed
+
             const embed = new EmbedBuilder()
                 .setColor('#FFA500')
                 .setTitle(`Warnings for ${user.tag}`)
                 .setThumbnail(user.displayAvatarURL())
                 .setDescription(
                     `**User ID:** ${user.id}\n` +
-                    `**Active Warnings:** ${activeCount}\n` +
-                    `**Total on Record:** ${allWarnings.length}`
+                `**Active Warnings:** ${activeCount}\n` +
+                `**Total on Record:** ${allWarnings.length}`
                 )
                 .setTimestamp()
-                .setFooter({ 
+                .setFooter({
                     text: `Requested by ${interaction.user.tag}`,
                     iconURL: interaction.user.displayAvatarURL()
                 });
-            
-            // Add warnings (limit to 10 most recent to avoid embed limits)
+
             const displayWarnings = warnings.slice(-10).reverse();
-            
+
             for (let i = 0; i < displayWarnings.length; i++) {
                 const warning = displayWarnings[i];
                 const date = new Date(warning.timestamp);
                 const status = warning.active === false ? '~~' : '';
                 const statusLabel = warning.active === false ? ' [CLEARED]' : '';
-                
+
                 embed.addFields({
                     name: `${status}Warning #${warnings.length - i}${statusLabel}${status}`,
                     value: [
@@ -107,8 +99,7 @@ export default {
                     inline: false
                 });
             }
-            
-            // Add note if there are more warnings
+
             if (warnings.length > 10) {
                 embed.addFields({
                     name: 'Note',
@@ -116,8 +107,7 @@ export default {
                     inline: false
                 });
             }
-            
-            // Add inactive count note
+
             if (!showInactive && inactiveCount > 0) {
                 embed.addFields({
                     name: 'Hidden Warnings',
@@ -125,14 +115,14 @@ export default {
                     inline: false
                 });
             }
-            
+
             await interaction.reply({ embeds: [embed] });
-            
-            console.log(`[INFO] Warnings viewed for ${user.tag} by ${interaction.user.tag}`);
-            
+
+            logger.info(`[INFO] Warnings viewed for ${user.tag} by ${interaction.user.tag}`);
+
         } catch (error) {
-            console.error('[ERROR] Warnings command error:', error);
-            
+            logger.error('[ERROR] Warnings command error:', error);
+
             await interaction.reply({
                 embeds: [{
                     color: 0xFF0000,
@@ -141,7 +131,7 @@ export default {
                     fields: [{ name: 'Error', value: error.message, inline: true }],
                     timestamp: new Date().toISOString()
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
     }

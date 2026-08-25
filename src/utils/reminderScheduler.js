@@ -1,4 +1,5 @@
-/* eslint-disable no-console */
+import { logger } from '../utils/logger.js';
+ 
 // Reminder Scheduler
 // Background task that checks and sends due reminders
 
@@ -26,9 +27,9 @@ async function loadRemindersFromDatabase() {
     try {
         const data = await getData('reminders');
         const reminders = data.reminders || [];
-        console.log(`[INFO] Loaded ${reminders.length} reminders from database`);
+        logger.info(`[INFO] Loaded ${reminders.length} reminders from database`);
     } catch (error) {
-        console.error('[ERROR] Failed to load reminders from database:', error);
+        logger.error('[ERROR] Failed to load reminders from database:', error);
     }
 }
 
@@ -52,10 +53,10 @@ export async function initReminderScheduler(discordClient) {
         }
     }, config.reminders.checkInterval);
     
-    console.log(`[INFO] Reminder scheduler started (checking every ${config.reminders.checkInterval / 1000}s)`);
+    logger.info(`[INFO] Reminder scheduler started (checking every ${config.reminders.checkInterval / 1000}s)`);
     
     // Run an immediate check
-    checkReminders().catch(err => console.error('[ERROR] Reminder check failed:', err));
+    checkReminders().catch(err => logger.error('[ERROR] Reminder check failed:', err));
 }
 
 /**
@@ -65,7 +66,7 @@ export function stopReminderScheduler() {
     if (schedulerInterval) {
         clearInterval(schedulerInterval);
         schedulerInterval = null;
-        console.log('[INFO] Reminder scheduler stopped');
+        logger.info('[INFO] Reminder scheduler stopped');
     }
 }
 
@@ -108,12 +109,12 @@ async function checkReminders() {
         performanceStats.totalCheckTime += performanceStats.lastCheckTime;
         
         if (dueReminders.length > 0) {
-            console.log(`[INFO] Sent ${dueReminders.length} reminder(s) in ${performanceStats.lastCheckTime}ms`);
+            logger.info(`[INFO] Sent ${dueReminders.length} reminder(s) in ${performanceStats.lastCheckTime}ms`);
         }
         
     } catch (error) {
         performanceStats.errors++;
-        console.error('[ERROR] Reminder scheduler error:', error);
+        logger.error('[ERROR] Reminder scheduler error:', error);
     }
 }
 
@@ -143,7 +144,7 @@ async function sendReminder(reminder) {
             return;
         } catch {
             // DM failed, try to send in the original channel
-            console.log(`[INFO] Could not DM user ${reminder.userId}, trying channel`);
+            logger.info(`[INFO] Could not DM user ${reminder.userId}, trying channel`);
         }
         
         // Try to send in the original channel
@@ -157,12 +158,12 @@ async function sendReminder(reminder) {
                     });
                 }
             } catch (channelError) {
-                console.error(`[ERROR] Could not send reminder to channel ${reminder.channelId}:`, channelError.message);
+                logger.error(`[ERROR] Could not send reminder to channel ${reminder.channelId}:`, channelError.message);
             }
         }
         
     } catch (error) {
-        console.error(`[ERROR] Failed to send reminder ${reminder.id}:`, error);
+        logger.error(`[ERROR] Failed to send reminder ${reminder.id}:`, error);
     }
 }
 

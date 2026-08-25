@@ -1,10 +1,13 @@
 // Role Persistence Command
+export default {
 // Configure role persistence to restore roles when users rejoin
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
-export default {
     name: 'rolepersistence',
     description: 'Configure role persistence for members who rejoin',
     category: 'Moderation',
@@ -45,7 +48,9 @@ export default {
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             const subcommand = interaction.options.getSubcommand();
             
@@ -58,7 +63,7 @@ export default {
             }
             
         } catch (error) {
-            console.error('[ERROR] Rolepersistence command error:', error);
+            logger.error('[ERROR] Rolepersistence command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,
@@ -74,9 +79,25 @@ export default {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };
 
 async function handleToggle(interaction) {
@@ -108,7 +129,7 @@ async function handleToggle(interaction) {
     
     await interaction.reply({ embeds: [successEmbed] });
     
-    console.log(`[CONFIG] Role persistence ${enabled ? 'enabled' : 'disabled'} in ${interaction.guild.name}`);
+    logger.info(`[CONFIG] Role persistence ${enabled ? 'enabled' : 'disabled'} in ${interaction.guild.name}`);
 }
 
 async function handleView(interaction) {
@@ -132,7 +153,7 @@ async function handleView(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [viewEmbed], flags: 64 });
+    await interaction.reply({ embeds: [viewEmbed], flags: MessageFlags.Ephemeral });
 }
 
 async function handleClear(interaction) {
@@ -148,7 +169,7 @@ async function handleClear(interaction) {
                 description: `No roles are saved for ${user.tag}.`,
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -165,5 +186,5 @@ async function handleClear(interaction) {
     
     await interaction.reply({ embeds: [successEmbed] });
     
-    console.log(`[CONFIG] Saved roles cleared for ${user.tag} in ${interaction.guild.name}`);
+    logger.info(`[CONFIG] Saved roles cleared for ${user.tag} in ${interaction.guild.name}`);
 }

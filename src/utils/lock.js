@@ -1,22 +1,36 @@
  
 import { config } from '../config/config.js';
-import { getRedis } from './redis.js';
+import { createRedisClient, closeRedisClient } from './redis.js';
 
 const LOCK_PREFIX = 'apollo:lock:';
 
 let _lockRedis = null;
 
+/**
+ * Gets or creates the lock Redis connection.
+ * Uses a module-level singleton because:
+ * - Lock operations are centralized and low-frequency
+ * - A single connection is sufficient for all lock operations
+ * - Avoids connection overhead for distributed locking
+ * - The lock connection is only used when QUEUE_ENABLED=true
+ * 
+ * Callers should use closeLockRedis() during shutdown to clean up.
+ */
 export async function getLockRedis() {
     if (_lockRedis) {return _lockRedis;}
     if (!config.queue.enabled) {return null;}
-    _lockRedis = getRedis('lock');
+    _lockRedis = createRedisClient('lock');
     await _lockRedis.connect();
     return _lockRedis;
 }
 
+/**
+ * Closes the lock Redis connection.
+ * Should be called during graceful shutdown.
+ */
 export async function closeLockRedis() {
     if (_lockRedis) {
-        await _lockRedis.quit();
+        await closeRedisClient(_lockRedis);
         _lockRedis = null;
     }
 }

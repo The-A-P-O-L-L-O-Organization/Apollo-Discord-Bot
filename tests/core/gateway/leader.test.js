@@ -13,7 +13,7 @@ describe('Leader election', () => {
     };
 
     const { tryAcquireLock } = await import('../../../src/gateway/leader.js');
-    const result = await tryAcquireLock(mockRedis, 'pod-a', 10000);
+    const result = await tryAcquireLock(mockRedis, 'apollo:gateway:leader', 'pod-a', 10000);
     expect(result).toBe(true);
     expect(mockRedis.set).toHaveBeenCalledWith(
       'apollo:gateway:leader', 'pod-a', 'NX', 'PX', 10000
@@ -54,7 +54,7 @@ describe('Leader election', () => {
     };
 
     const { startHeartbeat, stopHeartbeat } = await import('../../../src/gateway/leader.js');
-    const stop = await startHeartbeat(mockRedis, 'pod-a', 6000);
+    const stop = await startHeartbeat(mockRedis, 'apollo:gateway:leader', 'pod-a', 6000);
 
     vi.advanceTimersByTime(2000);
     expect(mockRedis.set).toHaveBeenCalledWith('apollo:gateway:leader', 'pod-a', 'XX', 'PX', 6000);

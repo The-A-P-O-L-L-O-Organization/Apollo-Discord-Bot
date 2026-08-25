@@ -3,8 +3,10 @@ import { getGuildData, getData, updateGuildData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { safeError } from '../../../utils/safeError.js';
 import { isOwner } from '../../../utils/accessControl.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { logger } from './utils/logger.js';
+import { MessageFlags } from 'discord.js';
 
-export default {
     name: 'blacklist',
     description: 'Manage the server join blacklist',
     category: 'Moderation',
@@ -82,7 +84,9 @@ export default {
         }
     ],
 
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         const subcommand = interaction.options.getSubcommand();
 
         if (subcommand === 'add') {
@@ -94,7 +98,23 @@ export default {
         } else if (subcommand === 'global') {
             await handleGlobal(interaction);
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };
 
 /**
@@ -114,7 +134,7 @@ async function handleAdd(interaction) {
                     description: 'You cannot blacklist yourself.',
                     timestamp: new Date().toISOString()
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -127,7 +147,7 @@ async function handleAdd(interaction) {
                     description: 'You cannot blacklist the bot.',
                     timestamp: new Date().toISOString()
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -143,7 +163,7 @@ async function handleAdd(interaction) {
                     description: `${user.tag} is already on the blacklist.\nReason: ${entries[user.id].reason}`,
                     timestamp: new Date().toISOString()
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -183,10 +203,10 @@ async function handleAdd(interaction) {
             reason: reason
         });
 
-        console.log(`[MODERATION] User ${user.tag} blacklisted by ${interaction.user.tag}. Reason: ${reason}`);
+        logger.info(`[MODERATION] User ${user.tag} blacklisted by ${interaction.user.tag}. Reason: ${reason}`);
 
     } catch (error) {
-        console.error('[ERROR] Blacklist add error:', error);
+        logger.error('[ERROR] Blacklist add error:', error);
         await replyError(interaction, error);
     }
 }
@@ -209,7 +229,7 @@ async function handleRemove(interaction) {
                     description: `${user.tag} is not on the blacklist.`,
                     timestamp: new Date().toISOString()
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -235,10 +255,10 @@ async function handleRemove(interaction) {
 
         await interaction.reply({ embeds: [successEmbed] });
 
-        console.log(`[MODERATION] User ${user.tag} removed from blacklist by ${interaction.user.tag}`);
+        logger.info(`[MODERATION] User ${user.tag} removed from blacklist by ${interaction.user.tag}`);
 
     } catch (error) {
-        console.error('[ERROR] Blacklist remove error:', error);
+        logger.error('[ERROR] Blacklist remove error:', error);
         await replyError(interaction, error);
     }
 }
@@ -260,7 +280,7 @@ async function handleView(interaction) {
                     description: 'The blacklist is currently empty.',
                     timestamp: new Date().toISOString()
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -280,10 +300,10 @@ async function handleView(interaction) {
             .setFooter({ text: `${list.length} total entr${list.length === 1 ? 'y' : 'ies'}${list.length > PAGE_SIZE ? ` (showing first ${PAGE_SIZE})` : ''}` })
             .setTimestamp();
 
-        await interaction.reply({ embeds: [embed], flags: 64 });
+        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 
     } catch (error) {
-        console.error('[ERROR] Blacklist view error:', error);
+        logger.error('[ERROR] Blacklist view error:', error);
         await replyError(interaction, error);
     }
 }
@@ -302,7 +322,7 @@ async function handleGlobal(interaction) {
                     description: 'This command is restricted to the bot owner only.',
                     timestamp: new Date().toISOString()
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -322,7 +342,7 @@ async function handleGlobal(interaction) {
                         description: 'Both user and reason are required to add to global blacklist.',
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -334,7 +354,7 @@ async function handleGlobal(interaction) {
                         description: 'You cannot blacklist yourself globally.',
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -346,7 +366,7 @@ async function handleGlobal(interaction) {
                         description: `${user.tag} is already on the global blacklist.\nReason: ${entries[user.id].reason}`,
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -376,7 +396,7 @@ async function handleGlobal(interaction) {
                 .setTimestamp();
 
             await interaction.reply({ embeds: [successEmbed] });
-            console.log(`[MODERATION] User ${user.tag} globally blacklisted by ${interaction.user.tag}. Reason: ${reason}`);
+            logger.info(`[MODERATION] User ${user.tag} globally blacklisted by ${interaction.user.tag}. Reason: ${reason}`);
 
         } else if (action === 'remove') {
             if (!user) {
@@ -387,7 +407,7 @@ async function handleGlobal(interaction) {
                         description: 'User is required to remove from global blacklist.',
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -399,7 +419,7 @@ async function handleGlobal(interaction) {
                         description: `${user.tag} is not on the global blacklist.`,
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -424,7 +444,7 @@ async function handleGlobal(interaction) {
                 .setTimestamp();
 
             await interaction.reply({ embeds: [successEmbed] });
-            console.log(`[MODERATION] User ${user.tag} removed from global blacklist by ${interaction.user.tag}`);
+            logger.info(`[MODERATION] User ${user.tag} removed from global blacklist by ${interaction.user.tag}`);
 
         } else if (action === 'view') {
             const list = Object.values(entries);
@@ -437,7 +457,7 @@ async function handleGlobal(interaction) {
                         description: 'The global blacklist is currently empty.',
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -456,11 +476,11 @@ async function handleGlobal(interaction) {
                 .setFooter({ text: `${list.length} total entr${list.length === 1 ? 'y' : 'ies'}${list.length > PAGE_SIZE ? ` (showing first ${PAGE_SIZE})` : ''}` })
                 .setTimestamp();
 
-            await interaction.reply({ embeds: [embed], flags: 64 });
+            await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
         }
 
     } catch (error) {
-        console.error('[ERROR] Global blacklist error:', error);
+        logger.error('[ERROR] Global blacklist error:', error);
         await replyError(interaction, error);
     }
 }
@@ -479,6 +499,6 @@ async function replyError(interaction, error) {
     if (interaction.replied || interaction.deferred) {
         await interaction.editReply({ embeds: [errorEmbed] });
     } else {
-        await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
     }
 }

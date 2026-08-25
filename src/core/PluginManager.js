@@ -1,4 +1,5 @@
-/* eslint-disable no-console */
+import { logger } from '../utils/logger.js';
+ 
 import { readdirSync, existsSync, rmSync } from 'fs';
 import path from 'path';
 import { pathToFileURL } from 'url';
@@ -231,7 +232,7 @@ export default class PluginManager {
                 );
             }
         } catch (error) {
-            console.error('[ERROR] Failed to sync commands with Discord:', error);
+            logger.error('[ERROR] Failed to sync commands with Discord:', error);
         }
     }
 
@@ -376,7 +377,7 @@ export default class PluginManager {
             throw new Error(`Plugin ${id} is already installed at ${destDir}`);
         }
 
-        console.log(`[PluginManager] Downloading ${id} from ${entry.downloadUrl}...`);
+        logger.info(`[PluginManager] Downloading ${id} from ${entry.downloadUrl}...`);
         await downloadAndExtractPlugin(entry.downloadUrl, destDir);
 
         const validation = await validatePluginDirectory(destDir);
@@ -393,7 +394,7 @@ export default class PluginManager {
         await this.loadInstalledPlugin(id, destDir);
         await this._syncDiscordCommands(id);
 
-        console.log(`[PluginManager] Successfully installed plugin ${id}`);
+        logger.info(`[PluginManager] Successfully installed plugin ${id}`);
     }
 
     async loadInstalledPlugin(pluginId, dir, manifest) {
@@ -430,7 +431,7 @@ export default class PluginManager {
 
         if (existsSync(pluginDir)) {
             rmSync(pluginDir, { recursive: true, force: true });
-            console.log(`[PluginManager] Removed plugin directory ${pluginDir}`);
+            logger.info(`[PluginManager] Removed plugin directory ${pluginDir}`);
         } else {
             throw new Error(`Plugin ${id} is not loaded and no install directory found at ${pluginDir}`);
         }
@@ -441,7 +442,7 @@ export default class PluginManager {
 
         await this._syncDiscordCommands(id);
 
-        console.log(`[PluginManager] Successfully uninstalled plugin ${id}`);
+        logger.info(`[PluginManager] Successfully uninstalled plugin ${id}`);
     }
 
     getPlugin(id) { return this.plugins.get(id) || null; }

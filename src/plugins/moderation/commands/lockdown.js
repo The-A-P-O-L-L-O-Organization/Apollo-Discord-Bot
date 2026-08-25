@@ -1,11 +1,14 @@
 // Lockdown Command
+export default {
 // Locks channels during raids by preventing @everyone from sending messages
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { setGuildData, getGuildData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
-export default {
     name: 'lockdown',
     description: 'Lock a channel to prevent @everyone from sending messages',
     category: 'Moderation',
@@ -27,7 +30,9 @@ export default {
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             // Get the channel to lock
             const channel = interaction.options.getChannel('channel') || interaction.channel;
@@ -41,7 +46,7 @@ export default {
                     description: 'You can only lock text-based channels.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Get the @everyone role
@@ -59,7 +64,7 @@ export default {
                     description: `${channel} is already in lockdown mode.`,
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Store original permissions before locking
@@ -134,7 +139,7 @@ export default {
                 };
                 await channel.send({ embeds: [lockNotice] });
             } catch (err) {
-                console.log('[WARNING] Could not send lock notice to channel:', err.message);
+                logger.info('[WARNING] Could not send lock notice to channel:', err.message);
             }
             
             // Send mod log
@@ -149,10 +154,10 @@ export default {
             });
             
             // Log the action
-            console.log(`[MODERATION] Channel ${channel.name} was locked by ${interaction.user.tag}. Reason: ${reason}`);
+            logger.info(`[MODERATION] Channel ${channel.name} was locked by ${interaction.user.tag}. Reason: ${reason}`);
             
         } catch (error) {
-            console.error('[ERROR] Lockdown command error:', error);
+            logger.error('[ERROR] Lockdown command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,
@@ -171,8 +176,24 @@ export default {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

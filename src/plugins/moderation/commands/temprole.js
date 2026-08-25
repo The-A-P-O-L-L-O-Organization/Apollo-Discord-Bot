@@ -1,10 +1,13 @@
 // Temprole Command
+export default {
 // Assign temporary roles that automatically expire
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
-export default {
     name: 'temprole',
     description: 'Assign a temporary role that expires after a set duration',
     category: 'Moderation',
@@ -69,7 +72,9 @@ export default {
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             const subcommand = interaction.options.getSubcommand();
             
@@ -82,7 +87,7 @@ export default {
             }
             
         } catch (error) {
-            console.error('[ERROR] Temprole command error:', error);
+            logger.error('[ERROR] Temprole command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,
@@ -98,9 +103,25 @@ export default {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };
 
 async function handleAdd(interaction) {
@@ -119,7 +140,7 @@ async function handleAdd(interaction) {
                 description: 'Please use a valid duration format (e.g., 1h, 30m, 7d, 2w)',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -133,7 +154,7 @@ async function handleAdd(interaction) {
                 description: 'Maximum duration is 30 days.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -149,7 +170,7 @@ async function handleAdd(interaction) {
                 description: 'I cannot assign roles higher than my highest role.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -210,7 +231,7 @@ async function handleAdd(interaction) {
     
     await interaction.reply({ embeds: [successEmbed] });
     
-    console.log(`[MODERATION] Temp role ${role.name} assigned to ${user.tag} for ${durationStr}`);
+    logger.info(`[MODERATION] Temp role ${role.name} assigned to ${user.tag} for ${durationStr}`);
 }
 
 async function handleRemove(interaction) {
@@ -246,7 +267,7 @@ async function handleRemove(interaction) {
                 description: `${user.tag} does not have ${role} assigned.`,
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
 }
@@ -262,7 +283,7 @@ async function handleList(interaction) {
                 description: 'There are no active temporary roles.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -277,7 +298,7 @@ async function handleList(interaction) {
                 description: 'All temporary roles have expired.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -293,7 +314,7 @@ async function handleList(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [listEmbed], flags: 64 });
+    await interaction.reply({ embeds: [listEmbed], flags: MessageFlags.Ephemeral });
 }
 
 function parseDuration(str) {

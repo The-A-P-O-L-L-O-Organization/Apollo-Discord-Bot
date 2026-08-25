@@ -1,7 +1,10 @@
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
+export default {
 // Channelinfo Command
 // Display detailed information about a channel
+import { logger } from '../../../utils/logger.js';
 
-export default {
     name: 'channelinfo',
     description: 'Display detailed information about a channel',
     category: 'Utility',
@@ -16,7 +19,9 @@ export default {
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             const channel = interaction.options.getChannel('channel') || interaction.channel;
             
@@ -141,7 +146,7 @@ export default {
             await interaction.reply({ embeds: [channelEmbed] });
             
         } catch (error) {
-            console.error('[ERROR] Channelinfo command error:', error);
+            logger.error('[ERROR] Channelinfo command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,
@@ -157,7 +162,23 @@ export default {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

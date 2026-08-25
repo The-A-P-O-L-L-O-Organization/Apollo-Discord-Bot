@@ -1,5 +1,6 @@
 // Circuit Breaker Utility
 // Implements circuit breaker pattern for external API resilience
+import { logger } from '../utils/logger.js';
 
 import { EventEmitter } from 'events';
 
@@ -172,7 +173,7 @@ export class CircuitBreaker extends EventEmitter {
         this.lastStateChange = Date.now();
         this.successes = 0;
         this.emit('open', { name: this.name, failures: this.failures });
-        console.log(`[CIRCUIT] ${this.name} opened after ${this.failures} failures`);
+        logger.info(`[CIRCUIT] ${this.name} opened after ${this.failures} failures`);
     }
     
     /**
@@ -183,7 +184,7 @@ export class CircuitBreaker extends EventEmitter {
         this.lastStateChange = Date.now();
         this.successes = 0;
         this.emit('half_open', { name: this.name });
-        console.log(`[CIRCUIT] ${this.name} half-open (testing recovery)`);
+        logger.info(`[CIRCUIT] ${this.name} half-open (testing recovery)`);
     }
     
     /**
@@ -197,7 +198,7 @@ export class CircuitBreaker extends EventEmitter {
         this.successes = 0;
         this.requests = 0;
         this.emit('close', { name: this.name });
-        console.log(`[CIRCUIT] ${this.name} closed (recovered)`);
+        logger.info(`[CIRCUIT] ${this.name} closed (recovered)`);
     }
     
     /**

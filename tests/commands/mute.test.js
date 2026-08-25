@@ -9,6 +9,7 @@ import {
     createMockMember,
     createMockGuild
 } from '../mocks/discord.js';
+import { DiscordErrorCodes } from '../../src/utils/discordErrors.js';
 
 // Mock the db module
 vi.mock('../../src/utils/db.js', () => ({
@@ -410,6 +411,94 @@ describe('Mute Command', () => {
                 3600000,
                 'Spamming in chat'
             );
+        });
+    });
+
+    describe('execute - Discord API Error Handling', () => {
+        it('should handle 50013 Missing Permissions error with fallback error message', async() => {
+            const error = new Error('Missing Permissions');
+            error.code = DiscordErrorCodes.MISSING_PERMISSIONS;
+            targetMember.timeout.mockRejectedValue(error);
+            targetMember.roles.add.mockRejectedValue(error);
+            mockGuild.roles.cache.find = vi.fn().mockReturnValue(null);
+            mockGuild.roles.create.mockRejectedValue(error);
+            
+            await muteCommand.execute(mockInteraction);
+            
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.embeds[0].title).toContain('[ERROR]');
+            expect(replyCall.embeds[0].description).toContain('Could not find or create a "Muted" role');
+            expect(replyCall.flags).toBe(64);
+        });
+
+        it('should handle 10062 Unknown Interaction error with fallback error message', async() => {
+            const error = new Error('Unknown Interaction');
+            error.code = DiscordErrorCodes.UNKNOWN_INTERACTION;
+            targetMember.timeout.mockRejectedValue(error);
+            targetMember.roles.add.mockRejectedValue(error);
+            mockGuild.roles.cache.find = vi.fn().mockReturnValue(null);
+            mockGuild.roles.create.mockRejectedValue(error);
+            
+            await muteCommand.execute(mockInteraction);
+            
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.embeds[0].title).toContain('[ERROR]');
+            expect(replyCall.embeds[0].description).toContain('Could not find or create a "Muted" role');
+            expect(replyCall.flags).toBe(64);
+        });
+
+        it('should handle ECONNREFUSED network error with fallback error message', async() => {
+            const error = new Error('connect ECONNREFUSED');
+            error.code = 'ECONNREFUSED';
+            targetMember.timeout.mockRejectedValue(error);
+            targetMember.roles.add.mockRejectedValue(error);
+            mockGuild.roles.cache.find = vi.fn().mockReturnValue(null);
+            mockGuild.roles.create.mockRejectedValue(error);
+            
+            await muteCommand.execute(mockInteraction);
+            
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.embeds[0].title).toContain('[ERROR]');
+            expect(replyCall.embeds[0].description).toContain('Could not find or create a "Muted" role');
+            expect(replyCall.flags).toBe(64);
+        });
+
+        it('should handle 50035 Invalid Form Body validation error with fallback error message', async() => {
+            const error = new Error('Invalid Form Body');
+            error.code = DiscordErrorCodes.INVALID_FORM_BODY;
+            error.errors = {
+                'communication_disabled_until': {
+                    _errors: [{ code: 'INVALID_VALUE', message: 'Invalid timestamp' }]
+                }
+            };
+            targetMember.timeout.mockRejectedValue(error);
+            targetMember.roles.add.mockRejectedValue(error);
+            mockGuild.roles.cache.find = vi.fn().mockReturnValue(null);
+            mockGuild.roles.create.mockRejectedValue(error);
+            
+            await muteCommand.execute(mockInteraction);
+            
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.embeds[0].title).toContain('[ERROR]');
+            expect(replyCall.embeds[0].description).toContain('Could not find or create a "Muted" role');
+            expect(replyCall.flags).toBe(64);
+        });
+
+        it('should handle 429 Rate Limited error with fallback error message', async() => {
+            const error = new Error('Rate Limited');
+            error.code = DiscordErrorCodes.RATE_LIMITED;
+            error.retryAfter = 5000;
+            targetMember.timeout.mockRejectedValue(error);
+            targetMember.roles.add.mockRejectedValue(error);
+            mockGuild.roles.cache.find = vi.fn().mockReturnValue(null);
+            mockGuild.roles.create.mockRejectedValue(error);
+            
+            await muteCommand.execute(mockInteraction);
+            
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.embeds[0].title).toContain('[ERROR]');
+            expect(replyCall.embeds[0].description).toContain('Could not find or create a "Muted" role');
+            expect(replyCall.flags).toBe(64);
         });
     });
 });

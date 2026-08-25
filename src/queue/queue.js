@@ -1,7 +1,9 @@
-/* eslint-disable no-console */
+import { createLogger } from '../utils/logger.js';
 import { Queue } from 'bullmq';
 import { config } from '../config/config.js';
-import { getRedis } from '../utils/redis.js';
+import { createRedisClient } from '../utils/redis.js';
+
+const logger = createLogger({ component: 'queue' });
 
 export const JobNames = {
     PROCESS_COMMAND: 'process-command',
@@ -14,15 +16,24 @@ const queues = new Map();
 export async function createQueue(name, queueConfig = config.queue) {
     if (queues.has(name)) {return queues.get(name);}
 
+    // Determine shard-specific queue prefix
+    const SHARD_ID = process.env.SHARD_ID ? parseInt(process.env.SHARD_ID, 10) : undefined;
+    const IS_SHARD_WORKER = typeof SHARD_ID !== 'undefined' && !isNaN(SHARD_ID);
+    const queuePrefix = IS_SHARD_WORKER
+        ? `${config.shard.queuePrefixBase}:shard-${SHARD_ID}`
+        : config.queue.prefix;
+
     let q;
     if (queueConfig.enabled) {
-        const conn = getRedis('queue', { family: 4 });
+        const conn = createRedisClient('queue', { family: 4 });
         await conn.connect();
-        q = new Queue(name, {
+        q = new Queue(`${queuePrefix}:${name}`, {
             connection: conn,
             defaultJobOptions: {
+                attempts: 3,
+                backoff: { type: 'exponential', delay: 1000 },
                 removeOnComplete: { age: 3600 },
-                removeOnFail: { age: 86400 }
+                removeOnFail: { age: 86400, count: 1000 }
             }
         });
     } else {
@@ -30,7 +41,7 @@ export async function createQueue(name, queueConfig = config.queue) {
             name,
             _enabled: false,
             async add(jobName, data, _opts) {
-                console.log(`[Queue] Would add job ${jobName} (queue disabled)`);
+                logger.info(`[Queue] Would add job ${jobName} (queue disabled)`);
                 return { id: 'noop', name: jobName, data };
             },
             async close() {}

@@ -1,5 +1,6 @@
 import { safeFetch } from './safeFetch.js';
 import { createServiceBreaker } from './circuitBreaker.js';
+import { logger } from '../utils/logger.js';
 
 // Create circuit breakers for each service
 const twitchBreaker = createServiceBreaker('twitch');
@@ -52,10 +53,10 @@ export async function checkTwitchStream(streamerName, config) {
         });
     } catch (error) {
         if (error.name === 'CircuitBreakerOpenError') {
-            console.log('[CIRCUIT] Twitch circuit breaker open, skipping stream check');
+            logger.info('[CIRCUIT] Twitch circuit breaker open, skipping stream check');
             return null;
         }
-        console.error('[ERROR] Twitch stream check failed:', error.message);
+        logger.error('[ERROR] Twitch stream check failed:', error.message);
         return null;
     }
 }
@@ -85,10 +86,10 @@ export async function checkYoutubeUploads(channelId, config) {
         });
     } catch (error) {
         if (error.name === 'CircuitBreakerOpenError') {
-            console.log('[CIRCUIT] YouTube circuit breaker open, skipping upload check');
+            logger.info('[CIRCUIT] YouTube circuit breaker open, skipping upload check');
             return null;
         }
-        console.error('[ERROR] YouTube upload check failed:', error.message);
+        logger.error('[ERROR] YouTube upload check failed:', error.message);
         return null;
     }
 }
@@ -102,10 +103,10 @@ export async function checkRssFeed(feedUrl) {
         });
     } catch (error) {
         if (error.name === 'CircuitBreakerOpenError') {
-            console.log('[CIRCUIT] RSS circuit breaker open, skipping feed check');
+            logger.info('[CIRCUIT] RSS circuit breaker open, skipping feed check');
             return null;
         }
-        console.error('[ERROR] RSS feed check failed:', error.message);
+        logger.error('[ERROR] RSS feed check failed:', error.message);
         return null;
     }
 }

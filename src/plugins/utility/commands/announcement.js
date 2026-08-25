@@ -1,9 +1,11 @@
 // Announcement Command
 // Schedule announcements to be sent later
+import { logger } from '../../../utils/logger.js';
 
-import { PermissionsBitField } from 'discord.js';
+import { PermissionsBitField, MessageFlags } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
-export default {
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+    export default {
     name: 'announcement',
     description: 'Schedule an announcement to be sent',
     category: 'Utility',
@@ -56,7 +58,9 @@ export default {
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             const subcommand = interaction.options.getSubcommand();
             
@@ -69,7 +73,7 @@ export default {
             }
             
         } catch (error) {
-            console.error('[ERROR] Announcement command error:', error);
+            logger.error('[ERROR] Announcement command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,
@@ -85,9 +89,25 @@ export default {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };
 
 async function handleSchedule(interaction) {
@@ -105,7 +125,7 @@ async function handleSchedule(interaction) {
                 description: 'Use format like 1h, 30m, 1d',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -152,9 +172,9 @@ async function handleSchedule(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [successEmbed], flags: 64 });
+    await interaction.reply({ embeds: [successEmbed], flags: MessageFlags.Ephemeral });
     
-    console.log(`[ANNOUNCEMENT] Scheduled by ${interaction.user.tag} for ${channel.name}`);
+    logger.info(`[ANNOUNCEMENT] Scheduled by ${interaction.user.tag} for ${channel.name}`);
 }
 
 async function handleView(interaction) {
@@ -168,7 +188,7 @@ async function handleView(interaction) {
                 description: 'There are no scheduled announcements.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -183,7 +203,7 @@ async function handleView(interaction) {
                 description: 'All announcements have been sent.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -199,7 +219,7 @@ async function handleView(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [viewEmbed], flags: 64 });
+    await interaction.reply({ embeds: [viewEmbed], flags: MessageFlags.Ephemeral });
 }
 
 async function handleCancel(interaction) {
@@ -215,7 +235,7 @@ async function handleCancel(interaction) {
                 description: 'No announcement found with that ID.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -229,7 +249,7 @@ async function handleCancel(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [successEmbed], flags: 64 });
+    await interaction.reply({ embeds: [successEmbed], flags: MessageFlags.Ephemeral });
 }
 
 function parseDelay(str) {
@@ -249,6 +269,7 @@ function parseDelay(str) {
 }
 
 function generateId() {
-    return `ANN-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-}
+     return `ANN-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+ }
+};
 

@@ -1,7 +1,10 @@
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
+export default {
 // Banner Command
 // Display a user's banner image (requires Nitro)
+import { logger } from '../../../utils/logger.js';
 
-export default {
     name: 'banner',
     description: 'Display a user\'s banner image (requires Nitro)',
     category: 'Utility',
@@ -16,7 +19,9 @@ export default {
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             const user = interaction.options.getUser('user') || interaction.user;
             
@@ -71,7 +76,7 @@ export default {
             await interaction.reply({ embeds: [bannerEmbed] });
             
         } catch (error) {
-            console.error('[ERROR] Banner command error:', error);
+            logger.error('[ERROR] Banner command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,
@@ -87,7 +92,23 @@ export default {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

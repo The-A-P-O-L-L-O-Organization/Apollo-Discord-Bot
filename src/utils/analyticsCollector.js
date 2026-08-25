@@ -1,4 +1,5 @@
-/* eslint-disable no-console */
+import { logger } from '../utils/logger.js';
+ 
 // Analytics Collector
 // Background service for collecting and aggregating analytics data
 
@@ -35,7 +36,7 @@ const performanceStats = {
  * @param {Client} client - Discord client
  */
 export function initAnalyticsCollector(client) {
-    console.log('[ANALYTICS] Starting analytics collector...');
+    logger.info('[ANALYTICS] Starting analytics collector...');
     
     // Start the batch write interval
     batchIntervalId = setInterval(() => {
@@ -50,14 +51,14 @@ export function initAnalyticsCollector(client) {
         cleanupOldAnalytics(client);
     }, 24 * 60 * 60 * 1000); // Once per day
     
-    console.log('[ANALYTICS] Analytics collector started successfully');
+    logger.info('[ANALYTICS] Analytics collector started successfully');
 }
 
 /**
  * Stops the analytics collector
  */
 export function stopAnalyticsCollector() {
-    console.log('[ANALYTICS] Stopping analytics collector...');
+    logger.info('[ANALYTICS] Stopping analytics collector...');
     
     // Flush any remaining cached data
     flushAnalyticsCache();
@@ -68,7 +69,7 @@ export function stopAnalyticsCollector() {
         batchIntervalId = null;
     }
     
-    console.log('[ANALYTICS] Analytics collector stopped');
+    logger.info('[ANALYTICS] Analytics collector stopped');
 }
 
 /**
@@ -191,10 +192,10 @@ export async function flushAnalyticsCritical() {
     try {
         await flushAnalyticsCache();
         if (performanceStats.flushesPerformed % 10 === 0) {
-            console.log('[ANALYTICS] Critical flush completed successfully');
+            logger.info('[ANALYTICS] Critical flush completed successfully');
         }
     } catch (error) {
-        console.error('[ERROR] Failed to flush analytics:', error);
+        logger.error('[ERROR] Failed to flush analytics:', error);
         // Don't crash, just log
     }
 }
@@ -311,12 +312,12 @@ export async function flushAnalyticsCache() {
         performanceStats.recordsProcessed += recordsProcessed;
         
         if (now % (5 * 60 * 1000) < BATCH_INTERVAL) {
-            console.log(`[ANALYTICS] Flushed ${recordsProcessed} records in ${flushTime}ms`);
+            logger.info(`[ANALYTICS] Flushed ${recordsProcessed} records in ${flushTime}ms`);
         }
         
     } catch (error) {
         performanceStats.errors++;
-        console.error('[ANALYTICS] Error flushing analytics cache:', error);
+        logger.error('[ANALYTICS] Error flushing analytics cache:', error);
     }
 }
 
@@ -332,7 +333,7 @@ async function cleanupOldAnalytics(client) {
         const cutoffDateStr = getDateString(cutoffDate);
         const cutoffHourStr = getHourString(cutoffDate);
         
-        console.log(`[ANALYTICS] Cleaning up analytics older than ${cutoffDateStr}...`);
+        logger.info(`[ANALYTICS] Cleaning up analytics older than ${cutoffDateStr}...`);
         
         let totalDeleted = 0;
         
@@ -397,11 +398,11 @@ async function cleanupOldAnalytics(client) {
         performanceStats.totalCleanupTime += cleanupTime;
         performanceStats.recordsDeleted += totalDeleted;
         
-        console.log(`[ANALYTICS] Cleanup complete. Deleted ${totalDeleted} old records in ${cleanupTime}ms.`);
+        logger.info(`[ANALYTICS] Cleanup complete. Deleted ${totalDeleted} old records in ${cleanupTime}ms.`);
         
     } catch (error) {
         performanceStats.errors++;
-        console.error('[ANALYTICS] Error during analytics cleanup:', error);
+        logger.error('[ANALYTICS] Error during analytics cleanup:', error);
     }
 }
 

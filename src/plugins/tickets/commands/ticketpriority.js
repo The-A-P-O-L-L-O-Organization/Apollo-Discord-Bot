@@ -1,8 +1,11 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import { updateGuildData } from '../../../utils/db.js';
 import { getPriorityColor, getPriorityEmoji } from '../../../utils/slaTracker.js';
-
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { logger } from '../../../utils/logger.js';
+import { MessageFlags } from 'discord.js';
 export default {
+
     name: 'ticketpriority',
     data: new SlashCommandBuilder()
         .setName('ticketpriority')
@@ -22,7 +25,9 @@ export default {
         .setDMPermission(false),
     category: 'utility',
 
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         const guildId = interaction.guild.id;
         const channelId = interaction.channel.id;
         const newPriority = interaction.options.getString('priority');
@@ -34,7 +39,7 @@ export default {
         if (!ticket) {
             return interaction.reply({
                 content: 'This channel is not a ticket channel.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -45,7 +50,7 @@ export default {
         if (!hasSupport && !isAdmin) {
             return interaction.reply({
                 content: 'You do not have permission to change ticket priority.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -54,7 +59,7 @@ export default {
         if (oldPriority === newPriority) {
             return interaction.reply({
                 content: `This ticket is already set to **${newPriority}** priority.`,
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -73,7 +78,7 @@ export default {
             const newTopic = `${getPriorityEmoji(newPriority)} Ticket #${ticket.ticketNumber} | ${ticket.category || 'general'} | ${newPriority} priority | Created by ${(await interaction.guild.members.fetch(ticket.userId).catch(() => null))?.user?.tag || 'Unknown'}`;
             await interaction.channel.setTopic(newTopic);
         } catch (error) {
-            console.error('[ERROR] Failed to update channel topic:', error);
+            logger.error('[ERROR] Failed to update channel topic:', error);
         }
 
         const embed = new EmbedBuilder()
@@ -87,5 +92,21 @@ export default {
             .setTimestamp();
 
         return interaction.reply({ embeds: [embed] });
+    
+} catch (error) {
+    const errorMessage = handleDiscordError(error);
+    if (interaction.replied || interaction.deferred) {
+        await safeFollowUp(interaction, errorMessage);
+    } else {
+        await safeReply(interaction, errorMessage);
+    }
+}
+
+} catch (error) {
+    const errorMessage = handleDiscordError(error);
+    if (interaction.replied || interaction.deferred) {
+        await safeFollowUp(interaction, errorMessage);
+    } else {
+        await safeReply(interaction, errorMessage);
     }
 };

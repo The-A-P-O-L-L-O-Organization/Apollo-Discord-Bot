@@ -10,6 +10,7 @@ import {
     createMockGuild,
     createMockClient 
 } from '../mocks/discord.js';
+import { DiscordErrorCodes } from '../../src/utils/discordErrors.js';
 
 // Mock the db module
 vi.mock('../../src/utils/db.js', () => ({
@@ -313,6 +314,79 @@ describe('Ban Command', () => {
             await banCommand.execute(mockInteraction);
 
             expect(mockGuild.bans.create).toHaveBeenCalled();
+        });
+    });
+
+    describe('execute - Discord API Error Handling', () => {
+        it('should handle 50013 Missing Permissions error with generic error message', async() => {
+            const error = new Error('Missing Permissions');
+            error.code = DiscordErrorCodes.MISSING_PERMISSIONS;
+            mockGuild.bans.create.mockRejectedValue(error);
+            
+            await banCommand.execute(mockInteraction);
+            
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.embeds[0].title).toContain('[ERROR]');
+            expect(replyCall.embeds[0].description).toContain('An error occurred while trying to ban the user');
+            expect(replyCall.flags).toBe(64);
+        });
+
+        it('should handle 10062 Unknown Interaction error with generic error message', async() => {
+            const error = new Error('Unknown Interaction');
+            error.code = DiscordErrorCodes.UNKNOWN_INTERACTION;
+            mockGuild.bans.create.mockRejectedValue(error);
+            
+            await banCommand.execute(mockInteraction);
+            
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.embeds[0].title).toContain('[ERROR]');
+            expect(replyCall.embeds[0].description).toContain('An error occurred while trying to ban the user');
+            expect(replyCall.flags).toBe(64);
+        });
+
+        it('should handle ECONNREFUSED network error with generic error message', async() => {
+            const error = new Error('connect ECONNREFUSED');
+            error.code = 'ECONNREFUSED';
+            mockGuild.bans.create.mockRejectedValue(error);
+            
+            await banCommand.execute(mockInteraction);
+            
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.embeds[0].title).toContain('[ERROR]');
+            expect(replyCall.embeds[0].description).toContain('An error occurred while trying to ban the user');
+            expect(replyCall.flags).toBe(64);
+        });
+
+        it('should handle 50035 Invalid Form Body validation error with generic error message', async() => {
+            const error = new Error('Invalid Form Body');
+            error.code = DiscordErrorCodes.INVALID_FORM_BODY;
+            error.errors = {
+                'deleteMessageSeconds': {
+                    _errors: [{ code: 'INVALID_VALUE', message: 'Value must be less than or equal to 604800' }]
+                }
+            };
+            mockGuild.bans.create.mockRejectedValue(error);
+            
+            await banCommand.execute(mockInteraction);
+            
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.embeds[0].title).toContain('[ERROR]');
+            expect(replyCall.embeds[0].description).toContain('An error occurred while trying to ban the user');
+            expect(replyCall.flags).toBe(64);
+        });
+
+        it('should handle 429 Rate Limited error with generic error message', async() => {
+            const error = new Error('Rate Limited');
+            error.code = DiscordErrorCodes.RATE_LIMITED;
+            error.retryAfter = 5000;
+            mockGuild.bans.create.mockRejectedValue(error);
+            
+            await banCommand.execute(mockInteraction);
+            
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.embeds[0].title).toContain('[ERROR]');
+            expect(replyCall.embeds[0].description).toContain('An error occurred while trying to ban the user');
+            expect(replyCall.flags).toBe(64);
         });
     });
 });

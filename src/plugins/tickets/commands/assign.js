@@ -1,7 +1,10 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
-
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { logger } from '../../../utils/logger.js';
+import { MessageFlags } from 'discord.js';
 export default {
+
     name: 'assign',
     data: new SlashCommandBuilder()
         .setName('assign')
@@ -15,7 +18,9 @@ export default {
         .setDMPermission(false),
     category: 'utility',
 
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         const guildId = interaction.guild.id;
         const channelId = interaction.channel.id;
         const assignUser = interaction.options.getUser('user');
@@ -27,7 +32,7 @@ export default {
         if (!ticket) {
             return interaction.reply({
                 content: 'This channel is not a ticket channel.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -38,7 +43,7 @@ export default {
         if (!hasSupport && !isAdmin) {
             return interaction.reply({
                 content: 'You do not have permission to assign tickets.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -47,7 +52,7 @@ export default {
         if (ticket.assignedTo.includes(assignUser.id)) {
             return interaction.reply({
                 content: `${assignUser} is already assigned to this ticket.`,
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -71,7 +76,7 @@ export default {
                 AttachFiles: true
             });
         } catch (error) {
-            console.error('[ERROR] Failed to update channel permissions:', error);
+            logger.error('[ERROR] Failed to update channel permissions:', error);
         }
 
         const embed = new EmbedBuilder()
@@ -103,5 +108,21 @@ export default {
             await assignUser.send({ embeds: [dmEmbed] });
         } catch {
         }
+
+} catch (error) {
+    const errorMessage = handleDiscordError(error);
+    if (interaction.replied || interaction.deferred) {
+        await safeFollowUp(interaction, errorMessage);
+    } else {
+        await safeReply(interaction, errorMessage);
+    }
+}
+
+} catch (error) {
+    const errorMessage = handleDiscordError(error);
+    if (interaction.replied || interaction.deferred) {
+        await safeFollowUp(interaction, errorMessage);
+    } else {
+        await safeReply(interaction, errorMessage);
     }
 };

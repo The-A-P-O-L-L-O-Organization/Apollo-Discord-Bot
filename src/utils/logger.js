@@ -1,10 +1,74 @@
-/* eslint-disable no-console */
-// Logger Utility
-// Centralized logging function for all server events
-
+import pino from 'pino';
 import { EmbedBuilder } from 'discord.js';
-import { getGuildData } from './db.js';
 import { config } from '../config/config.js';
+import { hostname } from 'os';
+import { randomUUID as cryptoRandomUUID } from 'crypto';
+import { getTraceId, getSpanId } from './tracing.js';
+
+// Generate a traceId for the service instance (fallback when no trace context)
+const serviceTraceId = cryptoRandomUUID();
+
+// Log sampling configuration
+const LOG_SAMPLE_RATE = parseFloat(process.env.LOG_SAMPLE_RATE) || 1.0; // 1.0 = 100% (no sampling)
+
+// Levels that should never be sampled (always logged)
+const NEVER_SAMPLE_LEVELS = new Set(['fatal', 'error']);
+
+/**
+ * Creates a sampling function for pino
+ * @param {number} sampleRate - Sample rate (0.0 to 1.0)
+ * @returns {Function} Sampling function
+ */
+function createSampler(sampleRate) {
+    if (sampleRate >= 1.0) {
+        return () => true; // No sampling
+    }
+    if (sampleRate <= 0) {
+        return (level) => NEVER_SAMPLE_LEVELS.has(level); // Only log never-sample levels
+    }
+    return (level) => NEVER_SAMPLE_LEVELS.has(level) || Math.random() < sampleRate;
+}
+
+const shouldSample = createSampler(LOG_SAMPLE_RATE);
+
+// Create a logger instance for this module
+const logger = pino({
+    level: process.env.LOG_LEVEL || 'info',
+    base: {
+        service: 'apollo',
+        pid: process.pid,
+        hostname: hostname(),
+        traceId: serviceTraceId
+    },
+    timestamp: pino.stdTimeFunctions.isoTime,
+    // Custom formatter to add trace context to each log entry
+    formatters: {
+        log: (object) => {
+            // Add trace context if available
+            const traceId = getTraceId();
+            const spanId = getSpanId();
+            if (traceId) {
+                object.traceId = traceId;
+            }
+            if (spanId) {
+                object.spanId = spanId;
+            }
+            return object;
+        }
+    }
+});
+
+// Wrap log methods to add sampling
+const logLevels = ['fatal', 'error', 'warn', 'info', 'debug', 'trace'];
+for (const level of logLevels) {
+    const originalMethod = logger[level].bind(logger);
+    logger[level] = (...args) => {
+        if (!shouldSample(level)) {
+            return logger; // Return logger for chaining but don't log
+        }
+        return originalMethod(...args);
+    };
+}
 
 /**
  * Gets logging configuration for a guild
@@ -12,6 +76,7 @@ import { config } from '../config/config.js';
  * @returns {Object} Logging configuration
  */
 export async function getLoggingConfig(guildId) {
+    const { getGuildData } = await import('./db.js');
     const guildConfig = await getGuildData('logging', guildId);
     return {
         channelId: guildConfig.channelId || null,
@@ -53,7 +118,7 @@ export async function getLogChannel(guild) {
             return channel;
         }
     } catch (error) {
-        console.error(`[ERROR] Could not fetch log channel for ${guild.name}:`, error.message);
+        logger.error(`[ERROR] Could not fetch log channel for ${guild.name}:`, { error: error.message });
     }
     
     return null;
@@ -74,7 +139,7 @@ export async function logEvent(guild, eventType, embed) {
     try {
         await logChannel.send({ embeds: [embed] });
     } catch (error) {
-        console.error(`[ERROR] Failed to send log to ${guild.name}:`, error.message);
+        logger.error(`[ERROR] Failed to send log to ${guild.name}:`, { error: error.message });
     }
 }
 
@@ -315,3 +380,15 @@ export function createVoiceChangeEmbed(oldState, newState) {
     
     return embed;
 }
+
+/**
+ * Factory function to create a Pino logger with context
+ * @param {Object} context - Context object to add to log output
+ * @returns {import('pino').Logger} Logger instance
+ */
+export function createLogger(context) {
+    return logger.child(context);
+}
+
+// Export the default logger for use across the application
+export { logger };

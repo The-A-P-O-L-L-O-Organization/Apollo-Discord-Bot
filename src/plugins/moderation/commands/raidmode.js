@@ -1,10 +1,13 @@
 // Raidmode Command
+export default {
 // Manually enable/disable raid mode lockdown
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { enableRaidMode, disableRaidMode, isRaidModeEnabled } from '../../../utils/raidDetection.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
-export default {
     name: 'raidmode',
     description: 'Enable or disable raid mode (locks all channels)',
     category: 'Moderation',
@@ -25,7 +28,9 @@ export default {
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             const action = interaction.options.getString('action');
             
@@ -85,7 +90,7 @@ export default {
                 
                 await interaction.editReply({ embeds: [embed] });
                 
-                console.log(`[RAID] Raid mode enabled by ${interaction.user.tag} in ${interaction.guild.name}`);
+                logger.info(`[RAID] Raid mode enabled by ${interaction.user.tag} in ${interaction.guild.name}`);
                 
             } else if (action === 'disable') {
                 await interaction.deferReply();
@@ -118,11 +123,11 @@ export default {
                 
                 await interaction.editReply({ embeds: [embed] });
                 
-                console.log(`[RAID] Raid mode disabled by ${interaction.user.tag} in ${interaction.guild.name}`);
+                logger.info(`[RAID] Raid mode disabled by ${interaction.user.tag} in ${interaction.guild.name}`);
             }
             
         } catch (error) {
-            console.error('[ERROR] Raidmode command error:', error);
+            logger.error('[ERROR] Raidmode command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,
@@ -135,8 +140,24 @@ export default {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

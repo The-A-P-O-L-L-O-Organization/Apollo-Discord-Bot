@@ -1,11 +1,12 @@
 import { EmbedBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { getGuildData, updateGuildData, generateId, writeToSubDir } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
-
+import { logger } from '../../../utils/logger.js';
+import { MessageFlags } from 'discord.js';
 export default {
     name: 'interactionCreate',
     once: false,
-    
+     
     async execute(interaction, client) {
         if (!interaction.isButton()) {return;}
         
@@ -33,11 +34,11 @@ async function handleCreateTicket(interaction) {
     if (existingTicket) {
         return interaction.reply({
             content: `You already have an open ticket: <#${existingTicket.channelId}>`,
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
-    await interaction.deferReply({ flags: 64 });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     
     const botMember = interaction.guild.members?.me;
     if (!botMember?.permissions?.has?.(PermissionFlagsBits.ManageChannels)) {
@@ -105,7 +106,7 @@ async function handleCreateTicket(interaction) {
             topic: `Ticket #${ticketNumber} | Created by ${interaction.user.tag}`
         });
     } catch (error) {
-        console.error('[ERROR] Failed to create ticket channel:', error);
+        logger.error('[ERROR] Failed to create ticket channel:', error);
         return interaction.editReply({
             content: 'Failed to create ticket channel. Please contact an administrator.'
         });
@@ -155,7 +156,7 @@ async function handleCreateTicket(interaction) {
     
     return interaction.editReply({
         content: `Your ticket has been created: ${ticketChannel}`
-    }).catch(err => console.error('[WARN] Failed to delete message:', err.message));
+    }).catch(err => logger.error('[WARN] Failed to delete message:', err.message));
 }
 
 async function handleCloseTicket(interaction) {
@@ -169,7 +170,7 @@ async function handleCloseTicket(interaction) {
     if (ticketIndex === undefined || ticketIndex === -1) {
         return interaction.reply({
             content: 'This channel is not a ticket channel.',
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -183,7 +184,7 @@ async function handleCloseTicket(interaction) {
     if (!isTicketOwner && !hasSupport && !isAdmin) {
         return interaction.reply({
             content: 'You do not have permission to close this ticket.',
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -210,7 +211,7 @@ async function handleCloseTicket(interaction) {
             if (allMessages.length >= 1000) {break;}
         }
     } catch (error) {
-        console.error('[ERROR] Failed to fetch messages for transcript:', error);
+        logger.error('[ERROR] Failed to fetch messages for transcript:', error);
     }
     
     allMessages.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
@@ -299,7 +300,7 @@ async function handleCloseTicket(interaction) {
             const channel = await interaction.client.channels.fetch(channelId);
             await channel.delete(`Ticket closed by ${interaction.user.tag}`);
         } catch (error) {
-            console.error('[ERROR] Failed to delete ticket channel:', error);
+            logger.error('[ERROR] Failed to delete ticket channel:', error);
         }
     }, 3000);
 }

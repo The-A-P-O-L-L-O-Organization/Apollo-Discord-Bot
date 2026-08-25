@@ -1,4 +1,5 @@
-/* eslint-disable no-console */
+import { logger } from '../utils/logger.js';
+ 
 // Export Analytics Utility
 // Exports analytics data to CSV or JSON format
 
@@ -78,7 +79,7 @@ export function cleanupExport(filepath) {
     try {
         unlinkSync(filepath);
     } catch (error) {
-        console.error('[ERROR] Failed to cleanup export file:', error);
+        logger.error('[ERROR] Failed to cleanup export file:', error);
     }
 }
 

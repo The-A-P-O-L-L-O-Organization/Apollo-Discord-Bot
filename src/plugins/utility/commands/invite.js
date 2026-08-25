@@ -1,9 +1,11 @@
 // Invite Command
-// Generate an invite link for the bot or create a server invite
-
-import { PermissionsBitField } from 'discord.js';
-
 export default {
+// Generate an invite link for the bot or create a server invite
+import { logger } from '../../../utils/logger.js';
+
+import { PermissionsBitField, MessageFlags } from 'discord.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+
     name: 'invite',
     description: 'Generate an invite link or create a server invite',
     category: 'Utility',
@@ -40,7 +42,9 @@ export default {
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             const type = interaction.options.getString('type') || 'bot';
             
@@ -69,7 +73,7 @@ export default {
                 if (!interaction.guild) {
                     return interaction.reply({
                         content: '[ERROR] Server invites can only be created in a server.',
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
                 
@@ -77,7 +81,7 @@ export default {
                 if (!interaction.guild.members.me.permissions.has(PermissionsBitField.Flags.CreateInstantInvite)) {
                     return interaction.reply({
                         content: '[ERROR] I do not have permission to create invites.',
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
                 
@@ -124,11 +128,11 @@ export default {
                 
                 await interaction.reply({ embeds: [inviteEmbed] });
                 
-                console.log(`[INFO] Invite created by ${interaction.user.tag}: ${invite.url}`);
+                logger.info(`[INFO] Invite created by ${interaction.user.tag}: ${invite.url}`);
             }
             
         } catch (error) {
-            console.error('[ERROR] Invite command error:', error);
+            logger.error('[ERROR] Invite command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,
@@ -144,7 +148,23 @@ export default {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

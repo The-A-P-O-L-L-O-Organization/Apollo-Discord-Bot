@@ -1,4 +1,5 @@
-/* eslint-disable no-console */
+import { logger } from '../utils/logger.js';
+ 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { dirname } from 'path';
 
@@ -29,7 +30,7 @@ export default class PluginRegistry {
             const data = JSON.parse(raw);
             this._plugins = data.plugins || [];
         } catch (err) {
-            console.error('[PluginRegistry] Failed to load, using defaults:', err.message);
+            logger.error('[PluginRegistry] Failed to load, using defaults:', err.message);
             this._plugins = [...DEFAULT_PLUGINS];
         }
     }
@@ -39,9 +40,9 @@ export default class PluginRegistry {
         try {
             mkdirSync(dirname(this._filePath), { recursive: true });
             writeFileSync(this._filePath, JSON.stringify({ plugins: DEFAULT_PLUGINS }, null, 2), 'utf-8');
-            console.log('[PluginRegistry] Created default registry at', this._filePath);
+            logger.info('[PluginRegistry] Created default registry at', this._filePath);
         } catch (err) {
-            console.error('[PluginRegistry] Failed to create default registry:', err.message);
+            logger.error('[PluginRegistry] Failed to create default registry:', err.message);
         }
     }
 

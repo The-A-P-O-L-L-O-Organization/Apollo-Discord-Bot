@@ -1,10 +1,13 @@
 // Slowmode Command
+export default {
 // Sets channel slowmode programmatically
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog } from '../../../utils/modLog.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
-export default {
     name: 'slowmode',
     description: 'Set channel slowmode (rate limit)',
     category: 'Moderation',
@@ -34,7 +37,9 @@ export default {
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             // Get options
             const duration = interaction.options.getInteger('duration');
@@ -49,7 +54,7 @@ export default {
                     description: 'You can only set slowmode on text-based channels.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Validate duration
@@ -60,7 +65,7 @@ export default {
                     description: 'Slowmode duration must be between 0 and 21600 seconds (6 hours).',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Get current slowmode
@@ -134,7 +139,7 @@ export default {
                     };
                     await channel.send({ embeds: [slowmodeNotice] });
                 } catch (err) {
-                    console.log('[WARNING] Could not send slowmode notice to channel:', err.message);
+                    logger.info('[WARNING] Could not send slowmode notice to channel:', err.message);
                 }
             }
             
@@ -152,10 +157,10 @@ export default {
             });
             
             // Log the action
-            console.log(`[MODERATION] Slowmode ${duration === 0 ? 'disabled' : 'set to ' + duration + 's'} for channel ${channel.name} by ${interaction.user.tag}. Reason: ${reason}`);
+            logger.info(`[MODERATION] Slowmode ${duration === 0 ? 'disabled' : 'set to ' + duration + 's'} for channel ${channel.name} by ${interaction.user.tag}. Reason: ${reason}`);
             
         } catch (error) {
-            console.error('[ERROR] Slowmode command error:', error);
+            logger.error('[ERROR] Slowmode command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,
@@ -174,8 +179,24 @@ export default {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

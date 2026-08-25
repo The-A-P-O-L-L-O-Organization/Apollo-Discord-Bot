@@ -1,4 +1,7 @@
-/* eslint-disable no-console */
+import { createLogger } from '../utils/logger.js';
+
+const logger = createLogger({ component: 'eventbus' });
+
 export default class EventBus {
     constructor() {
         this._handlers = new Map();
@@ -21,7 +24,7 @@ export default class EventBus {
 
         if (this._crossPodEnabled && set.size === 1) {
             this._redisSub.subscribe(`apollo:event:${event}`).catch(err => {
-                console.error(`[EventBus] Failed to subscribe to ${event}:`, err.message);
+                logger.error(`[EventBus] Failed to subscribe to ${event}:`, err.message);
             });
         }
 
@@ -60,7 +63,12 @@ export default class EventBus {
             try {
                 await entry.handler(payload);
             } catch (err) {
-                console.error(`[EventBus] Error in handler for "${event}":`, err);
+                logger.error(`[EventBus] Error in handler for "${event}":`, err);
+                try {
+                    this.emit('error', err, event, payload);
+                } catch (e) {
+                    logger.error('[EventBus] Error while emitting error event:', e);
+                }
             }
         }
 
@@ -73,7 +81,7 @@ export default class EventBus {
             try {
                 await this._redisPub.publish(`apollo:event:${event}`, message);
             } catch (err) {
-                console.error('[EventBus] Failed to publish cross-pod event:', err.message);
+                logger.error('[EventBus] Failed to publish cross-pod event:', err.message);
             }
         }
     }
@@ -113,7 +121,12 @@ export default class EventBus {
             try {
                 w.fn(value, oldValue);
             } catch (err) {
-                console.error(`[EventBus] Error in state watcher for "${key}":`, err);
+                logger.error(`[EventBus] Error in state watcher for "${key}":`, err);
+                try {
+                    this.emit('error', err, key, { value, oldValue });
+                } catch (e) {
+                    logger.error('[EventBus] Error while emitting error event:', e);
+                }
             }
         }
 
@@ -125,10 +138,10 @@ export default class EventBus {
             });
             try {
                 this._redisPub.publish(`apollo:state:${key}`, message).catch(err => {
-                    console.error('[EventBus] Failed to publish cross-pod state:', err.message);
+                    logger.error('[EventBus] Failed to publish cross-pod state:', err.message);
                 });
             } catch (err) {
-                console.error('[EventBus] Failed to publish cross-pod state:', err.message);
+                logger.error('[EventBus] Failed to publish cross-pod state:', err.message);
             }
         }
     }
@@ -142,7 +155,7 @@ export default class EventBus {
 
         if (this._crossPodEnabled && wasEmpty) {
             this._redisSub.subscribe(`apollo:state:${key}`).catch(err => {
-                console.error(`[EventBus] Failed to subscribe to state ${key}:`, err.message);
+                logger.error(`[EventBus] Failed to subscribe to state ${key}:`, err.message);
             });
         }
 
@@ -224,13 +237,18 @@ export default class EventBus {
                         try {
                             w.fn(data._stateValue, oldValue);
                         } catch (err) {
-                            console.error(`[EventBus] Error in cross-pod state watcher for "${data._stateKey}":`, err);
+                            logger.error(`[EventBus] Error in cross-pod state watcher for "${data._stateKey}":`, err);
+                            try {
+                                this.emit('error', err, data._stateKey, { value: data._stateValue, oldValue });
+                            } catch (e) {
+                                logger.error('[EventBus] Error while emitting error event:', e);
+                            }
                         }
                     }
                 }
             }
         } catch (err) {
-            console.error('[EventBus] Error handling cross-pod message:', err.message);
+            logger.error('[EventBus] Error handling cross-pod message:', err.message);
         }
     }
 }

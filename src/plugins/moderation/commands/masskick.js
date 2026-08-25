@@ -1,5 +1,7 @@
 // Mass Kick Command
+export default {
 // Kicks multiple users
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
@@ -7,8 +9,9 @@ import { createModCase } from './case.js';
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 import { canModerate } from '../../../utils/moderation.js';
 import { safeError } from '../../../utils/safeError.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
-export default {
     name: 'masskick',
     description: 'Kick multiple users',
     category: 'Moderation',
@@ -30,7 +33,9 @@ export default {
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             const userIdsStr = interaction.options.getString('user-ids');
             const reason = interaction.options.getString('reason') || 'No reason provided';
@@ -42,7 +47,7 @@ export default {
                     description: 'Please provide a comma-separated list of user IDs.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Parse user IDs
@@ -55,7 +60,7 @@ export default {
                     description: 'Please provide valid user IDs (17-19 digits each).',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             if (userIds.length > 50) {
@@ -65,7 +70,7 @@ export default {
                     description: 'Maximum 50 users per mass kick.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Check for self/bot
@@ -76,7 +81,7 @@ export default {
                     description: 'You cannot kick yourself.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             if (userIds.includes(interaction.client.user.id)) {
@@ -86,7 +91,7 @@ export default {
                     description: 'You cannot kick the bot.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Confirmation prompt for dangerous operation
@@ -109,7 +114,7 @@ export default {
                         .setStyle(ButtonStyle.Secondary)
                 );
             
-            await interaction.reply({ embeds: [confirmEmbed], components: [row], flags: 64 });
+            await interaction.reply({ embeds: [confirmEmbed], components: [row], flags: MessageFlags.Ephemeral });
             
             // Wait for button interaction
             const collector = interaction.channel.createMessageComponentCollector({
@@ -220,7 +225,7 @@ export default {
                     
                     await interaction.editReply({ embeds: [successEmbed] });
                     
-                    console.log(`[MODERATION] Mass kick by ${interaction.user.tag}: ${results.success.length} success, ${results.failed.length} failed. Reason: ${reason}`);
+                    logger.info(`[MODERATION] Mass kick by ${interaction.user.tag}: ${results.success.length} success, ${results.failed.length} failed. Reason: ${reason}`);
                 }
             });
             
@@ -244,8 +249,24 @@ export default {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };
