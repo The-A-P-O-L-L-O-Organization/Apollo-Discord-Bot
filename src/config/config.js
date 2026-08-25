@@ -227,7 +227,9 @@ export const config = {
         redisPrefix: process.env.INTERLINK_REDIS_PREFIX || 'apollo:interlink',
         forwardEvents: (process.env.INTERLINK_FORWARD_EVENTS || 'memberJoin,guildBanAdd').split(',').filter(Boolean),
         requestTimeout: parseIntSafe(process.env.INTERLINK_REQUEST_TIMEOUT, 5000),
-        maxRetries: parseIntSafe(process.env.INTERLINK_MAX_RETRIES, 3)
+        maxRetries: parseIntSafe(process.env.INTERLINK_MAX_RETRIES, 3),
+        replayWindowMs: parseIntSafe(process.env.INTERLINK_REPLAY_WINDOW_MS, 5 * 60 * 1000),
+        nonceTtlMs: parseIntSafe(process.env.INTERLINK_NONCE_TTL_MS, 10 * 60 * 1000)
     },
 
     // Instance identity (for leader election)

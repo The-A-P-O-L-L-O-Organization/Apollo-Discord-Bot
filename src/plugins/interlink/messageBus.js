@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { ReplayProtection } from './replayProtection.js';
 import { safeFetch } from '../../utils/safeFetch.js';
 
 const VALID_TYPES = new Set(['ping', 'pong', 'command', 'event', 'custom']);
@@ -24,6 +25,7 @@ export default class MessageBus {
             target,
             id: crypto.randomUUID(),
             timestamp: Date.now(),
+            nonce: ReplayProtection.generateNonce(),
             payload
         };
     }

@@ -16,11 +16,13 @@ const HEALTH_WINDOW_MS = Number(process.env.INTERLINK_HEALTH_WINDOW_MS) || 60000
 const TRUST_PROXY = process.env.TRUST_PROXY === 'true';
 
 export default class InterlinkServer {
-    constructor({ registry, messageBus }) {
+    constructor({ registry, messageBus, redis, config }) {
         this._app = express();
         this._server = null;
         this._registry = registry;
         this._messageBus = messageBus;
+        this._redis = redis;
+        this._config = config;
         this._rateLimiter = new RateLimiter({ limit: DEFAULT_LIMIT, windowMs: DEFAULT_WINDOW_MS });
         this._healthRateLimiter = new RateLimiter({ limit: HEALTH_RATE_LIMIT, windowMs: HEALTH_WINDOW_MS });
         
@@ -78,7 +80,12 @@ export default class InterlinkServer {
             next();
         });
         
-        this._app.use('/api/v1', createRoutes({ registry: this._registry, messageBus: this._messageBus }));
+        this._app.use('/api/v1', createRoutes({ 
+            registry: this._registry, 
+            messageBus: this._messageBus,
+            redis: this._redis,
+            config: this._config
+        }));
         
         // Metrics endpoint - restrict to localhost only for security
         this._app.get('/metrics', async (req, res) => {

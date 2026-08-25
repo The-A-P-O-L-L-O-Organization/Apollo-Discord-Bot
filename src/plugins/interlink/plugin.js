@@ -6,6 +6,7 @@ import MessageBus from './messageBus.js';
 import RedisTransport from './redis.js';
 import InterlinkServer from './server.js';
 import { createLogger } from '../../utils/logger.js';
+import { config } from '../../config/config.js';
 
 export default class InterlinkPlugin extends Plugin {
     const logger = createLogger({ component: 'plugin:interlink' });
@@ -30,7 +31,9 @@ export default class InterlinkPlugin extends Plugin {
 
         this._httpServer = new InterlinkServer({
             registry: this._registry,
-            messageBus: this._messageBus
+            messageBus: this._messageBus,
+            redis: this._redisTransport || null,
+            config: config.interlink
         });
         await this._httpServer.start(interlinkConfig.httpPort);
 
