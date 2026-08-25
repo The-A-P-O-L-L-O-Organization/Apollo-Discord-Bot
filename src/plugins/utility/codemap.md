@@ -34,3 +34,12 @@ The plugin imports and integrates with the following modules:
 - src/core/Plugin.js: base Plugin class
 - src/db/: database interactions (used by various commands for XP, reminders, polls, analytics, tags, etc.)
 - External: discord.js, fs, path (used within socket handlers and commands)
+
+## Directory Structure
+- plugin.js: Main plugin class extending core Plugin
+- commands/: Utility command implementations
+  - 8ball.js, announcement.js, apollo.js, apolloActions.js, avatar.js, banner.js, cancelreminder.js, channelinfo.js, datadeletion.js, embed.js, giveaway.js, help.js, invite.js, joke.js, level.js, leaderboard.js, operatorcontact.js, ping.js, poll.js, remind.js, reminders.js, report.js, roleinfo.js, serverinfo.js, sla.js, stats.js, tag.js, translate.js, userinfo.js, analytics.js
+- events/: Event listeners
+  - messageCreate.js: Handles message events for XP/leveling and other utilities
+- cli/: Command-line interface for utility plugin
+  - index.js: CLI entry point for utility commands

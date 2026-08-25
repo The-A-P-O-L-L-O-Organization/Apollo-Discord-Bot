@@ -17,5 +17,5 @@ Flow
 10. Errors caught and logged to console.
 
 Integration
-Dependencies: discord.js (EmbedBuilder), ../../../utils/xp.js (getLevelsConfig, isOnCooldown, awardXp).
+Dependencies: discord.js (EmbedBuilder), ../../../utils/xp.js (getLevelsConfig, isOnCooldown, awardXp), ../../../utils/logger.js.
 Consumed by: Discord client event registration system (typically in bot initialization) which registers the listener for the 'messageCreate' event.
