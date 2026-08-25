@@ -1,16 +1,24 @@
 import { Router } from 'express';
 import { createAuthMiddleware } from './auth.js';
+import { ReplayProtection, createReplayProtectionMiddleware } from './replayProtection.js';
 import { logger } from '../../utils/logger.js';
 
-export default function createRoutes({ registry, messageBus }) {
+export default function createRoutes({ registry, messageBus, redis, config }) {
     const router = Router();
     const authMiddleware = createAuthMiddleware(registry);
+    
+    const replayProtection = new ReplayProtection({
+        redis,
+        windowMs: config.interlink?.replayWindowMs || 5 * 60 * 1000,
+        nonceTtlMs: config.interlink?.nonceTtlMs || 10 * 60 * 1000
+    });
+    const replayMiddleware = createReplayProtectionMiddleware(replayProtection);
 
     router.get('/health', (req, res) => {
         res.json({ status: 'ok', service: 'interlink', timestamp: Date.now() });
     });
 
-    router.post('/message', authMiddleware, async(req, res) => {
+    router.post('/message', authMiddleware, replayMiddleware, async(req, res) => {
         try {
             const envelope = req.body;
             if (!envelope || !envelope.type || !envelope.protocol) {

@@ -33,10 +33,19 @@ describe('Interlink Routes', () => {
         mockMessageBus = {
             handleIncomingMessage: vi.fn()
         };
+        const mockRedis = {
+            set: vi.fn().mockResolvedValue('OK')
+        };
+        const mockConfig = {
+            interlink: {
+                replayWindowMs: 5 * 60 * 1000,
+                nonceTtlMs: 10 * 60 * 1000
+            }
+        };
         const createRoutes = (await import('../../../src/plugins/interlink/routes.js')).default;
         app = express();
         app.use(express.json());
-        app.use('/api/v1', createRoutes({ registry: mockRegistry, messageBus: mockMessageBus }));
+        app.use('/api/v1', createRoutes({ registry: mockRegistry, messageBus: mockMessageBus, redis: mockRedis, config: mockConfig }));
     });
 
     it('GET /api/v1/health returns status ok', async () => {
@@ -82,6 +91,7 @@ describe('Interlink Routes', () => {
                 target: 'apollo',
                 id: 'msg-1',
                 timestamp: Date.now(),
+                nonce: 'test-nonce-123',
                 payload: { hello: 'world' }
             });
         expect(res.status).toBe(200);
@@ -120,6 +130,7 @@ describe('Interlink Routes', () => {
                 target: 'apollo',
                 id: 'ping-1',
                 timestamp: Date.now(),
+                nonce: 'test-nonce-456',
                 payload: {}
             });
         expect(res.status).toBe(200);
@@ -142,7 +153,16 @@ describe('Interlink Routes', () => {
     });
 
     it('should return 429 when rate limit is exceeded', async() => {
-        const server = new InterlinkServer({ registry: mockRegistry, messageBus: mockMessageBus });
+        const mockRedis = {
+            set: vi.fn().mockResolvedValue('OK')
+        };
+        const mockConfig = {
+            interlink: {
+                replayWindowMs: 5 * 60 * 1000,
+                nonceTtlMs: 10 * 60 * 1000
+            }
+        };
+        const server = new InterlinkServer({ registry: mockRegistry, messageBus: mockMessageBus, redis: mockRedis, config: mockConfig });
         server._rateLimiter.limit = 1;
         server._rateLimiter.windowMs = 60000;
         await server.start(0);
