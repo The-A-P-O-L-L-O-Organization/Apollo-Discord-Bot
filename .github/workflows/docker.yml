@@ -15,6 +15,7 @@ on:
       - 'plugin-manifest.json'
       - 'Dockerfile'
       - 'Dockerfile.prod'
+      - '.dockerignore'
       - '.github/workflows/docker.yml'
   pull_request:
     branches: [main]
@@ -29,6 +30,7 @@ on:
       - 'plugin-manifest.json'
       - 'Dockerfile'
       - 'Dockerfile.prod'
+      - '.dockerignore'
       - '.github/workflows/docker.yml'
   workflow_dispatch:
 
