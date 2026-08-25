@@ -25,7 +25,11 @@ export async function createQueue(name, queueConfig = config.queue) {
 
     let q;
     if (queueConfig.enabled) {
-        const conn = createRedisClient('queue', { family: 4 });
+        const conn = createRedisClient('queue', { 
+            family: 4,
+            password: config.queue.redis.password,
+            username: config.queue.redis.username
+        });
         await conn.connect();
         q = new Queue(`${queuePrefix}:${name}`, {
             connection: conn,

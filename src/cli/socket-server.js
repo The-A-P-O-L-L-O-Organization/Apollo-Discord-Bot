@@ -17,6 +17,17 @@ class SocketServer {
             // Ignore if file doesn't exist
         }
         this.server = net.createServer((socket) => {
+            // Verify peer credentials (SO_PEERCRED) - require root or same user
+            const creds = socket.getPeerCredential?.();
+            if (creds) {
+                const currentUid = process.getuid?.();
+                if (currentUid !== undefined && creds.uid !== 0 && creds.uid !== currentUid) {
+                    socket.write(JSON.stringify({ error: 'Unauthorized: peer credential mismatch' }) + '\n');
+                    socket.destroy();
+                    return;
+                }
+            }
+            
             let buffer = '';
             socket.on('data', (data) => {
                 buffer += data.toString();

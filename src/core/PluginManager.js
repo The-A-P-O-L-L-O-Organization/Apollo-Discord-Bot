@@ -1,10 +1,10 @@
 import { logger } from '../utils/logger.js';
- 
-import { readdirSync, existsSync, rmSync } from 'fs';
-import path from 'path';
+
+import { readdirSync, existsSync, rmSync, readFileSync } from 'fs';
+import path, { join, relative, sep } from 'path';
 import { pathToFileURL } from 'url';
 import { Routes } from 'discord.js';
-import { verifyPluginManifest } from '../utils/manifest.js';
+import { verifyPluginManifest, verifyPluginFile } from '../utils/manifest.js';
 import { WorkerHost } from './worker/workerHost.js';
 import { parsePluginManifest } from './worker/pluginManifest.js';
 import { commandModuleCache } from '../queue/jobs/processCommand.js';
@@ -256,6 +256,17 @@ export default class PluginManager {
                     pluginPath = optionalPath;
                 } else {
                     throw new Error(`Plugin ${id} not found at ${pluginPath}`);
+                }
+            }
+
+            // TOCTOU protection: verify plugin.js hash against manifest before import
+            const manifestPath = join(process.cwd(), 'plugin-manifest.json');
+            if (existsSync(manifestPath)) {
+                const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+                const relPath = relative(process.cwd(), pluginPath).split(sep).join('/');
+                const expectedHash = manifest[relPath];
+                if (expectedHash) {
+                    verifyPluginFile(pluginPath, expectedHash);
                 }
             }
 
