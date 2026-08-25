@@ -1,11 +1,14 @@
 // Unlock Command
+export default {
 // Unlocks previously locked channels and restores original permissions
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { setGuildData, getGuildData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
-export default {
     name: 'unlock',
     description: 'Unlock a previously locked channel',
     category: 'Moderation',
@@ -27,7 +30,9 @@ export default {
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             // Get the channel to unlock
             const channel = interaction.options.getChannel('channel') || interaction.channel;
@@ -41,7 +46,7 @@ export default {
                     description: 'You can only unlock text-based channels.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Get lockdown data
@@ -56,7 +61,7 @@ export default {
                     description: `${channel} is not currently in lockdown mode.`,
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Get the @everyone role
@@ -146,7 +151,7 @@ export default {
                 };
                 await channel.send({ embeds: [unlockNotice] });
             } catch (err) {
-                console.log('[WARNING] Could not send unlock notice to channel:', err.message);
+                logger.info('[WARNING] Could not send unlock notice to channel:', err.message);
             }
             
             // Send mod log
@@ -162,10 +167,10 @@ export default {
             });
             
             // Log the action
-            console.log(`[MODERATION] Channel ${channel.name} was unlocked by ${interaction.user.tag}. Reason: ${reason}`);
+            logger.info(`[MODERATION] Channel ${channel.name} was unlocked by ${interaction.user.tag}. Reason: ${reason}`);
             
         } catch (error) {
-            console.error('[ERROR] Unlock command error:', error);
+            logger.error('[ERROR] Unlock command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,
@@ -184,8 +189,24 @@ export default {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

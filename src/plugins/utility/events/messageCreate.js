@@ -1,5 +1,6 @@
 // Message Create Event (Utility)
 // Awards XP for messages and announces level-ups
+import { logger } from '../../../utils/logger.js';
 
 import { EmbedBuilder } from 'discord.js';
 import { getLevelsConfig, isOnCooldown, awardXp } from '../../../utils/xp.js';
@@ -35,7 +36,7 @@ export default {
             }
             
         } catch (error) {
-            console.error('[ERROR] XP award failed:', error);
+            logger.error('[ERROR] XP award failed:', error);
         }
     }
 };

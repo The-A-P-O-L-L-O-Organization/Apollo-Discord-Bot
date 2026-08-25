@@ -1,12 +1,15 @@
 // Tempban Command
+export default {
 // Temporarily ban a user with automatic unban
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { addTempban } from '../../../utils/tempbanScheduler.js';
 import { createModCase } from './case.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
-export default {
     name: 'tempban',
     description: 'Temporarily ban a user from the server',
     category: 'Moderation',
@@ -42,7 +45,9 @@ export default {
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             // Get the user to ban
             const user = interaction.options.getUser('user');
@@ -58,7 +63,7 @@ export default {
                     description: 'Please specify a valid user to ban.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Parse duration (supports: 1m, 1h, 1d, 1w)
@@ -70,7 +75,7 @@ export default {
                     description: 'Invalid duration format. Use: 1m (minutes), 1h (hours), 1d (days), 1w (weeks)',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             const value = parseInt(match[1]);
@@ -106,7 +111,7 @@ export default {
                     description: 'Minimum tempban duration is 1 minute.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Get the guild member if they're in the server
@@ -120,7 +125,7 @@ export default {
                     description: 'I cannot ban this user. They may have higher permissions than me.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Check if the user is trying to ban themselves
@@ -131,7 +136,7 @@ export default {
                     description: 'You cannot ban yourself.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Check if the user is trying to ban the bot
@@ -142,7 +147,7 @@ export default {
                     description: 'You cannot ban the bot.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Calculate unban time
@@ -241,10 +246,10 @@ export default {
             });
             
             // Log the action
-            console.log(`[MODERATION] User ${user.tag} was temporarily banned by ${interaction.user.tag}. Duration: ${durationText}. Reason: ${reason}. Case ID: ${caseId}`);
+            logger.info(`[MODERATION] User ${user.tag} was temporarily banned by ${interaction.user.tag}. Duration: ${durationText}. Reason: ${reason}. Case ID: ${caseId}`);
             
         } catch (error) {
-            console.error('[ERROR] Tempban command error:', error);
+            logger.error('[ERROR] Tempban command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,
@@ -263,8 +268,24 @@ export default {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

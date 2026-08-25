@@ -1,11 +1,14 @@
 import express from 'express';
 import compression from 'compression';
+import helmet from 'helmet';
 import createRoutes from './routes.js';
 import RateLimiter from './rateLimit.js';
 import { register } from '../../utils/metrics.js';
 
 const DEFAULT_LIMIT = Number(process.env.INTERLINK_RATE_LIMIT) || 60;
 const DEFAULT_WINDOW_MS = Number(process.env.INTERLINK_RATE_WINDOW_MS) || 60000;
+const HEALTH_RATE_LIMIT = Number(process.env.INTERLINK_HEALTH_RATE_LIMIT) || 30;
+const HEALTH_WINDOW_MS = Number(process.env.INTERLINK_HEALTH_WINDOW_MS) || 60000;
 
 // Trust proxy for X-Forwarded-For header (set to true if behind reverse proxy)
 const TRUST_PROXY = process.env.TRUST_PROXY === 'true';
@@ -17,6 +20,7 @@ export default class InterlinkServer {
         this._registry = registry;
         this._messageBus = messageBus;
         this._rateLimiter = new RateLimiter({ limit: DEFAULT_LIMIT, windowMs: DEFAULT_WINDOW_MS });
+        this._healthRateLimiter = new RateLimiter({ limit: HEALTH_RATE_LIMIT, windowMs: HEALTH_WINDOW_MS });
         
         if (TRUST_PROXY) {
             this._app.set('trust proxy', true);
@@ -25,10 +29,42 @@ export default class InterlinkServer {
 
     async start(port) {
         this._app.disable('x-powered-by');
+        
+        // Helmet for CSP and security headers
+        this._app.use(helmet({
+            contentSecurityPolicy: {
+                directives: {
+                    defaultSrc: ["'self'"],
+                    scriptSrc: ["'self'"],
+                    styleSrc: ["'self'"],
+                    imgSrc: ["'self'", 'data:'],
+                    connectSrc: ["'self'"],
+                    fontSrc: ["'self'"],
+                    objectSrc: ["'none'"],
+                    mediaSrc: ["'self'"],
+                    frameSrc: ["'none'"]
+                }
+            },
+            crossOriginEmbedderPolicy: false,
+            crossOriginOpenerPolicy: { policy: 'same-origin' },
+            crossOriginResourcePolicy: { policy: 'same-origin' },
+            dnsPrefetchControl: { allow: false },
+            frameguard: { action: 'deny' },
+            hidePoweredBy: true,
+            hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+            ieNoOpen: true,
+            noSniff: true,
+            originAgentCluster: true,
+            permittedCrossDomainPolicies: { permittedPolicies: 'none' },
+            referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+            xssFilter: true
+        }));
+        
         this._app.use(compression()); // gzip responses
         this._app.use(express.json({ limit: '100kb' }));
-        this._app.use((req, res, next) => {
-            // Use X-Forwarded-For if behind trusted proxy, otherwise use direct IP
+        
+        // Global rate limiter for API routes
+        this._app.use('/api/v1', (req, res, next) => {
             const key = TRUST_PROXY && req.headers['x-forwarded-for']
                 ? req.headers['x-forwarded-for'].split(',')[0].trim()
                 : req.ip || req.socket.remoteAddress || 'unknown';
@@ -39,6 +75,7 @@ export default class InterlinkServer {
             }
             next();
         });
+        
         this._app.use('/api/v1', createRoutes({ registry: this._registry, messageBus: this._messageBus }));
         
         // Metrics endpoint - restrict to localhost only for security
@@ -51,6 +88,16 @@ export default class InterlinkServer {
                 return res.status(403).json({ error: 'Forbidden: metrics endpoint restricted to localhost' });
             }
             
+            // Lenient rate limit for metrics
+            const rateKey = TRUST_PROXY && req.headers['x-forwarded-for']
+                ? req.headers['x-forwarded-for'].split(',')[0].trim()
+                : req.ip || req.socket.remoteAddress || 'unknown';
+            const rateResult = this._healthRateLimiter.check(rateKey);
+            if (!rateResult.allowed) {
+                res.setHeader('Retry-After', String(rateResult.retryAfter));
+                return res.status(429).json({ error: 'Too many requests' });
+            }
+            
             try {
                 res.set('Content-Type', register.contentType);
                 res.end(await register.metrics());
@@ -59,8 +106,17 @@ export default class InterlinkServer {
             }
         });
         
-        // Health check endpoint
+        // Health check endpoint with lenient rate limit
         this._app.get('/health', (req, res) => {
+            const rateKey = TRUST_PROXY && req.headers['x-forwarded-for']
+                ? req.headers['x-forwarded-for'].split(',')[0].trim()
+                : req.ip || req.socket.remoteAddress || 'unknown';
+            const rateResult = this._healthRateLimiter.check(rateKey);
+            if (!rateResult.allowed) {
+                res.setHeader('Retry-After', String(rateResult.retryAfter));
+                return res.status(429).json({ error: 'Too many requests' });
+            }
+            
             res.json({ status: 'ok', timestamp: Date.now() });
         });
         

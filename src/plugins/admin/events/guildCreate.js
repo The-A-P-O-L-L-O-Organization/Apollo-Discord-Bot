@@ -1,17 +1,18 @@
 // Guild Create Event
 // Triggered when the bot joins a new server
 // Initializes default settings for the guild
+import { logger } from '../../../utils/logger.js';
 
 import { setGuildData } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
 
-export default {
+    export default {
     name: 'guildCreate',
     once: false,
     async execute(guild, client) {
         try {
-            console.log(`[SUCCESS] Bot joined new server: ${guild.name} (${guild.id})`);
-            console.log(`[INFO] Server has ${guild.memberCount} members`);
+            logger.info(`[SUCCESS] Bot joined new server: ${guild.name} (${guild.id})`);
+            logger.info(`[INFO] Server has ${guild.memberCount} members`);
             
             // Initialize default automod settings
             const automodDefaults = {
@@ -29,7 +30,7 @@ export default {
             };
             
             await setGuildData('automod', guild.id, automodDefaults);
-            console.log('[SUCCESS] Initialized automod settings');
+            logger.info('[SUCCESS] Initialized automod settings');
             
             // Initialize default logging settings
             const loggingDefaults = {
@@ -38,7 +39,7 @@ export default {
             };
             
             await setGuildData('logging', guild.id, loggingDefaults);
-            console.log('[SUCCESS] Initialized logging settings');
+            logger.info('[SUCCESS] Initialized logging settings');
             
             // Initialize warning system settings
             const warningDefaults = {
@@ -47,15 +48,15 @@ export default {
             };
             
             await setGuildData('warnings-config', guild.id, warningDefaults);
-            console.log('[SUCCESS] Initialized warning settings');
+            logger.info('[SUCCESS] Initialized warning settings');
             
             // Initialize empty blacklist
             await setGuildData('blacklist', guild.id, { entries: {} });
-            console.log('[SUCCESS] Initialized blacklist');
+            logger.info('[SUCCESS] Initialized blacklist');
             
             // Initialize empty reaction roles
             await setGuildData('reactionroles', guild.id, { roles: [] });
-            console.log('[SUCCESS] Initialized reaction roles');
+            logger.info('[SUCCESS] Initialized reaction roles');
             
             // Initialize empty ticket system
             await setGuildData('tickets', guild.id, {
@@ -66,13 +67,13 @@ export default {
                 openTickets: [],
                 totalTickets: 0
             });
-            console.log('[SUCCESS] Initialized ticket system');
+            logger.info('[SUCCESS] Initialized ticket system');
             
             // Initialize empty polls storage
             await setGuildData('polls', guild.id, { active: [] });
-            console.log('[SUCCESS] Initialized polls');
+            logger.info('[SUCCESS] Initialized polls');
             
-            console.log(`[SUCCESS] Completed initialization for ${guild.name}`);
+            logger.info(`[SUCCESS] Completed initialization for ${guild.name}`);
             
             // Try to send a welcome message to the system channel or first available text channel
             try {
@@ -114,14 +115,14 @@ export default {
                     };
                     
                     await welcomeChannel.send({ embeds: [embed] });
-                    console.log('[SUCCESS] Sent welcome message to server');
+                    logger.info('[SUCCESS] Sent welcome message to server');
                 }
             } catch (welcomeError) {
-                console.log('[WARNING] Could not send welcome message:', welcomeError.message);
+                logger.info('[WARNING] Could not send welcome message:', welcomeError.message);
             }
             
         } catch (error) {
-            console.error('[ERROR] guildCreate event error:', error);
+            logger.error('[ERROR] guildCreate event error:', error);
         }
     }
 };

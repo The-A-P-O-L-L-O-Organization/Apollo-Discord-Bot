@@ -1,5 +1,6 @@
 // Transcript Generator Utility
 // Generates HTML and text transcripts for tickets
+import { logger } from '../utils/logger.js';
 
 import { writeToSubDir } from './db.js';
 
@@ -395,7 +396,7 @@ export async function saveTranscripts(transcript) {
     // Check transcript size (max 5MB)
     const MAX_SIZE = 5 * 1024 * 1024; // 5MB
     if (htmlContent.length > MAX_SIZE || textContent.length > MAX_SIZE) {
-        console.warn(`[TRANSCRIPT] Transcript for ticket #${transcript.ticketNumber} exceeds size limit, truncating`);
+        logger.warn(`[TRANSCRIPT] Transcript for ticket #${transcript.ticketNumber} exceeds size limit, truncating`);
         // Truncate messages if too large
         const truncatedTranscript = { ...transcript, messages: transcript.messages.slice(-500) };
         const truncatedHtml = generateHtmlTranscript(truncatedTranscript);

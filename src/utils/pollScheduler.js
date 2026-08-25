@@ -1,4 +1,5 @@
-/* eslint-disable no-console */
+import { logger } from '../utils/logger.js';
+ 
 // Poll Scheduler
 // Background task that checks and tallies completed polls
 
@@ -32,10 +33,10 @@ async function loadPollsFromDatabase() {
             const totalPolls = Object.values(data).reduce((sum, guildData) => {
                 return sum + (guildData.active ? guildData.active.length : 0);
             }, 0);
-            console.log(`[INFO] Loaded ${totalPolls} polls from database`);
+            logger.info(`[INFO] Loaded ${totalPolls} polls from database`);
         }
     } catch (error) {
-        console.error('[ERROR] Failed to load polls from database:', error);
+        logger.error('[ERROR] Failed to load polls from database:', error);
     }
 }
 
@@ -59,10 +60,10 @@ export async function initPollScheduler(discordClient) {
         }
     }, 30000);
     
-    console.log('[INFO] Poll scheduler started (checking every 30s)');
+    logger.info('[INFO] Poll scheduler started (checking every 30s)');
     
     // Run an immediate check
-    checkPolls().catch(err => console.error('[ERROR] Poll check failed:', err));
+    checkPolls().catch(err => logger.error('[ERROR] Poll check failed:', err));
 }
 
 /**
@@ -72,7 +73,7 @@ export function stopPollScheduler() {
     if (schedulerInterval) {
         clearInterval(schedulerInterval);
         schedulerInterval = null;
-        console.log('[INFO] Poll scheduler stopped');
+        logger.info('[INFO] Poll scheduler stopped');
     }
 }
 
@@ -119,12 +120,12 @@ async function checkPolls() {
         
         if (tallyCount > 0) {
             await setData('polls', data);
-            console.log(`[INFO] Tallied ${tallyCount} poll(s) in ${performanceStats.lastCheckTime}ms`);
+            logger.info(`[INFO] Tallied ${tallyCount} poll(s) in ${performanceStats.lastCheckTime}ms`);
         }
         
     } catch (error) {
         performanceStats.errors++;
-        console.error('[ERROR] Poll scheduler error:', error);
+        logger.error('[ERROR] Poll scheduler error:', error);
     }
 }
 
@@ -148,7 +149,7 @@ async function tallyPoll(guildId, poll) {
         try {
             message = await channel.messages.fetch(poll.messageId);
         } catch {
-            console.log(`[INFO] Poll message ${poll.messageId} not found, skipping tally`);
+            logger.info(`[INFO] Poll message ${poll.messageId} not found, skipping tally`);
             return;
         }
         
@@ -230,11 +231,11 @@ async function tallyPoll(guildId, poll) {
                 await message.edit({ embeds: [closedEmbed], components: [] });
             }
         } catch {
-            console.log('[INFO] Failed to send poll results');
+            logger.info('[INFO] Failed to send poll results');
         }
         
     } catch (error) {
-        console.error(`[ERROR] Failed to tally poll ${poll.id}:`, error);
+        logger.error(`[ERROR] Failed to tally poll ${poll.id}:`, error);
     }
 }
 

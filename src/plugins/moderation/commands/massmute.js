@@ -1,5 +1,7 @@
 // Mass Mute Command
+export default {
 // Timeouts multiple users
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
@@ -8,8 +10,9 @@ import { flushAnalyticsCritical, trackModAction } from '../../../utils/analytics
 import { canModerate } from '../../../utils/moderation.js';
 import { safeError } from '../../../utils/safeError.js';
 import { parseDuration, formatDuration, validateDuration } from '../../../utils/duration.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
-export default {
     name: 'massmute',
     description: 'Timeout multiple users',
     category: 'Moderation',
@@ -37,7 +40,9 @@ export default {
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             const userIdsStr = interaction.options.getString('user-ids');
             const durationStr = interaction.options.getString('duration');
@@ -50,7 +55,7 @@ export default {
                     description: 'Please provide a comma-separated list of user IDs.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Parse and validate duration
@@ -62,7 +67,7 @@ export default {
                     description: validation.error,
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             const durationMs = validation.durationMs;
@@ -77,7 +82,7 @@ export default {
                     description: 'Please provide valid user IDs (17-19 digits each).',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             if (userIds.length > 50) {
@@ -87,7 +92,7 @@ export default {
                     description: 'Maximum 50 users per mass mute.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Check for self/bot
@@ -98,7 +103,7 @@ export default {
                     description: 'You cannot timeout yourself.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             if (userIds.includes(interaction.client.user.id)) {
@@ -108,10 +113,10 @@ export default {
                     description: 'You cannot timeout the bot.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
-            await interaction.deferReply({ flags: 64 });
+            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
             
             const results = {
                 success: [],
@@ -209,7 +214,7 @@ export default {
             
             await interaction.editReply({ embeds: [successEmbed] });
             
-            console.log(`[MODERATION] Mass mute by ${interaction.user.tag}: ${results.success.length} success, ${results.failed.length} failed. Duration: ${durationDisplay}. Reason: ${reason}`);
+            logger.info(`[MODERATION] Mass mute by ${interaction.user.tag}: ${results.success.length} success, ${results.failed.length} failed. Duration: ${durationDisplay}. Reason: ${reason}`);
             
         } catch (error) {
             const errorEmbed = {
@@ -225,8 +230,24 @@ export default {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

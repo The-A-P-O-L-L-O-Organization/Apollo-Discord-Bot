@@ -1,49 +1,51 @@
-// Warn Command
-// Issues a warning to a user with auto-punishment thresholds
-
+import { logger } from '../../../utils/logger.js';
 import { PermissionsBitField } from 'discord.js';
-import { 
-    getUserData, 
-    appendToUserArray, 
-    generateId,
-    getGuildData,
-    setGuildData 
-} from '../../../utils/db.js';
+import { getUserData, appendToUserArray, generateId, getGuildData, setGuildData } from '../../../utils/db.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { config } from '../../../config/config.js';
 import { createModCase } from './case.js';
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 import { canModerate } from '../../../utils/moderation.js';
 import { safeError } from '../../../utils/safeError.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
+
+function getNextThreshold(currentCount, thresholds) {
+    const sorted = [
+        { action: 'mute', count: thresholds.mute },
+        { action: 'kick', count: thresholds.kick },
+        { action: 'ban', count: thresholds.ban }
+    ].filter(t => t.count).sort((a, b) => a.count - b.count);
+
+    return sorted.find(t => t.count > currentCount) || null;
+}
 
 export default {
     name: 'warn',
     description: 'Issue a warning to a user',
     category: 'Moderation',
-    
     defaultMemberPermissions: PermissionsBitField.Flags.ModerateMembers,
     dmPermission: false,
     options: [
         {
             name: 'user',
             description: 'The user to warn',
-            type: 6, // USER type
+            type: 6,
             required: true
         },
         {
             name: 'reason',
             description: 'The reason for the warning',
-            type: 3, // STRING type
+            type: 3,
             required: true
         }
     ],
-    
+
     async execute(interaction) {
         try {
             const user = interaction.options.getUser('user');
             const reason = interaction.options.getString('reason');
-            
-            // Check if user exists
+
             if (!user) {
                 return interaction.reply({
                     embeds: [{
@@ -52,11 +54,10 @@ export default {
                         description: 'Please specify a valid user to warn.',
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
-            
-            // Can't warn bots
+
             if (user.bot) {
                 return interaction.reply({
                     embeds: [{
@@ -65,11 +66,10 @@ export default {
                         description: 'You cannot warn bots.',
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
-            
-            // Can't warn yourself
+
             if (user.id === interaction.user.id) {
                 return interaction.reply({
                     embeds: [{
@@ -78,13 +78,12 @@ export default {
                         description: 'You cannot warn yourself.',
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
-            
-            // Get the member
+
             const member = await fetchMember(interaction.guild, user.id);
-            
+
             if (!member) {
                 return interaction.reply({
                     embeds: [{
@@ -93,11 +92,10 @@ export default {
                         description: 'This user is not a member of the server.',
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
-            
-            // Hierarchy check
+
             const hierarchy = canModerate(interaction.guild, interaction.member, member);
             if (!hierarchy.ok) {
                 const errorEmbed = {
@@ -106,10 +104,9 @@ export default {
                     description: hierarchy.reason,
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
-            
-            // Create warning object
+
             const warning = {
                 id: generateId(),
                 reason: reason,
@@ -118,16 +115,13 @@ export default {
                 timestamp: Date.now(),
                 active: true
             };
-            
-            // Add warning to storage
+
             await appendToUserArray('warnings', interaction.guild.id, user.id, warning);
-            
-            // Get total warnings count
+
             const userWarnings = await getUserData('warnings', interaction.guild.id, user.id) || [];
             const activeWarnings = userWarnings.filter(w => w.active !== false);
             const warningCount = activeWarnings.length;
-            
-            // Create mod case
+
             const caseId = createModCase(interaction.guild.id, {
                 type: 'warn',
                 targetId: user.id,
@@ -136,13 +130,11 @@ export default {
                 moderatorTag: interaction.user.tag,
                 reason: reason
             });
-            
-            // Get guild-specific thresholds or use defaults
+
             const guildSettings = await getGuildData('warnings-config', interaction.guild.id);
             const thresholds = guildSettings.thresholds || config.warnings.thresholds;
             const muteDuration = guildSettings.muteDuration || config.warnings.muteDuration;
-            
-            // Try to DM the user
+
             let dmSent = false;
             if (config.warnings.dmOnWarn) {
                 try {
@@ -158,59 +150,51 @@ export default {
                         timestamp: new Date().toISOString(),
                         footer: { text: 'Please follow the server rules to avoid further action.' }
                     };
-                    
+
                     await user.send({ embeds: [dmEmbed] });
                     dmSent = true;
                 } catch (dmError) {
-                    console.log(`[INFO] Could not DM user ${user.tag} about warning`);
+                    logger.info(`[INFO] Could not DM user ${user.tag} about warning`);
                 }
             }
-            
-            // Check for auto-punishment thresholds
+
             let autoPunishment = null;
-            
+
             if (thresholds.ban && warningCount >= thresholds.ban) {
-                // Auto-ban
                 try {
                     await interaction.guild.bans.create(user.id, {
                         reason: `Auto-ban: Reached ${warningCount} warnings. Latest: ${reason}`
                     });
                     autoPunishment = 'banned';
-                    // Flush critical analytics for auto-ban
                     trackModAction(interaction.guild.id, interaction.client.user.id, 'ban');
                     await flushAnalyticsCritical();
                 } catch (banError) {
-                    console.error('[ERROR] Auto-ban failed:', banError);
+                    logger.error('[ERROR] Auto-ban failed:', banError);
                 }
             } else if (thresholds.kick && warningCount >= thresholds.kick) {
-                // Auto-kick
                 try {
                     if (member.kickable) {
                         await member.kick(`Auto-kick: Reached ${warningCount} warnings. Latest: ${reason}`);
                         autoPunishment = 'kicked';
-                        // Flush critical analytics for auto-kick
                         trackModAction(interaction.guild.id, interaction.client.user.id, 'kick');
                         await flushAnalyticsCritical();
                     }
                 } catch (kickError) {
-                    console.error('[ERROR] Auto-kick failed:', kickError);
+                    logger.error('[ERROR] Auto-kick failed:', kickError);
                 }
             } else if (thresholds.mute && warningCount >= thresholds.mute) {
-                // Auto-mute
                 try {
                     if (member.moderatable) {
                         await member.timeout(muteDuration, `Auto-mute: Reached ${warningCount} warnings. Latest: ${reason}`);
                         autoPunishment = 'muted';
-                        // Flush critical analytics for auto-mute
                         trackModAction(interaction.guild.id, interaction.client.user.id, 'mute');
                         await flushAnalyticsCritical();
                     }
                 } catch (muteError) {
-                    console.error('[ERROR] Auto-mute failed:', muteError);
+                    logger.error('[ERROR] Auto-mute failed:', muteError);
                 }
             }
-            
-            // Create success embed
+
             const successEmbed = {
                 color: 0xFFA500,
                 title: '[SUCCESS] User Warned',
@@ -226,8 +210,7 @@ export default {
                 ],
                 timestamp: new Date().toISOString()
             };
-            
-            // Add auto-punishment info if applicable
+
             if (autoPunishment) {
                 successEmbed.fields.push({
                     name: '[!] Auto-Punishment Applied',
@@ -235,8 +218,7 @@ export default {
                     inline: false
                 });
             }
-            
-            // Add threshold warning
+
             if (!autoPunishment) {
                 const nextThreshold = getNextThreshold(warningCount, thresholds);
                 if (nextThreshold) {
@@ -247,10 +229,9 @@ export default {
                     });
                 }
             }
-            
+
             await interaction.reply({ embeds: [successEmbed] });
-            
-            // Send mod log
+
             await sendModLog(interaction.guild, {
                 action: 'warn',
                 target: user,
@@ -263,9 +244,9 @@ export default {
                     'Auto-Punishment': autoPunishment || 'None'
                 }
             });
-            
-            console.log(`[MODERATION] User ${user.tag} warned by ${interaction.user.tag}. Total: ${warningCount}. Reason: ${reason}`);
-            
+
+            logger.info(`[MODERATION] User ${user.tag} warned by ${interaction.user.tag}. Total: ${warningCount}. Reason: ${reason}`);
+
         } catch (error) {
             const errorEmbed = {
                 color: 0xFF0000,
@@ -274,28 +255,12 @@ export default {
                 fields: [{ name: 'Error', value: safeError(error), inline: true }],
                 timestamp: new Date().toISOString()
             };
-            
+
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
         }
     }
 };
-
-/**
- * Gets the next punishment threshold
- * @param {number} currentCount - Current warning count
- * @param {Object} thresholds - Threshold configuration
- * @returns {Object|null} Next threshold info or null
- */
-function getNextThreshold(currentCount, thresholds) {
-    const sorted = [
-        { action: 'mute', count: thresholds.mute },
-        { action: 'kick', count: thresholds.kick },
-        { action: 'ban', count: thresholds.ban }
-    ].filter(t => t.count).sort((a, b) => a.count - b.count);
-    
-    return sorted.find(t => t.count > currentCount) || null;
-}

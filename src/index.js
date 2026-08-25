@@ -12,9 +12,25 @@ import { stopPollScheduler } from './utils/pollScheduler.js';
 import { close as closeDatabase, startWalCheckpointInterval } from './utils/db.js';
 import { closeLockRedis } from './utils/lock.js';
 import { safeError } from './utils/safeError.js';
-import { assertDiscordToken, assertOperatorAgreement } from './utils/startupChecks.js';
+import { assertDiscordToken, assertOperatorAgreement, assertEncryptionKey, validatePostgresPoolMax, warnUnverifiedPlugins } from './utils/startupChecks.js';
 import { closeAll as closeRedis } from './utils/redis.js';
 import { startHealthServer, stopHealthServer } from './utils/healthServer.js';
+import { createLogger } from '../utils/logger.js';
+
+const logger = createLogger({ component: 'gateway' });
+
+// Determine if we are running as a shard worker
+const SHARD_ID = process.env.SHARD_ID ? parseInt(process.env.SHARD_ID, 10) : undefined;
+const SHARD_COUNT = process.env.SHARD_COUNT ? process.env.SHARD_COUNT : undefined;
+const IS_SHARD_WORKER = typeof SHARD_ID !== 'undefined' && !isNaN(SHARD_ID);
+
+// Shard-scoped configuration overrides
+const shardConfig = {
+    queuePrefix: IS_SHARD_WORKER ? `${config.shard.queuePrefixBase}:shard-${SHARD_ID}` : config.queue.prefix,
+    socketPath: IS_SHARD_WORKER ? `${config.shard.socketPathBase}-shard-${SHARD_ID}.sock` : '/tmp/apollo.sock',
+    healthPort: IS_SHARD_WORKER ? 3000 + SHARD_ID : 3000,
+    redisPrefix: IS_SHARD_WORKER ? `${config.shard.redisKeyPrefixBase}:shard-${SHARD_ID}` : config.shard.redisKeyPrefixBase
+};
 
 const uuid = randomUUID?.() ?? randomBytes(16).toString('hex');
 
@@ -56,13 +72,13 @@ client.manager = pluginManager;
 client.bus = bus;
 
 client.once('clientReady', async() => {
-    console.log('[SUCCESS] Bot is online! Logged in as ' + client.user.tag);
-    console.log('[INFO] Bot ID: ' + client.user.id);
-    console.log('[INFO] Serving ' + client.guilds.cache.size + ' server(s)');
+    logger.info('[SUCCESS] Bot is online! Logged in as ' + client.user.tag);
+    logger.info('[INFO] Bot ID: ' + client.user.id);
+    logger.info('[INFO] Serving ' + client.guilds.cache.size + ' server(s)');
 
     client.user.setActivity({ name: 'for new members join', type: 5 });
 
-    console.log('[INFO] Loading plugins...');
+    logger.info('[INFO] Loading plugins...');
     await pluginManager.loadAll(config);
     
     // Start WAL checkpoint interval for SQLite
@@ -96,7 +112,7 @@ client.once('clientReady', async() => {
     for (const [eventName, capability] of Object.entries(EVENT_FORWARD)) {
         client.on(eventName, (...args) => {
             const pluginIds = pluginManager._capabilityIndex.get(capability);
-            if (!pluginIds || pluginIds.size === 0) return;
+            if (!pluginIds || pluginIds.size === 0) {return;}
             
             const payload = serializeEventArgs(args);
             for (const id of pluginIds) {
@@ -113,13 +129,13 @@ client.once('clientReady', async() => {
     const { SocketServer } = await import('./cli/socket-server.js');
     const socketServer = new SocketServer(pluginManager);
     await socketServer.start();
-    console.log('[INFO] Socket server listening on /tmp/apollo.sock');
+    logger.info('[INFO] Socket server listening on /tmp/apollo.sock');
     client.socketServer = socketServer;
     
     // Start health check server
     await startHealthServer(client);
     
-    console.log('[SUCCESS] Bot fully initialized!');
+    logger.info('[SUCCESS] Bot fully initialized!');
 });
 
 client.on('interactionCreate', async(interaction) => {
@@ -127,7 +143,7 @@ client.on('interactionCreate', async(interaction) => {
     if (interaction.isMessageContextMenuCommand()) {
         const command = client.commands.get(interaction.commandName);
         if (!command) {
-            console.log('[ERROR] Context menu command not found:', interaction.commandName);
+            logger.info('[ERROR] Context menu command not found:', interaction.commandName);
             return;
         }
         try {
@@ -136,17 +152,17 @@ client.on('interactionCreate', async(interaction) => {
             if (interaction.guild) {
                 trackCommand(interaction.guild.id, interaction.commandName, interaction.user.id);
             }
-        } catch (error) {
-            console.error('[ERROR] Error executing context menu command:', error);
-            try {
-                if (interaction.deferred || interaction.replied) {
-                    await interaction.editReply({ content: 'An error occurred.' });
-                } else {
-                    await interaction.reply({ content: 'An error occurred.', flags: 64 });
-                }
-            } catch (e) {
-                console.error('[ERROR] Failed to send error response:', e);
-            }
+} catch (error) {
+             logger.error('[ERROR] Error executing context menu command:', error);
+             try {
+                 if (interaction.deferred || interaction.replied) {
+                     await interaction.editReply({ content: 'An error occurred.' });
+                 } else {
+                     await interaction.reply({ content: 'An error occurred.', flags: MessageFlags.Ephemeral });
+                 }
+             } catch (e) {
+                 logger.error('[ERROR] Failed to send error response:', e);
+             }
         }
         return;
     }
@@ -155,7 +171,7 @@ client.on('interactionCreate', async(interaction) => {
     if (interaction.isUserContextMenuCommand()) {
         const command = client.commands.get(interaction.commandName);
         if (!command) {
-            console.log('[ERROR] User context menu command not found:', interaction.commandName);
+            logger.info('[ERROR] User context menu command not found:', interaction.commandName);
             return;
         }
         try {
@@ -164,17 +180,17 @@ client.on('interactionCreate', async(interaction) => {
             if (interaction.guild) {
                 trackCommand(interaction.guild.id, interaction.commandName, interaction.user.id);
             }
-        } catch (error) {
-            console.error('[ERROR] Error executing user context menu command:', error);
-            try {
-                if (interaction.deferred || interaction.replied) {
-                    await interaction.editReply({ content: 'An error occurred.' });
-                } else {
-                    await interaction.reply({ content: 'An error occurred.', flags: 64 });
-                }
-            } catch (e) {
-                console.error('[ERROR] Failed to send error response:', e);
-            }
+} catch (error) {
+             logger.error('[ERROR] Error executing user context menu command:', error);
+             try {
+                 if (interaction.deferred || interaction.replied) {
+                     await interaction.editReply({ content: 'An error occurred.' });
+                 } else {
+                     await interaction.reply({ content: 'An error occurred.', flags: MessageFlags.Ephemeral });
+                 }
+             } catch (e) {
+                 logger.error('[ERROR] Failed to send error response:', e);
+             }
         }
         return;
     }
@@ -188,7 +204,7 @@ client.on('interactionCreate', async(interaction) => {
 
     const command = client.commands.get(interaction.commandName);
     if (!command) {
-        console.log('[ERROR] Command not found: /' + interaction.commandName);
+        logger.info('[ERROR] Command not found: /' + interaction.commandName);
         return;
     }
 
@@ -206,7 +222,7 @@ client.on('interactionCreate', async(interaction) => {
                 trackCommand(interaction.guild.id, interaction.commandName, interaction.user.id);
             }
         } catch (error) {
-            console.error('[ERROR] Error queueing /' + interaction.commandName + ':', error);
+            logger.error('[ERROR] Error queueing /' + interaction.commandName + ':', error);
             const errorEmbed = {
                 color: 0xFF0000,
                 title: 'Error',
@@ -220,7 +236,7 @@ client.on('interactionCreate', async(interaction) => {
                     await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
                 }
             } catch (e) {
-                console.error('[ERROR] Failed to send error response:', e);
+                logger.error('[ERROR] Failed to send error response:', e);
             }
         }
         return;
@@ -248,7 +264,7 @@ client.on('interactionCreate', async(interaction) => {
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
         } catch (e) {
-            console.error('[ERROR] Failed to send error response:', e);
+            logger.error('[ERROR] Failed to send error response:', e);
         }
     }
 });
@@ -256,11 +272,11 @@ client.on('interactionCreate', async(interaction) => {
 const RUN_MODE = process.env.RUN_MODE || 'gateway';
 
 if (RUN_MODE === 'worker') {
-    console.log('[INFO] Starting in WORKER mode');
+    logger.info('[INFO] Starting in WORKER mode');
     try {
         assertOperatorAgreement(config.operator);
     } catch (error) {
-        console.error(error.message);
+        logger.error(error.message);
         process.exit(1);
     }
     const { startWorker } = await import('./worker.js');
@@ -270,137 +286,158 @@ if (RUN_MODE === 'worker') {
 
     if (config.queue.enabled) {
         registerProcessCommand();
-        const { getRedis } = await import('./utils/redis.js');
-        const pub = getRedis('eventbus-pub');
-        const sub = getRedis('eventbus-sub');
+        const { createRedisClient } = await import('./utils/redis.js');
+        const pub = createRedisClient(`${shardConfig.redisPrefix}:eventbus-pub`);
+        const sub = createRedisClient(`${shardConfig.redisPrefix}:eventbus-sub`);
         await pub.connect();
         await sub.connect();
         bus.enableCrossPod(pub, sub, uuid);
-        console.log('[INFO] Cross-pod EventBus enabled');
+        logger.info('[INFO] Cross-pod EventBus enabled');
     }
 
-     let cleanup = async() => {
-         console.log('[INFO] Shutting down...');
+    let cleanup = async() => {
+        logger.info('[INFO] Shutting down...');
          
-         try {
-             // Flush analytics data
-             console.log('[INFO] Flushing pending analytics...');
-             stopAnalyticsCollector();
+        try {
+            // Flush analytics data
+            logger.info('[INFO] Flushing pending analytics...');
+            stopAnalyticsCollector();
              
-             // Stop reminder scheduler (saves pending reminders)
-             console.log('[INFO] Stopping reminder scheduler...');
-             stopReminderScheduler();
+            // Stop reminder scheduler (saves pending reminders)
+            logger.info('[INFO] Stopping reminder scheduler...');
+            stopReminderScheduler();
              
-             // Stop poll scheduler (saves pending polls)
-             console.log('[INFO] Stopping poll scheduler...');
-             stopPollScheduler();
+            // Stop poll scheduler (saves pending polls)
+            logger.info('[INFO] Stopping poll scheduler...');
+            stopPollScheduler();
              
-             // Stop spam tracker cleanup
-             console.log('[INFO] Stopping spam tracker cleanup...');
-             stopSpamTrackerCleanup();
+            // Stop spam tracker cleanup
+            logger.info('[INFO] Stopping spam tracker cleanup...');
+            stopSpamTrackerCleanup();
              
-             // Stop socket server
-             console.log('[INFO] Stopping socket server...');
-             client.socketServer?.stop();
+            // Stop socket server
+            logger.info('[INFO] Stopping socket server...');
+            client.socketServer?.stop();
              
-             // Disable all plugins
-             console.log('[INFO] Disabling plugins...');
-             for (const [id] of pluginManager.plugins) {
-                 pluginManager.disablePlugin(id).catch(() => {});
-             }
+            // Disable all plugins
+            logger.info('[INFO] Disabling plugins...');
+            for (const [id] of pluginManager.plugins) {
+                pluginManager.disablePlugin(id).catch(() => {});
+            }
              
-             // Close Discord client
-             console.log('[INFO] Closing Discord client...');
-             if (client && client.destroy) {client.destroy();}
+            // Close Discord client
+            logger.info('[INFO] Closing Discord client...');
+            if (client && client.destroy) {client.destroy();}
              
-             // Close database connections
-             console.log('[INFO] Closing database connections...');
-             await closeDatabase();
+            // Close database connections
+            logger.info('[INFO] Closing database connections...');
+            await closeDatabase();
              
-             // Close lock Redis connection
-             console.log('[INFO] Closing Redis lock connection...');
-             await closeLockRedis();
+            // Close lock Redis connection
+            logger.info('[INFO] Closing Redis lock connection...');
+            await closeLockRedis();
              
-// Close queue connections
-              console.log('[INFO] Closing queue connections...');
-              await closeQueues();
+            // Close queue connections
+            logger.info('[INFO] Closing queue connections...');
+            await closeQueues();
               
-              // Close Redis connections
-              console.log('[INFO] Closing Redis connections...');
-              await closeRedis();
+            // Close Redis connections
+            logger.info('[INFO] Closing Redis connections...');
+            await closeRedis();
               
-              // Stop health server
-              console.log('[INFO] Stopping health server...');
-              await stopHealthServer();
+            // Stop health server
+            logger.info('[INFO] Stopping health server...');
+            await stopHealthServer();
               
-              console.log('[SUCCESS] Graceful shutdown completed');
-         } catch (error) {
-             console.error('[ERROR] Error during shutdown:', error);
-         } finally {
-             process.exit(0);
-         }
-     };
+            logger.info('[SUCCESS] Graceful shutdown completed');
+        } catch (error) {
+            logger.error('[ERROR] Error during shutdown:', error);
+        } finally {
+            process.exit(0);
+        }
+    };
+
+    const SHUTDOWN_TIMEOUT_MS = parseInt(process.env.SHUTDOWN_TIMEOUT_MS, 10) || 30000;
+
+    const shutdownWithTimeout = async() => {
+        const timeout = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('shutdown timeout')), SHUTDOWN_TIMEOUT_MS);
+        });
+        await Promise.race([cleanup(), timeout]);
+    };
 
     process.on('unhandledRejection', (error) => {
-        console.error('[ERROR] Unhandled promise rejection:', error);
+        logger.error('[ERROR] Unhandled promise rejection:', error);
+        if (process.env.NODE_ENV === 'production') {
+            process.exit(1);
+        }
     });
 
     process.on('uncaughtException', (error) => {
-        console.error('[ERROR] Uncaught exception:', error);
+        logger.error('[ERROR] Uncaught exception:', error);
         process.exit(1);
     });
 
-     process.on('SIGTERM', async () => {
-         console.log('[INFO] SIGTERM received - graceful shutdown...');
-         await cleanup();
-     });
-     process.on('SIGINT', async () => {
-         console.log('[INFO] SIGINT received - graceful shutdown...');
-         await cleanup();
-     });
+    process.on('SIGTERM', async() => {
+        logger.info('[INFO] SIGTERM received - graceful shutdown...');
+        await shutdownWithTimeout();
+    });
+    process.on('SIGINT', async() => {
+        logger.info('[INFO] SIGINT received - graceful shutdown...');
+        await shutdownWithTimeout();
+    });
 
     async function startGateway() {
         try {
             assertDiscordToken(config.DISCORD_TOKEN);
+            assertEncryptionKey(config.ENCRYPTION_KEY);
             assertOperatorAgreement(config.operator);
+            
+            // Validate Postgres pool max against max_connections
+            if (config.database.type === 'postgres') {
+                await validatePostgresPoolMax(config.database.postgres.pool, config.database.postgres.connectionString);
+            }
+            
+            // Warn if ALLOW_UNVERIFIED_PLUGINS is enabled in production
+            warnUnverifiedPlugins();
         } catch (error) {
-            console.error(error.message);
+            logger.error(error.message);
             process.exit(1);
         }
 
-        console.log('[INFO] Attempting to log in...');
+        logger.info('[INFO] Attempting to log in...');
         client.login(config.DISCORD_TOKEN)
             .catch((error) => {
-                console.error('[ERROR] Failed to log in:', error);
+                logger.error('[ERROR] Failed to log in:', error);
                 process.exit(1);
             });
     }
 
     if (config.queue.enabled) {
-        const { getRedis } = await import('./utils/redis.js');
+        const { createRedisClient } = await import('./utils/redis.js');
         const { tryAcquireLock, releaseLock, startHeartbeat, stopHeartbeat } = await import('./gateway/leader.js');
 
-        const redis = getRedis('leader');
+        const redis = createRedisClient('leader');
         await redis.connect();
 
         const isLeader = await tryAcquireLock(redis, config.podId);
 
         if (!isLeader) {
-            console.log('[Gateway] Another pod holds the leader lock. Standing by...');
+            logger.info('[Gateway] Another pod holds the leader lock. Standing by...');
             const pollInterval = setInterval(async() => {
                 const canTakeOver = await tryAcquireLock(redis, config.podId);
                 if (canTakeOver) {
                     clearInterval(pollInterval);
-                    console.log('[Gateway] Taking over as leader!');
+                    logger.info('[Gateway] Taking over as leader!');
                     startHeartbeat(redis, config.podId);
                     startGateway();
                 }
             }, 5000);
 
-             process.on('SIGTERM', async () => { clearInterval(pollInterval); });
-             process.on('SIGINT', async () => { clearInterval(pollInterval); });
+            process.on('SIGTERM', async() => { clearInterval(pollInterval); });
+            process.on('SIGINT', async() => { clearInterval(pollInterval); });
         } else {
-            console.log('[Gateway] Elected as leader!');
+            logger.info('[Gateway] Elected as leader!');
             startHeartbeat(redis, config.podId);
             startGateway();
 
@@ -417,3 +454,4 @@ if (RUN_MODE === 'worker') {
 }
 
 export default client;
+

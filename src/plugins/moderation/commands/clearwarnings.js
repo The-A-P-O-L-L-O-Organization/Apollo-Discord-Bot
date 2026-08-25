@@ -1,5 +1,6 @@
 // Clear Warnings Command
 // Clears warnings for a user (single or all)
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import {
@@ -7,8 +8,11 @@ import {
     setUserData
 } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
 export default {
+
     name: 'clearwarnings',
     description: 'Clear warnings for a user',
     category: 'Moderation',
@@ -51,7 +55,7 @@ export default {
                         description: 'Please specify a valid user.',
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
             
@@ -66,7 +70,7 @@ export default {
                         description: `${user.tag} has no warnings to clear.`,
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
             
@@ -89,7 +93,7 @@ export default {
                             }],
                             timestamp: new Date().toISOString()
                         }],
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
                 
@@ -119,7 +123,7 @@ export default {
                             description: `${user.tag} has no active warnings to clear.`,
                             timestamp: new Date().toISOString()
                         }],
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
                 
@@ -197,10 +201,10 @@ export default {
                 }
             });
             
-            console.log(`[MODERATION] ${clearedCount} warning(s) cleared for ${user.tag} by ${interaction.user.tag}`);
+            logger.info(`[MODERATION] ${clearedCount} warning(s) cleared for ${user.tag} by ${interaction.user.tag}`);
             
         } catch (error) {
-            console.error('[ERROR] Clear warnings command error:', error);
+            logger.error('[ERROR] Clear warnings command error:', error);
             
             await interaction.reply({
                 embeds: [{
@@ -210,7 +214,7 @@ export default {
                     fields: [{ name: 'Error', value: error.message, inline: true }],
                     timestamp: new Date().toISOString()
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
     }

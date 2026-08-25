@@ -1,10 +1,10 @@
-// Purge Command
-// Deletes multiple messages from a channel
-
+import { logger } from '../../../utils/logger.js';
 import { ApplicationCommandType, PermissionsBitField } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { canModerate } from '../../../utils/moderation.js';
 import { safeError } from '../../../utils/safeError.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
 export default {
     name: 'purge',
@@ -17,7 +17,7 @@ export default {
         {
             name: 'amount',
             description: 'Number of messages to delete (1-100)',
-            type: 4, // INTEGER type
+            type: 4,
             required: true,
             min_value: 1,
             max_value: 100
@@ -25,25 +25,23 @@ export default {
         {
             name: 'user',
             description: 'Only delete messages from this user',
-            type: 6, // USER type
+            type: 6,
             required: false
         },
         {
             name: 'reason',
             description: 'The reason for deleting messages',
-            type: 3, // STRING type
+            type: 3,
             required: false
         }
     ],
-    
+
     async execute(interaction) {
         try {
-            // Get the number of messages to delete
             const amount = interaction.options.getInteger('amount');
             const targetUser = interaction.options.getUser('user');
             const reason = interaction.options.getString('reason') || 'No reason provided';
-            
-            // Validate amount
+
             if (!amount || amount < 1 || amount > 100) {
                 const errorEmbed = {
                     color: 0xFF0000,
@@ -51,13 +49,11 @@ export default {
                     description: 'Please specify a number between 1 and 100.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
-            
-            // Get the channel
+
             const channel = interaction.channel;
-            
-            // Check if we can delete messages
+
             if (!channel.permissionsFor(interaction.client.user).has(PermissionsBitField.Flags.ManageMessages)) {
                 const errorEmbed = {
                     color: 0xFF0000,
@@ -65,21 +61,16 @@ export default {
                     description: 'I do not have permission to delete messages in this channel.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
-            
-            // Fetch messages
+
             let messages = await channel.messages.fetch({ limit: amount });
-            
-            // Filter by user if specified
+
             if (targetUser) {
                 messages = messages.filter(msg => msg.author.id === targetUser.id);
-                
-                // Limit to 100 messages max
                 messages = new Map([...messages].slice(0, 100));
             }
-            
-            // Hierarchy check when filtering by a specific user
+
             if (targetUser) {
                 const targetMember = await fetchMember(interaction.guild, targetUser.id).catch(() => null);
                 const hierarchy = canModerate(interaction.guild, interaction.member, targetMember);
@@ -90,35 +81,31 @@ export default {
                         description: hierarchy.reason,
                         timestamp: new Date().toISOString()
                     };
-                    return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                    return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
                 }
             }
-            
-            // Check if there are messages to delete
+
             if (messages.size === 0) {
                 const errorEmbed = {
                     color: 0xFF0000,
                     title: '[ERROR] No Messages Found',
-                    description: targetUser 
+                    description: targetUser
                         ? `No messages from ${targetUser.tag} found to delete.`
                         : 'No messages found to delete.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
-            
-            // Bulk delete messages
+
             const deletedMessages = await channel.bulkDelete(messages, true);
-            
-            // Check if bulkDelete failed to delete messages (messages older than 14 days)
+
             if (deletedMessages.size === 0 && messages.size > 0) {
                 return interaction.reply({
                     content: 'Could not delete messages - they may be older than 14 days.',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
-            
-            // Create success embed
+
             const successEmbed = {
                 color: 0x00FF00,
                 title: '[SUCCESS] Messages Deleted',
@@ -142,8 +129,7 @@ export default {
                 ],
                 timestamp: new Date().toISOString()
             };
-            
-            // Add user filter info if applicable
+
             if (targetUser) {
                 successEmbed.fields.splice(3, 0, {
                     name: '[INFO] Filtered User',
@@ -151,10 +137,9 @@ export default {
                     inline: true
                 });
             }
-            
+
             await interaction.reply({ embeds: [successEmbed] });
-            
-            // Send mod log (create a pseudo-target for purge actions)
+
             await sendModLog(interaction.guild, {
                 action: 'purge',
                 target: targetUser || interaction.user,
@@ -166,10 +151,9 @@ export default {
                     'Filter': targetUser ? `Messages from ${targetUser.tag}` : 'All messages'
                 }
             });
-            
-            // Log the action
-            console.log(`[MODERATION] ${deletedMessages.size} messages deleted by ${interaction.user.tag}. Channel: ${channel.name}. Reason: ${reason}`);
-            
+
+            logger.info(`[MODERATION] ${deletedMessages.size} messages deleted by ${interaction.user.tag}. Channel: ${channel.name}. Reason: ${reason}`);
+
         } catch (error) {
             const errorEmbed = {
                 color: 0xFF0000,
@@ -184,11 +168,11 @@ export default {
                 ],
                 timestamp: new Date().toISOString()
             };
-            
+
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
         }
     }

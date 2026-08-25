@@ -1,9 +1,12 @@
 // Leaderboard Command
+export default {
 // Show the top users by level/XP
+import { logger } from '../../../utils/logger.js';
 
 import { getAllUserData } from '../../../utils/db.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
-export default {
     name: 'leaderboard',
     description: 'Show the top users by level or XP',
     category: 'Utility',
@@ -31,7 +34,9 @@ export default {
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             const type = interaction.options.getString('type') || 'level';
             const limit = interaction.options.getInteger('limit') || 10;
@@ -47,7 +52,7 @@ export default {
                         description: 'No leveling data available yet.',
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
             
@@ -106,7 +111,7 @@ export default {
             await interaction.reply({ embeds: [leaderboardEmbed] });
             
         } catch (error) {
-            console.error('[ERROR] Leaderboard command error:', error);
+            logger.error('[ERROR] Leaderboard command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,
@@ -122,9 +127,25 @@ export default {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };
 
 function formatNumber(num) {

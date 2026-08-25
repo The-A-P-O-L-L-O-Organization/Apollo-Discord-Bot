@@ -1,11 +1,13 @@
 // Level Command
+export default {
 // View your current level and experience points
+import { logger } from '../../../utils/logger.js';
 
-import { PermissionsBitField } from 'discord.js';
+import { PermissionsBitField, MessageFlags } from 'discord.js';
 import { getUserData } from '../../../utils/db.js';
 import { calculateXPForLevel } from '../../../utils/xp.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
-export default {
     name: 'level',
     description: 'View your current level and experience points',
     category: 'Utility',
@@ -20,7 +22,9 @@ export default {
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             const user = interaction.options.getUser('user') || interaction.user;
             
@@ -84,7 +88,7 @@ export default {
             await interaction.reply({ embeds: [levelEmbed] });
             
         } catch (error) {
-            console.error('[ERROR] Level command error:', error);
+            logger.error('[ERROR] Level command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,
@@ -100,9 +104,25 @@ export default {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };
 
 /**

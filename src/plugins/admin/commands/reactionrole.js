@@ -1,5 +1,7 @@
 import { PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
 export default {
     name: 'reactionrole',
@@ -79,10 +81,11 @@ export default {
     ],
 
     async execute(interaction) {
-        const subcommand = interaction.options.getSubcommand();
-        const guildId = interaction.guild.id;
+        try {
+            const subcommand = interaction.options.getSubcommand();
+            const guildId = interaction.guild.id;
 
-        if (subcommand === 'add') {
+            if (subcommand === 'add') {
             const messageId = interaction.options.getString('message_id');
             const emojiInput = interaction.options.getString('emoji');
             const role = interaction.options.getRole('role');
@@ -92,14 +95,14 @@ export default {
             if (role.position >= botMember.roles.highest.position) {
                 return interaction.reply({
                     content: 'I cannot assign this role because it is higher than or equal to my highest role.',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
             if (role.id === interaction.guild.id) {
                 return interaction.reply({
                     content: 'You cannot use the @everyone role for reaction roles.',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -109,7 +112,7 @@ export default {
             } catch (error) {
                 return interaction.reply({
                     content: `Could not find a message with ID \`${messageId}\` in ${channel}.`,
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -117,7 +120,7 @@ export default {
             if (!emoji) {
                 return interaction.reply({
                     content: 'Invalid emoji. Please use a standard emoji or a custom emoji from this server.',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -126,7 +129,7 @@ export default {
             } catch (error) {
                 return interaction.reply({
                     content: 'Failed to react to the message. Make sure I have permission to add reactions and the emoji is valid.',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -156,7 +159,7 @@ export default {
 
             return interaction.reply({
                 content: `Reaction role added! Users who react with ${emoji.display} on [this message](${message.url}) will receive the ${role} role.`,
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
 
         } else if (subcommand === 'remove') {
@@ -167,7 +170,7 @@ export default {
             if (!emoji) {
                 return interaction.reply({
                     content: 'Invalid emoji format.',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -175,7 +178,7 @@ export default {
             if (!reactionRoles.roles || reactionRoles.roles.length === 0) {
                 return interaction.reply({
                     content: 'No reaction roles are configured in this server.',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -186,7 +189,7 @@ export default {
             if (index === -1) {
                 return interaction.reply({
                     content: 'No reaction role found for that message and emoji combination.',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -202,7 +205,7 @@ export default {
 
             return interaction.reply({
                 content: `Reaction role removed for ${emoji.display}.`,
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
 
         } else if (subcommand === 'list') {
@@ -211,7 +214,7 @@ export default {
             if (!reactionRoles.roles || reactionRoles.roles.length === 0) {
                 return interaction.reply({
                     content: 'No reaction roles are configured in this server.',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -246,7 +249,7 @@ export default {
                 });
             }
 
-            return interaction.reply({ embeds: [embed], flags: 64 });
+            return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 
         } else if (subcommand === 'clear') {
             const messageId = interaction.options.getString('message_id');
@@ -255,7 +258,7 @@ export default {
             if (!reactionRoles.roles || reactionRoles.roles.length === 0) {
                 return interaction.reply({
                     content: 'No reaction roles are configured in this server.',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -263,7 +266,7 @@ export default {
             if (toRemove.length === 0) {
                 return interaction.reply({
                     content: 'No reaction roles found for that message.',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -283,10 +286,19 @@ export default {
 
             return interaction.reply({
                 content: `Cleared ${toRemove.length} reaction role(s) from that message.`,
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
+    
+    } catch (error) {
+        const errorMessage = handleDiscordError(error);
+        if (interaction.replied || interaction.deferred) {
+            await safeFollowUp(interaction, errorMessage);
+        } else {
+            await safeReply(interaction, errorMessage);
+        }
     }
+}
 };
 
 function parseEmoji(input) {

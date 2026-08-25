@@ -1,11 +1,14 @@
 // Nickname Command
+export default {
 // Force nickname changes for users
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { safeError } from '../../../utils/safeError.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
-export default {
     name: 'nickname',
     description: 'Change a user\'s nickname',
     category: 'Moderation',
@@ -34,7 +37,9 @@ export default {
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             // Get options
             const user = interaction.options.getUser('user');
@@ -49,7 +54,7 @@ export default {
                     description: 'Please specify a valid user.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Get the guild member
@@ -62,7 +67,7 @@ export default {
                     description: 'This user is not a member of the server.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Check if the member's nickname can be changed
@@ -73,7 +78,7 @@ export default {
                     description: 'I cannot change this user\'s nickname. They may have higher permissions than me.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Check if the user is trying to change their own nickname when they shouldn't
@@ -84,7 +89,7 @@ export default {
                     description: 'You cannot change the server owner\'s nickname.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Store old nickname
@@ -148,7 +153,7 @@ export default {
             });
             
             // Log the action
-            console.log(`[MODERATION] User ${user.tag}'s nickname was ${action} by ${interaction.user.tag}. Old: "${oldNickname}", New: "${newNickname}". Reason: ${reason}`);
+            logger.info(`[MODERATION] User ${user.tag}'s nickname was ${action} by ${interaction.user.tag}. Old: "${oldNickname}", New: "${newNickname}". Reason: ${reason}`);
             
         } catch (error) {
             const errorEmbed = {
@@ -168,8 +173,24 @@ export default {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

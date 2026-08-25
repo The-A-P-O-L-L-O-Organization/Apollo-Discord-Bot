@@ -1,18 +1,21 @@
 // Context Menu Command: Scan for NSFW
 // Right-click a message → "Scan for NSFW"
+import { logger } from './utils/logger.js';
 
-import { ApplicationCommandType, EmbedBuilder, PermissionsBitField } from 'discord.js';
+import { ApplicationCommandType, EmbedBuilder, PermissionsBitField, MessageFlags } from 'discord.js';
 import { checkMessageAttachments, formatNsfwPredictions } from '../../../utils/nsfwDetection.js';
 import { safeError } from '../../../utils/safeError.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
-export default {
     name: 'Scan for NSFW',
     description: 'Scan a message for NSFW content',
     type: ApplicationCommandType.Message,
     defaultMemberPermissions: PermissionsBitField.Flags.ModerateMembers, // Permission to moderate members (for context menu)
     dmPermission: false, // Only works in guilds
 
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             // Check if the user has permission to view the channel and message
             if (!interaction.channel.viewable) {
@@ -23,7 +26,7 @@ export default {
                         description: 'I cannot view this channel.',
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -31,7 +34,7 @@ export default {
             const targetMessage = interaction.targetMessage;
 
             // Defer reply since NSFW detection might take a moment
-            await interaction.deferReply({ flags: 64 });
+            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
             // Check the message attachments for NSFW content
             const result = await checkMessageAttachments(interaction.guild.id, targetMessage);
@@ -87,7 +90,7 @@ export default {
                         value: 'I don\'t have permission to delete this message.',
                         inline: false
                     });
-                    console.error('[ERROR] Failed to delete NSFW message:', deleteError);
+                    logger.error('[ERROR] Failed to delete NSFW message:', deleteError);
                 }
             }
 
@@ -117,5 +120,21 @@ export default {
                 }]
             });
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

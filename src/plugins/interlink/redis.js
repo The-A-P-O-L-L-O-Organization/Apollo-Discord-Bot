@@ -1,4 +1,5 @@
-import { getRedis } from '../../utils/redis.js';
+import { createRedisClient, closeRedisClient } from '../../utils/redis.js';
+import { logger } from '../../utils/logger.js';
 
 export default class RedisTransport {
     constructor(config) {
@@ -17,8 +18,8 @@ export default class RedisTransport {
     }
 
     async connect(onMessage) {
-        this._pub = getRedis('interlink-pub');
-        this._sub = getRedis('interlink-sub');
+        this._pub = createRedisClient('interlink-pub');
+        this._sub = createRedisClient('interlink-sub');
         await this._pub.connect();
         await this._sub.connect();
         this._messageHandler = onMessage;
@@ -35,7 +36,7 @@ export default class RedisTransport {
                     const data = JSON.parse(message);
                     this._messageHandler(data);
                 } catch (err) {
-                    console.error('[Interlink:Redis] Failed to parse message:', err.message);
+                    logger.error('[Interlink:Redis] Failed to parse message:', err.message);
                 }
             }
         });
@@ -44,10 +45,10 @@ export default class RedisTransport {
     }
 
     publishResponse(botId, envelope) {
-        if (!this._pub) return;
+        if (!this._pub) {return;}
         const channel = this._responseChannel(botId);
         this._pub.publish(channel, JSON.stringify(envelope)).catch(err => {
-            console.error('[Interlink:Redis] Failed to publish response:', err.message);
+            logger.error('[Interlink:Redis] Failed to publish response:', err.message);
         });
     }
 
@@ -56,8 +57,13 @@ export default class RedisTransport {
         if (this._sub) {
             await this._sub.unsubscribe(this._messageChannel);
         }
-        // Don't disconnect - shared connections managed by redis.js
-        this._pub = null;
-        this._sub = null;
+        if (this._pub) {
+            await closeRedisClient(this._pub);
+            this._pub = null;
+        }
+        if (this._sub) {
+            await closeRedisClient(this._sub);
+            this._sub = null;
+        }
     }
 }

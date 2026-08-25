@@ -5,6 +5,10 @@
 # ── Multi-Instance (with profile) ─────────────────────────────────────
 #   docker compose --profile multi up -d
 #   Requires: DB_TYPE=postgres, DATABASE_URL, QUEUE_ENABLED=true, REDIS_HOST
+#
+# Note: The 'bot' service below can also run with postgres/redis by setting
+# DB_TYPE=postgres, DATABASE_URL, QUEUE_ENABLED=true, REDIS_HOST in .env.
+# When using postgres/redis, uncomment the depends_on section below.
 
 services:
   # ── Single Instance ────────────────────────────────────────────────
@@ -26,6 +30,12 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    # Uncomment when using postgres/redis (DB_TYPE=postgres, QUEUE_ENABLED=true):
+    # depends_on:
+    #   postgres:
+    #     condition: service_healthy
+    #   redis:
+    #     condition: service_healthy
     logging:
       driver: "json-file"
       options:

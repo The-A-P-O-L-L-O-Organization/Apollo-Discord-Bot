@@ -1,8 +1,7 @@
-// Report Command
-// Context menu command for users to report messages to moderators
-
+import { logger } from '../../../utils/logger.js';
 import { ContextMenuCommandBuilder } from '@discordjs/builders';
-import { ApplicationCommandType } from 'discord.js';
+import { ApplicationCommandType, MessageFlags } from 'discord.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
     data: new ContextMenuCommandBuilder()
@@ -11,54 +10,47 @@ export default {
     name: 'reportmessage',
     description: 'Report a message to the moderators',
     category: 'Utility',
-    
+
     async execute(interaction) {
         try {
-            // Get the message that was reported
             const message = interaction.options.getMessage('message');
-            
+
             if (!message) {
-                return interaction.reply({ 
+                return interaction.reply({
                     content: '[ERROR] Could not find the message to report.',
-                    flags: 64 
+                    flags: MessageFlags.Ephemeral
                 });
             }
-            
-            // Can't report your own message
+
             if (message.author.id === interaction.user.id) {
                 return interaction.reply({
                     content: '[ERROR] You cannot report your own message.',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
-            
-            // Get report reason from user
+
             const reasonModal = {
                 title: 'Report Message',
                 custom_id: 'report_reason_modal',
                 components: [{
-                    type: 1, // ActionRow
+                    type: 1,
                     components: [{
-                        type: 4, // TextInput
+                        type: 4,
                         custom_id: 'reason',
                         label: 'Reason for report',
-                        style: 2, // Paragraph
+                        style: 2,
                         placeholder: 'Please describe why you are reporting this message...',
                         required: true,
                         max_length: 500
                     }]
                 }]
             };
-            
-            // Show modal for reason
+
             await interaction.showModal(reasonModal);
-            
-            // Handle modal submission in interactionCreate event
-            // This will be handled by the modal handler
-            
+
         } catch (error) {
-            console.error('[ERROR] Report command error:', error);
-            
+            logger.error('[ERROR] Report command error:', error);
+
             const errorEmbed = {
                 color: 0xFF0000,
                 title: '[ERROR] Report Failed',
@@ -72,8 +64,8 @@ export default {
                 ],
                 timestamp: new Date().toISOString()
             };
-            
-            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+
+            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
     }
 };
