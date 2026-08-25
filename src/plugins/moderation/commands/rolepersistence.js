@@ -6,6 +6,7 @@ import { logger } from '../../../utils/logger.js';
 import { PermissionsBitField } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
     name: 'rolepersistence',
     description: 'Configure role persistence for members who rejoin',
@@ -78,7 +79,7 @@ try {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
     
 } catch (error) {
@@ -152,7 +153,7 @@ async function handleView(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [viewEmbed], flags: 64 });
+    await interaction.reply({ embeds: [viewEmbed], flags: MessageFlags.Ephemeral });
 }
 
 async function handleClear(interaction) {
@@ -168,7 +169,7 @@ async function handleClear(interaction) {
                 description: `No roles are saved for ${user.tag}.`,
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     

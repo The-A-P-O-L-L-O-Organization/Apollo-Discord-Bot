@@ -26,6 +26,7 @@ import { updateGuildData, generateId } from '../../src/utils/db.js';
 import { getLoggingConfig, logger } from '../../src/utils/logger.js';
 import reportCommand from '../../src/plugins/utility/commands/report.js';
 import { handleReportSubmission } from '../../src/utils/reportHandler.js';
+import { MessageFlags } from 'discord.js';
 
 describe('Report Command', () => {
     let interaction;
@@ -124,7 +125,7 @@ describe('Report Command', () => {
             expect(interaction.showModal).not.toHaveBeenCalled();
             expect(interaction.reply).toHaveBeenCalledWith({
                 content: '[ERROR] Could not find the message to report.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         });
 
@@ -137,7 +138,7 @@ describe('Report Command', () => {
             expect(interaction.showModal).not.toHaveBeenCalled();
             expect(interaction.reply).toHaveBeenCalledWith({
                 content: '[ERROR] You cannot report your own message.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         });
 
@@ -153,7 +154,7 @@ describe('Report Command', () => {
                     title: '[ERROR] Report Failed',
                     color: 0xFF0000
                 })],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         });
     });
@@ -272,7 +273,7 @@ describe('Report Handler', () => {
             expect(result).toBe(true);
             expect(interaction.reply).toHaveBeenCalledWith({
                 content: '[ERROR] Could not find the original message. The report has been cancelled.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         });
 
@@ -284,7 +285,7 @@ describe('Report Handler', () => {
             expect(result).toBe(true);
             expect(interaction.reply).toHaveBeenCalledWith({
                 content: '[ERROR] Could not fetch the message. It may have been deleted.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         });
 
@@ -309,7 +310,7 @@ describe('Report Handler', () => {
                         expect.objectContaining({ name: '[INFO] Channel', value: '<#channel123>' })
                     ])
                 })],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         });
 

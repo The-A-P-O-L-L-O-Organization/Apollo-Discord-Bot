@@ -1,4 +1,4 @@
-import { ContextMenuCommandBuilder, ApplicationCommandType, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from 'discord.js';
+import { ContextMenuCommandBuilder, ApplicationCommandType, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, MessageFlags } from 'discord.js';
 import { getData, updateGuildData } from '../../../utils/db.js';
 import { isOwner } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
@@ -23,7 +23,7 @@ try {
                     title: '[ERROR] Access Denied',
                     description: 'Only the bot owner can use this command.'
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -36,7 +36,7 @@ try {
                     title: '[ERROR] Self Action',
                     description: 'You cannot globally ban yourself.'
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -47,7 +47,7 @@ try {
                     title: '[ERROR] Bot Protection',
                     description: 'You cannot globally ban the bot.'
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -85,7 +85,7 @@ try {
                         title: '[WARNING] Already Blacklisted',
                         description: `${targetUser.tag} is already on the global blacklist.\nReason: ${entries[targetUser.id].reason}`
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -115,7 +115,7 @@ try {
                     thumbnail: { url: targetUser.displayAvatarURL() },
                     timestamp: new Date().toISOString()
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
 
             logger.info(`[GLOBAL BAN] User ${targetUser.tag} globally blacklisted by ${interaction.user.tag}. Reason: ${reason}`);
@@ -132,7 +132,7 @@ try {
                         title: '[ERROR] Command Failed',
                         description: 'An error occurred while processing the global ban.'
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             } catch (e) {
                 logger.error('[GLOBAL BAN] Failed to send error response:', e.message);

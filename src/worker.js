@@ -5,12 +5,18 @@ import { createAdapter } from './db/adapter.js';
 import { handleJob } from './queue/jobHandler.js';
 import { closeAll as closeQueues } from './queue/queue.js';
 import registerProcessCommand from './queue/jobs/processCommand.js';
-import { logger } from './utils/logger.js';
+import { createLogger } from './utils/logger.js';
+import { warnUnverifiedPlugins } from './utils/startupChecks.js';
+import { closeLockRedis } from './utils/lock.js';
+const logger = createLogger({ component: 'worker' });
 
 let worker = null;
 
 export async function startWorker() {
     logger.info('[Worker] Starting in worker mode...');
+
+    // Warn if ALLOW_UNVERIFIED_PLUGINS is enabled in production
+    warnUnverifiedPlugins();
 
     const db = getDb();
     await runMigrations();
@@ -58,6 +64,7 @@ export async function stopWorker() {
     }
     await closeQueues();
     await closeDb();
+    await closeLockRedis();
 }
 
 const isMain = process.argv[1] && import.meta.url.endsWith(process.argv[1]);
@@ -67,14 +74,23 @@ if (isMain) {
         process.exit(1);
     });
 
+    const SHUTDOWN_TIMEOUT_MS = parseInt(process.env.SHUTDOWN_TIMEOUT_MS, 10) || 30000;
+
+    const stopWorkerWithTimeout = async() => {
+        const timeout = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('shutdown timeout')), SHUTDOWN_TIMEOUT_MS);
+        });
+        await Promise.race([stopWorker(), timeout]);
+    };
+
     process.on('SIGTERM', async() => {
         logger.info('[Worker] Shutting down...');
-        await stopWorker();
+        await stopWorkerWithTimeout();
         process.exit(0);
     });
     process.on('SIGINT', async() => {
         logger.info('[Worker] Shutting down...');
-        await stopWorker();
+        await stopWorkerWithTimeout();
         process.exit(0);
     });
 }

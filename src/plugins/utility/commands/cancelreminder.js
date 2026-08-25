@@ -1,7 +1,7 @@
 // Cancel Reminder Command
 // Allows users to cancel a specific reminder
 
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { cancelReminder, getUserReminders } from '../../../utils/reminderScheduler.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
@@ -30,7 +30,7 @@ export default {
             if (!reminder) {
                 return interaction.reply({
                     content: `Could not find a reminder with ID \`${reminderId}\`.\n\nUse \`/reminders\` to see your active reminders and their IDs.`,
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -40,13 +40,13 @@ export default {
             if (!cancelled) {
                 return interaction.reply({
                     content: 'Failed to cancel the reminder. It may have already been sent or deleted.',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
             return interaction.reply({
                 content: `Reminder cancelled!\n\n**Message:** ${reminder.message}`,
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         
         } catch (error) {

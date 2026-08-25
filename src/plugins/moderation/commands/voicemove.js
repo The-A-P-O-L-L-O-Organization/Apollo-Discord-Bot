@@ -10,6 +10,7 @@ import { flushAnalyticsCritical, trackModAction } from '../../../utils/analytics
 import { canModerate } from '../../../utils/moderation.js';
 import { safeError } from '../../../utils/safeError.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
     name: 'voicemove',
     description: 'Move a user to a different voice channel',
@@ -54,7 +55,7 @@ try {
                     description: 'Please specify a valid user to move.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             const member = await fetchMember(interaction.guild, user.id);
@@ -66,7 +67,7 @@ try {
                     description: 'This user is not in the server.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             if (!member.voice.channel) {
@@ -76,7 +77,7 @@ try {
                     description: `${user.tag} is not currently in a voice channel.`,
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             if (!targetChannel.permissionsFor(interaction.guild.members.me).has('MoveMembers')) {
@@ -86,7 +87,7 @@ try {
                     description: 'I do not have permission to move members in the target voice channel.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             if (!member.voice.channel.permissionsFor(interaction.guild.members.me).has('MoveMembers')) {
@@ -96,7 +97,7 @@ try {
                     description: 'I do not have permission to move members in the source voice channel.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             if (user.id === interaction.user.id) {
@@ -106,7 +107,7 @@ try {
                     description: 'You cannot move yourself using this command.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             if (user.id === interaction.client.user.id) {
@@ -116,7 +117,7 @@ try {
                     description: 'You cannot move the bot.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             const hierarchy = canModerate(interaction.guild, interaction.member, member);
@@ -127,7 +128,7 @@ try {
                     description: hierarchy.reason,
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             const sourceChannelName = member.voice.channel.name;
@@ -193,7 +194,7 @@ try {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
         }
     

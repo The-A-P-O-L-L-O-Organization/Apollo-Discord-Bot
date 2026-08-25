@@ -4,7 +4,7 @@ import { saveTranscripts } from '../../../utils/transcriptGenerator.js';
 import { clearSlaAlert } from '../../../plugins/tickets/events/slaMonitor.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
-
+import { MessageFlags } from 'discord.js';
 export default {
     name: 'closeticket',
     data: new SlashCommandBuilder()
@@ -28,11 +28,11 @@ export default {
             const ticketConfig = await getGuildData('tickets', guildId);
 
             const ticketIndex = ticketConfig.openTickets?.findIndex(t => t.channelId === channelId);
-            
+             
             if (ticketIndex === -1 || ticketIndex === undefined) {
                 return interaction.reply({
                     content: 'This channel is not a ticket channel.',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -46,7 +46,7 @@ export default {
             if (!isTicketOwner && !hasSupport && !isAdmin) {
                 return interaction.reply({
                     content: 'You do not have permission to close this ticket.',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -60,7 +60,7 @@ export default {
             let lastMessageId = null;
             const MAX_MESSAGES = 1000;
             const FETCH_DELAY_MS = 100; // Delay between fetches to avoid rate limits
-        
+         
             try {
                 while (allMessages.length < MAX_MESSAGES) {
                     const options = { limit: 100 };
@@ -86,7 +86,7 @@ export default {
             allMessages.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
 
             const ticketCreator = await interaction.client.users.fetch(ticket.userId).catch(() => null);
-        
+         
             const transcript = {
                 ticketNumber: ticket.ticketNumber,
                 guildId,
@@ -183,7 +183,7 @@ export default {
                     logger.error('[ERROR] Failed to delete ticket channel:', error);
                 }
             }, 3000);
-    
+        
         } catch (error) {
             const errorMessage = handleDiscordError(error);
             if (interaction.replied || interaction.deferred) {

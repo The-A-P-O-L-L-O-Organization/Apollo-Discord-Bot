@@ -3,7 +3,7 @@ export default {
 // View your current level and experience points
 import { logger } from '../../../utils/logger.js';
 
-import { PermissionsBitField } from 'discord.js';
+import { PermissionsBitField, MessageFlags } from 'discord.js';
 import { getUserData } from '../../../utils/db.js';
 import { calculateXPForLevel } from '../../../utils/xp.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
@@ -104,7 +104,7 @@ try {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
     
 } catch (error) {

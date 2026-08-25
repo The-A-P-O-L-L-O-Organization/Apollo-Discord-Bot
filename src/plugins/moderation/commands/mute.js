@@ -7,6 +7,7 @@ import { flushAnalyticsCritical, trackModAction } from '../../../utils/analytics
 import { canModerate } from '../../../utils/moderation.js';
 import { safeError } from '../../../utils/safeError.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
 export default {
     name: 'mute',
@@ -48,7 +49,7 @@ export default {
                     description: 'Please specify a valid user to mute.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
 
             const member = await fetchMember(interaction.guild, user.id);
@@ -60,7 +61,7 @@ export default {
                     description: 'This user is not a member of the server.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
 
             if (!member.moderatable) {
@@ -70,7 +71,7 @@ export default {
                     description: 'I cannot mute this user. They may have higher permissions than me.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
 
             if (user.id === interaction.user.id) {
@@ -80,7 +81,7 @@ export default {
                     description: 'You cannot mute yourself.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
 
             const hierarchy = canModerate(interaction.guild, interaction.member, member);
@@ -91,7 +92,7 @@ export default {
                     description: hierarchy.reason,
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
 
             let durationMs = 3600000;
@@ -106,7 +107,7 @@ export default {
                         description: 'Invalid duration format. Use: 1m (minutes), 1h (hours), 1d (days), 1w (weeks)',
                         timestamp: new Date().toISOString()
                     };
-                    return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                    return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
                 }
 
                 const value = parseInt(match[1]);
@@ -140,7 +141,7 @@ export default {
                     description: 'Maximum mute duration is 28 days (4 weeks).',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
 
             const roleIds = Array.from(member.roles.cache.keys()).filter(roleId => roleId !== interaction.guild.id);
@@ -174,7 +175,7 @@ export default {
                             description: 'Could not find or create a "Muted" role. Please create it manually.',
                             timestamp: new Date().toISOString()
                         };
-                        return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                        return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
                     }
                 }
 
@@ -261,7 +262,7 @@ export default {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
         }
     }

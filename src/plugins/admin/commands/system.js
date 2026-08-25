@@ -2,6 +2,7 @@ import { config } from '../../../config/config.js';
 import { requireOwner } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
 function formatDuration(ms) {
   const totalSeconds = Math.floor(ms / 1000);
@@ -72,7 +73,7 @@ try {
              fields,
              timestamp: new Date().toISOString()
            }],
-           flags: 64
+           flags: MessageFlags.Ephemeral
          });
        } catch (error) {
          const userMessage = handleDiscordError(error);

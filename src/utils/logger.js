@@ -3,9 +3,33 @@ import { EmbedBuilder } from 'discord.js';
 import { config } from '../config/config.js';
 import { hostname } from 'os';
 import { randomUUID as cryptoRandomUUID } from 'crypto';
+import { getTraceId, getSpanId } from './tracing.js';
 
-// Generate a traceId for the service instance
-const traceId = cryptoRandomUUID();
+// Generate a traceId for the service instance (fallback when no trace context)
+const serviceTraceId = cryptoRandomUUID();
+
+// Log sampling configuration
+const LOG_SAMPLE_RATE = parseFloat(process.env.LOG_SAMPLE_RATE) || 1.0; // 1.0 = 100% (no sampling)
+
+// Levels that should never be sampled (always logged)
+const NEVER_SAMPLE_LEVELS = new Set(['fatal', 'error']);
+
+/**
+ * Creates a sampling function for pino
+ * @param {number} sampleRate - Sample rate (0.0 to 1.0)
+ * @returns {Function} Sampling function
+ */
+function createSampler(sampleRate) {
+    if (sampleRate >= 1.0) {
+        return () => true; // No sampling
+    }
+    if (sampleRate <= 0) {
+        return (level) => NEVER_SAMPLE_LEVELS.has(level); // Only log never-sample levels
+    }
+    return (level) => NEVER_SAMPLE_LEVELS.has(level) || Math.random() < sampleRate;
+}
+
+const shouldSample = createSampler(LOG_SAMPLE_RATE);
 
 // Create a logger instance for this module
 const logger = pino({
@@ -14,10 +38,37 @@ const logger = pino({
         service: 'apollo',
         pid: process.pid,
         hostname: hostname(),
-        traceId
+        traceId: serviceTraceId
     },
-    timestamp: pino.stdTimeFunctions.isoTime
+    timestamp: pino.stdTimeFunctions.isoTime,
+    // Custom formatter to add trace context to each log entry
+    formatters: {
+        log: (object) => {
+            // Add trace context if available
+            const traceId = getTraceId();
+            const spanId = getSpanId();
+            if (traceId) {
+                object.traceId = traceId;
+            }
+            if (spanId) {
+                object.spanId = spanId;
+            }
+            return object;
+        }
+    }
 });
+
+// Wrap log methods to add sampling
+const logLevels = ['fatal', 'error', 'warn', 'info', 'debug', 'trace'];
+for (const level of logLevels) {
+    const originalMethod = logger[level].bind(logger);
+    logger[level] = (...args) => {
+        if (!shouldSample(level)) {
+            return logger; // Return logger for chaining but don't log
+        }
+        return originalMethod(...args);
+    };
+}
 
 /**
  * Gets logging configuration for a guild

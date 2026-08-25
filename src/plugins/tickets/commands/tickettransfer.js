@@ -2,6 +2,7 @@ import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.
 import { updateGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
+import { MessageFlags } from 'discord.js';
 export default {
 
     name: 'tickettransfer',
@@ -38,7 +39,7 @@ try {
         if (!ticket) {
             return interaction.reply({
                 content: 'This channel is not a ticket channel.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -51,14 +52,14 @@ try {
         if (!isAssigned && !isClaimed && !hasSupport && !isAdmin) {
             return interaction.reply({
                 content: 'You do not have permission to transfer this ticket.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
         if (transferUser.id === interaction.user.id) {
             return interaction.reply({
                 content: 'You cannot transfer a ticket to yourself.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -141,22 +142,21 @@ try {
                 await oldAssignee.send({ embeds: [dmEmbed] });
             } catch (error) {
             }
-        }
-    
+        
 } catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
+    const errorMessage = handleDiscordError(error);
+    if (interaction.replied || interaction.deferred) {
+        await safeFollowUp(interaction, errorMessage);
+    } else {
+        await safeReply(interaction, errorMessage);
+    }
 }
 
 } catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
+    const errorMessage = handleDiscordError(error);
+    if (interaction.replied || interaction.deferred) {
+        await safeFollowUp(interaction, errorMessage);
+    } else {
+        await safeReply(interaction, errorMessage);
+    }
 };

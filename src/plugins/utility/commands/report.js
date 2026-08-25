@@ -1,6 +1,6 @@
 import { logger } from '../../../utils/logger.js';
 import { ContextMenuCommandBuilder } from '@discordjs/builders';
-import { ApplicationCommandType } from 'discord.js';
+import { ApplicationCommandType, MessageFlags } from 'discord.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
@@ -18,14 +18,14 @@ export default {
             if (!message) {
                 return interaction.reply({
                     content: '[ERROR] Could not find the message to report.',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
             if (message.author.id === interaction.user.id) {
                 return interaction.reply({
                     content: '[ERROR] You cannot report your own message.',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -65,7 +65,7 @@ export default {
                 timestamp: new Date().toISOString()
             };
 
-            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
     }
 };

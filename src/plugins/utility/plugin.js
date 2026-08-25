@@ -3,10 +3,11 @@ import { initReminderScheduler, stopReminderScheduler } from '../../utils/remind
 import { initPollScheduler, stopPollScheduler } from '../../utils/pollScheduler.js';
 import { initAnalyticsCollector, stopAnalyticsCollector } from '../../utils/analyticsCollector.js';
 import TranslationService from '../../utils/translation.js';
-import { logger } from './utils/logger.js';
+import { createLogger } from '../../utils/logger.js';
 
 export default class UtilityPlugin extends Plugin {
-import { logger } from '../../utils/logger.js';
+    const logger = createLogger({ component: 'plugin:utility' });
+
     static id = 'utility';
     static version = '1.0.0';
     static dependencies = [];

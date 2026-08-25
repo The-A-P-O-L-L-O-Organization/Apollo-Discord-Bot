@@ -4,6 +4,7 @@
 import { addReminder, parseTimeString } from '../../../utils/reminderScheduler.js';
 import { config } from '../../../config/config.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
 export default {
     name: 'remind',
@@ -38,7 +39,7 @@ export default {
             if (!duration || duration <= 0) {
                 return interaction.reply({
                     content: 'Invalid time format. Use formats like: `10m` (10 minutes), `1h` (1 hour), `2d` (2 days), `1w` (1 week).',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -47,7 +48,7 @@ export default {
                 const maxDays = Math.floor(config.reminders.maxDuration / (1000 * 60 * 60 * 24));
                 return interaction.reply({
                     content: `Reminder duration cannot exceed ${maxDays} days.`,
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -74,7 +75,7 @@ export default {
 
             return interaction.reply({
                 content: `Reminder set! I'll remind you <t:${timestamp}:R> (<t:${timestamp}:F>).\n\n**Message:** ${message}\n**Reminder ID:** \`${reminderId}\``,
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
     
         } catch (error) {

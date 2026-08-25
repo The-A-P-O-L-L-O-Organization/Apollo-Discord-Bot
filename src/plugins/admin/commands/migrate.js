@@ -4,6 +4,7 @@ import { safeError } from '../../../utils/safeError.js';
 import { requireOwner } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
 export default {
     name: 'migrate',
@@ -56,18 +57,18 @@ try {
                ],
                timestamp: new Date().toISOString()
              }],
-             flags: 64
+             flags: MessageFlags.Ephemeral
            });
          } catch (err) {
            return safeReply(interaction, {
              embeds: [{ color: 0xFF0000, title: '[ERROR] Migration Status Failed', description: safeError(err) }],
-             flags: 64
+             flags: MessageFlags.Ephemeral
            });
          }
        }
 
        if (subcommand === 'run') {
-         await interaction.deferReply({ flags: 64 });
+         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
          try {
            await runMigrations();

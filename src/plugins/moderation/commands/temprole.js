@@ -6,6 +6,7 @@ import { logger } from '../../../utils/logger.js';
 import { PermissionsBitField } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
     name: 'temprole',
     description: 'Assign a temporary role that expires after a set duration',
@@ -102,7 +103,7 @@ try {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
     
 } catch (error) {
@@ -139,7 +140,7 @@ async function handleAdd(interaction) {
                 description: 'Please use a valid duration format (e.g., 1h, 30m, 7d, 2w)',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -153,7 +154,7 @@ async function handleAdd(interaction) {
                 description: 'Maximum duration is 30 days.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -169,7 +170,7 @@ async function handleAdd(interaction) {
                 description: 'I cannot assign roles higher than my highest role.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -266,7 +267,7 @@ async function handleRemove(interaction) {
                 description: `${user.tag} does not have ${role} assigned.`,
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
 }
@@ -282,7 +283,7 @@ async function handleList(interaction) {
                 description: 'There are no active temporary roles.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -297,7 +298,7 @@ async function handleList(interaction) {
                 description: 'All temporary roles have expired.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -313,7 +314,7 @@ async function handleList(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [listEmbed], flags: 64 });
+    await interaction.reply({ embeds: [listEmbed], flags: MessageFlags.Ephemeral });
 }
 
 function parseDuration(str) {

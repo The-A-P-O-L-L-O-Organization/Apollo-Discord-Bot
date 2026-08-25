@@ -4,6 +4,7 @@ import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { canModerate } from '../../../utils/moderation.js';
 import { safeError } from '../../../utils/safeError.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
 export default {
     name: 'purge',
@@ -48,7 +49,7 @@ export default {
                     description: 'Please specify a number between 1 and 100.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
 
             const channel = interaction.channel;
@@ -60,7 +61,7 @@ export default {
                     description: 'I do not have permission to delete messages in this channel.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
 
             let messages = await channel.messages.fetch({ limit: amount });
@@ -80,7 +81,7 @@ export default {
                         description: hierarchy.reason,
                         timestamp: new Date().toISOString()
                     };
-                    return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                    return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
                 }
             }
 
@@ -93,7 +94,7 @@ export default {
                         : 'No messages found to delete.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
 
             const deletedMessages = await channel.bulkDelete(messages, true);
@@ -101,7 +102,7 @@ export default {
             if (deletedMessages.size === 0 && messages.size > 0) {
                 return interaction.reply({
                     content: 'Could not delete messages - they may be older than 14 days.',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -171,7 +172,7 @@ export default {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
         }
     }

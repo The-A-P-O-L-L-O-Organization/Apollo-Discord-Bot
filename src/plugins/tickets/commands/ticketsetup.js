@@ -2,7 +2,7 @@ import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ChannelType, Ac
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
-
+import { MessageFlags } from 'discord.js';
 export default {
     name: 'ticketsetup',
     data: new SlashCommandBuilder()
@@ -103,13 +103,13 @@ export default {
 
                     return interaction.reply({
                         content: `Ticket panel created in ${channel}!`,
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 } catch (error) {
                     logger.error('[ERROR] Failed to create ticket panel:', error);
                     return interaction.reply({
                         content: 'Failed to create the ticket panel. Make sure I have permission to send messages in that channel.',
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
 
@@ -123,7 +123,7 @@ export default {
 
                 return interaction.reply({
                     content: `Ticket category set to **${category.name}**. New tickets will be created in this category.`,
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
 
             } else if (subcommand === 'supportrole') {
@@ -136,7 +136,7 @@ export default {
 
                 return interaction.reply({
                     content: `Support role set to ${role}. Members with this role can see all tickets.`,
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
 
             } else if (subcommand === 'status') {
@@ -182,7 +182,7 @@ export default {
                     { name: 'Ticket Panel', value: panelStatus, inline: false }
                 );
 
-                return interaction.reply({ embeds: [embed], flags: 64 });
+                return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
             }
 
         } catch (error) {

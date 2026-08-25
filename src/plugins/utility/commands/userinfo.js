@@ -1,5 +1,5 @@
 import { logger } from '../../../utils/logger.js';
-import { EmbedBuilder } from 'discord.js';
+import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
@@ -25,7 +25,7 @@ export default {
             if (!member) {
                 await interaction.reply({
                     content: '[ERROR] Could not find that user in this server.',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
                 return;
             }

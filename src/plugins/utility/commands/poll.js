@@ -1,5 +1,5 @@
 import { logger } from '../../../utils/logger.js';
-import { EmbedBuilder, PermissionFlagsBits } from 'discord.js';
+import { EmbedBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { appendToGuildArray, generateId } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
@@ -73,14 +73,14 @@ export default {
             if (options.length < 2) {
                 return interaction.reply({
                     content: 'A poll must have at least 2 options. Separate options with `|`.',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
             if (options.length > config.polls.maxOptions) {
                 return interaction.reply({
                     content: `A poll can have a maximum of ${config.polls.maxOptions} options.`,
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -90,7 +90,7 @@ export default {
                 if (!duration) {
                     return interaction.reply({
                         content: 'Invalid duration format. Use formats like: `1h` (1 hour), `6h` (6 hours), `1d` (1 day).',
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
 
@@ -98,7 +98,7 @@ export default {
                     const maxDays = Math.floor(config.polls.maxDuration / (1000 * 60 * 60 * 24));
                     return interaction.reply({
                         content: `Poll duration cannot exceed ${maxDays} days.`,
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
 

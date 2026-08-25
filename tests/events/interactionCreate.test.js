@@ -31,6 +31,8 @@ vi.mock('../../src/config/config.js', () => ({
 
 import { getGuildData, updateGuildData, writeToSubDir } from '../../src/utils/db.js';
 
+import { MessageFlags } from 'discord.js';
+
 describe('InteractionCreate Event', () => {
     let mockInteraction;
     let mockGuild;
@@ -135,7 +137,7 @@ describe('InteractionCreate Event', () => {
         it('should create a new ticket channel', async() => {
             await interactionCreateEvent.execute(mockInteraction, mockClient);
             
-            expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: 64 });
+            expect(mockInteraction.deferReply).toHaveBeenCalledWith({ flags: MessageFlags.Ephemeral });
             expect(mockGuild.channels.create).toHaveBeenCalled();
         });
 
@@ -161,7 +163,7 @@ describe('InteractionCreate Event', () => {
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     content: expect.stringContaining('already have an open ticket'),
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 })
             );
             expect(mockGuild.channels.create).not.toHaveBeenCalled();
@@ -239,7 +241,7 @@ describe('InteractionCreate Event', () => {
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     content: expect.stringContaining('not a ticket'),
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 })
             );
         });
@@ -253,7 +255,7 @@ describe('InteractionCreate Event', () => {
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     content: expect.stringContaining('do not have permission'),
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 })
             );
         });

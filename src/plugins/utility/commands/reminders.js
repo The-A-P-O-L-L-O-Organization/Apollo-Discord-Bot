@@ -1,7 +1,7 @@
 // Reminders Command
 // Lists all active reminders for a user
 
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
 import { getUserReminders } from '../../../utils/reminderScheduler.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
@@ -25,7 +25,7 @@ export default {
             if (activeReminders.length === 0) {
                 return interaction.reply({
                     content: 'You have no active reminders.\n\nUse `/remind` to create one!',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -60,7 +60,7 @@ export default {
                 });
             }
 
-            return interaction.reply({ embeds: [embed], flags: 64 });
+            return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     
         } catch (error) {
             const errorMessage = handleDiscordError(error);

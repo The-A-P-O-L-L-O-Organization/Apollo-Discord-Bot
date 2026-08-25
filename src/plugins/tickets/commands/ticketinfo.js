@@ -2,7 +2,7 @@ import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { getGuildData } from '../../../utils/db.js';
 import { formatTime, getPriorityColor, getPriorityEmoji } from '../../../utils/slaTracker.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
-
+import { MessageFlags } from 'discord.js';
 export default {
     name: 'ticketinfo',
     data: new SlashCommandBuilder()
@@ -40,7 +40,7 @@ try {
                 content: ticketNumber 
                     ? `Ticket #${ticketNumber} not found.`
                     : 'This channel is not a ticket channel. Use the `number` option to view a specific ticket.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -174,22 +174,22 @@ try {
             });
         }
 
-        return interaction.reply({ embeds: [embed], flags: 64 });
+        return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     
 } catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
+    const errorMessage = handleDiscordError(error);
+    if (interaction.replied || interaction.deferred) {
+        await safeFollowUp(interaction, errorMessage);
+    } else {
+        await safeReply(interaction, errorMessage);
+    }
 }
 
 } catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
+    const errorMessage = handleDiscordError(error);
+    if (interaction.replied || interaction.deferred) {
+        await safeFollowUp(interaction, errorMessage);
+    } else {
+        await safeReply(interaction, errorMessage);
+    }
 };

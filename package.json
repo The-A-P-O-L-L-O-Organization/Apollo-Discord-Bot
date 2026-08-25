@@ -25,7 +25,7 @@
   },
   "author": "CodeMaster013",
   "license": "GPLv3",
-"dependencies": {
+  "dependencies": {
     "@discordjs/builders": "^1.14.1",
     "@discordjs/rest": "^2.6.3",
     "@tensorflow/tfjs-node": "^4.22.0",
@@ -38,6 +38,7 @@
     "discord.js": "^14.27.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "helmet": "^8.3.0",
     "ioredis": "^6.0.0",
     "knex": "^3.3.0",
     "nsfwjs": "^4.4.0",

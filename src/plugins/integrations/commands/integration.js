@@ -2,6 +2,7 @@ import { PermissionFlagsBits } from 'discord.js';
 import { getData, setData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
+import { MessageFlags } from 'discord.js';
 
 export default {
     name: 'integration',
@@ -91,7 +92,7 @@ async function handleAdd(interaction) {
     const channel = interaction.options.getChannel('channel');
 
     if (!channel.isTextBased()) {
-        return interaction.reply({ content: 'Please select a text channel.', flags: 64 });
+        return interaction.reply({ content: 'Please select a text channel.', flags: MessageFlags.Ephemeral });
     }
 
     const data = await getData('integrations') || { nextId: 1, subscriptions: [] };
@@ -114,7 +115,7 @@ async function handleAdd(interaction) {
 
     await interaction.reply({
         content: `✅ Added **${typeNames[type] || type}** subscription for \`${target}\` → ${channel}. ID: \`${id}\``,
-        flags: 64,
+        flags: MessageFlags.Ephemeral,
     });
 }
 
@@ -127,13 +128,13 @@ async function handleRemove(interaction) {
     );
 
     if (idx === -1) {
-        return interaction.reply({ content: `❌ Subscription \`${id}\` not found.`, flags: 64 });
+        return interaction.reply({ content: `❌ Subscription \`${id}\` not found.`, flags: MessageFlags.Ephemeral });
     }
 
     data.subscriptions.splice(idx, 1);
     await setData('integrations', data);
 
-    await interaction.reply({ content: `✅ Removed subscription \`${id}\`.`, flags: 64 });
+    await interaction.reply({ content: `✅ Removed subscription \`${id}\`.`, flags: MessageFlags.Ephemeral });
 }
 
 async function handleList(interaction) {
@@ -142,7 +143,7 @@ async function handleList(interaction) {
     const guildSubs = data.subscriptions.filter(s => s.guild_id === interaction.guildId);
 
     if (guildSubs.length === 0) {
-        return interaction.reply({ content: 'No integrations configured.', flags: 64 });
+        return interaction.reply({ content: 'No integrations configured.', flags: MessageFlags.Ephemeral });
     }
 
     const lines = guildSubs.map(s =>
@@ -156,6 +157,6 @@ async function handleList(interaction) {
             description: lines.join('\n'),
             footer: { text: `${guildSubs.length} subscription(s)` },
         }],
-        flags: 64,
+        flags: MessageFlags.Ephemeral,
     });
 }

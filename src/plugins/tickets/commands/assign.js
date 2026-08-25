@@ -2,6 +2,7 @@ import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
+import { MessageFlags } from 'discord.js';
 export default {
 
     name: 'assign',
@@ -31,7 +32,7 @@ try {
         if (!ticket) {
             return interaction.reply({
                 content: 'This channel is not a ticket channel.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -42,7 +43,7 @@ try {
         if (!hasSupport && !isAdmin) {
             return interaction.reply({
                 content: 'You do not have permission to assign tickets.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -51,7 +52,7 @@ try {
         if (ticket.assignedTo.includes(assignUser.id)) {
             return interaction.reply({
                 content: `${assignUser} is already assigned to this ticket.`,
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -107,21 +108,21 @@ try {
             await assignUser.send({ embeds: [dmEmbed] });
         } catch {
         }
-    
+
 } catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
+    const errorMessage = handleDiscordError(error);
+    if (interaction.replied || interaction.deferred) {
+        await safeFollowUp(interaction, errorMessage);
+    } else {
+        await safeReply(interaction, errorMessage);
+    }
 }
 
 } catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
+    const errorMessage = handleDiscordError(error);
+    if (interaction.replied || interaction.deferred) {
+        await safeFollowUp(interaction, errorMessage);
+    } else {
+        await safeReply(interaction, errorMessage);
+    }
 };

@@ -6,6 +6,7 @@ import { safeError } from '../../../utils/safeError.js';
 import { isOwner, getOwnerIds } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
+import { MessageFlags } from 'discord.js';
 
 const SEND_CONFIG = { requestTimeout: 5000, maxRetries: 3 };
 
@@ -96,7 +97,7 @@ export default {
 
     async execute(interaction) {
         try {
-            await interaction.deferReply({ flags: 64 });
+            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
             if (!isOwner(interaction.user.id)) {
                 return interaction.editReply({
@@ -227,7 +228,7 @@ export default {
             logger.warn(`[INTERLINK] Failed to DM API key to ${interaction.user.tag}, falling back to ephemeral message: ${dmError.message}`);
             await interaction.followUp({
                 content: `**[WARNING] API Key for ${name} (shown once):**\n\`\`\`${result.rawKey}\`\`\`\nStore this securely. It will not be shown again.`,
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
     },
@@ -344,7 +345,7 @@ export default {
             logger.warn(`[INTERLINK] Failed to DM API key to ${interaction.user.tag}, falling back to ephemeral message: ${dmError.message}`);
             await interaction.followUp({
                 content: `**[WARNING] New API Key for ${name} (shown once):**\n\`\`\`${rawKey}\`\`\`\nStore this securely. The old key is no longer valid.`,
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
     },

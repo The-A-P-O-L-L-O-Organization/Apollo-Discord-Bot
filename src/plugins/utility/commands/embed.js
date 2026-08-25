@@ -1,5 +1,5 @@
 import { logger } from '../../../utils/logger.js';
-import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { parseMarkdownToEmbed } from '../../../utils/markdownParser.js';
 import { getAutomodConfig, checkBannedWords } from '../../../utils/automod.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
@@ -99,7 +99,7 @@ export default {
                 if (!fileAttachment.name.toLowerCase().endsWith('.md')) {
                     return interaction.reply({
                         content: 'Only `.md` files are supported. Please upload a markdown file.',
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
                 try {
@@ -108,14 +108,14 @@ export default {
                     if (!content.trim()) {
                         return interaction.reply({
                             content: 'The uploaded .md file is empty.',
-                            flags: 64
+                            flags: MessageFlags.Ephemeral
                         });
                     }
                     parsed = parseMarkdownToEmbed(content, fileAttachment.name, { title, description });
                 } catch {
                     return interaction.reply({
                         content: 'Could not read the attached file. Please try again.',
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
             }
@@ -123,7 +123,7 @@ export default {
             if (!title && !description && !fileAttachment) {
                 return interaction.reply({
                     content: 'You must provide at least a title or description for the embed.',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -149,7 +149,7 @@ export default {
                 } else {
                     return interaction.reply({
                         content: 'Invalid color format. Please use a hex color code (e.g., #FF0000 or FF0000).',
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
             } else {
@@ -160,7 +160,7 @@ export default {
                 if (!isValidUrl(image)) {
                     return interaction.reply({
                         content: 'Invalid image URL. Please provide a valid URL.',
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
                 embed.setImage(image);
@@ -170,7 +170,7 @@ export default {
                 if (!isValidUrl(thumbnail)) {
                     return interaction.reply({
                         content: 'Invalid thumbnail URL. Please provide a valid URL.',
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
                 embed.setThumbnail(thumbnail);
@@ -188,7 +188,7 @@ export default {
                 if (!isValidUrl(url)) {
                     return interaction.reply({
                         content: 'Invalid URL. Please provide a valid URL.',
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
                 embed.setURL(url);
@@ -224,7 +224,7 @@ export default {
                 if (matchedWord) {
                     return interaction.reply({
                         content: 'Your embed contains a banned word and cannot be sent.',
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
             }
@@ -233,13 +233,13 @@ export default {
                 await interaction.channel.send({ embeds: [embed] });
                 return interaction.reply({
                     content: 'Embed created successfully!',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             } catch (error) {
                 logger.error('[ERROR] Failed to send embed:', error);
                 return interaction.reply({
                     content: 'Failed to create the embed. Please check your inputs and try again.',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 

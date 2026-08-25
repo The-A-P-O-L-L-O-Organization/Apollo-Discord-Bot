@@ -1,7 +1,60 @@
 // Startup validation helpers
 // Fail fast with a clear message instead of a confusing Discord login error.
 
+import { createLogger } from './logger.js';
+const logger = createLogger({ component: 'startupChecks' });
+
 const TOKEN_PLACEHOLDERS = new Set(['your-token-here', 'your-discord-bot-token-here']);
+
+/**
+ * Warns if ALLOW_UNVERIFIED_PLUGINS is enabled in production
+ * @returns {void}
+ */
+export function warnUnverifiedPlugins() {
+    const allowUnverified = process.env.ALLOW_UNVERIFIED_PLUGINS === '1';
+    const isProduction = process.env.NODE_ENV === 'production';
+    
+    if (allowUnverified && isProduction) {
+        logger.warn('[SECURITY] ALLOW_UNVERIFIED_PLUGINS is enabled in production! ' +
+            'This disables plugin integrity verification and poses a security risk. ' +
+            'Set ALLOW_UNVERIFIED_PLUGINS=0 or unset it for production deployments.');
+    }
+}
+
+/**
+ * Validates Postgres pool max against database max_connections
+ * Warns and caps if pool max exceeds 80% of max_connections
+ * @param {Object} poolConfig - Pool configuration with min/max
+ * @param {string} connectionString - Postgres connection string
+ * @returns {Promise<void>}
+ */
+export async function validatePostgresPoolMax(poolConfig, connectionString) {
+    if (!poolConfig || typeof poolConfig.max !== 'number') {
+        return;
+    }
+
+    const { Pool } = await import('pg');
+    const testPool = new Pool({ connectionString, max: 1 });
+    
+    try {
+        const result = await testPool.query('SHOW max_connections');
+        const maxConnections = parseInt(result.rows[0].max_connections, 10);
+        const poolMax = poolConfig.max;
+        const threshold = Math.floor(maxConnections * 0.8);
+
+        if (poolMax > threshold) {
+            const warning = `[WARN] DB_POOL_MAX (${poolMax}) exceeds 80% of Postgres max_connections (${maxConnections}). ` +
+                `Capping pool max to ${threshold} to avoid connection exhaustion.`;
+            logger.warn(warning);
+            poolConfig.max = threshold;
+        }
+    } catch (error) {
+        // If we can't query max_connections, log a warning but don't fail startup
+        logger.warn('[WARN] Could not validate Postgres pool max against max_connections:', error.message);
+    } finally {
+        await testPool.end();
+    }
+}
 
 export function assertDiscordToken(token) {
     if (!token || TOKEN_PLACEHOLDERS.has(token)) {

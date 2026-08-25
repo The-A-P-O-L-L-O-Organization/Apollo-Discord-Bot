@@ -1,7 +1,7 @@
 // Tag Command
 // Create and manage custom text commands
 
-import { PermissionsBitField } from 'discord.js';
+import { PermissionsBitField, MessageFlags } from 'discord.js';
 import { setGuildData, getGuildData } from '../../../utils/db.js';
 import { safeError } from '../../../utils/safeError.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
@@ -129,7 +129,7 @@ export default {
                     timestamp: new Date().toISOString()
                 };
                 
-                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
     
         } catch (error) {
@@ -157,7 +157,7 @@ async function handleCreate(interaction) {
                 description: 'You need Manage Messages permission to create tags.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -170,7 +170,7 @@ async function handleCreate(interaction) {
                 description: 'Tag name must be 30 characters or less.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -183,7 +183,7 @@ async function handleCreate(interaction) {
                 description: 'Tag content must be 2000 characters or less.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -203,7 +203,7 @@ async function handleCreate(interaction) {
                         description: 'Embed JSON must be 2KB or less.',
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
             embedData = sanitizeEmbedData(embedData);
@@ -215,7 +215,7 @@ async function handleCreate(interaction) {
                     description: `Could not parse embed: ${error.message}`,
                     timestamp: new Date().toISOString()
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
     }
@@ -230,7 +230,7 @@ async function handleCreate(interaction) {
                 description: `Tag "${name}" already exists. Delete it first.`,
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -264,7 +264,7 @@ async function handleCreate(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [successEmbed], flags: 64 });
+    await interaction.reply({ embeds: [successEmbed], flags: MessageFlags.Ephemeral });
 }
 
 async function handleShow(interaction) {
@@ -280,7 +280,7 @@ async function handleShow(interaction) {
                 description: `Tag "${name}" does not exist.`,
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -371,7 +371,7 @@ async function handleDelete(interaction) {
                 description: 'You need Manage Messages permission to delete tags.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -385,7 +385,7 @@ async function handleDelete(interaction) {
                 description: `Tag "${name}" does not exist.`,
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -399,7 +399,7 @@ async function handleDelete(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [successEmbed], flags: 64 });
+    await interaction.reply({ embeds: [successEmbed], flags: MessageFlags.Ephemeral });
 }
 
 async function handleList(interaction) {
@@ -413,7 +413,7 @@ async function handleList(interaction) {
                 description: 'No custom tags have been created yet.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -430,7 +430,7 @@ async function handleList(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [listEmbed], flags: 64 });
+    await interaction.reply({ embeds: [listEmbed], flags: MessageFlags.Ephemeral });
 }
 
 async function handleInfo(interaction) {
@@ -446,7 +446,7 @@ async function handleInfo(interaction) {
                 description: `Tag "${name}" does not exist.`,
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -480,5 +480,5 @@ async function handleInfo(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [infoEmbed], flags: 64 });
+    await interaction.reply({ embeds: [infoEmbed], flags: MessageFlags.Ephemeral });
 }
