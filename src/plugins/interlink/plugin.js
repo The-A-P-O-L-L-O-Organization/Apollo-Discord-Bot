@@ -5,10 +5,10 @@ import BotRegistry from './registry.js';
 import MessageBus from './messageBus.js';
 import RedisTransport from './redis.js';
 import InterlinkServer from './server.js';
-import { logger } from './utils/logger.js';
+import { createLogger } from '../../utils/logger.js';
 
 export default class InterlinkPlugin extends Plugin {
-import { logger } from '../../utils/logger.js';
+    const logger = createLogger({ component: 'plugin:interlink' });
     static id = 'interlink';
     static version = '1.0.0';
     static dependencies = [];

@@ -7,6 +7,7 @@ import { PermissionsBitField } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { safeError } from '../../../utils/safeError.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
     name: 'nickname',
     description: 'Change a user\'s nickname',
@@ -53,7 +54,7 @@ try {
                     description: 'Please specify a valid user.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Get the guild member
@@ -66,7 +67,7 @@ try {
                     description: 'This user is not a member of the server.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Check if the member's nickname can be changed
@@ -77,7 +78,7 @@ try {
                     description: 'I cannot change this user\'s nickname. They may have higher permissions than me.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Check if the user is trying to change their own nickname when they shouldn't
@@ -88,7 +89,7 @@ try {
                     description: 'You cannot change the server owner\'s nickname.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Store old nickname
@@ -172,7 +173,7 @@ try {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
         }
     

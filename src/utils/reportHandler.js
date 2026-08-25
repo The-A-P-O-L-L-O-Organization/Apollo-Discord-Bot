@@ -5,6 +5,7 @@
 import { updateGuildData, generateId } from '../utils/db.js';
 import { flushAnalyticsCritical } from './analyticsCollector.js';
 import { logger } from '../utils/logger.js';
+import { MessageFlags } from 'discord.js';
 
 export async function handleReportSubmission(interaction, _client) {
     try {
@@ -17,7 +18,7 @@ export async function handleReportSubmission(interaction, _client) {
         if (!messageId) {
             await interaction.reply({
                 content: '[ERROR] Could not find the original message. The report has been cancelled.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
             return true;
         }
@@ -31,7 +32,7 @@ export async function handleReportSubmission(interaction, _client) {
         } catch {
             await interaction.reply({
                 content: '[ERROR] Could not fetch the message. It may have been deleted.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
             return true;
         }
@@ -94,7 +95,7 @@ export async function handleReportSubmission(interaction, _client) {
             timestamp: new Date().toISOString()
         };
 
-        await interaction.reply({ embeds: [successEmbed], flags: 64 });
+        await interaction.reply({ embeds: [successEmbed], flags: MessageFlags.Ephemeral });
 
         // Send report to moderators
         const reportEmbed = {

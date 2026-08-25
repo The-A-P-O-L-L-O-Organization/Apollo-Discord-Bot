@@ -2,6 +2,7 @@ import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/disc
 // Joke Command
 // Get a random joke
 import { logger } from '../../../utils/logger.js';
+import { MessageFlags } from 'discord.js';
 
 export default {
     name: 'joke',
@@ -66,7 +67,7 @@ export default {
                     timestamp: new Date().toISOString()
                 };
                 
-                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
     
         } catch (error) {

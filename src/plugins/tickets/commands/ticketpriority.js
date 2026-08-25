@@ -3,6 +3,7 @@ import { updateGuildData } from '../../../utils/db.js';
 import { getPriorityColor, getPriorityEmoji } from '../../../utils/slaTracker.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
+import { MessageFlags } from 'discord.js';
 export default {
 
     name: 'ticketpriority',
@@ -38,7 +39,7 @@ try {
         if (!ticket) {
             return interaction.reply({
                 content: 'This channel is not a ticket channel.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -49,7 +50,7 @@ try {
         if (!hasSupport && !isAdmin) {
             return interaction.reply({
                 content: 'You do not have permission to change ticket priority.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -58,7 +59,7 @@ try {
         if (oldPriority === newPriority) {
             return interaction.reply({
                 content: `This ticket is already set to **${newPriority}** priority.`,
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -93,19 +94,19 @@ try {
         return interaction.reply({ embeds: [embed] });
     
 } catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
+    const errorMessage = handleDiscordError(error);
+    if (interaction.replied || interaction.deferred) {
+        await safeFollowUp(interaction, errorMessage);
+    } else {
+        await safeReply(interaction, errorMessage);
+    }
 }
 
 } catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
+    const errorMessage = handleDiscordError(error);
+    if (interaction.replied || interaction.deferred) {
+        await safeFollowUp(interaction, errorMessage);
+    } else {
+        await safeReply(interaction, errorMessage);
+    }
 };

@@ -6,7 +6,8 @@ import {
     SlashCommandBuilder, 
     EmbedBuilder, 
     PermissionFlagsBits,
-    AttachmentBuilder
+    AttachmentBuilder,
+    MessageFlags
 } from 'discord.js';
 import {
     getCommandStats,
@@ -599,7 +600,7 @@ async function handleUserStats(interaction) {
  * Handles analytics export
  */
 async function handleExport(interaction) {
-    await interaction.deferReply({ flags: 64 });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     
     const format = interaction.options.getString('format');
     const days = interaction.options.getInteger('days') || 30;

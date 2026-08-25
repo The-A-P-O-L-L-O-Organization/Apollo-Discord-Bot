@@ -4,6 +4,7 @@ import { sendModLog } from '../../../utils/modLog.js';
 import { createModCase } from './case.js';
 import { removeTempban } from '../../../utils/tempbanScheduler.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
 export default {
     name: 'unban',
@@ -44,7 +45,7 @@ export default {
                     ],
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
 
             if (!/^\d{17,19}$/.test(userId)) {
@@ -54,7 +55,7 @@ export default {
                     description: 'Please provide a valid Discord user ID (17-19 digits).',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
 
             const ban = await interaction.guild.bans.fetch(userId).catch(() => null);
@@ -66,7 +67,7 @@ export default {
                     description: 'This user is not banned from the server.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
 
             const bannedUser = ban.user;
@@ -147,7 +148,7 @@ export default {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
         }
     }

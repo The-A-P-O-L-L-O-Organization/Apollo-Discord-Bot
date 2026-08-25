@@ -12,10 +12,12 @@ import { stopPollScheduler } from './utils/pollScheduler.js';
 import { close as closeDatabase, startWalCheckpointInterval } from './utils/db.js';
 import { closeLockRedis } from './utils/lock.js';
 import { safeError } from './utils/safeError.js';
-import { assertDiscordToken, assertOperatorAgreement, assertEncryptionKey } from './utils/startupChecks.js';
+import { assertDiscordToken, assertOperatorAgreement, assertEncryptionKey, validatePostgresPoolMax, warnUnverifiedPlugins } from './utils/startupChecks.js';
 import { closeAll as closeRedis } from './utils/redis.js';
 import { startHealthServer, stopHealthServer } from './utils/healthServer.js';
-import { logger } from '../utils/logger.js';
+import { createLogger } from '../utils/logger.js';
+
+const logger = createLogger({ component: 'gateway' });
 
 // Determine if we are running as a shard worker
 const SHARD_ID = process.env.SHARD_ID ? parseInt(process.env.SHARD_ID, 10) : undefined;
@@ -150,17 +152,17 @@ client.on('interactionCreate', async(interaction) => {
             if (interaction.guild) {
                 trackCommand(interaction.guild.id, interaction.commandName, interaction.user.id);
             }
-        } catch (error) {
-            logger.error('[ERROR] Error executing context menu command:', error);
-            try {
-                if (interaction.deferred || interaction.replied) {
-                    await interaction.editReply({ content: 'An error occurred.' });
-                } else {
-                    await interaction.reply({ content: 'An error occurred.', flags: 64 });
-                }
-            } catch (e) {
-                logger.error('[ERROR] Failed to send error response:', e);
-            }
+} catch (error) {
+             logger.error('[ERROR] Error executing context menu command:', error);
+             try {
+                 if (interaction.deferred || interaction.replied) {
+                     await interaction.editReply({ content: 'An error occurred.' });
+                 } else {
+                     await interaction.reply({ content: 'An error occurred.', flags: MessageFlags.Ephemeral });
+                 }
+             } catch (e) {
+                 logger.error('[ERROR] Failed to send error response:', e);
+             }
         }
         return;
     }
@@ -178,17 +180,17 @@ client.on('interactionCreate', async(interaction) => {
             if (interaction.guild) {
                 trackCommand(interaction.guild.id, interaction.commandName, interaction.user.id);
             }
-        } catch (error) {
-            logger.error('[ERROR] Error executing user context menu command:', error);
-            try {
-                if (interaction.deferred || interaction.replied) {
-                    await interaction.editReply({ content: 'An error occurred.' });
-                } else {
-                    await interaction.reply({ content: 'An error occurred.', flags: 64 });
-                }
-            } catch (e) {
-                logger.error('[ERROR] Failed to send error response:', e);
-            }
+} catch (error) {
+             logger.error('[ERROR] Error executing user context menu command:', error);
+             try {
+                 if (interaction.deferred || interaction.replied) {
+                     await interaction.editReply({ content: 'An error occurred.' });
+                 } else {
+                     await interaction.reply({ content: 'An error occurred.', flags: MessageFlags.Ephemeral });
+                 }
+             } catch (e) {
+                 logger.error('[ERROR] Failed to send error response:', e);
+             }
         }
         return;
     }
@@ -284,9 +286,9 @@ if (RUN_MODE === 'worker') {
 
     if (config.queue.enabled) {
         registerProcessCommand();
-        const { getRedis } = await import('./utils/redis.js');
-        const pub = getRedis(`${shardConfig.redisPrefix}:eventbus-pub`);
-        const sub = getRedis(`${shardConfig.redisPrefix}:eventbus-sub`);
+        const { createRedisClient } = await import('./utils/redis.js');
+        const pub = createRedisClient(`${shardConfig.redisPrefix}:eventbus-pub`);
+        const sub = createRedisClient(`${shardConfig.redisPrefix}:eventbus-sub`);
         await pub.connect();
         await sub.connect();
         bus.enableCrossPod(pub, sub, uuid);
@@ -355,6 +357,15 @@ if (RUN_MODE === 'worker') {
         }
     };
 
+    const SHUTDOWN_TIMEOUT_MS = parseInt(process.env.SHUTDOWN_TIMEOUT_MS, 10) || 30000;
+
+    const shutdownWithTimeout = async() => {
+        const timeout = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('shutdown timeout')), SHUTDOWN_TIMEOUT_MS);
+        });
+        await Promise.race([cleanup(), timeout]);
+    };
+
     process.on('unhandledRejection', (error) => {
         logger.error('[ERROR] Unhandled promise rejection:', error);
         if (process.env.NODE_ENV === 'production') {
@@ -369,11 +380,11 @@ if (RUN_MODE === 'worker') {
 
     process.on('SIGTERM', async() => {
         logger.info('[INFO] SIGTERM received - graceful shutdown...');
-        await cleanup();
+        await shutdownWithTimeout();
     });
     process.on('SIGINT', async() => {
         logger.info('[INFO] SIGINT received - graceful shutdown...');
-        await cleanup();
+        await shutdownWithTimeout();
     });
 
     async function startGateway() {
@@ -381,6 +392,14 @@ if (RUN_MODE === 'worker') {
             assertDiscordToken(config.DISCORD_TOKEN);
             assertEncryptionKey(config.ENCRYPTION_KEY);
             assertOperatorAgreement(config.operator);
+            
+            // Validate Postgres pool max against max_connections
+            if (config.database.type === 'postgres') {
+                await validatePostgresPoolMax(config.database.postgres.pool, config.database.postgres.connectionString);
+            }
+            
+            // Warn if ALLOW_UNVERIFIED_PLUGINS is enabled in production
+            warnUnverifiedPlugins();
         } catch (error) {
             logger.error(error.message);
             process.exit(1);
@@ -395,10 +414,10 @@ if (RUN_MODE === 'worker') {
     }
 
     if (config.queue.enabled) {
-        const { getRedis } = await import('./utils/redis.js');
+        const { createRedisClient } = await import('./utils/redis.js');
         const { tryAcquireLock, releaseLock, startHeartbeat, stopHeartbeat } = await import('./gateway/leader.js');
 
-        const redis = getRedis('leader');
+        const redis = createRedisClient('leader');
         await redis.connect();
 
         const isLeader = await tryAcquireLock(redis, config.podId);
@@ -435,4 +454,4 @@ if (RUN_MODE === 'worker') {
 }
 
 export default client;
-import { logger } from 'utils/logger.js';
+

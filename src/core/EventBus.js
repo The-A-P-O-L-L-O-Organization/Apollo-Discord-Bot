@@ -1,5 +1,7 @@
-import { logger } from '../utils/logger.js';
- 
+import { createLogger } from '../utils/logger.js';
+
+const logger = createLogger({ component: 'eventbus' });
+
 export default class EventBus {
     constructor() {
         this._handlers = new Map();

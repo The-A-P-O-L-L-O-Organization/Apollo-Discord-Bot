@@ -2,7 +2,7 @@
 // Schedule announcements to be sent later
 import { logger } from '../../../utils/logger.js';
 
-import { PermissionsBitField } from 'discord.js';
+import { PermissionsBitField, MessageFlags } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
     export default {
@@ -89,7 +89,7 @@ try {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
     
 } catch (error) {
@@ -125,7 +125,7 @@ async function handleSchedule(interaction) {
                 description: 'Use format like 1h, 30m, 1d',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -172,7 +172,7 @@ async function handleSchedule(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [successEmbed], flags: 64 });
+    await interaction.reply({ embeds: [successEmbed], flags: MessageFlags.Ephemeral });
     
     logger.info(`[ANNOUNCEMENT] Scheduled by ${interaction.user.tag} for ${channel.name}`);
 }
@@ -188,7 +188,7 @@ async function handleView(interaction) {
                 description: 'There are no scheduled announcements.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -203,7 +203,7 @@ async function handleView(interaction) {
                 description: 'All announcements have been sent.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -219,7 +219,7 @@ async function handleView(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [viewEmbed], flags: 64 });
+    await interaction.reply({ embeds: [viewEmbed], flags: MessageFlags.Ephemeral });
 }
 
 async function handleCancel(interaction) {
@@ -235,7 +235,7 @@ async function handleCancel(interaction) {
                 description: 'No announcement found with that ID.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -249,7 +249,7 @@ async function handleCancel(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [successEmbed], flags: 64 });
+    await interaction.reply({ embeds: [successEmbed], flags: MessageFlags.Ephemeral });
 }
 
 function parseDelay(str) {

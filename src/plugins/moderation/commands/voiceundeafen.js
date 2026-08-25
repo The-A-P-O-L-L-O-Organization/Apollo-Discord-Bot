@@ -10,6 +10,7 @@ import { flushAnalyticsCritical, trackModAction } from '../../../utils/analytics
 import { canModerate } from '../../../utils/moderation.js';
 import { safeError } from '../../../utils/safeError.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
     name: 'voiceundeafen',
     description: 'Server undeafen a user in a voice channel',
@@ -46,7 +47,7 @@ try {
                     description: 'Please specify a valid user to undeafen.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             const member = await fetchMember(interaction.guild, user.id);
@@ -58,7 +59,7 @@ try {
                     description: 'This user is not in the server.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             if (!member.voice.channel) {
@@ -68,7 +69,7 @@ try {
                     description: `${user.tag} is not currently in a voice channel.`,
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             if (!member.voice.serverDeaf) {
@@ -78,7 +79,7 @@ try {
                     description: `${user.tag} is not currently server deafened.`,
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             if (!member.voice.channel.permissionsFor(interaction.guild.members.me).has('DeafenMembers')) {
@@ -88,7 +89,7 @@ try {
                     description: 'I do not have permission to deafen members in that voice channel.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             if (user.id === interaction.user.id) {
@@ -98,7 +99,7 @@ try {
                     description: 'You cannot undeafen yourself using this command.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             if (user.id === interaction.client.user.id) {
@@ -108,7 +109,7 @@ try {
                     description: 'You cannot undeafen the bot.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             const hierarchy = canModerate(interaction.guild, interaction.member, member);
@@ -119,7 +120,7 @@ try {
                     description: hierarchy.reason,
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             const channelName = member.voice.channel.name;
@@ -182,7 +183,7 @@ try {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
         }
     

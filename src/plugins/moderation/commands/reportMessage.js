@@ -15,6 +15,7 @@ import {
 import { generateId, appendToGuildArray } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
     data: new ContextMenuCommandBuilder()
         .setName('Report Message')
@@ -36,7 +37,7 @@ try {
                         description: 'You cannot report your own messages.',
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
             
@@ -49,7 +50,7 @@ try {
                         description: 'You cannot report bot messages.',
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
             
@@ -160,7 +161,7 @@ try {
                     ],
                     timestamp: new Date().toISOString()
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
             
             logger.info(`[REPORT] Message ${message.id} reported by ${interaction.user.tag} (Report ID: ${reportId})`);
@@ -179,7 +180,7 @@ try {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
         }
     

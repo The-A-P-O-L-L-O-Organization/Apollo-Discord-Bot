@@ -24,51 +24,29 @@ vi.mock('ioredis', () => {
     };
 });
 
-import { getRedis, closeAll, healthCheck, removeRedis, getConnectionState } from '../../src/utils/redis.js';
+import { createRedisClient, closeRedisClient, checkRedisHealth, getConnectionState } from '../../src/utils/redis.js';
 
-describe('Redis Connection Manager', () => {
-    const testNames = new Set();
-
-    function getTestName(base) {
-        const name = `${base}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        testNames.add(name);
-        return name;
-    }
-
+describe('Redis Connection Factory', () => {
     beforeEach(() => {
-        // Clear all mocks before each test
         vi.clearAllMocks();
-        // Clear the global redis map to avoid interference
-        if (global._redisMap) {
-            global._redisMap.clear();
-        }
     });
 
     afterEach(async() => {
-        // Clean up test connections individually
-        for (const name of testNames) {
-            await removeRedis(name);
-        }
-        testNames.clear();
-        await closeAll();
+        // No global state to clean up with factory pattern
     });
 
-    it('should create and reuse connections', async() => {
-        const name = getTestName('test1');
-        const redis1 = getRedis(name);
-        await redis1.connect();
-        const redis2 = getRedis(name);
+    it('should create a new Redis client instance', async() => {
+        const redis = createRedisClient('test-client');
+        await redis.connect();
         
-        expect(redis1).toBe(redis2);
+        expect(redis).toBeDefined();
         expect(mockRedisInstance.connect).toHaveBeenCalledTimes(1);
     });
 
-    it('should create separate connections for different names', async() => {
-        const name1 = getTestName('test1');
-        const name2 = getTestName('test2');
-        const redis1 = getRedis(name1);
+    it('should create separate connections for each call', async() => {
+        const redis1 = createRedisClient('test-client-1');
         await redis1.connect();
-        const redis2 = getRedis(name2);
+        const redis2 = createRedisClient('test-client-2');
         await redis2.connect();
         
         expect(redis1).not.toBe(redis2);
@@ -76,79 +54,37 @@ describe('Redis Connection Manager', () => {
     });
 
     it('should track connection state', async() => {
-        const name = getTestName('test-state');
-        const redis = getRedis(name);
+        const redis = createRedisClient('test-state');
         await redis.connect();
         
-        const state = getConnectionState(name);
+        const state = getConnectionState(redis);
         expect(state).toBeDefined();
         expect(state.status).toBeDefined();
     });
 
-    it('should remove connections', async() => {
-        const name = getTestName('test-remove');
-        const redis = getRedis(name);
+    it('should close connections', async() => {
+        const redis = createRedisClient('test-close');
         await redis.connect();
-        expect(getConnectionState(name)).toBeDefined();
+        expect(getConnectionState(redis)).toBeDefined();
         
-        await removeRedis(name);
-        expect(getConnectionState(name)).toEqual({ status: 'not_initialized' });
+        await closeRedisClient(redis);
         expect(mockRedisInstance.quit).toHaveBeenCalledTimes(1);
     });
 
-    it('should return connection names', async() => {
-        const name1 = getTestName('test-names-1');
-        const name2 = getTestName('test-names-2');
-        const redis1 = getRedis(name1);
-        await redis1.connect();
-        const redis2 = getRedis(name2);
-        await redis2.connect();
-        
-        const names = getRedis(name1);
-        expect(names).toBeDefined();
-    });
-
     it('should handle health check', async() => {
-        const name = getTestName('test-health');
-        const redis = getRedis(name);
+        const redis = createRedisClient('test-health');
         await redis.connect();
         
-        const health = await healthCheck();
-        expect(health).toBeDefined();
-        expect(typeof health).toBe('object');
+        const health = await checkRedisHealth(redis);
+        expect(health).toBe(true);
         expect(mockRedisInstance.ping).toHaveBeenCalled();
     });
-});
 
-describe('Redis Connection Pool', () => {
-    const testNames = new Set();
-
-    function getTestName(base) {
-        const name = `${base}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        testNames.add(name);
-        return name;
-    }
-
-    beforeEach(() => {
-        vi.clearAllMocks();
-        if (global._redisMap) {
-            global._redisMap.clear();
-        }
-    });
-
-    afterEach(async() => {
-        for (const name of testNames) {
-            await removeRedis(name);
-        }
-        testNames.clear();
-        await closeAll();
-    });
-
-    it('should create pool when poolSize > 1', async() => {
-        const name = getTestName('test-pool');
-        const redis = getRedis(name, { poolSize: 3 });
-        await redis.connect();
-        expect(redis).toBeDefined();
-        expect(mockRedisInstance.connect).toHaveBeenCalledTimes(1);
+    it('should return false for unhealthy connection', async() => {
+        const redis = createRedisClient('test-unhealthy');
+        mockRedisInstance.ping.mockRejectedValueOnce(new Error('Connection failed'));
+        
+        const health = await checkRedisHealth(redis);
+        expect(health).toBe(false);
     });
 });

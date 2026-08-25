@@ -51,6 +51,7 @@ import {
 import { exportAnalytics, getAnalyticsSummary } from '../../src/utils/exportAnalytics.js';
 import { getGuildData, getUserData } from '../../src/utils/db.js';
 import { readFileSync } from 'fs';
+import { MessageFlags } from 'discord.js';
 
 import analyticsCommand from '../../src/plugins/utility/commands/analytics.js';
 
@@ -455,7 +456,7 @@ describe('Analytics Command', () => {
         it('should handle export analytics subcommand', async() => {
             await analyticsCommand.execute(interaction);
 
-            expect(interaction.deferReply).toHaveBeenCalledWith({ flags: 64 });
+            expect(interaction.deferReply).toHaveBeenCalledWith({ flags: MessageFlags.Ephemeral });
             expect(exportAnalytics).toHaveBeenCalledWith('123456789', 'csv', {
                 types: ['commands', 'messages', 'violations', 'modactions', 'members'],
                 days: 30

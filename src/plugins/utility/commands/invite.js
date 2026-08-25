@@ -3,7 +3,7 @@ export default {
 // Generate an invite link for the bot or create a server invite
 import { logger } from '../../../utils/logger.js';
 
-import { PermissionsBitField } from 'discord.js';
+import { PermissionsBitField, MessageFlags } from 'discord.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
     name: 'invite',
@@ -73,7 +73,7 @@ try {
                 if (!interaction.guild) {
                     return interaction.reply({
                         content: '[ERROR] Server invites can only be created in a server.',
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
                 
@@ -81,7 +81,7 @@ try {
                 if (!interaction.guild.members.me.permissions.has(PermissionsBitField.Flags.CreateInstantInvite)) {
                     return interaction.reply({
                         content: '[ERROR] I do not have permission to create invites.',
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
                 
@@ -148,7 +148,7 @@ try {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
     
 } catch (error) {

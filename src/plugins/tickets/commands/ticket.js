@@ -4,7 +4,7 @@ import { config } from '../../../config/config.js';
 import { getPriorityColor, getPriorityEmoji } from '../../../utils/slaTracker.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
-
+import { MessageFlags } from 'discord.js';
 export default {
     name: 'ticket',
     description: 'Create a support ticket',
@@ -59,14 +59,14 @@ export default {
             if (existingTicket) {
                 return interaction.reply({
                     content: `You already have an open ticket: <#${existingTicket.channelId}>`,
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
             if (!interaction.guild.members.me.permissions.has(PermissionFlagsBits.ManageChannels)) {
                 return interaction.reply({
                     content: 'I do not have permission to manage channels.',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -132,7 +132,7 @@ export default {
                 logger.error('[ERROR] Failed to create ticket channel:', error);
                 return interaction.reply({
                     content: 'Failed to create ticket channel. Please contact an administrator.',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -197,7 +197,7 @@ export default {
 
             return interaction.reply({
                 content: `Your ticket has been created: ${ticketChannel}`,
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
 
         } catch (error) {

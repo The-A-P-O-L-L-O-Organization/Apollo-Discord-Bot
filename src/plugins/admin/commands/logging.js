@@ -2,6 +2,7 @@ import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.
 import { setGuildData, getGuildData } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
 export default {
     name: 'logging',
@@ -86,7 +87,7 @@ export default {
 const eventDisplay = event === 'all' ? 'All events' : getEventDisplayName(event);
                  return interaction.reply({
                      content: `${eventDisplay} logging has been **${enabled ? 'enabled' : 'disabled'}**.`,
-                     flags: 64
+                     flags: MessageFlags.Ephemeral
                  });
             } else if (subcommand === 'status') {
                 const loggingConfig = await getGuildData('logging', guildId);
@@ -147,7 +148,7 @@ const embed = new EmbedBuilder()
                      .setFooter({ text: 'Use /logging enable or /logging disable to change settings' })
                      .setTimestamp();
 
-                 return interaction.reply({ embeds: [embed], flags: 64 });
+                 return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
             }
         } catch (error) {
             const userMessage = handleDiscordError(error);

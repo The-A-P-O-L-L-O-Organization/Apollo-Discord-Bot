@@ -2,11 +2,11 @@ import { EmbedBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, Butto
 import { getGuildData, updateGuildData, generateId, writeToSubDir } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
 import { logger } from '../../../utils/logger.js';
-
+import { MessageFlags } from 'discord.js';
 export default {
     name: 'interactionCreate',
     once: false,
-    
+     
     async execute(interaction, client) {
         if (!interaction.isButton()) {return;}
         
@@ -34,11 +34,11 @@ async function handleCreateTicket(interaction) {
     if (existingTicket) {
         return interaction.reply({
             content: `You already have an open ticket: <#${existingTicket.channelId}>`,
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
-    await interaction.deferReply({ flags: 64 });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     
     const botMember = interaction.guild.members?.me;
     if (!botMember?.permissions?.has?.(PermissionFlagsBits.ManageChannels)) {
@@ -170,7 +170,7 @@ async function handleCloseTicket(interaction) {
     if (ticketIndex === undefined || ticketIndex === -1) {
         return interaction.reply({
             content: 'This channel is not a ticket channel.',
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -184,7 +184,7 @@ async function handleCloseTicket(interaction) {
     if (!isTicketOwner && !hasSupport && !isAdmin) {
         return interaction.reply({
             content: 'You do not have permission to close this ticket.',
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     

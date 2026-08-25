@@ -2,7 +2,7 @@ import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilde
 import { getGuildData } from '../../../utils/db.js';
 import { getPriorityEmoji, formatTime, hasBreachedSLA } from '../../../utils/slaTracker.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
-
+import { MessageFlags } from 'discord.js';
 export default {
     name: 'ticketlist',
     data: new SlashCommandBuilder()
@@ -52,7 +52,7 @@ export default {
     async execute(interaction) {try {
 try {
 
-        await interaction.deferReply({ flags: 64 });
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         const guildId = interaction.guild.id;
         const filter = interaction.options.getString('filter') || 'all';
@@ -201,7 +201,7 @@ try {
                 if (i.user.id !== interaction.user.id) {
                     return i.reply({
                         content: 'These buttons are not for you!',
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
 
@@ -227,19 +227,19 @@ try {
         }
     
 } catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
+    const errorMessage = handleDiscordError(error);
+    if (interaction.replied || interaction.deferred) {
+        await safeFollowUp(interaction, errorMessage);
+    } else {
+        await safeReply(interaction, errorMessage);
+    }
 }
 
 } catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
+    const errorMessage = handleDiscordError(error);
+    if (interaction.replied || interaction.deferred) {
+        await safeFollowUp(interaction, errorMessage);
+    } else {
+        await safeReply(interaction, errorMessage);
+    }
 };

@@ -10,6 +10,7 @@ import { flushAnalyticsCritical, trackModAction } from '../../../utils/analytics
 import { canModerate } from '../../../utils/moderation.js';
 import { safeError } from '../../../utils/safeError.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
     name: 'softban',
     description: 'Softban a user (ban + immediate unban to clear messages)',
@@ -55,7 +56,7 @@ try {
                     description: 'Please specify a valid user to softban.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             if (deleteDays < 0 || deleteDays > 7) {
@@ -65,7 +66,7 @@ try {
                     description: 'Delete days must be between 0 and 7.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             const member = await fetchMember(interaction.guild, user.id);
@@ -77,7 +78,7 @@ try {
                     description: 'I cannot ban this user. They may have higher permissions than me.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             if (user.id === interaction.user.id) {
@@ -87,7 +88,7 @@ try {
                     description: 'You cannot softban yourself.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             if (user.id === interaction.client.user.id) {
@@ -97,7 +98,7 @@ try {
                     description: 'You cannot softban the bot.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             const hierarchy = canModerate(interaction.guild, interaction.member, member);
@@ -108,7 +109,7 @@ try {
                     description: hierarchy.reason,
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Ban the user
@@ -175,7 +176,7 @@ try {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
         }
     

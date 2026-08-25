@@ -9,6 +9,7 @@ import {
     createMockMember,
     createMockGuild
 } from '../mocks/discord.js';
+import { DiscordErrorCodes } from '../../src/utils/discordErrors.js';
 
 // Mock the db module
 vi.mock('../../src/utils/db.js', () => ({
@@ -263,6 +264,79 @@ describe('Kick Command', () => {
             await kickCommand.execute(mockInteraction);
 
             expect(lowTarget.kick).toHaveBeenCalled();
+        });
+    });
+
+    describe('execute - Discord API Error Handling', () => {
+        it('should handle 50013 Missing Permissions error with generic error message', async() => {
+            const error = new Error('Missing Permissions');
+            error.code = DiscordErrorCodes.MISSING_PERMISSIONS;
+            targetMember.kick.mockRejectedValue(error);
+            
+            await kickCommand.execute(mockInteraction);
+            
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.embeds[0].title).toContain('[ERROR]');
+            expect(replyCall.embeds[0].description).toContain('An error occurred while trying to kick the user');
+            expect(replyCall.flags).toBe(64);
+        });
+
+        it('should handle 10062 Unknown Interaction error with generic error message', async() => {
+            const error = new Error('Unknown Interaction');
+            error.code = DiscordErrorCodes.UNKNOWN_INTERACTION;
+            targetMember.kick.mockRejectedValue(error);
+            
+            await kickCommand.execute(mockInteraction);
+            
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.embeds[0].title).toContain('[ERROR]');
+            expect(replyCall.embeds[0].description).toContain('An error occurred while trying to kick the user');
+            expect(replyCall.flags).toBe(64);
+        });
+
+        it('should handle ECONNREFUSED network error with generic error message', async() => {
+            const error = new Error('connect ECONNREFUSED');
+            error.code = 'ECONNREFUSED';
+            targetMember.kick.mockRejectedValue(error);
+            
+            await kickCommand.execute(mockInteraction);
+            
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.embeds[0].title).toContain('[ERROR]');
+            expect(replyCall.embeds[0].description).toContain('An error occurred while trying to kick the user');
+            expect(replyCall.flags).toBe(64);
+        });
+
+        it('should handle 50035 Invalid Form Body validation error with generic error message', async() => {
+            const error = new Error('Invalid Form Body');
+            error.code = DiscordErrorCodes.INVALID_FORM_BODY;
+            error.errors = {
+                'reason': {
+                    _errors: [{ code: 'INVALID_VALUE', message: 'Reason is too long' }]
+                }
+            };
+            targetMember.kick.mockRejectedValue(error);
+            
+            await kickCommand.execute(mockInteraction);
+            
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.embeds[0].title).toContain('[ERROR]');
+            expect(replyCall.embeds[0].description).toContain('An error occurred while trying to kick the user');
+            expect(replyCall.flags).toBe(64);
+        });
+
+        it('should handle 429 Rate Limited error with generic error message', async() => {
+            const error = new Error('Rate Limited');
+            error.code = DiscordErrorCodes.RATE_LIMITED;
+            error.retryAfter = 5000;
+            targetMember.kick.mockRejectedValue(error);
+            
+            await kickCommand.execute(mockInteraction);
+            
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            expect(replyCall.embeds[0].title).toContain('[ERROR]');
+            expect(replyCall.embeds[0].description).toContain('An error occurred while trying to kick the user');
+            expect(replyCall.flags).toBe(64);
         });
     });
 });

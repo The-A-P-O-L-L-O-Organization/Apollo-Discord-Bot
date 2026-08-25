@@ -1,8 +1,9 @@
-import { logger } from '../utils/logger.js';
- 
+import { createLogger } from '../utils/logger.js';
 import { Queue } from 'bullmq';
 import { config } from '../config/config.js';
-import { getRedis } from '../utils/redis.js';
+import { createRedisClient } from '../utils/redis.js';
+
+const logger = createLogger({ component: 'queue' });
 
 export const JobNames = {
     PROCESS_COMMAND: 'process-command',
@@ -24,7 +25,7 @@ export async function createQueue(name, queueConfig = config.queue) {
 
     let q;
     if (queueConfig.enabled) {
-        const conn = getRedis('queue', { family: 4 });
+        const conn = createRedisClient('queue', { family: 4 });
         await conn.connect();
         q = new Queue(`${queuePrefix}:${name}`, {
             connection: conn,

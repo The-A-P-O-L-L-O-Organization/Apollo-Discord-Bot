@@ -1,4 +1,5 @@
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 export default {
 // Channelinfo Command
 // Display detailed information about a channel
@@ -161,7 +162,7 @@ try {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
     
 } catch (error) {

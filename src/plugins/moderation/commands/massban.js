@@ -9,6 +9,7 @@ import { createModCase } from './case.js';
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 import { safeError } from '../../../utils/safeError.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
     name: 'massban',
     description: 'Ban multiple users by ID',
@@ -54,7 +55,7 @@ try {
                     description: 'Please provide a comma-separated list of user IDs.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             if (deleteDays < 0 || deleteDays > 7) {
@@ -64,7 +65,7 @@ try {
                     description: 'Delete days must be between 0 and 7.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Parse user IDs
@@ -77,7 +78,7 @@ try {
                     description: 'Please provide valid user IDs (17-19 digits each).',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             if (userIds.length > 50) {
@@ -87,7 +88,7 @@ try {
                     description: 'Maximum 50 users per mass ban.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Check for self/bot
@@ -98,7 +99,7 @@ try {
                     description: 'You cannot ban yourself.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             if (userIds.includes(interaction.client.user.id)) {
@@ -108,7 +109,7 @@ try {
                     description: 'You cannot ban the bot.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
             // Confirmation prompt for dangerous operation
@@ -131,7 +132,7 @@ try {
                         .setStyle(ButtonStyle.Secondary)
                 );
             
-            await interaction.reply({ embeds: [confirmEmbed], components: [row], flags: 64 });
+            await interaction.reply({ embeds: [confirmEmbed], components: [row], flags: MessageFlags.Ephemeral });
             
             // Wait for button interaction
             const collector = interaction.channel.createMessageComponentCollector({
@@ -264,7 +265,7 @@ try {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
         }
     

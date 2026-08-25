@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import { updateGuildData, generateId } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
-
+import { MessageFlags } from 'discord.js';
 export default {
     name: 'tickettemplate',
     data: new SlashCommandBuilder()
@@ -92,7 +92,7 @@ try {
             if (templates.list.find(t => t.name.toLowerCase() === name.toLowerCase())) {
                 return interaction.reply({
                     content: `A template named **${name}** already exists. Delete it first to create a new one with this name.`,
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -125,7 +125,7 @@ try {
                 )
                 .setTimestamp();
 
-            return interaction.reply({ embeds: [embed], flags: 64 });
+            return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 
         } else if (subcommand === 'delete') {
             const name = interaction.options.getString('name');
@@ -138,7 +138,7 @@ try {
             if (templateIndex === -1) {
                 return interaction.reply({
                     content: `Template **${name}** not found.`,
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -152,7 +152,7 @@ try {
 
             return interaction.reply({
                 content: `Template **${deletedTemplate.name}** has been deleted.`,
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
 
         } else if (subcommand === 'list') {
@@ -161,7 +161,7 @@ try {
             if (!templates.list || templates.list.length === 0) {
                 return interaction.reply({
                     content: 'No templates have been created yet. Use `/tickettemplate create` to create one.',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -179,7 +179,7 @@ try {
                 });
             });
 
-            return interaction.reply({ embeds: [embed], flags: 64 });
+            return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 
         } else if (subcommand === 'view') {
             const name = interaction.options.getString('name');
@@ -192,7 +192,7 @@ try {
             if (!template) {
                 return interaction.reply({
                     content: `Template **${name}** not found.`,
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -207,23 +207,22 @@ try {
                 )
                 .setTimestamp();
 
-            return interaction.reply({ embeds: [embed], flags: 64 });
-        }
-    
+            return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+        
 } catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
+    const errorMessage = handleDiscordError(error);
+    if (interaction.replied || interaction.deferred) {
+        await safeFollowUp(interaction, errorMessage);
+    } else {
+        await safeReply(interaction, errorMessage);
+    }
 }
 
 } catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
+    const errorMessage = handleDiscordError(error);
+    if (interaction.replied || interaction.deferred) {
+        await safeFollowUp(interaction, errorMessage);
+    } else {
+        await safeReply(interaction, errorMessage);
+    }
 };

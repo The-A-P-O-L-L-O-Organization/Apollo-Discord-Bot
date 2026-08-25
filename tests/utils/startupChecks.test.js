@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { assertOperatorAgreement } from '../../src/utils/startupChecks.js';
 
 describe('assertOperatorAgreement', () => {
@@ -42,5 +42,95 @@ describe('assertOperatorAgreement', () => {
             expect(error.message).toContain('legal/TOS.md');
             expect(error.message).toContain('legal/PRIVACY.md');
         }
+    });
+});
+
+describe('warnUnverifiedPlugins', () => {
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+        vi.resetModules();
+        process.env = { ...originalEnv };
+    });
+
+    afterEach(() => {
+        process.env = originalEnv;
+    });
+
+    it('should warn when ALLOW_UNVERIFIED_PLUGINS=1 and NODE_ENV=production', async() => {
+        process.env.ALLOW_UNVERIFIED_PLUGINS = '1';
+        process.env.NODE_ENV = 'production';
+        
+        const mockLogger = { warn: vi.fn() };
+        vi.doMock('../../src/utils/logger.js', () => ({
+            createLogger: () => mockLogger
+        }));
+        
+        const { warnUnverifiedPlugins } = await import('../../src/utils/startupChecks.js');
+        warnUnverifiedPlugins();
+        
+        expect(mockLogger.warn).toHaveBeenCalledWith(
+            expect.stringContaining('[SECURITY] ALLOW_UNVERIFIED_PLUGINS is enabled in production!')
+        );
+    });
+
+    it('should not warn when ALLOW_UNVERIFIED_PLUGINS=0 and NODE_ENV=production', async() => {
+        process.env.ALLOW_UNVERIFIED_PLUGINS = '0';
+        process.env.NODE_ENV = 'production';
+        
+        const mockLogger = { warn: vi.fn() };
+        vi.doMock('../../src/utils/logger.js', () => ({
+            createLogger: () => mockLogger
+        }));
+        
+        const { warnUnverifiedPlugins } = await import('../../src/utils/startupChecks.js');
+        warnUnverifiedPlugins();
+        
+        expect(mockLogger.warn).not.toHaveBeenCalled();
+    });
+
+    it('should not warn when ALLOW_UNVERIFIED_PLUGINS=1 and NODE_ENV=development', async() => {
+        process.env.ALLOW_UNVERIFIED_PLUGINS = '1';
+        process.env.NODE_ENV = 'development';
+        
+        const mockLogger = { warn: vi.fn() };
+        vi.doMock('../../src/utils/logger.js', () => ({
+            createLogger: () => mockLogger
+        }));
+        
+        const { warnUnverifiedPlugins } = await import('../../src/utils/startupChecks.js');
+        warnUnverifiedPlugins();
+        
+        expect(mockLogger.warn).not.toHaveBeenCalled();
+    });
+
+    it('should not warn when neither condition is met', async() => {
+        process.env.ALLOW_UNVERIFIED_PLUGINS = '0';
+        process.env.NODE_ENV = 'development';
+        
+        const mockLogger = { warn: vi.fn() };
+        vi.doMock('../../src/utils/logger.js', () => ({
+            createLogger: () => mockLogger
+        }));
+        
+        const { warnUnverifiedPlugins } = await import('../../src/utils/startupChecks.js');
+        warnUnverifiedPlugins();
+        
+        expect(mockLogger.warn).not.toHaveBeenCalled();
+    });
+
+    it('should not warn when ALLOW_UNVERIFIED_PLUGINS is unset', async() => {
+        delete process.env.ALLOW_UNVERIFIED_PLUGINS;
+        process.env.NODE_ENV = 'production';
+        
+        const mockLogger = { warn: vi.fn() };
+        vi.doMock('../../src/utils/logger.js', () => ({
+            createLogger: () => mockLogger
+        }));
+        
+        const { warnUnverifiedPlugins } = await import('../../src/utils/startupChecks.js');
+        warnUnverifiedPlugins();
+        
+        expect(mockLogger.warn).not.toHaveBeenCalled();
     });
 });

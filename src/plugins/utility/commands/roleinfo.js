@@ -3,7 +3,7 @@ export default {
 // Display detailed information about a role
 import { logger } from '../../../utils/logger.js';
 
-import { PermissionsBitField } from 'discord.js';
+import { PermissionsBitField, MessageFlags } from 'discord.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
     name: 'roleinfo',
@@ -104,7 +104,7 @@ try {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
     
 } catch (error) {
