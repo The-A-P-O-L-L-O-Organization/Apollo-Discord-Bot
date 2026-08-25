@@ -119,3 +119,70 @@ export function assertOperatorAgreement(operator) {
         );
     }
 }
+
+export function validateSocketToken() {
+    const isProduction = process.env.NODE_ENV === 'production';
+    const token = process.env.APOLLO_SOCKET_TOKEN;
+
+    if (isProduction && !token) {
+        throw new Error(
+            '[FATAL] APOLLO_SOCKET_TOKEN is required in production. ' +
+            'Generate a secure random token (e.g., `openssl rand -hex 32`) ' +
+            'and set it in your .env file before starting.'
+        );
+    }
+}
+
+export async function validateRedisAuth() {
+    const isProduction = process.env.NODE_ENV === 'production';
+    const { createRedisClient } = await import('./redis.js');
+    const { config } = await import('../config/config.js');
+
+    if (!isProduction || !config.queue.enabled) {
+        return;
+    }
+
+    if (!config.queue.redis.password && !config.queue.redis.username) {
+        throw new Error(
+            '[FATAL] Redis authentication (REDIS_PASSWORD or REDIS_USERNAME) is required in production. ' +
+            'Configure Redis ACL or password authentication and set it in your .env file.'
+        );
+    }
+
+    const redis = createRedisClient('startup-check', {
+        host: config.queue.redis.host,
+        port: config.queue.redis.port,
+        password: config.queue.redis.password,
+        username: config.queue.redis.username,
+        maxRetriesPerRequest: 1,
+        retryStrategy: () => null,
+        lazyConnect: true
+    });
+
+    try {
+        await redis.connect();
+        await redis.ping();
+    } catch (error) {
+        const err = new Error(`[FATAL] Redis authentication failed: ${error.message}`);
+        err.cause = error;
+        throw err;
+    } finally {
+        await redis.quit();
+    }
+}
+
+export async function validateInterlinkBind() {
+    const isProduction = process.env.NODE_ENV === 'production';
+    const { config } = await import('../config/config.js');
+
+    if (isProduction && config.interlink.enabled && config.interlink.bindHost === '0.0.0.0') {
+        throw new Error(
+            '[FATAL] INTERLINK_BIND_HOST=0.0.0.0 is not allowed in production. ' +
+            'Set INTERLINK_BIND_HOST=127.0.0.1 or a specific private IP in your .env file.'
+        );
+    }
+    
+    if (config.interlink.enabled && config.interlink.bindHost !== '127.0.0.1' && config.interlink.bindHost !== '::1') {
+        logger.warn(`[WARN] Interlink binding to ${config.interlink.bindHost} — ensure this is intentional and firewalled.`);
+    }
+}

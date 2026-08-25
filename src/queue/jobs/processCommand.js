@@ -3,6 +3,7 @@ import { Collection } from 'discord.js';
 import { existsSync } from 'fs';
 import path from 'path';
 import { pathToFileURL } from 'url';
+import { createHash, randomBytes, createHmac, timingSafeEqual } from 'node:crypto';
 import { config } from '../../config/config.js';
 import RemoteInteraction from '../remoteInteraction.js';
 import { serializeInteraction } from '../serializeInteraction.js';
@@ -20,11 +21,76 @@ let rest = null;
 // Command module cache to avoid re-importing on every job
 export const commandModuleCache = new Map();
 
+// Nonce store for HMAC replay protection (Redis-backed in production)
+const nonceStore = new Map(); // In-memory fallback for dev; replace with Redis SET in production
+
 function getRest() {
     if (!rest) {
         rest = new REST({ version: '10' }).setToken(config.DISCORD_TOKEN);
     }
     return rest;
+}
+
+function signJobData(payload) {
+    const secret = config.queue.hmacSecret;
+    if (!secret) {
+        return { ...payload, _hmacUnsigned: true };
+    }
+    const timestamp = Date.now();
+    const nonce = randomBytes(16).toString('hex');
+    const signable = JSON.stringify({ ...payload, timestamp, nonce });
+    const hmac = createHmac('sha256', secret).update(signable).digest('hex');
+    return { ...payload, timestamp, nonce, hmac };
+}
+
+function verifyJobData(payload) {
+    const secret = config.queue.hmacSecret;
+    if (!secret) {
+        // Backward compat: accept unsigned jobs in dev, warn
+        if (process.env.NODE_ENV !== 'production') {
+            logger.warn('[HMAC] QUEUE_HMAC_SECRET not set — accepting unsigned job (dev mode)');
+        }
+        return true;
+    }
+
+    const { hmac, timestamp, nonce, ...rest } = payload;
+    if (!hmac || !timestamp || !nonce) {
+        logger.warn('[HMAC] Missing HMAC fields — rejecting job');
+        return false;
+    }
+
+    // Check timestamp window (5 minutes)
+    const now = Date.now();
+    if (now - timestamp > 5 * 60 * 1000) {
+        logger.warn('[HMAC] Job timestamp expired — rejecting job');
+        return false;
+    }
+
+    // Verify HMAC
+    const signable = JSON.stringify({ ...rest, timestamp, nonce });
+    const expectedHmac = createHmac('sha256', secret).update(signable).digest('hex');
+    const payloadHmacBuffer = Buffer.from(hmac, 'hex');
+    const expectedHmacBuffer = Buffer.from(expectedHmac, 'hex');
+    if (payloadHmacBuffer.length !== expectedHmacBuffer.length || !timingSafeEqual(payloadHmacBuffer, expectedHmacBuffer)) {
+        logger.warn('[HMAC] HMAC mismatch — rejecting job');
+        return false;
+    }
+
+    // Nonce deduplication (in-memory; for production use Redis SET with TTL)
+    const nonceKey = `${nonce}:${timestamp}`;
+    if (nonceStore.has(nonceKey)) {
+        logger.warn('[HMAC] Duplicate nonce — rejecting job');
+        return false;
+    }
+    nonceStore.set(nonceKey, now);
+    // Cleanup old nonces (older than 10 minutes)
+    for (const [key, ts] of nonceStore.entries()) {
+        if (now - ts > 10 * 60 * 1000) {
+            nonceStore.delete(key);
+        }
+    }
+
+    return true;
 }
 
 export async function enqueueCommand(interaction) {
@@ -34,8 +100,11 @@ export async function enqueueCommand(interaction) {
     const data = serializeInteraction(interaction);
     data.pluginId = command.pluginId || null;
 
+    // Sign job data with HMAC
+    const signedData = signJobData(data);
+
     const queue = await createQueue(config.queue.prefix);
-    const job = await queue.add(JobNames.PROCESS_COMMAND, data, {
+    const job = await queue.add(JobNames.PROCESS_COMMAND, signedData, {
         jobId: interaction.id,
         deduplication: { id: interaction.id, ttl: 300000 }
     });
@@ -46,6 +115,13 @@ export async function enqueueCommand(interaction) {
 export default function register() {
     registerHandler(JobNames.PROCESS_COMMAND, async(job) => {
         const data = job.data;
+        
+        // Verify HMAC signature
+        if (!verifyJobData(data)) {
+            logger.warn('[Worker] Job HMAC verification failed — rejecting');
+            return { status: 'error', reason: 'hmac_verification_failed' };
+        }
+
         logger.info(`[Worker] Processing /${data.commandName} in guild ${data.guildId}`);
 
         const r = getRest();

@@ -5,6 +5,8 @@ import createRoutes from './routes.js';
 import RateLimiter from './rateLimit.js';
 import { register } from '../../utils/metrics.js';
 
+import { config } from '../../config/config.js';
+
 const DEFAULT_LIMIT = Number(process.env.INTERLINK_RATE_LIMIT) || 60;
 const DEFAULT_WINDOW_MS = Number(process.env.INTERLINK_RATE_WINDOW_MS) || 60000;
 const HEALTH_RATE_LIMIT = Number(process.env.INTERLINK_HEALTH_RATE_LIMIT) || 30;
@@ -120,7 +122,11 @@ export default class InterlinkServer {
             res.json({ status: 'ok', timestamp: Date.now() });
         });
         
-        const bindHost = process.env.INTERLINK_BIND_HOST || '127.0.0.1';
+        const bindHost = config.interlink.bindHost;
+        if (bindHost !== '127.0.0.1' && bindHost !== '::1') {
+            console.warn(`[WARN] Interlink binding to ${bindHost} — ensure this is intentional and firewalled.`);
+        }
+        
         await new Promise((resolve, reject) => {
             this._server = this._app.listen(port, bindHost, resolve);
             this._server.once('error', reject);

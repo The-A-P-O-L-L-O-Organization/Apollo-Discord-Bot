@@ -71,3 +71,18 @@ export async function verifyPluginManifest({
 
     return { ok: true, checked: Object.keys(expected).length };
 }
+
+export function verifyPluginFile(pluginPath, expectedHash) {
+    const hash = createHash('sha256').update(readFileSync(pluginPath)).digest('hex');
+    if (hash !== expectedHash) {
+        logSecurityEvent({ 
+            event: 'plugin.toctou_hash_mismatch', 
+            pluginPath, 
+            expected: expectedHash, 
+            actual: hash 
+        });
+        throw new Error(`[SECURITY] Plugin file hash mismatch for ${pluginPath}. Expected ${expectedHash}, got ${hash}.`);
+    }
+    logSecurityEvent({ event: 'plugin.file_verified', pluginPath, hash });
+    return true;
+}
