@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import { updateGuildData, generateId } from '../../../utils/db.js';
-
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 export default {
     name: 'tickettemplate',
     data: new SlashCommandBuilder()
@@ -73,7 +74,9 @@ export default {
         .setDMPermission(false),
     category: 'admin',
 
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         const subcommand = interaction.options.getSubcommand();
         const guildId = interaction.guild.id;
 
@@ -89,7 +92,7 @@ export default {
             if (templates.list.find(t => t.name.toLowerCase() === name.toLowerCase())) {
                 return interaction.reply({
                     content: `A template named **${name}** already exists. Delete it first to create a new one with this name.`,
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -122,7 +125,7 @@ export default {
                 )
                 .setTimestamp();
 
-            return interaction.reply({ embeds: [embed], flags: 64 });
+            return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 
         } else if (subcommand === 'delete') {
             const name = interaction.options.getString('name');
@@ -135,7 +138,7 @@ export default {
             if (templateIndex === -1) {
                 return interaction.reply({
                     content: `Template **${name}** not found.`,
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -149,7 +152,7 @@ export default {
 
             return interaction.reply({
                 content: `Template **${deletedTemplate.name}** has been deleted.`,
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
 
         } else if (subcommand === 'list') {
@@ -158,7 +161,7 @@ export default {
             if (!templates.list || templates.list.length === 0) {
                 return interaction.reply({
                     content: 'No templates have been created yet. Use `/tickettemplate create` to create one.',
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -176,7 +179,7 @@ export default {
                 });
             });
 
-            return interaction.reply({ embeds: [embed], flags: 64 });
+            return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 
         } else if (subcommand === 'view') {
             const name = interaction.options.getString('name');
@@ -189,7 +192,7 @@ export default {
             if (!template) {
                 return interaction.reply({
                     content: `Template **${name}** not found.`,
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -204,7 +207,22 @@ export default {
                 )
                 .setTimestamp();
 
-            return interaction.reply({ embeds: [embed], flags: 64 });
-        }
+            return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+        
+} catch (error) {
+    const errorMessage = handleDiscordError(error);
+    if (interaction.replied || interaction.deferred) {
+        await safeFollowUp(interaction, errorMessage);
+    } else {
+        await safeReply(interaction, errorMessage);
+    }
+}
+
+} catch (error) {
+    const errorMessage = handleDiscordError(error);
+    if (interaction.replied || interaction.deferred) {
+        await safeFollowUp(interaction, errorMessage);
+    } else {
+        await safeReply(interaction, errorMessage);
     }
 };

@@ -2,6 +2,9 @@ import { config } from '../../../config/config.js';
 import { getDb, runMigrations } from '../../../db/knex.js';
 import { safeError } from '../../../utils/safeError.js';
 import { requireOwner } from '../../../utils/accessControl.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
 export default {
     name: 'migrate',
@@ -22,63 +25,88 @@ export default {
     },
   ],
 
-  async execute(interaction) {
-    const denial = await requireOwner(interaction);
-    if (denial) {
-      return interaction.reply(denial);
-    }
+async execute(interaction) {try {
+try {
 
-    const subcommand = interaction.options.getSubcommand();
+     try {
+       const denial = await requireOwner(interaction);
+       if (denial) {
+         return safeReply(interaction, denial);
+       }
 
-    if (subcommand === 'status') {
-      try {
-        const db = getDb();
-        const [completed, pending] = await db.migrate.list();
-        const completedNames = completed && completed.length > 0
-          ? completed.map(m => '`' + (m.name || m.file || m) + '`').join('\n')
-          : 'None';
-        const pendingFiles = pending && pending.length > 0
-          ? pending.map(m => '`' + (m.file || m) + '`').join('\n')
-          : 'None';
+       const subcommand = interaction.options.getSubcommand();
 
-        return interaction.reply({
-          embeds: [{
-            color: pending && pending.length > 0 ? 0xFFA500 : 0x00FF00,
-            title: 'Migration Status (' + config.database.type + ')',
-            fields: [
-              { name: 'Completed', value: completedNames, inline: false },
-              { name: 'Pending', value: pendingFiles, inline: false },
-            ],
-            timestamp: new Date().toISOString()
-          }],
-          flags: 64
-        });
-      } catch (err) {
-        return interaction.reply({
-          embeds: [{ color: 0xFF0000, title: '[ERROR] Migration Status Failed', description: safeError(err) }],
-          flags: 64
-        });
-      }
-    }
+       if (subcommand === 'status') {
+         try {
+           const db = getDb();
+           const [completed, pending] = await db.migrate.list();
+           const completedNames = completed && completed.length > 0
+             ? completed.map(m => '`' + (m.name || m.file || m) + '`').join('\n')
+             : 'None';
+           const pendingFiles = pending && pending.length > 0
+             ? pending.map(m => '`' + (m.file || m) + '`').join('\n')
+             : 'None';
 
-    if (subcommand === 'run') {
-      await interaction.deferReply({ flags: 64 });
+           return safeReply(interaction, {
+             embeds: [{
+               color: pending && pending.length > 0 ? 0xFFA500 : 0x00FF00,
+               title: 'Migration Status (' + config.database.type + ')',
+               fields: [
+                 { name: 'Completed', value: completedNames, inline: false },
+                 { name: 'Pending', value: pendingFiles, inline: false },
+               ],
+               timestamp: new Date().toISOString()
+             }],
+             flags: MessageFlags.Ephemeral
+           });
+         } catch (err) {
+           return safeReply(interaction, {
+             embeds: [{ color: 0xFF0000, title: '[ERROR] Migration Status Failed', description: safeError(err) }],
+             flags: MessageFlags.Ephemeral
+           });
+         }
+       }
 
-      try {
-        await runMigrations();
-        return interaction.editReply({
-          embeds: [{
-            color: 0x00FF00,
-            title: '[SUCCESS] Migrations Applied',
-            description: 'All pending migrations have been run successfully.',
-            timestamp: new Date().toISOString()
-          }]
-        });
-      } catch (err) {
-        return interaction.editReply({
-          embeds: [{ color: 0xFF0000, title: '[ERROR] Migration Failed', description: safeError(err) }]
-        });
-      }
-    }
+       if (subcommand === 'run') {
+         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+         try {
+           await runMigrations();
+           return interaction.editReply({
+             embeds: [{
+               color: 0x00FF00,
+               title: '[SUCCESS] Migrations Applied',
+               description: 'All pending migrations have been run successfully.',
+               timestamp: new Date().toISOString()
+             }]
+           });
+         } catch (err) {
+           return interaction.editReply({
+             embeds: [{ color: 0xFF0000, title: '[ERROR] Migration Failed', description: safeError(err) }]
+           });
+         }
+       }
+     } catch (error) {
+       const userMessage = handleDiscordError(error);
+       if (userMessage) {
+         await safeReply(interaction, userMessage);
+       }
+     }
+   
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
   }
 };

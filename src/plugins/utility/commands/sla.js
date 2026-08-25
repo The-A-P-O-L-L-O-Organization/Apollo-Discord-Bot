@@ -1,9 +1,10 @@
 // SLA Command
 // Displays SLA metrics and response time statistics
 
-import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { calculateSLAMetrics, formatTime, DEFAULT_SLA_THRESHOLDS } from '../../../utils/slaTracker.js';
 import { getGuildData } from '../../../utils/db.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -14,8 +15,10 @@ export default {
     name: 'sla',
     category: 'utility',
 
-    async execute(interaction) {
-        await interaction.deferReply({ flags: 64 });
+    async execute(interaction) {try {
+try {
+
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         const guildId = interaction.guild.id;
         const metrics = await calculateSLAMetrics(guildId);
@@ -109,5 +112,21 @@ export default {
         }
 
         return interaction.editReply({ embeds: [embed] });
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

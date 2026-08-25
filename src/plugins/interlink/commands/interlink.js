@@ -4,6 +4,9 @@ import MessageBus from '../messageBus.js';
 import { generateApiKey } from '../auth.js';
 import { safeError } from '../../../utils/safeError.js';
 import { isOwner, getOwnerIds } from '../../../utils/accessControl.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { logger } from '../../../utils/logger.js';
+import { MessageFlags } from 'discord.js';
 
 const SEND_CONFIG = { requestTimeout: 5000, maxRetries: 3 };
 
@@ -56,7 +59,7 @@ export default {
                     { name: 'command', value: 'command' },
                     { name: 'event', value: 'event' },
                     { name: 'custom', value: 'custom' }
-                ]},
+                ] },
                 { name: 'payload', description: 'JSON payload (valid JSON string)', type: 3, required: true }
             ]
         },
@@ -70,7 +73,7 @@ export default {
                     { name: 'command', value: 'command' },
                     { name: 'event', value: 'event' },
                     { name: 'custom', value: 'custom' }
-                ]},
+                ] },
                 { name: 'payload', description: 'JSON payload (valid JSON string)', type: 3, required: true }
             ]
         },
@@ -93,22 +96,23 @@ export default {
     ],
 
     async execute(interaction) {
-        await interaction.deferReply({ flags: 64 });
-
-        if (!isOwner(interaction.user.id)) {
-            return interaction.editReply({
-                embeds: [{
-                    color: 0xFF0000,
-                    title: '[ERROR] Access Denied',
-                    description: 'Only bot owners can use this command.'
-                }]
-            });
-        }
-
-        const sub = interaction.options.getSubcommand();
-
         try {
-            switch (sub) {
+            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+            if (!isOwner(interaction.user.id)) {
+                return interaction.editReply({
+                    embeds: [{
+                        color: 0xFF0000,
+                        title: '[ERROR] Access Denied',
+                        description: 'Only bot owners can use this command.'
+                    }]
+                });
+            }
+
+            const sub = interaction.options.getSubcommand();
+
+            try {
+                switch (sub) {
                 case 'list':
                     return await this._list(interaction);
                 case 'register':
@@ -125,15 +129,24 @@ export default {
                     return await this._override(interaction);
                 default:
                     return interaction.editReply({ embeds: [{ color: 0xFF0000, title: '[ERROR] Unknown subcommand' }] });
+                }
+            } catch (err) {
+                return interaction.editReply({
+                    embeds: [{
+                        color: 0xFF0000,
+                        title: '[ERROR] Command Failed',
+                        description: safeError(err)
+                    }]
+                });
             }
-        } catch (err) {
-            return interaction.editReply({
-                embeds: [{
-                    color: 0xFF0000,
-                    title: '[ERROR] Command Failed',
-                    description: safeError(err)
-                }]
-            });
+    
+        } catch (error) {
+            const errorMessage = handleDiscordError(error);
+            if (interaction.replied || interaction.deferred) {
+                await safeFollowUp(interaction, errorMessage);
+            } else {
+                await safeReply(interaction, errorMessage);
+            }
         }
     },
 
@@ -212,10 +225,10 @@ export default {
             });
         } catch (dmError) {
             // Fallback to ephemeral followUp if DM fails
-            console.warn(`[INTERLINK] Failed to DM API key to ${interaction.user.tag}, falling back to ephemeral message: ${dmError.message}`);
+            logger.warn(`[INTERLINK] Failed to DM API key to ${interaction.user.tag}, falling back to ephemeral message: ${dmError.message}`);
             await interaction.followUp({
                 content: `**[WARNING] API Key for ${name} (shown once):**\n\`\`\`${result.rawKey}\`\`\`\nStore this securely. It will not be shown again.`,
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
     },
@@ -329,10 +342,10 @@ export default {
             });
         } catch (dmError) {
             // Fallback to ephemeral followUp if DM fails
-            console.warn(`[INTERLINK] Failed to DM API key to ${interaction.user.tag}, falling back to ephemeral message: ${dmError.message}`);
+            logger.warn(`[INTERLINK] Failed to DM API key to ${interaction.user.tag}, falling back to ephemeral message: ${dmError.message}`);
             await interaction.followUp({
                 content: `**[WARNING] New API Key for ${name} (shown once):**\n\`\`\`${rawKey}\`\`\`\nStore this securely. The old key is no longer valid.`,
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
     },

@@ -1,8 +1,10 @@
-import { ContextMenuCommandBuilder, ApplicationCommandType, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from 'discord.js';
+import { ContextMenuCommandBuilder, ApplicationCommandType, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, MessageFlags } from 'discord.js';
 import { getData, updateGuildData } from '../../../utils/db.js';
 import { isOwner } from '../../../utils/accessControl.js';
-
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { logger } from '../../../utils/logger.js';
 export default {
+
     data: new ContextMenuCommandBuilder()
         .setName('Global Ban')
         .setType(ApplicationCommandType.User)
@@ -11,7 +13,9 @@ export default {
     type: 2,
     canQueue: false,
 
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         if (!isOwner(interaction.user.id)) {
             return interaction.reply({
                 embeds: [{
@@ -19,7 +23,7 @@ export default {
                     title: '[ERROR] Access Denied',
                     description: 'Only the bot owner can use this command.'
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -32,7 +36,7 @@ export default {
                     title: '[ERROR] Self Action',
                     description: 'You cannot globally ban yourself.'
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -43,7 +47,7 @@ export default {
                     title: '[ERROR] Bot Protection',
                     description: 'You cannot globally ban the bot.'
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -81,7 +85,7 @@ export default {
                         title: '[WARNING] Already Blacklisted',
                         description: `${targetUser.tag} is already on the global blacklist.\nReason: ${entries[targetUser.id].reason}`
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -111,16 +115,16 @@ export default {
                     thumbnail: { url: targetUser.displayAvatarURL() },
                     timestamp: new Date().toISOString()
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
 
-            console.log(`[GLOBAL BAN] User ${targetUser.tag} globally blacklisted by ${interaction.user.tag}. Reason: ${reason}`);
+            logger.info(`[GLOBAL BAN] User ${targetUser.tag} globally blacklisted by ${interaction.user.tag}. Reason: ${reason}`);
 
         } catch (error) {
             if (error.message?.includes('time') || error.code === 'InteractionCollectorError') {
                 return;
             }
-            console.error('[GLOBAL BAN] Error:', error.message);
+            logger.error('[GLOBAL BAN] Error:', error.message);
             try {
                 await interaction.followUp({
                     embeds: [{
@@ -128,11 +132,27 @@ export default {
                         title: '[ERROR] Command Failed',
                         description: 'An error occurred while processing the global ban.'
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             } catch (e) {
-                console.error('[GLOBAL BAN] Failed to send error response:', e.message);
+                logger.error('[GLOBAL BAN] Failed to send error response:', e.message);
             }
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

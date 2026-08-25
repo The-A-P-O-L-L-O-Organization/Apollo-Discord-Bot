@@ -1,6 +1,7 @@
 import Plugin from '../../core/Plugin.js';
 import { initIntegrationPoller, stopIntegrationPoller } from '../../utils/integrationPoller.js';
 import { startWebhookServer, stopWebhookServer } from '../../utils/integrationWebhook.js';
+import { createLogger } from '../../utils/logger.js';
 
 export default class IntegrationsPlugin extends Plugin {
   static id = 'integrations';

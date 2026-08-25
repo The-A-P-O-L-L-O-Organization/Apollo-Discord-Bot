@@ -1,133 +1,39 @@
-// Warning Config Command
-// Configure warning thresholds per server
-
+import { logger } from '../../../utils/logger.js';
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
-
-export default {
-    name: 'warnconfig',
-    description: 'Configure warning system thresholds',
-    category: 'Moderation',
-    
-    defaultMemberPermissions: PermissionsBitField.Flags.Administrator,
-    dmPermission: false,
-    options: [
-        {
-            name: 'view',
-            description: 'View current warning configuration',
-            type: 1 // SUB_COMMAND
-        },
-        {
-            name: 'set',
-            description: 'Set a warning threshold',
-            type: 1, // SUB_COMMAND
-            options: [
-                {
-                    name: 'action',
-                    description: 'The punishment action',
-                    type: 3, // STRING type
-                    required: true,
-                    choices: [
-                        { name: 'Mute', value: 'mute' },
-                        { name: 'Kick', value: 'kick' },
-                        { name: 'Ban', value: 'ban' }
-                    ]
-                },
-                {
-                    name: 'warnings',
-                    description: 'Number of warnings to trigger action (0 to disable)',
-                    type: 4, // INTEGER type
-                    required: true,
-                    min_value: 0,
-                    max_value: 100
-                }
-            ]
-        },
-        {
-            name: 'setmuteduration',
-            description: 'Set auto-mute duration',
-            type: 1, // SUB_COMMAND
-            options: [
-                {
-                    name: 'duration',
-                    description: 'Duration (e.g., 1h, 1d, 1w)',
-                    type: 3, // STRING type
-                    required: true
-                }
-            ]
-        },
-        {
-            name: 'reset',
-            description: 'Reset to default configuration',
-            type: 1 // SUB_COMMAND
-        }
-    ],
-    
-    async execute(interaction) {
-        const subcommand = interaction.options.getSubcommand();
-        
-        try {
-            switch (subcommand) {
-            case 'view':
-                await handleView(interaction);
-                break;
-            case 'set':
-                await handleSet(interaction);
-                break;
-            case 'setmuteduration':
-                await handleSetMuteDuration(interaction);
-                break;
-            case 'reset':
-                await handleReset(interaction);
-                break;
-            }
-        } catch (error) {
-            console.error('[ERROR] Warn config command error:', error);
-            
-            await interaction.reply({
-                embeds: [{
-                    color: 0xFF0000,
-                    title: '[ERROR] Command Failed',
-                    description: 'An error occurred while configuring warnings.',
-                    fields: [{ name: 'Error', value: error.message }],
-                    timestamp: new Date().toISOString()
-                }],
-                flags: 64
-            });
-        }
-    }
-};
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
 async function handleView(interaction) {
     const guildConfig = await getGuildData('warnings-config', interaction.guild.id);
     const thresholds = guildConfig.thresholds || config.warnings.thresholds;
     const muteDuration = guildConfig.muteDuration || config.warnings.muteDuration;
-    
+
     const embed = new EmbedBuilder()
         .setColor('#0099FF')
         .setTitle('Warning Configuration')
         .setDescription(`Current warning thresholds for ${interaction.guild.name}`)
         .addFields(
-            { 
-                name: '[Mute] Auto-Mute Threshold', 
-                value: thresholds.mute ? `${thresholds.mute} warnings` : 'Disabled', 
-                inline: true 
+            {
+                name: '[Mute] Auto-Mute Threshold',
+                value: thresholds.mute ? `${thresholds.mute} warnings` : 'Disabled',
+                inline: true
             },
-            { 
-                name: '[Kick] Auto-Kick Threshold', 
-                value: thresholds.kick ? `${thresholds.kick} warnings` : 'Disabled', 
-                inline: true 
+            {
+                name: '[Kick] Auto-Kick Threshold',
+                value: thresholds.kick ? `${thresholds.kick} warnings` : 'Disabled',
+                inline: true
             },
-            { 
-                name: '[Ban] Auto-Ban Threshold', 
-                value: thresholds.ban ? `${thresholds.ban} warnings` : 'Disabled', 
-                inline: true 
+            {
+                name: '[Ban] Auto-Ban Threshold',
+                value: thresholds.ban ? `${thresholds.ban} warnings` : 'Disabled',
+                inline: true
             },
-            { 
-                name: '[Time] Auto-Mute Duration', 
-                value: formatDuration(muteDuration), 
-                inline: true 
+            {
+                name: '[Time] Auto-Mute Duration',
+                value: formatDuration(muteDuration),
+                inline: true
             }
         )
         .addFields({
@@ -137,26 +43,22 @@ async function handleView(interaction) {
         })
         .setTimestamp()
         .setFooter({ text: 'Use /warnconfig set to modify thresholds' });
-    
+
     await interaction.reply({ embeds: [embed] });
 }
 
 async function handleSet(interaction) {
     const action = interaction.options.getString('action');
     const warnings = interaction.options.getInteger('warnings');
-    
-    // Get current config
+
     const guildConfig = await getGuildData('warnings-config', interaction.guild.id);
-    
-    // Initialize thresholds if not exists
+
     if (!guildConfig.thresholds) {
         guildConfig.thresholds = { ...config.warnings.thresholds };
     }
-    
-    // Update threshold
+
     guildConfig.thresholds[action] = warnings === 0 ? null : warnings;
-    
-    // Validate thresholds (mute < kick < ban)
+
     const { mute, kick, ban } = guildConfig.thresholds;
     if (mute && kick && mute >= kick) {
         return interaction.reply({
@@ -166,7 +68,7 @@ async function handleSet(interaction) {
                 description: 'Mute threshold must be less than kick threshold.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     if (kick && ban && kick >= ban) {
@@ -177,7 +79,7 @@ async function handleSet(interaction) {
                 description: 'Kick threshold must be less than ban threshold.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     if (mute && ban && mute >= ban) {
@@ -188,34 +90,32 @@ async function handleSet(interaction) {
                 description: 'Mute threshold must be less than ban threshold.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
-    
-    // Save config
+
     await setGuildData('warnings-config', interaction.guild.id, guildConfig);
-    
+
     const embed = new EmbedBuilder()
         .setColor('#00FF00')
         .setTitle('[SUCCESS] Threshold Updated')
         .setDescription(
-            warnings === 0 
+            warnings === 0
                 ? `Auto-**${action}** has been **disabled**.`
                 : `Auto-**${action}** will now trigger at **${warnings}** warnings.`
         )
         .setTimestamp();
-    
+
     await interaction.reply({ embeds: [embed] });
-    
-    console.log(`[CONFIG] Warning ${action} threshold set to ${warnings} in ${interaction.guild.name}`);
+
+    logger.info(`[CONFIG] Warning ${action} threshold set to ${warnings} in ${interaction.guild.name}`);
 }
 
 async function handleSetMuteDuration(interaction) {
     const durationStr = interaction.options.getString('duration');
-    
-    // Parse duration
+
     const ms = parseDuration(durationStr);
-    
+
     if (!ms) {
         return interaction.reply({
             embeds: [{
@@ -224,32 +124,29 @@ async function handleSetMuteDuration(interaction) {
                 description: 'Please use a valid duration format: `1m`, `1h`, `1d`, `1w`',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
-    
-    // Get current config
+
     const guildConfig = await getGuildData('warnings-config', interaction.guild.id);
     guildConfig.muteDuration = ms;
-    
-    // Save config
+
     await setGuildData('warnings-config', interaction.guild.id, guildConfig);
-    
+
     const embed = new EmbedBuilder()
         .setColor('#00FF00')
         .setTitle('[SUCCESS] Mute Duration Updated')
         .setDescription(`Auto-mute duration set to **${formatDuration(ms)}**.`)
         .setTimestamp();
-    
+
     await interaction.reply({ embeds: [embed] });
-    
-    console.log(`[CONFIG] Warning mute duration set to ${ms}ms in ${interaction.guild.name}`);
+
+    logger.info(`[CONFIG] Warning mute duration set to ${ms}ms in ${interaction.guild.name}`);
 }
 
 async function handleReset(interaction) {
-    // Reset to defaults
     await setGuildData('warnings-config', interaction.guild.id, {});
-    
+
     const embed = new EmbedBuilder()
         .setColor('#00FF00')
         .setTitle('[SUCCESS] Configuration Reset')
@@ -261,26 +158,26 @@ async function handleReset(interaction) {
             { name: 'Mute Duration', value: formatDuration(config.warnings.muteDuration), inline: true }
         )
         .setTimestamp();
-    
+
     await interaction.reply({ embeds: [embed] });
-    
-    console.log(`[CONFIG] Warning config reset in ${interaction.guild.name}`);
+
+    logger.info(`[CONFIG] Warning config reset in ${interaction.guild.name}`);
 }
 
 function parseDuration(str) {
     const match = str.match(/^(\d+)([mhdw])$/i);
     if (!match) {return null;}
-    
+
     const value = parseInt(match[1]);
     const unit = match[2].toLowerCase();
-    
+
     const multipliers = {
         'm': 60000,
         'h': 3600000,
         'd': 86400000,
         'w': 604800000
     };
-    
+
     return value * (multipliers[unit] || 0);
 }
 
@@ -289,9 +186,112 @@ function formatDuration(ms) {
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
-    
+
     if (days > 0) {return `${days} day(s)`;}
     if (hours > 0) {return `${hours} hour(s)`;}
     if (minutes > 0) {return `${minutes} minute(s)`;}
     return `${seconds} second(s)`;
 }
+
+export default {
+    name: 'warnconfig',
+    description: 'Configure warning system thresholds',
+    category: 'Moderation',
+    defaultMemberPermissions: PermissionsBitField.Flags.Administrator,
+    dmPermission: false,
+    options: [
+        {
+            name: 'view',
+            description: 'View current warning configuration',
+            type: 1
+        },
+        {
+            name: 'set',
+            description: 'Set a warning threshold',
+            type: 1,
+            options: [
+                {
+                    name: 'action',
+                    description: 'The punishment action',
+                    type: 3,
+                    required: true,
+                    choices: [
+                        { name: 'Mute', value: 'mute' },
+                        { name: 'Kick', value: 'kick' },
+                        { name: 'Ban', value: 'ban' }
+                    ]
+                },
+                {
+                    name: 'warnings',
+                    description: 'Number of warnings to trigger action (0 to disable)',
+                    type: 4,
+                    required: true,
+                    min_value: 0,
+                    max_value: 100
+                }
+            ]
+        },
+        {
+            name: 'setmuteduration',
+            description: 'Set auto-mute duration',
+            type: 1,
+            options: [
+                {
+                    name: 'duration',
+                    description: 'Duration (e.g., 1h, 1d, 1w)',
+                    type: 3,
+                    required: true
+                }
+            ]
+        },
+        {
+            name: 'reset',
+            description: 'Reset to default configuration',
+            type: 1
+        }
+    ],
+
+    async execute(interaction) {
+        try {
+            const subcommand = interaction.options.getSubcommand();
+
+            try {
+                switch (subcommand) {
+                    case 'view':
+                        await handleView(interaction);
+                        break;
+                    case 'set':
+                        await handleSet(interaction);
+                        break;
+                    case 'setmuteduration':
+                        await handleSetMuteDuration(interaction);
+                        break;
+                    case 'reset':
+                        await handleReset(interaction);
+                        break;
+                }
+            } catch (error) {
+                logger.error('[ERROR] Warn config command error:', error);
+
+                await interaction.reply({
+                    embeds: [{
+                        color: 0xFF0000,
+                        title: '[ERROR] Command Failed',
+                        description: 'An error occurred while configuring warnings.',
+                        fields: [{ name: 'Error', value: error.message }],
+                        timestamp: new Date().toISOString()
+                    }],
+                    flags: MessageFlags.Ephemeral
+                });
+            }
+
+        } catch (error) {
+            const errorMessage = handleDiscordError(error);
+            if (interaction.replied || interaction.deferred) {
+                await safeFollowUp(interaction, errorMessage);
+            } else {
+                await safeReply(interaction, errorMessage);
+            }
+        }
+    }
+};

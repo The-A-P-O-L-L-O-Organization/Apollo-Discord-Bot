@@ -1,10 +1,13 @@
 // Autorole Command
+export default {
 // Configure automatic role assignment for new members
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
-export default {
     name: 'autorole',
     description: 'Configure automatic role assignment for new members',
     category: 'Moderation',
@@ -50,7 +53,9 @@ export default {
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             const subcommand = interaction.options.getSubcommand();
             
@@ -65,7 +70,7 @@ export default {
             }
             
         } catch (error) {
-            console.error('[ERROR] Autorole command error:', error);
+            logger.error('[ERROR] Autorole command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,
@@ -81,9 +86,25 @@ export default {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };
 
 async function handleSetRole(interaction) {
@@ -98,7 +119,7 @@ async function handleSetRole(interaction) {
                 description: 'I cannot assign roles that are higher than or equal to my highest role.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -111,7 +132,7 @@ async function handleSetRole(interaction) {
                 description: 'You cannot set @everyone as the auto-role.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -146,7 +167,7 @@ async function handleSetRole(interaction) {
     
     await interaction.reply({ embeds: [successEmbed] });
     
-    console.log(`[CONFIG] Auto-role set to ${role.name} in ${interaction.guild.name}`);
+    logger.info(`[CONFIG] Auto-role set to ${role.name} in ${interaction.guild.name}`);
 }
 
 async function handleRemoveRole(interaction) {
@@ -160,7 +181,7 @@ async function handleRemoveRole(interaction) {
                 description: 'There is no auto-role configured.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -179,7 +200,7 @@ async function handleRemoveRole(interaction) {
     
     await interaction.reply({ embeds: [successEmbed] });
     
-    console.log(`[CONFIG] Auto-role removed in ${interaction.guild.name}`);
+    logger.info(`[CONFIG] Auto-role removed in ${interaction.guild.name}`);
 }
 
 async function handleToggle(interaction) {
@@ -195,7 +216,7 @@ async function handleToggle(interaction) {
                 description: 'Please set an auto-role first.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -235,7 +256,7 @@ async function handleView(interaction) {
                 description: 'Use `/autorole set` to configure auto-role.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -264,5 +285,5 @@ async function handleView(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [viewEmbed], flags: 64 });
+    await interaction.reply({ embeds: [viewEmbed], flags: MessageFlags.Ephemeral });
 }

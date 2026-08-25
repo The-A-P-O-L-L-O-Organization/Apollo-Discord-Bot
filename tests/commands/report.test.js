@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+ 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock the database utilities
@@ -15,13 +15,18 @@ vi.mock('../../src/utils/modLog.js', () => ({
 
 // Mock the logger utility
 vi.mock('../../src/utils/logger.js', () => ({
-    getLoggingConfig: vi.fn()
+    getLoggingConfig: vi.fn(),
+    logger: {
+        error: vi.fn(),
+        info: vi.fn()
+    }
 }));
 
 import { updateGuildData, generateId } from '../../src/utils/db.js';
-import { getLoggingConfig } from '../../src/utils/logger.js';
+import { getLoggingConfig, logger } from '../../src/utils/logger.js';
 import reportCommand from '../../src/plugins/utility/commands/report.js';
 import { handleReportSubmission } from '../../src/utils/reportHandler.js';
+import { MessageFlags } from 'discord.js';
 
 describe('Report Command', () => {
     let interaction;
@@ -120,7 +125,7 @@ describe('Report Command', () => {
             expect(interaction.showModal).not.toHaveBeenCalled();
             expect(interaction.reply).toHaveBeenCalledWith({
                 content: '[ERROR] Could not find the message to report.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         });
 
@@ -133,7 +138,7 @@ describe('Report Command', () => {
             expect(interaction.showModal).not.toHaveBeenCalled();
             expect(interaction.reply).toHaveBeenCalledWith({
                 content: '[ERROR] You cannot report your own message.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         });
 
@@ -149,7 +154,7 @@ describe('Report Command', () => {
                     title: '[ERROR] Report Failed',
                     color: 0xFF0000
                 })],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         });
     });
@@ -268,7 +273,7 @@ describe('Report Handler', () => {
             expect(result).toBe(true);
             expect(interaction.reply).toHaveBeenCalledWith({
                 content: '[ERROR] Could not find the original message. The report has been cancelled.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         });
 
@@ -280,7 +285,7 @@ describe('Report Handler', () => {
             expect(result).toBe(true);
             expect(interaction.reply).toHaveBeenCalledWith({
                 content: '[ERROR] Could not fetch the message. It may have been deleted.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         });
 
@@ -305,7 +310,7 @@ describe('Report Handler', () => {
                         expect.objectContaining({ name: '[INFO] Channel', value: '<#channel123>' })
                     ])
                 })],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         });
 
@@ -406,7 +411,7 @@ describe('Report Handler', () => {
             const result = await handleReportSubmission(interaction, client);
 
             expect(result).toBe(false);
-            expect(console.error).toHaveBeenCalledWith('[ERROR] Report submission error:', expect.any(Error));
+            expect(logger.error).toHaveBeenCalledWith('[ERROR] Report submission error:', expect.any(Error));
         });
     });
 });

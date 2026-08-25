@@ -1,9 +1,11 @@
 // Roleinfo Command
-// Display detailed information about a role
-
-import { PermissionsBitField } from 'discord.js';
-
 export default {
+// Display detailed information about a role
+import { logger } from '../../../utils/logger.js';
+
+import { PermissionsBitField, MessageFlags } from 'discord.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+
     name: 'roleinfo',
     description: 'Display detailed information about a role',
     category: 'Utility',
@@ -18,7 +20,9 @@ export default {
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             const role = interaction.options.getRole('role');
             
@@ -84,7 +88,7 @@ export default {
             await interaction.reply({ embeds: [roleEmbed] });
             
         } catch (error) {
-            console.error('[ERROR] Roleinfo command error:', error);
+            logger.error('[ERROR] Roleinfo command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,
@@ -100,7 +104,23 @@ export default {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

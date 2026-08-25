@@ -4,6 +4,8 @@
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { safeError } from '../../../utils/safeError.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
 export default {
     name: 'clear',
@@ -42,7 +44,7 @@ export default {
                         title: '[ERROR] Invalid Channel',
                         description: 'Messages can only be cleared in text channels.'
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -61,7 +63,7 @@ export default {
                     title: '[ERROR] Command Failed',
                     description: safeError(error)
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
     },
@@ -76,7 +78,7 @@ export default {
                     title: '[WARNING] No Messages',
                     description: 'No messages found to delete.'
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 

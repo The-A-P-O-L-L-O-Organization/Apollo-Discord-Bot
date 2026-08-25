@@ -1,7 +1,10 @@
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
+export default {
 // Avatar Command
 // Display a user's avatar
+import { logger } from '../../../utils/logger.js';
 
-export default {
     name: 'avatar',
     description: 'Display a user\'s avatar',
     category: 'Utility',
@@ -22,7 +25,9 @@ export default {
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             const user = interaction.options.getUser('user') || interaction.user;
             const serverAvatar = interaction.options.getBoolean('server') || false;
@@ -74,7 +79,7 @@ export default {
             await interaction.reply({ embeds: [avatarEmbed] });
             
         } catch (error) {
-            console.error('[ERROR] Avatar command error:', error);
+            logger.error('[ERROR] Avatar command error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,
@@ -90,7 +95,23 @@ export default {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

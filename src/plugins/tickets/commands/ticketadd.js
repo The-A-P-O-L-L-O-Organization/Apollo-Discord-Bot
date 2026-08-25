@@ -1,7 +1,10 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
-
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { logger } from '../../../utils/logger.js';
+import { MessageFlags } from 'discord.js';
 export default {
+
     name: 'ticketadd',
     data: new SlashCommandBuilder()
         .setName('ticketadd')
@@ -15,7 +18,9 @@ export default {
         .setDMPermission(false),
     category: 'utility',
 
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         const guildId = interaction.guild.id;
         const channelId = interaction.channel.id;
         const addUser = interaction.options.getUser('user');
@@ -27,7 +32,7 @@ export default {
         if (!ticket) {
             return interaction.reply({
                 content: 'This channel is not a ticket channel.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -40,16 +45,16 @@ export default {
         if (!isTicketOwner && !isAssigned && !hasSupport && !isAdmin) {
             return interaction.reply({
                 content: 'You do not have permission to add users to this ticket.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
         if (!ticket.participants) {ticket.participants = [ticket.userId];}
-        
+         
         if (ticket.participants.includes(addUser.id)) {
             return interaction.reply({
                 content: `${addUser} is already in this ticket.`,
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -70,10 +75,10 @@ export default {
                 AttachFiles: true
             });
         } catch (error) {
-            console.error('[ERROR] Failed to update channel permissions:', error);
+            logger.error('[ERROR] Failed to update channel permissions:', error);
             return interaction.reply({
                 content: 'Failed to add user to ticket. Please check my permissions.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -106,5 +111,21 @@ export default {
             await addUser.send({ embeds: [dmEmbed] });
         } catch (error) {
         }
+
+} catch (error) {
+    const errorMessage = handleDiscordError(error);
+    if (interaction.replied || interaction.deferred) {
+        await safeFollowUp(interaction, errorMessage);
+    } else {
+        await safeReply(interaction, errorMessage);
+    }
+}
+
+} catch (error) {
+    const errorMessage = handleDiscordError(error);
+    if (interaction.replied || interaction.deferred) {
+        await safeFollowUp(interaction, errorMessage);
+    } else {
+        await safeReply(interaction, errorMessage);
     }
 };

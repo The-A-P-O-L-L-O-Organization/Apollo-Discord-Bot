@@ -1,4 +1,5 @@
-/* eslint-disable no-console */
+import { logger } from '../utils/logger.js';
+ 
 // Structured Logger
 // JSON logging with levels, correlation IDs, and structured fields
 
@@ -86,7 +87,7 @@ function _formatLog(level, message, meta = {}) {
  */
 export function debug(message, meta = {}) {
     if (_logLevel <= LOG_LEVELS.debug) {
-        console.log(_formatLog('debug', message, meta));
+        logger.info(_formatLog('debug', message, meta));
     }
 }
 
@@ -97,7 +98,7 @@ export function debug(message, meta = {}) {
  */
 export function info(message, meta = {}) {
     if (_logLevel <= LOG_LEVELS.info) {
-        console.log(_formatLog('info', message, meta));
+        logger.info(_formatLog('info', message, meta));
     }
 }
 
@@ -108,7 +109,7 @@ export function info(message, meta = {}) {
  */
 export function warn(message, meta = {}) {
     if (_logLevel <= LOG_LEVELS.warn) {
-        console.warn(_formatLog('warn', message, meta));
+        logger.warn(_formatLog('warn', message, meta));
     }
 }
 
@@ -119,7 +120,7 @@ export function warn(message, meta = {}) {
  */
 export function error(message, meta = {}) {
     if (_logLevel <= LOG_LEVELS.error) {
-        console.error(_formatLog('error', message, meta));
+        logger.error(_formatLog('error', message, meta));
     }
 }
 
@@ -130,7 +131,7 @@ export function error(message, meta = {}) {
  * @param {boolean} exit - Whether to exit process
  */
 export function fatal(message, meta = {}, exit = true) {
-    console.error(_formatLog('fatal', message, meta));
+    logger.error(_formatLog('fatal', message, meta));
     if (exit) {
         process.exit(1);
     }

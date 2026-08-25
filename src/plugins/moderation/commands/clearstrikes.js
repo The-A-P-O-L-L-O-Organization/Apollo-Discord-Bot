@@ -1,12 +1,15 @@
 // Clear Strikes Command
+export default {
 // Remove strikes from a user
+import { logger } from '../../../utils/logger.js';
 
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { getUserData, setUserData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { safeError } from '../../../utils/safeError.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
-export default {
     name: 'clearstrikes',
     description: 'Remove strikes from a user',
     category: 'Moderation',
@@ -28,7 +31,9 @@ export default {
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             const user = interaction.options.getUser('user');
             const strikeId = interaction.options.getString('strike_id');
@@ -41,7 +46,7 @@ export default {
                         description: 'Please specify a valid user.',
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
             
@@ -56,7 +61,7 @@ export default {
                         description: `${user.tag} has no strikes to clear.`,
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
             
@@ -75,7 +80,7 @@ export default {
                             description: `Strike with ID ${strikeId} not found.`,
                             timestamp: new Date().toISOString()
                         }],
-                        flags: 64
+                        flags: MessageFlags.Ephemeral
                     });
                 }
                 
@@ -124,7 +129,7 @@ export default {
                 }
             });
             
-            console.log(`[MODERATION] ${removed} strike(s) cleared for ${user.tag} by ${interaction.user.tag}`);
+            logger.info(`[MODERATION] ${removed} strike(s) cleared for ${user.tag} by ${interaction.user.tag}`);
             
         } catch (error) {
             const errorEmbed = {
@@ -138,8 +143,24 @@ export default {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

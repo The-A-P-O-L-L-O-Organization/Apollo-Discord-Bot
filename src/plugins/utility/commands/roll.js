@@ -1,5 +1,7 @@
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 // Dice Command
 // Roll dice for random numbers
+import { MessageFlags } from 'discord.js';
 
 export default {
     name: 'roll',
@@ -16,7 +18,9 @@ export default {
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             const diceStr = interaction.options.getString('dice') || '1d6';
             
@@ -29,7 +33,7 @@ export default {
                         description: 'Dice notation is too long. Please use format like "2d6" or "1d20".',
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
             
@@ -44,7 +48,7 @@ export default {
                         description: 'Please use dice notation (e.g., 2d6, 1d20). Maximum 10 dice with up to 100 sides each.',
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
             
@@ -60,7 +64,7 @@ export default {
                         description: 'You must roll at least 1 die.',
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
             
@@ -72,7 +76,7 @@ export default {
                         description: 'Dice must have at least 2 sides.',
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
             
@@ -138,7 +142,23 @@ export default {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

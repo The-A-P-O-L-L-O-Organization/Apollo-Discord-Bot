@@ -1,3 +1,5 @@
+import { logger } from '../utils/logger.js';
+
 export const SECURITY_LOG_ENTRY_KEYS = ['ts', 'event', 'pluginId', 'guildId', 'userId', 'targetId', 'reason', 'requestId'];
 
 export function logSecurityEvent(fields) {
@@ -6,7 +8,7 @@ export function logSecurityEvent(fields) {
         entry[key] = fields[key] !== undefined ? fields[key] : null;
     }
     entry.ts = fields.ts || Date.now();
-    console.log(`[SECURITY] ${JSON.stringify(entry)}`);
+    logger.info(`[SECURITY] ${JSON.stringify(entry)}`);
     return entry;
 }
 

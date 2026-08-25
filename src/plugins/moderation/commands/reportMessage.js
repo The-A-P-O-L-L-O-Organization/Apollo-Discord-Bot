@@ -1,5 +1,7 @@
 // Report Message Context Menu Command
+export default {
 // Allows users to report messages to moderators
+import { logger } from '../../../utils/logger.js';
 
 import { 
     ContextMenuCommandBuilder, 
@@ -12,13 +14,16 @@ import {
 } from 'discord.js';
 import { generateId, appendToGuildArray } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
-export default {
     data: new ContextMenuCommandBuilder()
         .setName('Report Message')
         .setType(ApplicationCommandType.Message),
     
-    async execute(interaction) {
+    async execute(interaction) {try {
+try {
+
         try {
             // Get the target message
             const message = interaction.targetMessage;
@@ -32,7 +37,7 @@ export default {
                         description: 'You cannot report your own messages.',
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
             
@@ -45,7 +50,7 @@ export default {
                         description: 'You cannot report bot messages.',
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
             
@@ -156,13 +161,13 @@ export default {
                     ],
                     timestamp: new Date().toISOString()
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
             
-            console.log(`[REPORT] Message ${message.id} reported by ${interaction.user.tag} (Report ID: ${reportId})`);
+            logger.info(`[REPORT] Message ${message.id} reported by ${interaction.user.tag} (Report ID: ${reportId})`);
             
         } catch (error) {
-            console.error('[ERROR] Report message error:', error);
+            logger.error('[ERROR] Report message error:', error);
             
             const errorEmbed = {
                 color: 0xFF0000,
@@ -175,8 +180,24 @@ export default {
             if (interaction.replied || interaction.deferred) {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
         }
-    }
+    
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
+}
+
+} catch (error) {
+  const errorMessage = handleDiscordError(error);
+  if (interaction.replied || interaction.deferred) {
+    await safeFollowUp(interaction, errorMessage);
+  } else {
+    await safeReply(interaction, errorMessage);
+  }
 };

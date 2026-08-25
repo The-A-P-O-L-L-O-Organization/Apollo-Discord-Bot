@@ -1,4 +1,5 @@
-/* eslint-disable no-console */
+import { logger } from '../utils/logger.js';
+ 
 export const MetricsNames = {
     QUEUE_WAITING: 'apollo_queue_waiting',
     QUEUE_ACTIVE: 'apollo_queue_active',
@@ -33,7 +34,7 @@ export async function getQueueMetrics(queueConfig) {
 
         return { waiting, active, failed };
     } catch (err) {
-        console.error('[Metrics] Failed to get queue metrics:', err.message);
+        logger.error('[Metrics] Failed to get queue metrics:', err.message);
         return { waiting: -1, active: -1, failed: -1 };
     }
 }
