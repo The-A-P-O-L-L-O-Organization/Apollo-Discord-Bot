@@ -4,8 +4,8 @@
 This directory contains Discord slash command implementations for moderation actions. Each file exports a command object that defines a specific moderation operation (e.g., ban, kick, mute, warn) and its execution logic.
 
 ## Design
-- **Command Pattern**: Each file encapsulates a single command as a self‑contained module exporting an object with `name`, `description`, `category`, `defaultMemberPermissions`, `dmPermission`, `options`, and an `async execute(interaction)` method.
-- **Modular Utilities**: Shared cross‑cutting concerns (mod logging, case creation, analytics, permission checks, error handling) are abstracted into utility modules under `src/plugins/moderation/utils/` and imported as needed.
+- **Command Pattern**: Each file encapsulates a single command as a self‑contained module exporting a default object with `name`, `description`, `category`, `defaultMemberPermissions`, `dmPermission`, `options`, and an `async execute(interaction)` method.
+- **Modular Utilities**: Shared cross‑cutting concerns (mod logging, case creation, analytics, permission checks, error handling, Discord error helpers) are abstracted into utility modules under `src/plugins/moderation/utils/` and imported as needed.
 - **Discord.js Integration**: Command structure follows discord.js API for slash commands, using `Interaction` objects and `PermissionsBitField` for permission validation.
 
 ## Flow
@@ -22,16 +22,17 @@ This directory contains Discord slash command implementations for moderation act
    - Success embed is replied to the interaction.
    - A moderation log entry is dispatched via `sendModLog`.
    - Action is logged to console.
-6. **Error Handling**: Any thrown error is caught, an error embed is constructed with `safeError`, and replied via `editReply` or `reply`.
+6. **Error Handling**: Any thrown error is caught, an error embed is constructed with `safeError`, and replied via `editReply` or `reply`; Discord-specific errors are handled via `handleDiscordError`, `safeReply`, `safeFollowUp`.
 
 ## Integration
 - **Dependencies**: 
   - `discord.js` (core library)
-  - `../../../utils/modLog.js` (sendModLog)
-  - `../../../utils/modLog.js` (fetchMember)
+  - `../../../utils/modLog.js` (sendModLog, fetchMember)
   - `./case.js` (createModCase)
   - `../../../utils/analyticsCollector.js` (trackModAction, flushAnalyticsCritical)
   - `../../../utils/moderation.js` (canModerate)
   - `../../../utils/safeError.js` (safeError)
+  - `../../../utils/discordErrors.js` (handleDiscordError, safeReply, safeFollowUp)
+  - `../../../utils/logger.js` (logger)
 - **Consumers**: The command loader in `src/plugins/moderation/index.js` (or equivalent) dynamically imports all `.js` files in this directory and registers their exported objects with the Discord client’s command registry.
 - **Events**: No custom events are emitted; side effects occur via direct utility function calls and Discord API interactions.

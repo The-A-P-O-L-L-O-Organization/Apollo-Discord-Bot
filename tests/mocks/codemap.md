@@ -4,7 +4,7 @@
 Provides mock implementations of Discord.js objects for unit and integration testing, enabling isolated testing of bot logic without external API calls.
 
 ## Design
-- Factory pattern: Functions like `createMockUser`, `createMockMember`, etc., generate configurable mock objects.
+- Factory pattern: Functions like `createMockUser`, `createMockMember`, `createMockGuild`, `createMockChannel`, `createMockMessage`, `createMockInteraction`, `createMockClient`, `createMockVoiceState`, and `createRolesCache` generate configurable mock objects.
 - MockCollection class extends Map with Vitest vi.fn spies on collection methods (get, filter, find, etc.) to track interactions.
 - toMockCollection utility converts Maps, Arrays, or existing MockCollections to MockCollection instances.
 - Each mock factory returns plain objects with properties settable via options and vi.fn stubbed methods (e.g., send, reply, delete) for behavior verification.
