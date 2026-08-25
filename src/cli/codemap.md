@@ -1,5 +1,5 @@
 Responsibility
-Provides a command-line interface for managing the Apollo Discord bot, including argument parsing, command discovery, output formatting, and inter-process communication with the bot core via Unix socket.
+Provides a command-line interface for managing the Apollo Discord bot, including argument parsing, command discovery from plugin CLI modules, output formatting, and inter-process communication with the bot core via Unix socket.
 
 Design
 Modular architecture separating concerns: argument parsing (parse.js), text formatting (format.js), command discovery from plugin directories (discover.js), socket-based client/server communication (socket-client.js, socket-server.js), and central orchestration (index.js). Uses Facade pattern in index.js to coordinate submodules, Strategy pattern for plugin command handlers, and Dependency Injection for plugin manager integration.
@@ -10,7 +10,7 @@ Flow
 3. discoverCommands scans ../plugins/*/cli/index.js to build commandMap.
 4. resolveCommand matches path against commandMap to locate target command.
 5. If command.needsSocket, sendSocketCommand transmits JSON payload to Unix socket; otherwise executes command.execute locally.
-6. Results are formatted via formatSuccess/formatError and returned as string.
+6. Results are formatted via formatSuccess/formatError/formatInfo and returned as string.
 7. Flags validation and help generation occur throughout.
 
 Integration

@@ -1,18 +1,20 @@
 # Responsibility
-This directory contains administrative slash command implementations for managing bot configuration, moderation utilities, plugin lifecycle, database operations, queue monitoring, and system health. Each file exports a command object following the bot's command pattern.
+This directory contains administrative slash command implementations for managing bot configuration, moderation utilities, plugin lifecycle, database operations, queue monitoring, reaction roles, and system health. Each file exports a command object following the bot's command pattern, providing admin and developer-only functionality for server management and bot maintenance.
 
 # Design
 - **Pattern**: Modular command structure using `export default` with `name`, `description`, `category`, `options` (for subcommands), and `execute` async function.
 - **Abstractions**: 
   - `SlashCommandBuilder` (discord.js) for defining command structure.
   - Subcommand pattern via `interaction.options.getSubcommand()`.
-  - Data access layer through `getGuildData`/`setGuildData` utilities.
+  - Data access layer through `getGuildData`/`setGuildData` utilities for guild-specific storage.
   - Permission checks using `PermissionFlagsBits` and role hierarchy validation.
   - Embedded responses using `EmbedBuilder` for structured output.
+  - Error handling via `handleDiscordError`, `safeReply`, and `safeFollowUp` utilities.
 - **Interfaces**: 
   - Input: `Interaction` object from discord.js.
   - Output: `InteractionReplyOptions` or `InteractionEditReplyOptions`.
   - Data contracts: Guild-specific JSON objects stored via database utilities.
+  - Developer-only commands require bot owner verification via `requireOwner`.
 
 # Flow
 1. **Entry**: Interaction received from command handler.
@@ -30,6 +32,8 @@ This directory contains administrative slash command implementations for managin
   - `../../../utils/db.js` (getGuildData, setGuildData)
   - `../../../config/config.js` (bot configuration)
   - `../../../utils/safeError.js` (error formatting)
+  - `../../../utils/discordErrors.js` (error handling)
+  - `../../../utils/accessControl.js` (requireOwner)
   - `../../../core/PluginRegistry.js` (plugin command only)
   - `../../../queue/metrics.js` (queue command only)
   - `../../../db/knex.js` (migrate command only)
@@ -42,3 +46,5 @@ This directory contains administrative slash command implementations for managin
   - Database migration system (migrate command)
   - Queue monitoring system (queue command)
   - Health check system (system command)
+  - Plugin management system (plugin command)
+  - Logging channel configuration (setlogchannel command)
