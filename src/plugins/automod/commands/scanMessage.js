@@ -2,7 +2,7 @@
 // Right-click a message → "Scan for NSFW"
 import { logger } from './utils/logger.js';
 
-import { ApplicationCommandType, EmbedBuilder, PermissionsBitField } from 'discord.js';
+import { ApplicationCommandType, EmbedBuilder, PermissionsBitField, MessageFlags } from 'discord.js';
 import { checkMessageAttachments, formatNsfwPredictions } from '../../../utils/nsfwDetection.js';
 import { safeError } from '../../../utils/safeError.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
@@ -26,7 +26,7 @@ try {
                         description: 'I cannot view this channel.',
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -34,7 +34,7 @@ try {
             const targetMessage = interaction.targetMessage;
 
             // Defer reply since NSFW detection might take a moment
-            await interaction.deferReply({ flags: 64 });
+            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
             // Check the message attachments for NSFW content
             const result = await checkMessageAttachments(interaction.guild.id, targetMessage);

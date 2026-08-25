@@ -3,6 +3,7 @@ import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
 async function handleView(interaction) {
     const guildConfig = await getGuildData('warnings-config', interaction.guild.id);
@@ -67,7 +68,7 @@ async function handleSet(interaction) {
                 description: 'Mute threshold must be less than kick threshold.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     if (kick && ban && kick >= ban) {
@@ -78,7 +79,7 @@ async function handleSet(interaction) {
                 description: 'Kick threshold must be less than ban threshold.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     if (mute && ban && mute >= ban) {
@@ -89,7 +90,7 @@ async function handleSet(interaction) {
                 description: 'Mute threshold must be less than ban threshold.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
 
@@ -123,7 +124,7 @@ async function handleSetMuteDuration(interaction) {
                 description: 'Please use a valid duration format: `1m`, `1h`, `1d`, `1w`',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
 
@@ -280,7 +281,7 @@ export default {
                         fields: [{ name: 'Error', value: error.message }],
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
 

@@ -17,7 +17,21 @@ vi.mock('discord.js', () => ({
         Flags: {
             ManageMessages: 'ManageMessages'
         }
-    }
+    },
+    MessageFlags: {
+        Ephemeral: 64
+    },
+    EmbedBuilder: vi.fn().mockImplementation(() => ({
+        setColor: vi.fn().mockReturnThis(),
+        setTitle: vi.fn().mockReturnThis(),
+        setDescription: vi.fn().mockReturnThis(),
+        setTimestamp: vi.fn().mockReturnThis(),
+        addFields: vi.fn().mockReturnThis(),
+        setFooter: vi.fn().mockReturnThis(),
+        setAuthor: vi.fn().mockReturnThis(),
+        setImage: vi.fn().mockReturnThis(),
+        setThumbnail: vi.fn().mockReturnThis()
+    }))
 }));
 
 describe('Tag Command', () => {

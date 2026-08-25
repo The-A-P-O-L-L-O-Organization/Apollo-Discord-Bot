@@ -2,6 +2,7 @@ import { config } from '../../../config/config.js';
 import { getQueueMetrics } from '../../../queue/metrics.js';
 import { requireOwner } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
 export default {
     name: 'queue',
@@ -27,11 +28,11 @@ try {
           description: 'Set `QUEUE_ENABLED=true` and configure `REDIS_HOST`/`REDIS_PORT` to enable the work queue.',
           timestamp: new Date().toISOString()
         }],
-        flags: 64
+        flags: MessageFlags.Ephemeral
       });
     }
 
-    await interaction.deferReply({ flags: 64 });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const metrics = await getQueueMetrics(config.queue);
 

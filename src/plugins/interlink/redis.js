@@ -1,4 +1,4 @@
-import { getRedis } from '../../utils/redis.js';
+import { createRedisClient, closeRedisClient } from '../../utils/redis.js';
 import { logger } from '../../utils/logger.js';
 
 export default class RedisTransport {
@@ -18,8 +18,8 @@ export default class RedisTransport {
     }
 
     async connect(onMessage) {
-        this._pub = getRedis('interlink-pub');
-        this._sub = getRedis('interlink-sub');
+        this._pub = createRedisClient('interlink-pub');
+        this._sub = createRedisClient('interlink-sub');
         await this._pub.connect();
         await this._sub.connect();
         this._messageHandler = onMessage;
@@ -57,8 +57,13 @@ export default class RedisTransport {
         if (this._sub) {
             await this._sub.unsubscribe(this._messageChannel);
         }
-        // Don't disconnect - shared connections managed by redis.js
-        this._pub = null;
-        this._sub = null;
+        if (this._pub) {
+            await closeRedisClient(this._pub);
+            this._pub = null;
+        }
+        if (this._sub) {
+            await closeRedisClient(this._sub);
+            this._sub = null;
+        }
     }
 }

@@ -2,7 +2,7 @@
 // Configure automatic moderation settings per server
 import { logger } from '../../../utils/logger.js';
 
-import { PermissionsBitField, EmbedBuilder, ChannelType } from 'discord.js';
+import { PermissionsBitField, EmbedBuilder, ChannelType, MessageFlags } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
 import { safeError } from '../../../utils/safeError.js';
@@ -323,7 +323,7 @@ async function handleAddWord(interaction) {
                 description: `The word \`${word}\` is already in the banned list.`,
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -337,7 +337,7 @@ async function handleAddWord(interaction) {
         .addFields({ name: 'Total Banned Words', value: `${guildConfig.bannedWords.length}` })
         .setTimestamp();
     
-    await interaction.reply({ embeds: [embed], flags: 64 });
+    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     logger.info(`[AUTOMOD] Added banned word in ${interaction.guild.name}`);
 }
 
@@ -353,7 +353,7 @@ async function handleRemoveWord(interaction) {
                 description: `The word \`${word}\` is not in the banned list.`,
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -367,7 +367,7 @@ async function handleRemoveWord(interaction) {
         .addFields({ name: 'Total Banned Words', value: `${guildConfig.bannedWords.length}` })
         .setTimestamp();
     
-    await interaction.reply({ embeds: [embed], flags: 64 });
+    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     logger.info(`[AUTOMOD] Removed banned word in ${interaction.guild.name}`);
 }
 
@@ -382,7 +382,7 @@ async function handleListWords(interaction) {
                 description: 'No banned words configured.\n\nUse `/automod addword <word>` to add words.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -399,7 +399,7 @@ async function handleListWords(interaction) {
         .setTimestamp()
         .setFooter({ text: 'Words are partially censored for safety' });
     
-    await interaction.reply({ embeds: [embed], flags: 64 });
+    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
 async function handleSet(interaction) {
@@ -423,7 +423,7 @@ async function handleSet(interaction) {
                     description: `Please provide a number for ${setting}.`,
                     timestamp: new Date().toISOString()
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
         
@@ -436,7 +436,7 @@ async function handleSet(interaction) {
                     description: 'Max caps percent must be between 0 and 100.',
                     timestamp: new Date().toISOString()
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
         
@@ -444,7 +444,7 @@ async function handleSet(interaction) {
         if (setting !== 'maxCapsPercent' && value <= 0) {
             return interaction.reply({
                 content: `${setting} must be a positive number greater than zero.`,
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
     }
@@ -481,7 +481,7 @@ async function handleExemptChannel(interaction) {
                     description: `${channel} is already exempt from automod.`,
                     timestamp: new Date().toISOString()
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
         
@@ -505,7 +505,7 @@ async function handleExemptChannel(interaction) {
                     description: `${channel} is not currently exempt.`,
                     timestamp: new Date().toISOString()
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
         
@@ -541,7 +541,7 @@ async function handleExemptRole(interaction) {
                     description: `${role} is already exempt from automod.`,
                     timestamp: new Date().toISOString()
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
         
@@ -565,7 +565,7 @@ async function handleExemptRole(interaction) {
                     description: `${role} is not currently exempt.`,
                     timestamp: new Date().toISOString()
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
         
@@ -593,7 +593,7 @@ async function handleScan(interaction) {
         // Check if NSFW filter is enabled for this guild
         const cfg = await getAutomodConfig(interaction.guild.id);
         if (!cfg.nsfwFilter) {
-            return interaction.reply({ content: 'NSFW filter is disabled for this server.', flags: 64 });
+            return interaction.reply({ content: 'NSFW filter is disabled for this server.', flags: MessageFlags.Ephemeral });
         }
 
         // Validate channel is text-based and in guild
@@ -605,7 +605,7 @@ async function handleScan(interaction) {
                     description: 'Please select a text channel in this server.',
                     timestamp: new Date().toISOString()
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -618,11 +618,11 @@ async function handleScan(interaction) {
                     description: 'I cannot view messages in that channel.',
                     timestamp: new Date().toISOString()
                 }],
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
         }
 
-        await interaction.deferReply({ flags: 64 });
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         let messagesScanned = 0;
         let nsfwFound = 0;

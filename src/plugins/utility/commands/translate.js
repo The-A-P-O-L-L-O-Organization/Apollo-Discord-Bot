@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
+import { ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, MessageFlags } from 'discord.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
 export default {
@@ -14,7 +14,7 @@ try {
         if (!translationService) {
             await interaction.reply({
                 content: 'Translation service is not available.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
             return;
         }
@@ -25,7 +25,7 @@ try {
         if (!textToTranslate || textToTranslate.trim().length === 0) {
             await interaction.reply({
                 content: 'That message doesn\'t have any text to translate.',
-                flags: 64
+                flags: MessageFlags.Ephemeral
             });
             return;
         }
@@ -54,7 +54,7 @@ try {
 
             const targetLanguage = modalSubmit.fields.getTextInputValue('target_language').trim() || 'EN';
 
-            await modalSubmit.deferReply({ flags: 64 });
+            await modalSubmit.deferReply({ flags: MessageFlags.Ephemeral });
 
             const translation = await translationService.translate(textToTranslate, targetLanguage);
 
@@ -76,7 +76,7 @@ try {
                 errorMessage = 'Too many translation requests. Please wait a moment.';
             }
 
-            await interaction.followUp({ content: errorMessage, flags: 64 });
+            await interaction.followUp({ content: errorMessage, flags: MessageFlags.Ephemeral });
         }
     
 } catch (error) {

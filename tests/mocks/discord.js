@@ -288,6 +288,9 @@ export function createMockClient(options = {}) {
         },
         config: options.config || {},
         commands: new Map(),
+        on: vi.fn(),
+        once: vi.fn(),
+        removeListener: vi.fn(),
         ...options
     };
 }

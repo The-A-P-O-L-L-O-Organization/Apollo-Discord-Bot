@@ -5,6 +5,7 @@ import { logger } from '../../../utils/logger.js';
 
 import { getAllUserData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
     name: 'leaderboard',
     description: 'Show the top users by level or XP',
@@ -51,7 +52,7 @@ try {
                         description: 'No leveling data available yet.',
                         timestamp: new Date().toISOString()
                     }],
-                    flags: 64
+                    flags: MessageFlags.Ephemeral
                 });
             }
             
@@ -126,7 +127,7 @@ try {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
     
 } catch (error) {

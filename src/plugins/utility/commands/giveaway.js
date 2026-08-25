@@ -3,7 +3,7 @@ export default {
 // Create and manage giveaways
 import { logger } from '../../../utils/logger.js';
 
-import { PermissionsBitField, EmbedBuilder } from 'discord.js';
+import { PermissionsBitField, EmbedBuilder, MessageFlags } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 
@@ -98,7 +98,7 @@ try {
                 timestamp: new Date().toISOString()
             };
             
-            await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
     
 } catch (error) {
@@ -134,7 +134,7 @@ async function handleCreate(interaction) {
                 description: 'Use format like 1h, 30m, 1d, 7d',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -200,7 +200,7 @@ async function handleCreate(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.followUp({ embeds: [successEmbed], flags: 64 });
+    await interaction.followUp({ embeds: [successEmbed], flags: MessageFlags.Ephemeral });
 }
 
 async function handleEnd(interaction) {
@@ -217,7 +217,7 @@ async function handleEnd(interaction) {
                 description: 'No active giveaway found with that ID.',
                 timestamp: new Date().toISOString()
             }],
-            flags: 64
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -229,7 +229,7 @@ async function handleEnd(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [successEmbed], flags: 64 });
+    await interaction.reply({ embeds: [successEmbed], flags: MessageFlags.Ephemeral });
 }
 
 async function handleReroll(interaction) {
@@ -242,7 +242,7 @@ async function handleReroll(interaction) {
         timestamp: new Date().toISOString()
     };
     
-    await interaction.reply({ embeds: [successEmbed], flags: 64 });
+    await interaction.reply({ embeds: [successEmbed], flags: MessageFlags.Ephemeral });
 }
 
 function parseDuration(str) {

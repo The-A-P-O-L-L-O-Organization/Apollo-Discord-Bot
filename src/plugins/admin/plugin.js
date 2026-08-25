@@ -1,6 +1,8 @@
 import Plugin from '../../core/Plugin.js';
+import { createLogger } from '../../utils/logger.js';
 
 export default class AdminPlugin extends Plugin {
+    const logger = createLogger({ component: 'plugin:admin' });
   static id = 'admin';
   static version = '1.0.0';
   static dependencies = [];
