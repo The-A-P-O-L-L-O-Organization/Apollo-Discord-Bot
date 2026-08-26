@@ -74,7 +74,7 @@ The `src/utils` directory provides centralized utility functions and abstraction
   - `raidDetection.js`: detects raid patterns, uses `accessControl.js` and `logger.js`.
   - `modLog.js`: moderation logging helper.
   - `redis.js`: wrapper around ioredis.
-  - `encryption.js`: crypto utilities.
+  - `encryption.js`: crypto utilities with key rotation support (comma-separated ENCRYPTION_KEYS, v1 format: version:salt:iv:authTag:ciphertext), decrypt tries all keys, reEncryptIfNeeded() for migration.
   - `duration.js`: human‑readable time parsing.
   - `xp.js`: experience point calculations for leveling.
   - `manifest.js`: plugin manifest utilities.
