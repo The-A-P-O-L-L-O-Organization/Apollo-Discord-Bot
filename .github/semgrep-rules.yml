@@ -1,0 +1,228 @@
+rules:
+  # Danger: eval() and similar code execution
+  - id: no-eval
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: Function(...)
+      - pattern: new Function(...)
+      - pattern: setTimeout($X, ...)
+      - pattern: setInterval($X, ...)
+      - pattern: setImmediate($X, ...)
+    message: "Avoid dynamic code execution (eval, Function constructor, string-based timers)"
+    languages: [javascript, typescript]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-95"
+
+  # Danger: child_process with unsanitized input
+  - id: no-unsafe-child-process
+    pattern-either:
+      - pattern: require('child_process').exec($X, ...)
+      - pattern: require('child_process').spawn($X, ...)
+      - pattern: require('child_process').execSync($X, ...)
+      - pattern: require('child_process').spawnSync($X, ...)
+      - pattern: import ... from 'child_process'; ... .exec($X, ...)
+      - pattern: import ... from 'child_process'; ... .spawn($X, ...)
+    message: "Avoid child_process with unsanitized input - use fixed commands with array args"
+    languages: [javascript, typescript]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-78"
+
+  # Danger: fs operations with user-controlled paths
+  - id: no-path-traversal
+    pattern-either:
+      - pattern: require('fs').readFile($X, ...)
+      - pattern: require('fs').writeFile($X, ...)
+      - pattern: require('fs').unlink($X, ...)
+      - pattern: require('fs').mkdir($X, ...)
+      - pattern: require('fs/promises').readFile($X, ...)
+      - pattern: require('fs/promises').writeFile($X, ...)
+      - pattern: require('fs/promises').unlink($X, ...)
+      - pattern: require('fs/promises').mkdir($X, ...)
+    message: "Ensure file paths are validated/sanitized to prevent path traversal"
+    languages: [javascript, typescript]
+    severity: WARNING
+    metadata:
+      category: security
+      cwe: "CWE-22"
+
+  # Danger: SQL injection via string concatenation
+  - id: no-sql-injection
+    pattern-either:
+      - pattern: $DB.raw($X + ...)
+      - pattern: $DB.raw(`...${$X}...`)
+      - pattern: $DB.query($X + ...)
+      - pattern: $DB.query(`...${$X}...`)
+      - pattern: knex.raw($X + ...)
+      - pattern: knex.raw(`...${$X}...`)
+    message: "Use parameterized queries instead of string concatenation for SQL"
+    languages: [javascript, typescript]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-89"
+
+  # Danger: innerHTML / dangerouslySetInnerHTML with user input
+  - id: no-unsafe-inner-html
+    pattern-either:
+      - pattern: $EL.innerHTML = $X
+      - pattern: $EL.outerHTML = $X
+      - pattern: dangerouslySetInnerHTML={...}
+    message: "Avoid direct HTML injection - sanitize or use safe DOM APIs"
+    languages: [javascript, typescript, tsx]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-79"
+
+  # Danger: weak crypto (MD5, SHA1)
+  - id: no-weak-crypto
+    pattern-either:
+      - pattern: crypto.createHash('md5')
+      - pattern: crypto.createHash('sha1')
+      - pattern: crypto.createHmac('md5', ...)
+      - pattern: crypto.createHmac('sha1', ...)
+    message: "Use SHA-256 or stronger - MD5 and SHA1 are cryptographically broken"
+    languages: [javascript, typescript]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-327"
+
+  # Danger: hardcoded secrets
+  - id: no-hardcoded-secrets
+    pattern-either:
+      - pattern: $X = "sk-..."
+      - pattern: $X = "sk_live_..."
+      - pattern: $X = "sk_test_..."
+      - pattern: $X = "xoxb-..."
+      - pattern: $X = "xoxp-..."
+      - pattern: $X = "ghp_..."
+      - pattern: $X = "gho_..."
+      - pattern: $X = "ghu_..."
+      - pattern: $X = "ghs_..."
+      - pattern: $X = "ghr_..."
+      - pattern: $X = "AIza..."
+      - pattern: $X = "-----BEGIN PRIVATE KEY-----"
+    message: "Hardcoded secret detected - use environment variables"
+    languages: [javascript, typescript, json, yaml]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: "CWE-798"
+
+  # Danger: console.log of sensitive data
+  - id: no-log-secrets
+    pattern-either:
+      - pattern: console.log(..., $X, ...)
+      - pattern: console.error(..., $X, ...)
+      - pattern: console.warn(..., $X, ...)
+      - pattern: logger.info(..., $X, ...)
+      - pattern: logger.error(..., $X, ...)
+      - pattern: logger.warn(..., $X, ...)
+    metavariable-regex:
+      metavariable: $X
+      regex: "(?i)(password|secret|token|key|api[_-]?key|auth|credential|private)"
+    message: "Avoid logging sensitive data (passwords, tokens, keys, secrets)"
+    languages: [javascript, typescript]
+    severity: WARNING
+    metadata:
+      category: security
+      cwe: "CWE-532"
+
+  # Danger: regex DoS (ReDoS) - nested quantifiers
+  - id: no-redos
+    pattern-regex: "/\\(\\?[=!]:?\\)|\\*\\+|\\+\\*|\\{\\d+,?\\d*\\}.*\\{\\d+,?\\d*\\}/"
+    message: "Potential ReDoS vulnerability - nested quantifiers in regex"
+    languages: [javascript, typescript]
+    severity: WARNING
+    metadata:
+      category: security
+      cwe: "CWE-1333"
+
+  # Danger: prototype pollution
+  - id: no-prototype-pollution
+    pattern-either:
+      - pattern: Object.assign($TARGET, $SOURCE)
+      - pattern: {...$TARGET, ...$SOURCE}
+      - pattern: Object.keys($X).forEach(...)
+      - pattern: for (const $K in $X) ...
+    message: "Potential prototype pollution - validate/freeze objects before merging user input"
+    languages: [javascript, typescript]
+    severity: WARNING
+    metadata:
+      category: security
+      cwe: "CWE-1321"
+
+  # Danger: unsafe deserialization
+  - id: no-unsafe-deserialize
+    pattern-either:
+      - pattern: JSON.parse($X)
+      - pattern: eval($X)
+      - pattern: new Function($X)
+    message: "Ensure JSON.parse input is from trusted source; avoid eval/Function with user data"
+    languages: [javascript, typescript]
+    severity: WARNING
+    metadata:
+      category: security
+      cwe: "CWE-502"
+
+  # Danger: missing input validation on API routes
+  - id: no-unvalidated-route-params
+    pattern-either:
+      - pattern: app.get($ROUTE, $HANDLER)
+      - pattern: app.post($ROUTE, $HANDLER)
+      - pattern: app.put($ROUTE, $HANDLER)
+      - pattern: app.delete($ROUTE, $HANDLER)
+      - pattern: router.get($ROUTE, $HANDLER)
+      - pattern: router.post($ROUTE, $HANDLER)
+    metavariable-regex:
+      metavariable: $ROUTE
+      regex: ".*:.*"
+    message: "Routes with parameters should validate/sanitize input before use"
+    languages: [javascript, typescript]
+    severity: INFO
+    metadata:
+      category: security
+      cwe: "CWE-20"
+
+  # Danger: weak randomness
+  - id: no-weak-random
+    pattern-either:
+      - pattern: Math.random()
+      - pattern: crypto.randomBytes(...)
+    message: "Use crypto.randomBytes() or crypto.randomUUID() for cryptographic randomness, not Math.random()"
+    languages: [javascript, typescript]
+    severity: WARNING
+    metadata:
+      category: security
+      cwe: "CWE-338"
+
+  # Danger: missing error handling on promises
+  - id: no-unhandled-promise
+    pattern: $PROMISE.then(...)
+    pattern-not: $PROMISE.then(...).catch(...)
+    message: "Unhandled promise rejection - add .catch() or use try/catch with await"
+    languages: [javascript, typescript]
+    severity: WARNING
+    metadata:
+      category: reliability
+      cwe: "CWE-755"
+
+  # Danger: synchronous file operations in hot paths
+  - id: no-sync-fs
+    pattern-either:
+      - pattern: require('fs').readFileSync(...)
+      - pattern: require('fs').writeFileSync(...)
+      - pattern: require('fs').existsSync(...)
+      - pattern: require('fs').mkdirSync(...)
+      - pattern: require('fs').unlinkSync(...)
+    message: "Avoid synchronous fs operations in production code - use async versions"
+    languages: [javascript, typescript]
+    severity: WARNING
+    metadata:
+      category: performance
+      cwe: "CWE-400"

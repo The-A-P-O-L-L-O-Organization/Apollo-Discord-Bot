@@ -8,6 +8,7 @@ const ALGORITHM = 'aes-256-gcm';
 const KEY_LENGTH = 32; // 256 bits
 const IV_LENGTH = 12; // 96 bits for GCM
 const SALT_LENGTH = 16; // 128 bits
+const CURRENT_VERSION = 1;
 
 // PBKDF2 iterations - configurable via env, default 600000 (OWASP 2024 recommendation)
 const PBKDF2_ITERATIONS = parseInt(process.env.PBKDF2_ITERATIONS || '600000', 10);
@@ -17,7 +18,20 @@ const _keyCache = new Map();
 const MAX_KEY_CACHE_SIZE = 100;
 
 /**
- * Gets derived key for a specific salt (with LRU caching)
+ * Parses encryption keys from environment
+ * Supports comma-separated keys: ENCRYPTION_KEY=key1,key2,key3 (key1=current, others=legacy for decryption)
+ * @returns {string[]} Array of base64-encoded keys
+ */
+function getEncryptionKeys() {
+    const keysEnv = process.env.ENCRYPTION_KEY || process.env.ENCRYPTION_KEYS || '';
+    if (!keysEnv) {
+        return [];
+    }
+    return keysEnv.split(',').map(k => k.trim()).filter(Boolean);
+}
+
+/**
+ * Gets derived key for a specific salt using the current encryption key
  * @param {Buffer} salt - Salt buffer
  * @returns {Buffer} Derived key
  */
@@ -31,12 +45,14 @@ function getDerivedKeyForSalt(salt) {
         return key;
     }
     
-    const keyEnv = process.env.ENCRYPTION_KEY;
-    if (!keyEnv) {
+    const keys = getEncryptionKeys();
+    if (keys.length === 0) {
         throw new Error('ENCRYPTION_KEY environment variable is required for encryption at rest');
     }
     
-    const derived = crypto.pbkdf2Sync(keyEnv, salt, PBKDF2_ITERATIONS, KEY_LENGTH, 'sha256');
+    // Use the first (current) key for encryption
+    const currentKey = keys[0];
+    const derived = crypto.pbkdf2Sync(currentKey, salt, PBKDF2_ITERATIONS, KEY_LENGTH, 'sha256');
     
     // Evict oldest if cache full
     if (_keyCache.size >= MAX_KEY_CACHE_SIZE) {
@@ -49,6 +65,46 @@ function getDerivedKeyForSalt(salt) {
 }
 
 /**
+ * Tries to derive key using any available encryption key (for decryption with key rotation)
+ * @param {Buffer} salt - Salt buffer
+ * @returns {Buffer|null} Derived key or null if no key works
+ */
+function getDerivedKeyForSaltAny(salt) {
+    const saltB64 = salt.toString('base64');
+    if (_keyCache.has(saltB64)) {
+        // Move to end (most recently used)
+        const key = _keyCache.get(saltB64);
+        _keyCache.delete(saltB64);
+        _keyCache.set(saltB64, key);
+        return key;
+    }
+    
+    const keys = getEncryptionKeys();
+    if (keys.length === 0) {
+        return null;
+    }
+    
+    // Try each key in order (current first, then legacy)
+    for (const keyEnv of keys) {
+        try {
+            const derived = crypto.pbkdf2Sync(keyEnv, salt, PBKDF2_ITERATIONS, KEY_LENGTH, 'sha256');
+            
+            if (_keyCache.size >= MAX_KEY_CACHE_SIZE) {
+                const firstKey = _keyCache.keys().next().value;
+                _keyCache.delete(firstKey);
+            }
+            
+            _keyCache.set(saltB64, derived);
+            return derived;
+        } catch {
+            // Try next key
+        }
+    }
+    
+    return null;
+}
+
+/**
  * Clears the cached encryption key (for testing)
  */
 export function clearEncryptionKeyCache() {
@@ -56,9 +112,9 @@ export function clearEncryptionKeyCache() {
 }
 
 /**
- * Encrypts data using AES-256-GCM
+ * Encrypts data using AES-256-GCM with version header
  * @param {string|Object} data - Data to encrypt (string or JSON-serializable object)
- * @returns {string} Base64 encoded encrypted data (salt:iv:authTag:ciphertext)
+ * @returns {string} Base64 encoded encrypted data (version:salt:iv:authTag:ciphertext)
  */
 export function encrypt(data) {
     // Generate fresh salt for each encryption (critical for AES-GCM security)
@@ -74,8 +130,9 @@ export function encrypt(data) {
     const ciphertext = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
     const authTag = cipher.getAuthTag();
     
-    // Format: salt:iv:authTag:ciphertext (all base64)
+    // Format: version:salt:iv:authTag:ciphertext (all base64)
     return [
+        CURRENT_VERSION.toString(),
         salt.toString('base64'),
         iv.toString('base64'),
         authTag.toString('base64'),
@@ -84,24 +141,41 @@ export function encrypt(data) {
 }
 
 /**
- * Decrypts data using AES-256-GCM
- * @param {string} encryptedData - Base64 encoded encrypted data (salt:iv:authTag:ciphertext)
+ * Decrypts data using AES-256-GCM (supports v0 legacy format and v1+ versioned format)
+ * @param {string} encryptedData - Base64 encoded encrypted data
  * @returns {string|Object|Array} Decrypted plaintext (parsed if JSON)
  */
 export function decrypt(encryptedData) {
     const parts = encryptedData.split(':');
-    if (parts.length !== 4) {
+    
+    // Legacy format (v0): salt:iv:authTag:ciphertext (4 parts)
+    // Versioned format (v1+): version:salt:iv:authTag:ciphertext (5+ parts)
+    let saltB64, ivB64, authTagB64, ciphertextB64;
+    
+    if (parts.length === 4) {
+        // Legacy v0 format (no version prefix)
+        [saltB64, ivB64, authTagB64, ciphertextB64] = parts;
+    } else if (parts.length >= 5) {
+        // Versioned format
+        const version = parseInt(parts[0], 10);
+        if (isNaN(version)) {
+            throw new Error('Invalid encrypted data format');
+        }
+        [, saltB64, ivB64, authTagB64, ciphertextB64] = parts;
+    } else {
         throw new Error('Invalid encrypted data format');
     }
     
-    const [saltB64, ivB64, authTagB64, ciphertextB64] = parts;
     const salt = Buffer.from(saltB64, 'base64');
     const iv = Buffer.from(ivB64, 'base64');
     const authTag = Buffer.from(authTagB64, 'base64');
     const ciphertext = Buffer.from(ciphertextB64, 'base64');
     
-    // Derive key with stored salt (cached)
-    const derivedKey = getDerivedKeyForSalt(salt);
+    // Derive key with stored salt (tries all available keys for rotation support)
+    const derivedKey = getDerivedKeyForSaltAny(salt);
+    if (!derivedKey) {
+        throw new Error('No valid encryption key available for decryption');
+    }
     
     const decipher = crypto.createDecipheriv(ALGORITHM, derivedKey, iv);
     decipher.setAuthTag(authTag);
@@ -115,6 +189,25 @@ export function decrypt(encryptedData) {
     } catch {
         return result;
     }
+}
+
+/**
+ * Checks if a string appears to be encrypted (has the expected format)
+ * @param {string} value - Value to check
+ * @returns {boolean} True if value appears encrypted
+ */
+export function isEncrypted(value) {
+    if (typeof value !== 'string') {return false;}
+    const parts = value.split(':');
+    // Support both legacy (4 parts) and versioned (5+ parts) formats
+    if (parts.length === 4) {
+        return parts.every(p => p.length > 0);
+    }
+    if (parts.length >= 5) {
+        const version = parseInt(parts[0], 10);
+        return !isNaN(version) && parts.slice(1).every(p => p.length > 0);
+    }
+    return false;
 }
 
 /**
@@ -165,14 +258,38 @@ export function decryptFields(obj, fields) {
 }
 
 /**
- * Checks if a string appears to be encrypted (has the expected format)
- * @param {string} value - Value to check
- * @returns {boolean} True if value appears encrypted
+ * Gets the current encryption key version
+ * @returns {number} Current version number
  */
-export function isEncrypted(value) {
-    if (typeof value !== 'string') {return false;}
-    const parts = value.split(':');
-    return parts.length === 4 && parts.every(p => p.length > 0);
+export function getCurrentVersion() {
+    return CURRENT_VERSION;
+}
+
+/**
+ * Checks if encrypted data needs re-encryption (older version than current)
+ * @param {string} encryptedData - Encrypted data string
+ * @returns {boolean} True if re-encryption recommended
+ */
+export function needsReEncryption(encryptedData) {
+    if (!isEncrypted(encryptedData)) {return false;}
+    const parts = encryptedData.split(':');
+    if (parts.length === 4) {return true;} // Legacy v0 format
+    const version = parseInt(parts[0], 10);
+    return version < CURRENT_VERSION;
+}
+
+/**
+ * Re-encrypts data with current key if needed
+ * @param {string} encryptedData - Currently encrypted data
+ * @returns {string} Re-encrypted data with current version, or original if already current
+ */
+export function reEncryptIfNeeded(encryptedData) {
+    if (!needsReEncryption(encryptedData)) {
+        return encryptedData;
+    }
+    // Decrypt with any available key, then re-encrypt with current key
+    const plaintext = decrypt(encryptedData);
+    return encrypt(plaintext);
 }
 
 export default {
@@ -181,5 +298,8 @@ export default {
     encryptFields,
     decryptFields,
     isEncrypted,
-    clearEncryptionKeyCache
+    clearEncryptionKeyCache,
+    getCurrentVersion,
+    needsReEncryption,
+    reEncryptIfNeeded
 };
