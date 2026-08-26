@@ -14,6 +14,7 @@ Implements a modular configuration pattern using a single exported `config` obje
 - Queue (BullMQ/Redis) configuration
 - Operator agreement and contact
 - Sharding and leader election settings
+- Security hardening: socket token, Redis auth, interlink bind, HMAC queue signing, encryption key rotation
 
 ## Flow
 1. Module loads and defines `parseIntSafe` helper.
@@ -29,11 +30,18 @@ Implements a modular configuration pattern using a single exported `config` obje
    - Interlink HTTP server uses `config.interlink` for port and Redis prefix.
    - Sharding logic reads `config.shard` for leader election and task distribution.
    - Operator agreement validated via `config.operator.agreed`.
+7. Security startup checks validate production requirements:
+   - `APOLLO_SOCKET_TOKEN` required in production (startupChecks.validateSocketToken)
+   - `REDIS_PASSWORD` required in production (startupChecks.validateRedisAuth)
+   - `config.interlink.bindHost` cannot be 0.0.0.0 in production (startupChecks.validateInterlinkBind)
+   - `QUEUE_HMAC_SECRET` required for job signing in production
+   - `ENCRYPTION_KEY` supports comma-separated rotation keys
 
 ## Integration
 - **Dependencies**: Node.js `process.env` for environment variables.
 - **Consumers**: 
   - `src/index.js` (bot entry point) for token, client ID, guild ID, activity, operator agreement, sharding.
+  - `src/utils/startupChecks.js` for security validation (socket token, Redis auth, interlink bind).
   - `src/db/adapter.js` for database type and connection settings.
   - `src/queue/queue.js` for BullMQ/Redis configuration.
   - `src/gateway/leader.js` for sharding leader election configuration.
