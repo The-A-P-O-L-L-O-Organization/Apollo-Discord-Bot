@@ -1,0 +1,49 @@
+name: Security Scan (Semgrep)
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    - cron: '0 3 * * 1'  # Weekly on Monday 3 AM UTC
+
+jobs:
+  semgrep:
+    name: Semgrep Security Scan
+    runs-on: ubuntu-latest
+    container:
+      image: returntocorp/semgrep:latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep
+        run: semgrep scan --config=.github/semgrep-rules.yml --error --json=semgrep-results.json || true
+
+      - name: Upload Semgrep results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: semgrep-results
+          path: semgrep-results.json
+          retention-days: 30
+
+      - name: Post results to PR
+        if: github.event_name == 'pull_request'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep-results.json
+          category: semgrep
+
+      - name: Fail on high severity findings
+        run: |
+          if [ -f semgrep-results.json ]; then
+            HIGH_COUNT=$(jq '[.results[] | select(.extra.severity == "ERROR")] | length' semgrep-results.json)
+            if [ "$HIGH_COUNT" -gt 0 ]; then
+              echo "Found $HIGH_COUNT ERROR severity findings"
+              jq '.results[] | select(.extra.severity == "ERROR") | {file: .path, line: .start.line, rule: .check_id, message: .extra.message}' semgrep-results.json
+              exit 1
+            fi
+          fi
+        shell: bash

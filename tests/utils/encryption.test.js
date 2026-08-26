@@ -57,19 +57,20 @@ describe('Encryption', () => {
         expect(decrypt(encrypted2)).toBe(plaintext);
     });
 
-    it('should produce valid encrypted format (salt:iv:authTag:ciphertext)', () => {
+    it('should produce valid encrypted format (version:salt:iv:authTag:ciphertext)', () => {
         const plaintext = 'Test';
         const encrypted = encrypt(plaintext);
         const parts = encrypted.split(':');
         
-        expect(parts).toHaveLength(4);
-        expect(parts[0]).toBeTruthy(); // salt
-        expect(parts[1]).toBeTruthy(); // iv
-        expect(parts[2]).toBeTruthy(); // authTag
-        expect(parts[3]).toBeTruthy(); // ciphertext
+        expect(parts).toHaveLength(5);
+        expect(parts[0]).toBe('1'); // version
+        expect(parts[1]).toBeTruthy(); // salt
+        expect(parts[2]).toBeTruthy(); // iv
+        expect(parts[3]).toBeTruthy(); // authTag
+        expect(parts[4]).toBeTruthy(); // ciphertext
         
         // All parts should be valid base64
-        parts.forEach(part => {
+        parts.slice(1).forEach(part => {
             expect(() => Buffer.from(part, 'base64')).not.toThrow();
         });
     });
@@ -157,7 +158,7 @@ describe('Encryption', () => {
     it('should throw on invalid encrypted format', () => {
         expect(() => decrypt('invalid')).toThrow('Invalid encrypted data format');
         expect(() => decrypt('a:b:c')).toThrow('Invalid encrypted data format');
-        expect(() => decrypt('a:b:c:d:e')).toThrow('Invalid encrypted data format');
+        expect(() => decrypt('not-a-number:a:b:c:d')).toThrow('Invalid encrypted data format');
     });
 
     it('should throw on missing ENCRYPTION_KEY', () => {

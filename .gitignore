@@ -47,3 +47,7 @@ docs/
 
 # Worktrees
 .worktrees/
+# BEGIN oh-my-opencode-slim worktrees
+.slim/worktrees/
+.slim/worktrees.json
+# END oh-my-opencode-slim worktrees
