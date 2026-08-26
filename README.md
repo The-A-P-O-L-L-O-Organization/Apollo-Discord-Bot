@@ -3,7 +3,7 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D26-brightgreen.svg)](https://nodejs.org/)
 [![Discord.js](https://img.shields.io/badge/discord.js-v14-blue.svg)](https://discord.js.org/)
-[![Tests](https://img.shields.io/badge/tests-982%20passing-brightgreen.svg)](https://github.com/The-A-P-O-L-L-O-Organization/Apollo-Discord-Bot)
+[![Tests](https://img.shields.io/badge/tests-1572%20passing-brightgreen.svg)](https://github.com/The-A-P-O-L-L-O-Organization/Apollo-Discord-Bot)
 
 A feature-rich, modular Discord bot built with discord.js v14. Designed for horizontal scaling with a plugin-based architecture, multi-instance support via Redis-backed work queues, and optional PostgreSQL for shared persistence.
 
@@ -11,7 +11,7 @@ A feature-rich, modular Discord bot built with discord.js v14. Designed for hori
 
 - [Features](#features)
 - [Architecture](#architecture)
-- [Commands](#commands-31-total)
+- [Commands](#commands-96-total)
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Environment Variables](#environment-variables)
@@ -181,7 +181,7 @@ Cross-pod (multi-instance) bridging uses Redis pub/sub via `enableCrossPod(redis
 └─────────────────────┴───────────────────────┘
 ```
 
-## Commands (31 Total)
+## Commands (96 Total)
 
 ### Utility Commands
 
@@ -234,11 +234,13 @@ Cross-pod (multi-instance) bridging uses Redis pub/sub via `enableCrossPod(redis
 |---------|-------------|
 | `/reload` | Reload a command (bot owner only) |
 
+*(And many more plugin-specific commands — run `/help` in Discord for the complete list)*
+
 ## Installation
 
 ### Prerequisites
 
-- **Node.js 26+**
+- **Node.js 26+** (tested on 26.7.0)
 - **pnpm 11+** (required — `npm`/`yarn` are not supported)
 - **Docker & Docker Compose** (recommended for deployment)
 - **Discord Bot Token** from [Discord Developer Portal](https://discord.com/developers/applications)
@@ -271,7 +273,7 @@ cp .env.example .env
 
 **Deploy slash commands:**
 ```bash
-node deploy-commands.js
+node scripts/deploy-commands.js
 ```
 
 **Run tests:**
@@ -447,6 +449,11 @@ Apollo-Discord-Bot/
 │       ├── tempRolesScheduler.js    # Locked temprole expiration
 │       └── analyticsCollector.js    # Member join/leave trends
 │
+├── scripts/
+│   ├── deploy-commands.js           # Slash command registration
+│   ├── generate-manifest.mjs        # Plugin manifest generator
+│   └── utils/logger.js              # CLI logger utility
+│
 ├── tests/
 │   ├── commands/                    # Command unit tests (72 test files)
 │   ├── events/                      # Event handler tests
@@ -466,10 +473,11 @@ Apollo-Discord-Bot/
 ├── docker-compose.yml               # Dev Docker Compose
 ├── Dockerfile                       # Dev Dockerfile
 ├── Dockerfile.prod                  # Multi-stage production build
-├── deploy-commands.js               # Slash command registration
 ├── package.json                     # Dependencies and scripts
 ├── pnpm-workspace.yaml              # Security overrides
-└── vitest.config.js                 # Vitest configuration
+├── vitest.config.js                 # Vitest configuration
+├── plugin-manifest.json             # Plugin source hashes (integrity)
+└── .env.example                     # Environment template
 ```
 
 ## Plugin System
@@ -697,7 +705,7 @@ RUN_MODE=worker POD_ID=worker-1 DB_TYPE=postgres \
 ### Test Suite Overview
 
 ```
-982 tests | 72 files | 4 skipped | 0 failures
+1572 tests | 124 files | 4 skipped | 0 failures
 ```
 
 | Category | Files | Focus |
@@ -808,7 +816,7 @@ docker run -d --name apollo \
 - For PostgreSQL: ensure `DATABASE_URL` is correct and DB is reachable
 
 ### Commands Not Appearing
-- Run `node deploy-commands.js` to register slash commands
+- Run `node scripts/deploy-commands.js` to register slash commands
 - Global commands take up to 1 hour to propagate
 - Using `GUILD_ID` in `.env` makes commands appear instantly (dev only)
 
