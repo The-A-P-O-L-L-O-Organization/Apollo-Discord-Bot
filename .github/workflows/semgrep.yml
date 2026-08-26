@@ -16,33 +16,36 @@ jobs:
       image: returntocorp/semgrep:latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
-      - name: Run Semgrep
-        run: semgrep scan --config=.github/semgrep-rules.yml --error --json=semgrep-results.json || true
+      - name: Install jq
+        run: apk add --no-cache jq
+
+      - name: Run Semgrep (SARIF output)
+        run: semgrep scan --config=.github/semgrep-rules.yml --sarif --output=semgrep-results.sarif || true
 
       - name: Upload Semgrep results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         if: always()
         with:
           name: semgrep-results
-          path: semgrep-results.json
+          path: semgrep-results.sarif
           retention-days: 30
 
       - name: Post results to PR
         if: github.event_name == 'pull_request'
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@1585e149c90c01f845c0e1b58b7e0a00b37c53e0  # v3.28.13
         with:
-          sarif_file: semgrep-results.json
+          sarif_file: semgrep-results.sarif
           category: semgrep
 
       - name: Fail on high severity findings
         run: |
-          if [ -f semgrep-results.json ]; then
-            HIGH_COUNT=$(jq '[.results[] | select(.extra.severity == "ERROR")] | length' semgrep-results.json)
+          if [ -f semgrep-results.sarif ]; then
+            HIGH_COUNT=$(jq '[.runs[0].results[] | select(.level == "error")] | length' semgrep-results.sarif)
             if [ "$HIGH_COUNT" -gt 0 ]; then
               echo "Found $HIGH_COUNT ERROR severity findings"
-              jq '.results[] | select(.extra.severity == "ERROR") | {file: .path, line: .start.line, rule: .check_id, message: .extra.message}' semgrep-results.json
+              jq '.runs[0].results[] | select(.level == "error") | {file: .locations[0].physicalLocation.artifactLocation.uri, line: .locations[0].physicalLocation.region.startLine, rule: .ruleId, message: .message.text}' semgrep-results.sarif
               exit 1
             fi
           fi
