@@ -13,7 +13,7 @@ import { close as closeDatabase, startWalCheckpointInterval } from './utils/db.j
 import { closeLockRedis } from './utils/lock.js';
 import { safeError } from './utils/safeError.js';
 import { assertDiscordToken, assertOperatorAgreement, assertEncryptionKey, validatePostgresPoolMax, warnUnverifiedPlugins } from './utils/startupChecks.js';
-import { closeAll as closeRedis } from './utils/redis.js';
+import { closeRedisClient as closeRedis } from './utils/redis.js';
 import { startHealthServer, stopHealthServer } from './utils/healthServer.js';
 import { createLogger } from './utils/logger.js';
 
