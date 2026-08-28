@@ -22,7 +22,7 @@ RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
 # Copy application source code
 COPY src ./src
 COPY bin ./bin
-COPY deploy-commands.js ./
+COPY scripts/deploy-commands.js ./
 COPY plugin-manifest.json ./
 
 # Create directories for persistent data
