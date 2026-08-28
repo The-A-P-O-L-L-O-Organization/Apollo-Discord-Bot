@@ -3,8 +3,7 @@
 
 import { ShardingManager } from 'discord.js';
 import { config } from './config/config.js';
-import { setupLogger } from '../utils/logger.js';
-import { logger } from 'utils/logger.js';
+import { setupLogger, logger } from './utils/logger.js';
 
 const logger = setupLogger('ShardManager');
 
