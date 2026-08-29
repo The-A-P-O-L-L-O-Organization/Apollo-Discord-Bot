@@ -1,6 +1,6 @@
 // Distributed Rate Limiter
 // Redis-backed sliding window rate limiter for cross-pod synchronization
-import { logger } from '../../utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 import { config } from '../../config/config.js';
 import { getLockRedis } from '../../utils/lock.js';

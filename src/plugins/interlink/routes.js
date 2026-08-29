@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { createAuthMiddleware } from './auth.js';
 import { ReplayProtection, createReplayProtectionMiddleware } from './replayProtection.js';
-import { logger } from '../../utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 export default function createRoutes({ registry, messageBus, redis, config }) {
     const router = Router();
