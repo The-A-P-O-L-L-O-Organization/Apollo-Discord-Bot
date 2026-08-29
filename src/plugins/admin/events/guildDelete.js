@@ -1,7 +1,7 @@
 // Guild Delete Event
 // Triggered when the bot leaves a server or is kicked
 // Optionally cleans up stored data (currently logs only, preserves data for potential rejoin)
-import { createLogger } from './utils/logger.js';
+import { createLogger } from '../../../utils/logger.js';
 const logger = createLogger({ component: 'admin:guildDelete' });
 
     name: 'guildDelete',
