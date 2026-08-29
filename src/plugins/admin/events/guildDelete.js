@@ -4,6 +4,7 @@
 import { createLogger } from '../../../utils/logger.js';
 const logger = createLogger({ component: 'admin:guildDelete' });
 
+export default {
     name: 'guildDelete',
     once: false,
     async execute(guild, client) {

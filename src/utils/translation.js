@@ -41,7 +41,7 @@ class TranslationService {
             }));
             logger.info(`[Translation] Initialized with ${this.cachedLanguages.length} supported languages`);
         } catch (error) {
-            logger.error('[Translation] Failed to initialize:', error.message);
+            logger.warn('[Translation] Initialization failed (service may be unavailable):', error.message);
             throw error;
         }
     }
