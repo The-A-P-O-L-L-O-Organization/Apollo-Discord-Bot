@@ -22,7 +22,7 @@
   "src/plugins/admin/events/messageReactionRemove.js": "9029d92ca78f0a620db9668bbd28a6d8cc99c90d372e58ecdc7f4ee9ae6d8bc6",
   "src/plugins/admin/events/messageUpdate.js": "290111e34416300cf2994357c5ac008cb73d0a85db4b1e35d0f268bab4cbd498",
   "src/plugins/admin/events/voiceStateUpdate.js": "6329d64bd27d8e2b5a8df275938682d0360b162c7ce9f6dbb55486bc21e36170",
-  "src/plugins/admin/plugin.js": "258b83456a9711d2dce801a6feebdaaa1da1ce91e758bfeddf2d73fa8cbd483e",
+  "src/plugins/admin/plugin.js": "39d7b0331c122ac6e74397f8a219d27931b071f18342f0725fa0f53134fb1169",
   "src/plugins/automod/cli/codemap.md": "da2c05b0d67d24b6e7aa790bd23cff9dd3a27cafa33d7ffa8d365ccc9bb3ce3a",
   "src/plugins/automod/cli/index.js": "f6ad83731f3cbc17d74b97ce736cf139246dff098d43879830b4eeaffb712bc3",
   "src/plugins/automod/codemap.md": "e7aefe6588a1369c54026122768871dc2a609fd94117b92292ea863ec89abf65",
@@ -31,7 +31,7 @@
   "src/plugins/automod/commands/scanMessage.js": "3e3fb1562a5fe8c65d99f993a405da900020595970e097d67fb660ab2d84c101",
   "src/plugins/automod/events/codemap.md": "3b31e90fce34d72c2cc6cbe8add5858abb3bd23499180067ef2c2f8e8824b8db",
   "src/plugins/automod/events/messageCreate.js": "bc95ba41938198bd8599199f033e0f8c5a833070bc9b012798c0129b099c6e9f",
-  "src/plugins/automod/plugin.js": "8e81ebcea9da26e53d3f16fea09bfebfcfc0781ce6839be9d9a51e4d61b2df11",
+  "src/plugins/automod/plugin.js": "f3ff1a1358ab48a862950899b9c8441dc560bd155ac790327c02d2ea28bdf0db",
   "src/plugins/codemap.md": "ef3a1825b61c1cd072c81aadf78756e1315b045999dadae305712d845a4e13b5",
   "src/plugins/integrations/cli/codemap.md": "6f454ed18932977858a5aa79e8803b3ee735be46d1712c3d8d2410fcb94a16dc",
   "src/plugins/integrations/cli/index.js": "589c2eeaacf09e0b4ee3e620a2965d478ce18c3aafb73c78197b3e6e84c20035",
@@ -100,7 +100,7 @@
   "src/plugins/moderation/events/codemap.md": "b13d384d38437589f5ebe370cdb4930e071c03b5a78c780e8440e6a498a0d241",
   "src/plugins/moderation/events/guildMemberAdd.js": "175298276bb5fc15245462086f3fa37b13fa22388d78c610ef351971618bf7e5",
   "src/plugins/moderation/events/guildMemberRemove.js": "35955ec621158e8aaf70c1f84836112a73e125594eb6e6ad0e556735b06e035f",
-  "src/plugins/moderation/plugin.js": "dd6928165a115744b442bdbbdfdb6092ed0ec525cafe581acdb4e80df3ea4f5c",
+  "src/plugins/moderation/plugin.js": "c25ba5d39f84718aa19752fbcb69675fa2805d0836ae8ced31dded2a394deed5",
   "src/plugins/tickets/cli/codemap.md": "7620114ed927ac5ae78cc387477f2823ced8f92195c16f8d5691c4be12e4e7a0",
   "src/plugins/tickets/cli/index.js": "affa07c5af3f8dc2c9d7d5b745456300e9a747acdbbd4ffd7d569acceb2d2df2",
   "src/plugins/tickets/codemap.md": "b6cd88e78574c472446f1da6c7b029e7704583f605c8096d40e4e693963a46ee",
@@ -121,7 +121,7 @@
   "src/plugins/tickets/events/codemap.md": "ead284c1d70b1faca45b49e8a7d6bab3de589dbe895baebe4a26a92562a2806c",
   "src/plugins/tickets/events/interactionCreate.js": "3fb8e497ca595ebe6d986cd51d8a21cb521c5d9b13c6ea83c92ee50d8c71fadf",
   "src/plugins/tickets/events/slaMonitor.js": "5954611910b86e245af82498a6602da73f918ea03e23eb84bf38f08614ed672d",
-  "src/plugins/tickets/plugin.js": "6c5fa0af43cc835637598c2266a4b324eebc4002414ed5f20b72af3465b59d3e",
+  "src/plugins/tickets/plugin.js": "f7790cdd87f5162e161c286e5ee9cfca359b8fa2ca7e4c92c0e822a9d5acc71d",
   "src/plugins/utility/cli/codemap.md": "10475334c33a1710ccb1fc514432f7a02a7bd207a19d823200c57e22f84cdf6b",
   "src/plugins/utility/cli/index.js": "094e3608811ad5a63b3deba411b7351b0e935e7d99736a01ffebf2c865b5bf0d",
   "src/plugins/utility/codemap.md": "eb86dcdd7687e0570f5d70d37b13c8c8f20bcb60b1b3cfb4bf7a9b03aa218337",
@@ -159,5 +159,5 @@
   "src/plugins/utility/commands/userinfo.js": "1ee3fd51dfee2a2b120dae631e3db21d44520ba5a19aae486616f91746091889",
   "src/plugins/utility/events/codemap.md": "9110683e5c7ade25f193f29bd934b75021d345b4eccb5ee6189c3d4ae70a3f5b",
   "src/plugins/utility/events/messageCreate.js": "e63f64b111ddbcca6c2fd1bc3c05d5971100318e310de45408b3a705c8dde217",
-  "src/plugins/utility/plugin.js": "4304f6d5dccf0a4868a196f91c6e0979f404337f2054ddec04b179785c37d373"
+  "src/plugins/utility/plugin.js": "86161fcdc4fbcf3233d68c9d6381ac987616ea9ac76ec34f5e71707e6ba0e85c"
 }
