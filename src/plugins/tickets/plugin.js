@@ -3,7 +3,10 @@ import { startSlaMonitor } from './events/slaMonitor.js';
 import { createLogger } from '../../utils/logger.js';
 
 export default class TicketsPlugin extends Plugin {
-    const logger = createLogger({ component: 'plugin:tickets' });
+    constructor(client, manager) {
+        super(client, manager);
+        this.logger = createLogger({ component: 'plugin:tickets' });
+    }
   static id = 'tickets';
   static version = '1.0.0';
   static dependencies = [];

@@ -6,7 +6,10 @@ import TranslationService from '../../utils/translation.js';
 import { createLogger } from '../../utils/logger.js';
 
 export default class UtilityPlugin extends Plugin {
-    const logger = createLogger({ component: 'plugin:utility' });
+    constructor(client, manager) {
+        super(client, manager);
+        this.logger = createLogger({ component: 'plugin:utility' });
+    }
 
     static id = 'utility';
     static version = '1.0.0';
@@ -24,9 +27,9 @@ export default class UtilityPlugin extends Plugin {
             const translationService = new TranslationService();
             await translationService.initialize();
             global.translationService = translationService;
-            logger.info('[Utility] Translation service initialized');
+            this.logger.info('[Utility] Translation service initialized');
         } catch (error) {
-            logger.warn('[Utility] Translation service not available:', error.message);
+            this.logger.warn('[Utility] Translation service not available:', error.message);
         }
     }
 
