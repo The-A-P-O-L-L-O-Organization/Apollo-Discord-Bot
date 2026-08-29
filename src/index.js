@@ -367,14 +367,14 @@ if (RUN_MODE === 'worker') {
     };
 
     process.on('unhandledRejection', (error) => {
-        logger.error('[ERROR] Unhandled promise rejection:', error);
+        logger.error({ err: error }, '[ERROR] Unhandled promise rejection');
         if (process.env.NODE_ENV === 'production') {
             process.exit(1);
         }
     });
 
     process.on('uncaughtException', (error) => {
-        logger.error('[ERROR] Uncaught exception:', error);
+        logger.error({ err: error }, '[ERROR] Uncaught exception');
         process.exit(1);
     });
 
