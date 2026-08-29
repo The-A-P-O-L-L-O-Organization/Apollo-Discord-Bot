@@ -1,17 +1,14 @@
-// Slowmode Command
-export default {
-// Sets channel slowmode programmatically
 import { logger } from '../../../utils/logger.js';
-
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog } from '../../../utils/modLog.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { MessageFlags } from 'discord.js';
 
+export default {
+    // Sets channel slowmode programmatically
     name: 'slowmode',
     description: 'Set channel slowmode (rate limit)',
     category: 'Moderation',
-    
     defaultMemberPermissions: PermissionsBitField.Flags.ManageChannels,
     dmPermission: false,
     options: [
@@ -38,8 +35,6 @@ import { MessageFlags } from 'discord.js';
     ],
     
     async execute(interaction) {
-    try {
-
         try {
             // Get options
             const duration = interaction.options.getInteger('duration');
@@ -158,36 +153,13 @@ import { MessageFlags } from 'discord.js';
             
             // Log the action
             logger.info(`[MODERATION] Slowmode ${duration === 0 ? 'disabled' : 'set to ' + duration + 's'} for channel ${channel.name} by ${interaction.user.tag}. Reason: ${reason}`);
-            
         } catch (error) {
-            logger.error('[ERROR] Slowmode command error:', error);
-            
-            const errorEmbed = {
-                color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred while trying to set slowmode.',
-                fields: [
-                    {
-                        name: '[ERROR] Details',
-                        value: error.message,
-                        inline: true
-                    }
-                ],
-                timestamp: new Date().toISOString()
-            };
-            
+            const errorMessage = handleDiscordError(error);
             if (interaction.replied || interaction.deferred) {
-                await interaction.editReply({ embeds: [errorEmbed] });
+                await safeFollowUp(interaction, errorMessage);
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await safeReply(interaction, errorMessage);
             }
         }
-    
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-}
+    }
+};

@@ -183,11 +183,11 @@ async function handleServerStats(interaction) {
 
     const embed = new EmbedBuilder()
         .setColor('#3498DB')
-        .setTitle(`📊 Server Analytics - Last ${days} Days`)
+        .setTitle(`Statistics Server Analytics - Last ${days} Days`)
         .setDescription(`Comprehensive statistics for **${interaction.guild.name}**`)
         .addFields(
             {
-                name: '📈 Activity Overview',
+                name: 'Chart Activity Overview',
                 value: [
                     `**Commands Run:** ${formatNumber(summary.commands)}`,
                     `**Messages Sent:** ${formatNumber(summary.messages)}`,
@@ -213,7 +213,7 @@ async function handleServerStats(interaction) {
     // Add member growth trend if we have data
     if (memberCounts.length > 0) {
         embed.addFields({
-            name: '📊 Member Growth Trend',
+            name: 'Statistics Member Growth Trend',
             value: `\`\`\`${createSparkline(memberCounts)}\`\`\``,
             inline: false
         });
@@ -270,7 +270,7 @@ async function handleCommandStats(interaction) {
         // Total commands
         const totalCommands = stats.byCommand.reduce((sum, c) => sum + c.count, 0);
         embed.addFields({
-            name: '📊 Statistics',
+            name: 'Statistics Statistics',
             value: [
                 `**Total Commands:** ${formatNumber(totalCommands)}`,
                 `**Unique Commands:** ${stats.byCommand.length}`,
@@ -280,7 +280,7 @@ async function handleCommandStats(interaction) {
         });
     } else {
         embed.addFields({
-            name: '📊 Command Usage',
+            name: 'Statistics Command Usage',
             value: 'No command data available for this period.',
             inline: false
         });
@@ -322,14 +322,14 @@ async function handleActivityStats(interaction) {
     
     const embed = new EmbedBuilder()
         .setColor('#2ECC71')
-        .setTitle(`💬 Message Activity - Last ${days} Days`)
+        .setTitle(`Messages Message Activity - Last ${days} Days`)
         .setDescription('Message statistics by channel and user');
     
     // Total messages
     const totalMessages = stats.byChannel.reduce((sum, c) => sum + c.count, 0);
     
     embed.addFields({
-        name: '📊 Overview',
+        name: 'Statistics Overview',
         value: [
             `**Total Messages:** ${formatNumber(totalMessages)}`,
             `**Messages per Day:** ${Math.round(totalMessages / days)}`,
@@ -349,7 +349,7 @@ async function handleActivityStats(interaction) {
         });
         
         embed.addFields({
-            name: '📺 Most Active Channels',
+            name: 'Channel Most Active Channels',
             value: channelLines.join('\n'),
             inline: false
         });
@@ -424,13 +424,13 @@ async function handleModerationStats(interaction) {
         }));
         
         embed.addFields({
-            name: '📊 Actions by Type',
+            name: 'Statistics Actions by Type',
             value: `\`\`\`\n${createBarChart(actionLines, 15)}\n\`\`\``,
             inline: false
         });
         
         embed.addFields({
-            name: '📈 Overview',
+            name: 'Chart Overview',
             value: [
                 `**Total Actions:** ${formatNumber(totalActions)}`,
                 `**Actions per Day:** ${Math.round(totalActions / days)}`,
@@ -440,7 +440,7 @@ async function handleModerationStats(interaction) {
         });
     } else {
         embed.addFields({
-            name: '📊 Moderator Actions',
+            name: 'Statistics Moderator Actions',
             value: 'No moderation actions recorded for this period.',
             inline: false
         });
@@ -473,7 +473,7 @@ async function handleModerationStats(interaction) {
         }));
         
         embed.addFields({
-            name: '⚠️ Automod Violations',
+            name: '[WARNING] Automod Violations',
             value: `\`\`\`\n${createBarChart(violationLines, 12)}\n\`\`\``,
             inline: false
         });
@@ -513,7 +513,7 @@ async function handleModerationStats(interaction) {
         const automodWarnings = recentWarnings.filter(w => w.automod);
         
         embed.addFields({
-            name: '⚠️ Warnings',
+            name: '[WARNING] Warnings',
             value: [
                 `**Total Issued:** ${recentWarnings.length}`,
                 `**Automod:** ${automodWarnings.length}`,
@@ -558,7 +558,7 @@ async function handleUserStats(interaction) {
     
     const embed = new EmbedBuilder()
         .setColor('#3498DB')
-        .setTitle(`📊 User Analytics - ${user.tag}`)
+        .setTitle(`Statistics User Analytics - ${user.tag}`)
         .setDescription(`Statistics for the last ${days} days`)
         .setThumbnail(user.displayAvatarURL())
         .addFields(
@@ -572,7 +572,7 @@ async function handleUserStats(interaction) {
                 inline: true
             },
             {
-                name: '💬 Message Activity',
+                name: 'Messages Message Activity',
                 value: [
                     `**Messages Sent:** ${formatNumber(messageCount)}`,
                     `**Server Rank:** ${messageRank > 0 ? `#${messageRank}` : 'N/A'}`,
@@ -581,7 +581,7 @@ async function handleUserStats(interaction) {
                 inline: true
             },
             {
-                name: '⚠️ Warnings',
+                name: '[WARNING] Warnings',
                 value: [
                     `**Active Warnings:** ${activeWarnings.length}`,
                     `**Recent Warnings:** ${recentWarnings.length}`,
@@ -618,7 +618,7 @@ async function handleExport(interaction) {
         const attachment = new AttachmentBuilder(fileData, { name: result.filename });
         
         await interaction.editReply({
-            content: `✅ Analytics exported successfully!\n**Format:** ${format.toUpperCase()}\n**Period:** Last ${days} days\n**Size:** ${(result.size / 1024).toFixed(2)} KB`,
+            content: `[OK] Analytics exported successfully!\n**Format:** ${format.toUpperCase()}\n**Period:** Last ${days} days\n**Size:** ${(result.size / 1024).toFixed(2)} KB`,
             files: [attachment]
         });
         
@@ -630,7 +630,7 @@ async function handleExport(interaction) {
     } catch (error) {
         logger.error('[ERROR] Analytics export failed:', error);
         await interaction.editReply({
-            content: '❌ Failed to export analytics. Please try again later.'
+            content: '[ERROR] Failed to export analytics. Please try again later.'
         });
     }
 }

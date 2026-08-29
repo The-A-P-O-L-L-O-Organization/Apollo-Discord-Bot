@@ -1,14 +1,13 @@
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
-import { MessageFlags } from 'discord.js';
-export default {
-// Channelinfo Command
-// Display detailed information about a channel
 import { logger } from '../../../utils/logger.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { MessageFlags } from 'discord.js';
 
+export default {
+    // Channelinfo Command
+    // Display detailed information about a channel
     name: 'channelinfo',
     description: 'Display detailed information about a channel',
     category: 'Utility',
-    
     dmPermission: false,
     options: [
         {
@@ -20,8 +19,6 @@ import { logger } from '../../../utils/logger.js';
     ],
     
     async execute(interaction) {
-    try {
-
         try {
             const channel = interaction.options.getChannel('channel') || interaction.channel;
             
@@ -144,32 +141,13 @@ import { logger } from '../../../utils/logger.js';
             }
             
             await interaction.reply({ embeds: [channelEmbed] });
-            
         } catch (error) {
-            logger.error('[ERROR] Channelinfo command error:', error);
-            
-            const errorEmbed = {
-                color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred while getting channel information.',
-                fields: [
-                    {
-                        name: '[ERROR] Details',
-                        value: error.message,
-                        inline: true
-                    }
-                ],
-                timestamp: new Date().toISOString()
-            };
-            
-            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+            const errorMessage = handleDiscordError(error);
+            if (interaction.replied || interaction.deferred) {
+                await safeFollowUp(interaction, errorMessage);
+            } else {
+                await safeReply(interaction, errorMessage);
+            }
         }
-    
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-}
+    }
+};

@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
 import { MessageFlags } from 'discord.js';
 export default {
@@ -112,20 +112,13 @@ export default {
         } catch (error) {
         }
 
-} catch (error) {
-    const errorMessage = handleDiscordError(error);
-    if (interaction.replied || interaction.deferred) {
-        await safeFollowUp(interaction, errorMessage);
-    } else {
-        await safeReply(interaction, errorMessage);
+    } catch (error) {
+        const errorMessage = handleDiscordError(error);
+        if (interaction.replied || interaction.deferred) {
+            await safeFollowUp(interaction, errorMessage);
+        } else {
+            await safeReply(interaction, errorMessage);
+        }
     }
 }
-
-} catch (error) {
-    const errorMessage = handleDiscordError(error);
-    if (interaction.replied || interaction.deferred) {
-        await safeFollowUp(interaction, errorMessage);
-    } else {
-        await safeReply(interaction, errorMessage);
-    }
 };

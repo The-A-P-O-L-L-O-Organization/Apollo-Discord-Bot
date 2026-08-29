@@ -1,16 +1,13 @@
-// Giveaway Command
-export default {
-// Create and manage giveaways
 import { logger } from '../../../utils/logger.js';
-
 import { PermissionsBitField, EmbedBuilder, MessageFlags } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
+export default {
+    // Create and manage giveaways
     name: 'giveaway',
     description: 'Create and manage giveaways',
     category: 'Fun',
-    
     defaultMemberPermissions: PermissionsBitField.Flags.ManageMessages,
     dmPermission: false,
     options: [
@@ -68,8 +65,6 @@ import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discord
     ],
     
     async execute(interaction) {
-    try {
-
         try {
             const subcommand = interaction.options.getSubcommand();
             
@@ -80,35 +75,16 @@ import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discord
             } else if (subcommand === 'reroll') {
                 await handleReroll(interaction);
             }
-            
         } catch (error) {
-            logger.error('[ERROR] Giveaway command error:', error);
-            
-            const errorEmbed = {
-                color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred.',
-                fields: [
-                    {
-                        name: '[ERROR] Details',
-                        value: error.message,
-                        inline: true
-                    }
-                ],
-                timestamp: new Date().toISOString()
-            };
-            
-            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+            const errorMessage = handleDiscordError(error);
+            if (interaction.replied || interaction.deferred) {
+                await safeFollowUp(interaction, errorMessage);
+            } else {
+                await safeReply(interaction, errorMessage);
+            }
         }
-    
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-}
+    }
+};
 
 async function handleCreate(interaction) {
     const prize = interaction.options.getString('prize');
@@ -150,7 +126,7 @@ async function handleCreate(interaction) {
     });
     
     // Add reaction
-    await message.react('🎉');
+    await message.react('[SUCCESS]');
     
     // Store giveaway data
     const giveawayData = {
@@ -251,5 +227,3 @@ function parseDuration(str) {
     
     return value * (multipliers[unit] || 0);
 }
-
-

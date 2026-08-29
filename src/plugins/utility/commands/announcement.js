@@ -1,11 +1,11 @@
 // Announcement Command
 // Schedule announcements to be sent later
 import { logger } from '../../../utils/logger.js';
-
 import { PermissionsBitField, MessageFlags } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
-    export default {
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+
+export default {
     name: 'announcement',
     description: 'Schedule an announcement to be sent',
     category: 'Utility',
@@ -59,8 +59,6 @@ import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discord
     ],
     
     async execute(interaction) {
-    try {
-
         try {
             const subcommand = interaction.options.getSubcommand();
             
@@ -91,15 +89,8 @@ import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discord
             
             await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
-    
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-}
+    }
+};
 
 async function handleSchedule(interaction) {
     const channel = interaction.options.getChannel('channel');
@@ -261,6 +252,5 @@ function parseDelay(str) {
 
 function generateId() {
      return `ANN-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
- }
-};
+  }
 

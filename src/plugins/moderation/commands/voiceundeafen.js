@@ -1,17 +1,15 @@
 // Voice Undeafen Command
-export default {
-// Server undeafens a user in a voice channel
 import { logger } from '../../../utils/logger.js';
-
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { createModCase } from './case.js';
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 import { canModerate } from '../../../utils/moderation.js';
 import { safeError } from '../../../utils/safeError.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { MessageFlags } from 'discord.js';
 
+export default {
     name: 'voiceundeafen',
     description: 'Server undeafen a user in a voice channel',
     category: 'Moderation',
@@ -19,23 +17,11 @@ import { MessageFlags } from 'discord.js';
     defaultMemberPermissions: PermissionsBitField.Flags.DeafenMembers,
     dmPermission: false,
     options: [
-        {
-            name: 'user',
-            description: 'The user to undeafen',
-            type: 6, // USER type
-            required: true
-        },
-        {
-            name: 'reason',
-            description: 'The reason for undeafening',
-            type: 3, // STRING type
-            required: false
-        }
+        { name: 'user', description: 'The user to undeafen', type: 6, required: true },
+        { name: 'reason', description: 'The reason for undeafening', type: 3, required: false }
     ],
     
     async execute(interaction) {
-    try {
-
         try {
             const user = interaction.options.getUser('user');
             const reason = interaction.options.getString('reason') || 'No reason provided';
@@ -125,7 +111,6 @@ import { MessageFlags } from 'discord.js';
             
             const channelName = member.voice.channel.name;
             
-            // Undeafen the user
             await member.voice.setDeaf(false, reason);
             
             trackModAction(interaction.guild.id, interaction.user.id, 'voice_undeafen');
@@ -161,37 +146,17 @@ import { MessageFlags } from 'discord.js';
                 target: user,
                 moderator: interaction.user,
                 reason: reason,
-                extra: {
-                    'Channel': channelName,
-                    'Case ID': `#${caseId}`
-                }
+                extra: { 'Channel': channelName, 'Case ID': `#${caseId}` }
             });
             
             logger.info(`[MODERATION] User ${user.tag} was voice undeafened by ${interaction.user.tag}. Reason: ${reason}`);
-            
         } catch (error) {
-            const errorEmbed = {
-                color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred while trying to undeafen the user.',
-                fields: [
-                    { name: '[ERROR] Details', value: safeError(error), inline: true }
-                ],
-                timestamp: new Date().toISOString()
-            };
-            
+            const errorMessage = handleDiscordError(error);
             if (interaction.replied || interaction.deferred) {
-                await interaction.editReply({ embeds: [errorEmbed] });
+                await safeFollowUp(interaction, errorMessage);
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await safeReply(interaction, errorMessage);
             }
         }
-    
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-}
+    }
+};

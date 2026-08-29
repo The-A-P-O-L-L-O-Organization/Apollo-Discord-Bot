@@ -1,13 +1,11 @@
 // Autorole Command
-export default {
-// Configure automatic role assignment for new members
 import { logger } from '../../../utils/logger.js';
-
 import { PermissionsBitField } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { MessageFlags } from 'discord.js';
 
+export default {
     name: 'autorole',
     description: 'Configure automatic role assignment for new members',
     category: 'Moderation',
@@ -54,8 +52,6 @@ import { MessageFlags } from 'discord.js';
     ],
     
     async execute(interaction) {
-    try {
-
         try {
             const subcommand = interaction.options.getSubcommand();
             
@@ -68,7 +64,6 @@ import { MessageFlags } from 'discord.js';
             } else if (subcommand === 'view') {
                 await handleView(interaction);
             }
-            
         } catch (error) {
             logger.error('[ERROR] Autorole command error:', error);
             
@@ -88,15 +83,8 @@ import { MessageFlags } from 'discord.js';
             
             await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
-    
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-}
+    }
+};
 
 async function handleSetRole(interaction) {
     const role = interaction.options.getRole('role');

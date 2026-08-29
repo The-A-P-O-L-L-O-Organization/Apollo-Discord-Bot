@@ -1,17 +1,14 @@
-// Role Persistence Command
-export default {
-// Configure role persistence to restore roles when users rejoin
 import { logger } from '../../../utils/logger.js';
-
 import { PermissionsBitField } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { MessageFlags } from 'discord.js';
 
+export default {
+    // Configure role persistence to restore roles when users rejoin
     name: 'rolepersistence',
     description: 'Configure role persistence for members who rejoin',
     category: 'Moderation',
-    
     defaultMemberPermissions: PermissionsBitField.Flags.ManageRoles,
     dmPermission: false,
     options: [
@@ -49,8 +46,6 @@ import { MessageFlags } from 'discord.js';
     ],
     
     async execute(interaction) {
-    try {
-
         try {
             const subcommand = interaction.options.getSubcommand();
             
@@ -61,35 +56,16 @@ import { MessageFlags } from 'discord.js';
             } else if (subcommand === 'clear') {
                 await handleClear(interaction);
             }
-            
         } catch (error) {
-            logger.error('[ERROR] Rolepersistence command error:', error);
-            
-            const errorEmbed = {
-                color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred while configuring role persistence.',
-                fields: [
-                    {
-                        name: '[ERROR] Details',
-                        value: error.message,
-                        inline: true
-                    }
-                ],
-                timestamp: new Date().toISOString()
-            };
-            
-            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+            const errorMessage = handleDiscordError(error);
+            if (interaction.replied || interaction.deferred) {
+                await safeFollowUp(interaction, errorMessage);
+            } else {
+                await safeReply(interaction, errorMessage);
+            }
         }
-    
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-}
+    }
+};
 
 async function handleToggle(interaction) {
     const enabled = interaction.options.getBoolean('enabled');

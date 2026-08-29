@@ -1,15 +1,13 @@
 // Tempban Command
-export default {
-// Temporarily ban a user with automatic unban
 import { logger } from '../../../utils/logger.js';
-
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { addTempban } from '../../../utils/tempbanScheduler.js';
 import { createModCase } from './case.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { MessageFlags } from 'discord.js';
 
+export default {
     name: 'tempban',
     description: 'Temporarily ban a user from the server',
     category: 'Moderation',
@@ -20,25 +18,25 @@ import { MessageFlags } from 'discord.js';
         {
             name: 'user',
             description: 'The user to temporarily ban',
-            type: 6, // USER type
+            type: 6,
             required: true
         },
         {
             name: 'duration',
             description: 'Duration (e.g., 1h, 1d, 1w)',
-            type: 3, // STRING type
+            type: 3,
             required: true
         },
         {
             name: 'reason',
             description: 'The reason for the temporary ban',
-            type: 3, // STRING type
+            type: 3,
             required: false
         },
         {
             name: 'delete-days',
             description: 'Number of days of messages to delete (0-7)',
-            type: 4, // INTEGER type
+            type: 4,
             required: false,
             min_value: 0,
             max_value: 7
@@ -46,16 +44,12 @@ import { MessageFlags } from 'discord.js';
     ],
     
     async execute(interaction) {
-    try {
-
         try {
-            // Get the user to ban
             const user = interaction.options.getUser('user');
             const durationStr = interaction.options.getString('duration');
             const reason = interaction.options.getString('reason') || 'No reason provided';
             const deleteDays = interaction.options.getInteger('delete-days') || 0;
             
-            // Check if user exists
             if (!user) {
                 const errorEmbed = {
                     color: 0xFF0000,
@@ -66,7 +60,6 @@ import { MessageFlags } from 'discord.js';
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
-            // Parse duration (supports: 1m, 1h, 1d, 1w)
             const match = durationStr.match(/^(\d+)([mhdw])$/);
             if (!match) {
                 const errorEmbed = {
@@ -103,7 +96,6 @@ import { MessageFlags } from 'discord.js';
                 break;
             }
             
-            // Validate minimum duration (1 minute)
             if (durationMs < 60000) {
                 const errorEmbed = {
                     color: 0xFF0000,
@@ -114,10 +106,8 @@ import { MessageFlags } from 'discord.js';
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
-            // Get the guild member if they're in the server
             const member = await fetchMember(interaction.guild, user.id);
             
-            // Check if the member can be banned (if they're in the server)
             if (member && !member.bannable) {
                 const errorEmbed = {
                     color: 0xFF0000,
@@ -128,7 +118,6 @@ import { MessageFlags } from 'discord.js';
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
-            // Check if the user is trying to ban themselves
             if (user.id === interaction.user.id) {
                 const errorEmbed = {
                     color: 0xFF0000,
@@ -139,7 +128,6 @@ import { MessageFlags } from 'discord.js';
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
-            // Check if the user is trying to ban the bot
             if (user.id === interaction.client.user.id) {
                 const errorEmbed = {
                     color: 0xFF0000,
@@ -150,17 +138,14 @@ import { MessageFlags } from 'discord.js';
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
-            // Calculate unban time
             const bannedAt = Date.now();
             const unbanAt = bannedAt + durationMs;
             
-            // Ban the user
             await interaction.guild.bans.create(user.id, {
                 reason: `Temporary ban by ${interaction.user.tag}: ${reason} (Duration: ${durationText})`,
                 deleteMessageSeconds: deleteDays * 24 * 60 * 60
             });
             
-            // Add to tempban scheduler
             await addTempban({
                 userId: user.id,
                 guildId: interaction.guild.id,
@@ -172,7 +157,6 @@ import { MessageFlags } from 'discord.js';
                 moderatorTag: interaction.user.tag
             });
             
-            // Create mod case
             const caseId = createModCase(interaction.guild.id, {
                 type: 'tempban',
                 targetId: user.id,
@@ -183,54 +167,24 @@ import { MessageFlags } from 'discord.js';
                 duration: durationText
             });
             
-            // Create success embed
             const successEmbed = {
                 color: 0x00FF00,
                 title: '[SUCCESS] User Temporarily Banned',
                 description: `${user.tag} has been temporarily banned from the server.`,
                 fields: [
-                    {
-                        name: '[INFO] Moderator',
-                        value: interaction.user.tag,
-                        inline: true
-                    },
-                    {
-                        name: '[INFO] Duration',
-                        value: durationText,
-                        inline: true
-                    },
-                    {
-                        name: '[INFO] Case ID',
-                        value: `#${caseId}`,
-                        inline: true
-                    },
-                    {
-                        name: '[INFO] Reason',
-                        value: reason,
-                        inline: false
-                    },
-                    {
-                        name: '[INFO] Unban Time',
-                        value: `<t:${Math.floor(unbanAt / 1000)}:F>\n(<t:${Math.floor(unbanAt / 1000)}:R>)`,
-                        inline: false
-                    },
-                    {
-                        name: '[INFO] User ID',
-                        value: user.id,
-                        inline: true
-                    },
-                    {
-                        name: '[INFO] Delete Days',
-                        value: `${deleteDays} days`,
-                        inline: true
-                    }
+                    { name: '[INFO] Moderator', value: interaction.user.tag, inline: true },
+                    { name: '[INFO] Duration', value: durationText, inline: true },
+                    { name: '[INFO] Case ID', value: `#${caseId}`, inline: true },
+                    { name: '[INFO] Reason', value: reason, inline: false },
+                    { name: '[INFO] Unban Time', value: `<t:${Math.floor(unbanAt / 1000)}:F>\n(<t:${Math.floor(unbanAt / 1000)}:R>)`, inline: false },
+                    { name: '[INFO] User ID', value: user.id, inline: true },
+                    { name: '[INFO] Delete Days', value: `${deleteDays} days`, inline: true }
                 ],
                 timestamp: new Date().toISOString()
             };
             
             await interaction.reply({ embeds: [successEmbed] });
             
-            // Send mod log
             await sendModLog(interaction.guild, {
                 action: 'tempban',
                 target: user,
@@ -245,38 +199,14 @@ import { MessageFlags } from 'discord.js';
                 }
             });
             
-            // Log the action
             logger.info(`[MODERATION] User ${user.tag} was temporarily banned by ${interaction.user.tag}. Duration: ${durationText}. Reason: ${reason}. Case ID: ${caseId}`);
-            
         } catch (error) {
-            logger.error('[ERROR] Tempban command error:', error);
-            
-            const errorEmbed = {
-                color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred while trying to temporarily ban the user.',
-                fields: [
-                    {
-                        name: '[ERROR] Details',
-                        value: error.message,
-                        inline: true
-                    }
-                ],
-                timestamp: new Date().toISOString()
-            };
-            
+            const errorMessage = handleDiscordError(error);
             if (interaction.replied || interaction.deferred) {
-                await interaction.editReply({ embeds: [errorEmbed] });
+                await safeFollowUp(interaction, errorMessage);
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await safeReply(interaction, errorMessage);
             }
         }
-    
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-}
+    }
+};

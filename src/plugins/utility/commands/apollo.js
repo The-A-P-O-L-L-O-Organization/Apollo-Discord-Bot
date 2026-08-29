@@ -1,8 +1,6 @@
 // Apollo Organization Command
-// Displays information about The A.P.O.L.L.O Organization and documentation links
-
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
     name: 'apollo',
@@ -22,24 +20,24 @@ export default {
     category: 'utility',
 
     async execute(interaction) {
-    try {
+        try {
+            const subcommand = interaction.options.getSubcommand();
 
-        const subcommand = interaction.options.getSubcommand();
-
-        if (subcommand === 'info') {
-            return handleInfo(interaction);
-        } else if (subcommand === 'docs') {
-            return handleDocs(interaction);
+            if (subcommand === 'info') {
+                return handleInfo(interaction);
+            } else if (subcommand === 'docs') {
+                return handleDocs(interaction);
+            }
+        } catch (error) {
+            const errorMessage = handleDiscordError(error);
+            if (interaction.replied || interaction.deferred) {
+                await safeFollowUp(interaction, errorMessage);
+            } else {
+                await safeReply(interaction, errorMessage);
+            }
         }
-    
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-}
+    }
+};
 
 async function handleInfo(interaction) {
     const infoEmbed = new EmbedBuilder()

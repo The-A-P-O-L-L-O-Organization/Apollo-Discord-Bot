@@ -1,20 +1,17 @@
-// Forceban Command
-export default {
-// Bans a user by ID without requiring them to be in the server
 import { logger } from '../../../utils/logger.js';
-
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { createModCase } from './case.js';
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 import { safeError } from '../../../utils/safeError.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { MessageFlags } from 'discord.js';
 
+export default {
+    // Bans a user by ID without requiring them to be in the server
     name: 'forceban',
     description: 'Ban a user by ID (works even if user is not in the server)',
     category: 'Moderation',
-    
     defaultMemberPermissions: PermissionsBitField.Flags.BanMembers,
     dmPermission: false,
     options: [
@@ -41,8 +38,6 @@ import { MessageFlags } from 'discord.js';
     ],
     
     async execute(interaction) {
-    try {
-
         try {
             const userId = interaction.options.getString('user-id');
             const reason = interaction.options.getString('reason') || 'No reason provided';
@@ -152,30 +147,13 @@ import { MessageFlags } from 'discord.js';
             });
             
             logger.info(`[MODERATION] User ${userTag} (${userId}) was forcebanned by ${interaction.user.tag}. Reason: ${reason}`);
-            
         } catch (error) {
-            const errorEmbed = {
-                color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred while trying to forceban the user.',
-                fields: [
-                    { name: '[ERROR] Details', value: safeError(error), inline: true }
-                ],
-                timestamp: new Date().toISOString()
-            };
-            
+            const errorMessage = handleDiscordError(error);
             if (interaction.replied || interaction.deferred) {
-                await interaction.editReply({ embeds: [errorEmbed] });
+                await safeFollowUp(interaction, errorMessage);
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await safeReply(interaction, errorMessage);
             }
         }
-    
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-}
+    }
+};

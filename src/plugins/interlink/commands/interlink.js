@@ -305,7 +305,7 @@ export default {
             embeds: [{
                 color: failed === 0 ? 0x00FF00 : 0xFFA500,
                 title: '[INFO] Broadcast Complete',
-                description: `Sent to ${results.length} active bot(s).\n✅ ${success} succeeded\n❌ ${failed} failed`
+                description: `Sent to ${results.length} active bot(s).\n[OK] ${success} succeeded\n[ERROR] ${failed} failed`
             }]
         });
     },

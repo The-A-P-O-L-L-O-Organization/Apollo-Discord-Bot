@@ -1,11 +1,11 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { updateGuildData } from '../../../utils/db.js';
+import { getGuildData, updateGuildData } from '../../../utils/db.js';
 import { getPriorityColor, getPriorityEmoji } from '../../../utils/slaTracker.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
 import { MessageFlags } from 'discord.js';
-export default {
 
+export default {
     name: 'ticketpriority',
     data: new SlashCommandBuilder()
         .setName('ticketpriority')
@@ -26,87 +26,78 @@ export default {
     category: 'utility',
 
     async execute(interaction) {
-    try {
-
-        const guildId = interaction.guild.id;
-        const channelId = interaction.channel.id;
-        const newPriority = interaction.options.getString('priority');
-
-        const ticketConfig = await getGuildData('tickets', guildId);
-
-        const ticket = ticketConfig.openTickets?.find(t => t.channelId === channelId);
-
-        if (!ticket) {
-            return interaction.reply({
-                content: 'This channel is not a ticket channel.',
-                flags: MessageFlags.Ephemeral
-            });
-        }
-
-        const member = interaction.member;
-        const hasSupport = ticketConfig.supportRoleId && member.roles.cache.has(ticketConfig.supportRoleId);
-        const isAdmin = member.permissions.has(PermissionFlagsBits.Administrator);
-
-        if (!hasSupport && !isAdmin) {
-            return interaction.reply({
-                content: 'You do not have permission to change ticket priority.',
-                flags: MessageFlags.Ephemeral
-            });
-        }
-
-        const oldPriority = ticket.priority || 'medium';
-
-        if (oldPriority === newPriority) {
-            return interaction.reply({
-                content: `This ticket is already set to **${newPriority}** priority.`,
-                flags: MessageFlags.Ephemeral
-            });
-        }
-
-        await updateGuildData('tickets', guildId, (data) => {
-            const t = data.openTickets?.find(x => x.channelId === channelId);
-            if (t) {
-                t.priority = newPriority;
-                if (!t.tags) {t.tags = [];}
-                t.tags = t.tags.filter(tag => tag !== oldPriority);
-                t.tags.push(newPriority);
-            }
-            return data;
-        });
-
         try {
-            const newTopic = `${getPriorityEmoji(newPriority)} Ticket #${ticket.ticketNumber} | ${ticket.category || 'general'} | ${newPriority} priority | Created by ${(await interaction.guild.members.fetch(ticket.userId).catch(() => null))?.user?.tag || 'Unknown'}`;
-            await interaction.channel.setTopic(newTopic);
+            const guildId = interaction.guild.id;
+            const channelId = interaction.channel.id;
+            const newPriority = interaction.options.getString('priority');
+
+            const ticketConfig = await getGuildData('tickets', guildId);
+
+            const ticket = ticketConfig.openTickets?.find(t => t.channelId === channelId);
+
+            if (!ticket) {
+                return interaction.reply({
+                    content: 'This channel is not a ticket channel.',
+                    flags: MessageFlags.Ephemeral
+                });
+            }
+
+            const member = interaction.member;
+            const hasSupport = ticketConfig.supportRoleId && member.roles.cache.has(ticketConfig.supportRoleId);
+            const isAdmin = member.permissions.has(PermissionFlagsBits.Administrator);
+
+            if (!hasSupport && !isAdmin) {
+                return interaction.reply({
+                    content: 'You do not have permission to change ticket priority.',
+                    flags: MessageFlags.Ephemeral
+                });
+            }
+
+            const oldPriority = ticket.priority || 'medium';
+
+            if (oldPriority === newPriority) {
+                return interaction.reply({
+                    content: `This ticket is already set to **${newPriority}** priority.`,
+                    flags: MessageFlags.Ephemeral
+                });
+            }
+
+            await updateGuildData('tickets', guildId, (data) => {
+                const t = data.openTickets?.find(x => x.channelId === channelId);
+                if (t) {
+                    t.priority = newPriority;
+                    if (!t.tags) { t.tags = []; }
+                    t.tags = t.tags.filter(tag => tag !== oldPriority);
+                    t.tags.push(newPriority);
+                }
+                return data;
+            });
+
+            try {
+                const newTopic = `${getPriorityEmoji(newPriority)} Ticket #${ticket.ticketNumber} | ${ticket.category || 'general'} | ${newPriority} priority | Created by ${(await interaction.guild.members.fetch(ticket.userId).catch(() => null))?.user?.tag || 'Unknown'}`;
+                await interaction.channel.setTopic(newTopic);
+            } catch (error) {
+                logger.error('[ERROR] Failed to update channel topic:', error);
+            }
+
+            const embed = new EmbedBuilder()
+                .setColor(getPriorityColor(newPriority))
+                .setTitle('Ticket Priority Updated')
+                .setDescription(`Priority changed from **${getPriorityEmoji(oldPriority)} ${oldPriority.toUpperCase()}** to **${getPriorityEmoji(newPriority)} ${newPriority.toUpperCase()}**`)
+                .addFields(
+                    { name: 'Updated by', value: `${interaction.user}`, inline: true },
+                    { name: 'New Priority', value: `${getPriorityEmoji(newPriority)} ${newPriority.charAt(0).toUpperCase() + newPriority.slice(1)}`, inline: true }
+                )
+                .setTimestamp();
+
+            return interaction.reply({ embeds: [embed] });
         } catch (error) {
-            logger.error('[ERROR] Failed to update channel topic:', error);
+            const errorMessage = handleDiscordError(error);
+            if (interaction.replied || interaction.deferred) {
+                await safeFollowUp(interaction, errorMessage);
+            } else {
+                await safeReply(interaction, errorMessage);
+            }
         }
-
-        const embed = new EmbedBuilder()
-            .setColor(getPriorityColor(newPriority))
-            .setTitle('Ticket Priority Updated')
-            .setDescription(`Priority changed from **${getPriorityEmoji(oldPriority)} ${oldPriority.toUpperCase()}** to **${getPriorityEmoji(newPriority)} ${newPriority.toUpperCase()}**`)
-            .addFields(
-                { name: 'Updated by', value: `${interaction.user}`, inline: true },
-                { name: 'New Priority', value: `${getPriorityEmoji(newPriority)} ${newPriority.charAt(0).toUpperCase() + newPriority.slice(1)}`, inline: true }
-            )
-            .setTimestamp();
-
-        return interaction.reply({ embeds: [embed] });
-    
-} catch (error) {
-    const errorMessage = handleDiscordError(error);
-    if (interaction.replied || interaction.deferred) {
-        await safeFollowUp(interaction, errorMessage);
-    } else {
-        await safeReply(interaction, errorMessage);
-    }
-}
-
-} catch (error) {
-    const errorMessage = handleDiscordError(error);
-    if (interaction.replied || interaction.deferred) {
-        await safeFollowUp(interaction, errorMessage);
-    } else {
-        await safeReply(interaction, errorMessage);
     }
 };

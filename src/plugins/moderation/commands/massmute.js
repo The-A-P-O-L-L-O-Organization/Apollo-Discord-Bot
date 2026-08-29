@@ -1,8 +1,4 @@
-// Mass Mute Command
-export default {
-// Timeouts multiple users
 import { logger } from '../../../utils/logger.js';
-
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { createModCase } from './case.js';
@@ -10,13 +6,14 @@ import { flushAnalyticsCritical, trackModAction } from '../../../utils/analytics
 import { canModerate } from '../../../utils/moderation.js';
 import { safeError } from '../../../utils/safeError.js';
 import { parseDuration, formatDuration, validateDuration } from '../../../utils/duration.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { MessageFlags } from 'discord.js';
 
+export default {
+    // Timeouts multiple users
     name: 'massmute',
     description: 'Timeout multiple users',
     category: 'Moderation',
-    
     defaultMemberPermissions: PermissionsBitField.Flags.ModerateMembers,
     dmPermission: false,
     options: [
@@ -41,8 +38,6 @@ import { MessageFlags } from 'discord.js';
     ],
     
     async execute(interaction) {
-    try {
-
         try {
             const userIdsStr = interaction.options.getString('user-ids');
             const durationStr = interaction.options.getString('duration');
@@ -215,30 +210,13 @@ import { MessageFlags } from 'discord.js';
             await interaction.editReply({ embeds: [successEmbed] });
             
             logger.info(`[MODERATION] Mass mute by ${interaction.user.tag}: ${results.success.length} success, ${results.failed.length} failed. Duration: ${durationDisplay}. Reason: ${reason}`);
-            
         } catch (error) {
-            const errorEmbed = {
-                color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred while trying to mass mute users.',
-                fields: [
-                    { name: '[ERROR] Details', value: safeError(error), inline: true }
-                ],
-                timestamp: new Date().toISOString()
-            };
-            
+            const errorMessage = handleDiscordError(error);
             if (interaction.replied || interaction.deferred) {
-                await interaction.editReply({ embeds: [errorEmbed] });
+                await safeFollowUp(interaction, errorMessage);
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await safeReply(interaction, errorMessage);
             }
         }
-    
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-}
+    }
+};

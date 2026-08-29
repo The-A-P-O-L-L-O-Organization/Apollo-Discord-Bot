@@ -1,7 +1,7 @@
 import { config } from '../../../config/config.js';
 import { getQueueMetrics } from '../../../queue/metrics.js';
 import { requireOwner } from '../../../utils/accessControl.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { MessageFlags } from 'discord.js';
 
 export default {
@@ -60,3 +60,5 @@ export default {
     await safeReply(interaction, errorMessage);
   }
 }
+}
+};

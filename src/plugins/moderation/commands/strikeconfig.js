@@ -1,13 +1,11 @@
 // Strike Config Command
-export default {
-// Configure strike system settings
 import { logger } from '../../../utils/logger.js';
-
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { MessageFlags } from 'discord.js';
 
+export default {
     name: 'strikeconfig',
     description: 'Configure strike system settings',
     category: 'Moderation',
@@ -18,7 +16,7 @@ import { MessageFlags } from 'discord.js';
         {
             name: 'action',
             description: 'Configuration action',
-            type: 3, // STRING
+            type: 3,
             required: true,
             choices: [
                 { name: 'View Settings', value: 'view' },
@@ -30,7 +28,7 @@ import { MessageFlags } from 'discord.js';
         {
             name: 'value',
             description: 'The value to set (for threshold settings)',
-            type: 4, // INTEGER
+            type: 4,
             required: false,
             min_value: 1,
             max_value: 10
@@ -38,8 +36,6 @@ import { MessageFlags } from 'discord.js';
     ],
     
     async execute(interaction) {
-    try {
-
         try {
             const action = interaction.options.getString('action');
             const value = interaction.options.getInteger('value');
@@ -47,7 +43,6 @@ import { MessageFlags } from 'discord.js';
             const guildSettings = await getGuildData('strike-config', interaction.guild.id);
             
             if (action === 'view') {
-                // View current settings
                 const banThreshold = guildSettings.banThreshold || 3;
                 const kickThreshold = guildSettings.kickThreshold || 2;
                 const autoKick = guildSettings.autoKick ?? true;
@@ -138,30 +133,13 @@ import { MessageFlags } from 'discord.js';
                 
                 logger.info(`[CONFIG] Auto-kick ${newState ? 'enabled' : 'disabled'} in ${interaction.guild.name}`);
             }
-            
         } catch (error) {
-            logger.error('[ERROR] Strike config command error:', error);
-            
-            const errorEmbed = {
-                color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred while updating strike configuration.',
-                fields: [{ name: 'Error', value: error.message, inline: true }],
-                timestamp: new Date().toISOString()
-            };
-            
+            const errorMessage = handleDiscordError(error);
             if (interaction.replied || interaction.deferred) {
-                await interaction.editReply({ embeds: [errorEmbed] });
+                await safeFollowUp(interaction, errorMessage);
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await safeReply(interaction, errorMessage);
             }
         }
-    
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-}
+    }
+};

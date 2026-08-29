@@ -1,17 +1,15 @@
 // Softban Command
-export default {
-// Bans a user and immediately unbans them to clear their messages
 import { logger } from '../../../utils/logger.js';
-
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { createModCase } from './case.js';
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 import { canModerate } from '../../../utils/moderation.js';
 import { safeError } from '../../../utils/safeError.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { MessageFlags } from 'discord.js';
 
+export default {
     name: 'softban',
     description: 'Softban a user (ban + immediate unban to clear messages)',
     category: 'Moderation',
@@ -22,19 +20,19 @@ import { MessageFlags } from 'discord.js';
         {
             name: 'user',
             description: 'The user to softban',
-            type: 6, // USER type
+            type: 6,
             required: true
         },
         {
             name: 'reason',
             description: 'The reason for softbanning',
-            type: 3, // STRING type
+            type: 3,
             required: false
         },
         {
             name: 'delete-days',
             description: 'Number of days of messages to delete (0-7)',
-            type: 4, // INTEGER type
+            type: 4,
             required: false,
             min_value: 0,
             max_value: 7
@@ -42,8 +40,6 @@ import { MessageFlags } from 'discord.js';
     ],
     
     async execute(interaction) {
-    try {
-
         try {
             const user = interaction.options.getUser('user');
             const reason = interaction.options.getString('reason') || 'No reason provided';
@@ -112,13 +108,11 @@ import { MessageFlags } from 'discord.js';
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
-            // Ban the user
             await interaction.guild.bans.create(user.id, {
                 reason: `[SOFTBAN] ${reason}`,
                 deleteMessageSeconds: deleteDays * 24 * 60 * 60
             });
             
-            // Immediately unban
             await interaction.guild.bans.remove(user.id, `[SOFTBAN] Softban completed - ${reason}`);
             
             trackModAction(interaction.guild.id, interaction.user.id, 'softban');
@@ -161,30 +155,13 @@ import { MessageFlags } from 'discord.js';
             });
             
             logger.info(`[MODERATION] User ${user.tag} was softbanned by ${interaction.user.tag}. Reason: ${reason}`);
-            
         } catch (error) {
-            const errorEmbed = {
-                color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred while trying to softban the user.',
-                fields: [
-                    { name: '[ERROR] Details', value: safeError(error), inline: true }
-                ],
-                timestamp: new Date().toISOString()
-            };
-            
+            const errorMessage = handleDiscordError(error);
             if (interaction.replied || interaction.deferred) {
-                await interaction.editReply({ embeds: [errorEmbed] });
+                await safeFollowUp(interaction, errorMessage);
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await safeReply(interaction, errorMessage);
             }
         }
-    
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-}
+    }
+};

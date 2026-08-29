@@ -1,18 +1,15 @@
-// Note Command
-export default {
-// Add internal mod notes on users (not visible to the user)
 import { logger } from '../../../utils/logger.js';
-
 import { PermissionsBitField } from 'discord.js';
 import { getUserData, setUserData, appendToUserArray } from '../../../utils/db.js';
 import { generateId } from '../../../utils/db.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { MessageFlags } from 'discord.js';
 
+export default {
+    // Add internal mod notes on users (not visible to the user)
     name: 'note',
     description: 'Manage internal moderator notes on users',
     category: 'Moderation',
-    
     defaultMemberPermissions: PermissionsBitField.Flags.ModerateMembers,
     dmPermission: false,
     options: [
@@ -71,8 +68,6 @@ import { MessageFlags } from 'discord.js';
     ],
     
     async execute(interaction) {
-    try {
-
         try {
             const subcommand = interaction.options.getSubcommand();
             const user = interaction.options.getUser('user');
@@ -94,39 +89,16 @@ import { MessageFlags } from 'discord.js';
             } else if (subcommand === 'remove') {
                 await handleRemoveNote(interaction, user);
             }
-            
         } catch (error) {
-            logger.error('[ERROR] Note command error:', error);
-            
-            const errorEmbed = {
-                color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred while managing notes.',
-                fields: [
-                    {
-                        name: '[ERROR] Details',
-                        value: error.message,
-                        inline: true
-                    }
-                ],
-                timestamp: new Date().toISOString()
-            };
-            
+            const errorMessage = handleDiscordError(error);
             if (interaction.replied || interaction.deferred) {
-                await interaction.editReply({ embeds: [errorEmbed] });
+                await safeFollowUp(interaction, errorMessage);
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await safeReply(interaction, errorMessage);
             }
         }
-    
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-}
+    }
+};
 
 async function handleAddNote(interaction, user) {
     const noteContent = interaction.options.getString('note');

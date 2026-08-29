@@ -114,7 +114,7 @@ async function handleAdd(interaction) {
     const typeNames = { twitch: 'Twitch', youtube: 'YouTube', github: 'GitHub', rss: 'RSS' };
 
     await interaction.reply({
-        content: `✅ Added **${typeNames[type] || type}** subscription for \`${target}\` → ${channel}. ID: \`${id}\``,
+        content: `[OK] Added **${typeNames[type] || type}** subscription for \`${target}\` → ${channel}. ID: \`${id}\``,
         flags: MessageFlags.Ephemeral,
     });
 }
@@ -128,13 +128,13 @@ async function handleRemove(interaction) {
     );
 
     if (idx === -1) {
-        return interaction.reply({ content: `❌ Subscription \`${id}\` not found.`, flags: MessageFlags.Ephemeral });
+        return interaction.reply({ content: `[ERROR] Subscription \`${id}\` not found.`, flags: MessageFlags.Ephemeral });
     }
 
     data.subscriptions.splice(idx, 1);
     await setData('integrations', data);
 
-    await interaction.reply({ content: `✅ Removed subscription \`${id}\`.`, flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: `[OK] Removed subscription \`${id}\`.`, flags: MessageFlags.Ephemeral });
 }
 
 async function handleList(interaction) {
