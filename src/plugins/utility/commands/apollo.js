@@ -21,8 +21,8 @@ export default {
         ),
     category: 'utility',
 
-    async execute(interaction) {try {
-try {
+    async execute(interaction) {
+    try {
 
         const subcommand = interaction.options.getSubcommand();
 
@@ -40,15 +40,6 @@ try {
     await safeReply(interaction, errorMessage);
   }
 }
-
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-};
 
 async function handleInfo(interaction) {
     const infoEmbed = new EmbedBuilder()

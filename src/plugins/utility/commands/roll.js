@@ -18,8 +18,8 @@ export default {
         }
     ],
     
-    async execute(interaction) {try {
-try {
+    async execute(interaction) {
+    try {
 
         try {
             const diceStr = interaction.options.getString('dice') || '1d6';
@@ -153,12 +153,3 @@ try {
     await safeReply(interaction, errorMessage);
   }
 }
-
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-};

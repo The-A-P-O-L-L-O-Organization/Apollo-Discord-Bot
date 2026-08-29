@@ -22,8 +22,8 @@ import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discord
         }
     ],
     
-    async execute(interaction) {try {
-try {
+    async execute(interaction) {
+    try {
 
         try {
             const user = interaction.options.getUser('user') || interaction.user;
@@ -115,15 +115,6 @@ try {
     await safeReply(interaction, errorMessage);
   }
 }
-
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-};
 
 /**
  * Create a visual progress bar

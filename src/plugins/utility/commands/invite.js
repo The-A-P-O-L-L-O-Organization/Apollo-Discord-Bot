@@ -42,8 +42,8 @@ import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discord
         }
     ],
     
-    async execute(interaction) {try {
-try {
+    async execute(interaction) {
+    try {
 
         try {
             const type = interaction.options.getString('type') || 'bot';
@@ -159,12 +159,3 @@ try {
     await safeReply(interaction, errorMessage);
   }
 }
-
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-};

@@ -14,8 +14,8 @@ import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discord
     defaultMemberPermissions: PermissionsBitField.Flags.ModerateMembers, // Permission to moderate members (for context menu)
     dmPermission: false, // Only works in guilds
 
-    async execute(interaction) {try {
-try {
+    async execute(interaction) {
+    try {
 
         try {
             // Check if the user has permission to view the channel and message
@@ -130,12 +130,3 @@ try {
     await safeReply(interaction, errorMessage);
   }
 }
-
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-};
