@@ -1,5 +1,5 @@
-import { createRedisClient, closeRedisClient } from '../../../utils/redis.js';
-import { logger } from '../../../utils/logger.js';
+import { createRedisClient, closeRedisClient } from '../../utils/redis.js';
+import { logger } from '../../utils/logger.js';
 
 export default class RedisTransport {
     constructor(config) {
