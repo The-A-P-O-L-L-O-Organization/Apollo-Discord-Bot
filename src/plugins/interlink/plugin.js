@@ -9,14 +9,18 @@ import { createLogger } from '../../utils/logger.js';
 import { config } from '../../config/config.js';
 
 export default class InterlinkPlugin extends Plugin {
-    const logger = createLogger({ component: 'plugin:interlink' });
     static id = 'interlink';
     static version = '1.0.0';
     static dependencies = [];
 
+    constructor(client, manager) {
+        super(client, manager);
+        this.logger = createLogger({ component: 'plugin:interlink' });
+    }
+
     async onEnable() {
         if (!interlinkConfig.enabled) {
-            logger.info('[Interlink] Plugin is disabled (INTERLINK_ENABLED != true)');
+            this.logger.info('[Interlink] Plugin is disabled (INTERLINK_ENABLED != true)');
             return;
         }
 
@@ -43,9 +47,9 @@ export default class InterlinkPlugin extends Plugin {
                 await this._redisTransport.connect((envelope) => {
                     this._messageBus.handleIncomingMessage(envelope);
                 });
-                logger.info('[Interlink] Redis transport connected');
+                this.logger.info('[Interlink] Redis transport connected');
             } catch (err) {
-                logger.warn('[Interlink] Redis transport unavailable (HTTP-only mode):', err.message);
+                this.logger.warn('[Interlink] Redis transport unavailable (HTTP-only mode):', err.message);
             }
         }
 
@@ -53,7 +57,7 @@ export default class InterlinkPlugin extends Plugin {
 
         await this._loadCommands();
 
-        logger.info('[Interlink] Plugin enabled');
+        this.logger.info('[Interlink] Plugin enabled');
     }
 
     async onDisable() {
@@ -65,7 +69,7 @@ export default class InterlinkPlugin extends Plugin {
         }
         this._unloadCommands();
         this._teardownEventBridge();
-        logger.info('[Interlink] Plugin disabled');
+        this.logger.info('[Interlink] Plugin disabled');
     }
 
     _setupEventBridge() {
@@ -86,12 +90,12 @@ export default class InterlinkPlugin extends Plugin {
                         await this._messageBus._sendHttp(bot, envelope);
                     }
                 } catch (err) {
-                    logger.error(`[Interlink] Error forwarding event ${eventName}:`, err.message);
+                    this.logger.error(`[Interlink] Error forwarding event ${eventName}:`, err.message);
                 }
             }, 'interlink');
             this._eventUnsubscribers.push(unsub);
         }
-        logger.info(`[Interlink] Forwarding events: ${events.join(', ')}`);
+        this.logger.info(`[Interlink] Forwarding events: ${events.join(', ')}`);
     }
 
     _teardownEventBridge() {
