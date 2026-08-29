@@ -1,6 +1,7 @@
 // Context Menu Command: Scan for NSFW
 // Right-click a message → "Scan for NSFW"
-import { logger } from './utils/logger.js';
+import { createLogger } from './utils/logger.js';
+const logger = createLogger({ component: 'automod:scanMessage' });
 
 import { ApplicationCommandType, EmbedBuilder, PermissionsBitField, MessageFlags } from 'discord.js';
 import { checkMessageAttachments, formatNsfwPredictions } from '../../../utils/nsfwDetection.js';
