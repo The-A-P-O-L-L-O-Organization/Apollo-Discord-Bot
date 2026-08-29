@@ -25,8 +25,8 @@ export default {
         .setDMPermission(false),
     category: 'utility',
 
-    async execute(interaction) {try {
-try {
+    async execute(interaction) {
+    try {
 
         const guildId = interaction.guild.id;
         const channelId = interaction.channel.id;

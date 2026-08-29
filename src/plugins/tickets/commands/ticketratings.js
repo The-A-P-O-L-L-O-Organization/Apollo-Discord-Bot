@@ -45,8 +45,8 @@ export default {
         .setDMPermission(false),
     category: 'utility',
 
-    async execute(interaction) {try {
-try {
+    async execute(interaction) {
+    try {
 
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 

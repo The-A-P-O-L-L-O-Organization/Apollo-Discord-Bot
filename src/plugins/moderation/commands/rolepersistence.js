@@ -48,8 +48,8 @@ import { MessageFlags } from 'discord.js';
         }
     ],
     
-    async execute(interaction) {try {
-try {
+    async execute(interaction) {
+    try {
 
         try {
             const subcommand = interaction.options.getSubcommand();
@@ -90,15 +90,6 @@ try {
     await safeReply(interaction, errorMessage);
   }
 }
-
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-};
 
 async function handleToggle(interaction) {
     const enabled = interaction.options.getBoolean('enabled');

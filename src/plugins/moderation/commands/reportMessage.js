@@ -21,8 +21,8 @@ import { MessageFlags } from 'discord.js';
         .setName('Report Message')
         .setType(ApplicationCommandType.Message),
     
-    async execute(interaction) {try {
-try {
+    async execute(interaction) {
+    try {
 
         try {
             // Get the target message
@@ -192,12 +192,3 @@ try {
     await safeReply(interaction, errorMessage);
   }
 }
-
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-};

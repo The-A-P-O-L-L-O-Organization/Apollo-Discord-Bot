@@ -74,8 +74,8 @@ export default {
         .setDMPermission(false),
     category: 'admin',
 
-    async execute(interaction) {try {
-try {
+    async execute(interaction) {
+    try {
 
         const subcommand = interaction.options.getSubcommand();
         const guildId = interaction.guild.id;
