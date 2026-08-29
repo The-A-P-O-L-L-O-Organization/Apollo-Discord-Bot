@@ -3,9 +3,9 @@
 
 import { ShardingManager } from 'discord.js';
 import { config } from './config/config.js';
-import { setupLogger, logger } from './utils/logger.js';
+import { createLogger } from './utils/logger.js';
 
-const logger = setupLogger('ShardManager');
+const logger = createLogger({ component: 'ShardManager' });
 
 // Validate sharding configuration
 if (!config.shard.enabled) {
