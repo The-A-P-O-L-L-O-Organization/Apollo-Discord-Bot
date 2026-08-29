@@ -1,13 +1,11 @@
 // Temprole Command
-export default {
-// Assign temporary roles that automatically expire
 import { logger } from '../../../utils/logger.js';
-
 import { PermissionsBitField } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { MessageFlags } from 'discord.js';
 
+export default {
     name: 'temprole',
     description: 'Assign a temporary role that expires after a set duration',
     category: 'Moderation',
@@ -18,63 +16,31 @@ import { MessageFlags } from 'discord.js';
         {
             name: 'add',
             description: 'Add a temporary role',
-            type: 1, // SUB_COMMAND
+            type: 1,
             options: [
-                {
-                    name: 'user',
-                    description: 'User to assign role to',
-                    type: 6, // USER
-                    required: true
-                },
-                {
-                    name: 'role',
-                    description: 'Role to assign',
-                    type: 8, // ROLE
-                    required: true
-                },
-                {
-                    name: 'duration',
-                    description: 'Duration (e.g., 1h, 30m, 7d)',
-                    type: 3, // STRING
-                    required: true
-                },
-                {
-                    name: 'reason',
-                    description: 'Reason for assignment',
-                    type: 3, // STRING
-                    required: false
-                }
+                { name: 'user', description: 'User to assign role to', type: 6, required: true },
+                { name: 'role', description: 'Role to assign', type: 8, required: true },
+                { name: 'duration', description: 'Duration (e.g., 1h, 30m, 7d)', type: 3, required: true },
+                { name: 'reason', description: 'Reason for assignment', type: 3, required: false }
             ]
         },
         {
             name: 'remove',
             description: 'Remove a temporary role early',
-            type: 1, // SUB_COMMAND
+            type: 1,
             options: [
-                {
-                    name: 'user',
-                    description: 'User to remove role from',
-                    type: 6, // USER
-                    required: true
-                },
-                {
-                    name: 'role',
-                    description: 'Role to remove',
-                    type: 8, // ROLE
-                    required: true
-                }
+                { name: 'user', description: 'User to remove role from', type: 6, required: true },
+                { name: 'role', description: 'Role to remove', type: 8, required: true }
             ]
         },
         {
             name: 'list',
             description: 'List active temporary roles',
-            type: 1 // SUB_COMMAND
+            type: 1
         }
     ],
     
     async execute(interaction) {
-    try {
-
         try {
             const subcommand = interaction.options.getSubcommand();
             
@@ -85,35 +51,16 @@ import { MessageFlags } from 'discord.js';
             } else if (subcommand === 'list') {
                 await handleList(interaction);
             }
-            
         } catch (error) {
-            logger.error('[ERROR] Temprole command error:', error);
-            
-            const errorEmbed = {
-                color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred while managing temporary roles.',
-                fields: [
-                    {
-                        name: '[ERROR] Details',
-                        value: error.message,
-                        inline: true
-                    }
-                ],
-                timestamp: new Date().toISOString()
-            };
-            
-            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+            const errorMessage = handleDiscordError(error);
+            if (interaction.replied || interaction.deferred) {
+                await safeFollowUp(interaction, errorMessage);
+            } else {
+                await safeReply(interaction, errorMessage);
+            }
         }
-    
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-}
+    }
+};
 
 async function handleAdd(interaction) {
     const user = interaction.options.getUser('user');
@@ -121,7 +68,6 @@ async function handleAdd(interaction) {
     const durationStr = interaction.options.getString('duration');
     const reason = interaction.options.getString('reason') || 'No reason provided';
     
-    // Parse duration
     const durationMs = parseDuration(durationStr);
     if (!durationMs) {
         return interaction.reply({
@@ -135,7 +81,6 @@ async function handleAdd(interaction) {
         });
     }
     
-    // Check max duration (30 days)
     const maxDuration = 30 * 24 * 60 * 60 * 1000;
     if (durationMs > maxDuration) {
         return interaction.reply({
@@ -149,10 +94,8 @@ async function handleAdd(interaction) {
         });
     }
     
-    // Get member
     const member = await interaction.guild.members.fetch(user.id);
     
-    // Check if role can be assigned
     if (role.position >= interaction.guild.members.me.roles.highest.position) {
         return interaction.reply({
             embeds: [{
@@ -165,10 +108,8 @@ async function handleAdd(interaction) {
         });
     }
     
-    // Assign role
     await member.roles.add(role, `Temporary role: ${reason}`);
     
-    // Store temp role info
     const tempRoleData = {
         userId: user.id,
         userTag: user.tag,
@@ -191,37 +132,16 @@ async function handleAdd(interaction) {
         title: '[SUCCESS] Temporary Role Assigned',
         description: `${user.tag} has been assigned ${role} for ${durationStr}.`,
         fields: [
-            {
-                name: '[INFO] User',
-                value: user.tag,
-                inline: true
-            },
-            {
-                name: '[INFO] Role',
-                value: role.name,
-                inline: true
-            },
-            {
-                name: '[INFO] Duration',
-                value: durationStr,
-                inline: true
-            },
-            {
-                name: '[INFO] Expires',
-                value: `<t:${Math.floor(tempRoleData.expiresAt / 1000)}:R>`,
-                inline: true
-            },
-            {
-                name: '[INFO] Reason',
-                value: reason,
-                inline: false
-            }
+            { name: '[INFO] User', value: user.tag, inline: true },
+            { name: '[INFO] Role', value: role.name, inline: true },
+            { name: '[INFO] Duration', value: durationStr, inline: true },
+            { name: '[INFO] Expires', value: `<t:${Math.floor(tempRoleData.expiresAt / 1000)}:R>`, inline: true },
+            { name: '[INFO] Reason', value: reason, inline: false }
         ],
         timestamp: new Date().toISOString()
     };
     
     await interaction.reply({ embeds: [successEmbed] });
-    
     logger.info(`[MODERATION] Temp role ${role.name} assigned to ${user.tag} for ${durationStr}`);
 }
 
@@ -229,14 +149,11 @@ async function handleRemove(interaction) {
     const user = interaction.options.getUser('user');
     const role = interaction.options.getRole('role');
     
-    // Get member
     const member = await interaction.guild.members.fetch(user.id);
     
-    // Remove role
     if (member.roles.cache.has(role.id)) {
         await member.roles.remove(role, 'Temporary role removed early');
         
-        // Clear from temp roles
         await updateGuildData('temp-roles', interaction.guild.id, (data) => {
             delete data[user.id];
             return data;
@@ -310,7 +227,7 @@ async function handleList(interaction) {
 
 function parseDuration(str) {
     const match = str.match(/^(\d+)([mhdw])$/i);
-    if (!match) {return null;}
+    if (!match) { return null; }
     
     const value = parseInt(match[1]);
     const unit = match[2].toLowerCase();

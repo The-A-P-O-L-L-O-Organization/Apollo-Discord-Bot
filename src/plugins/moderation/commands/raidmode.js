@@ -1,13 +1,11 @@
 // Raidmode Command
-export default {
-// Manually enable/disable raid mode lockdown
 import { logger } from '../../../utils/logger.js';
-
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { enableRaidMode, disableRaidMode, isRaidModeEnabled } from '../../../utils/raidDetection.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { MessageFlags } from 'discord.js';
 
+export default {
     name: 'raidmode',
     description: 'Enable or disable raid mode (locks all channels)',
     category: 'Moderation',
@@ -18,7 +16,7 @@ import { MessageFlags } from 'discord.js';
         {
             name: 'action',
             description: 'Enable or disable raid mode',
-            type: 3, // STRING
+            type: 3,
             required: true,
             choices: [
                 { name: 'Enable', value: 'enable' },
@@ -29,13 +27,10 @@ import { MessageFlags } from 'discord.js';
     ],
     
     async execute(interaction) {
-    try {
-
         try {
             const action = interaction.options.getString('action');
             
             if (action === 'status') {
-                // Check raid mode status
                 const isEnabled = isRaidModeEnabled(interaction.guild.id);
                 
                 const embed = new EmbedBuilder()
@@ -57,7 +52,6 @@ import { MessageFlags } from 'discord.js';
             } else if (action === 'enable') {
                 await interaction.deferReply();
                 
-                // Enable raid mode
                 const result = await enableRaidMode(interaction.guild);
                 
                 if (!result.success) {
@@ -95,7 +89,6 @@ import { MessageFlags } from 'discord.js';
             } else if (action === 'disable') {
                 await interaction.deferReply();
                 
-                // Disable raid mode
                 const result = await disableRaidMode(interaction.guild);
                 
                 if (!result.success) {
@@ -125,30 +118,13 @@ import { MessageFlags } from 'discord.js';
                 
                 logger.info(`[RAID] Raid mode disabled by ${interaction.user.tag} in ${interaction.guild.name}`);
             }
-            
         } catch (error) {
-            logger.error('[ERROR] Raidmode command error:', error);
-            
-            const errorEmbed = {
-                color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred while changing raid mode.',
-                fields: [{ name: 'Error', value: error.message, inline: true }],
-                timestamp: new Date().toISOString()
-            };
-            
+            const errorMessage = handleDiscordError(error);
             if (interaction.replied || interaction.deferred) {
-                await interaction.editReply({ embeds: [errorEmbed] });
+                await safeFollowUp(interaction, errorMessage);
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await safeReply(interaction, errorMessage);
             }
         }
-    
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-}
+    }
+};

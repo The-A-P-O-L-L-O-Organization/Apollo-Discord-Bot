@@ -1,18 +1,15 @@
-// Reports Command
-export default {
-// View and manage user reports
 import { logger } from '../../../utils/logger.js';
-
 import { PermissionsBitField, EmbedBuilder } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
 import { safeError } from '../../../utils/safeError.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { MessageFlags } from 'discord.js';
 
+export default {
+    // View and manage user reports
     name: 'reports',
     description: 'View and manage message reports',
     category: 'Moderation',
-    
     defaultMemberPermissions: PermissionsBitField.Flags.ModerateMembers,
     dmPermission: false,
     options: [
@@ -37,8 +34,6 @@ import { MessageFlags } from 'discord.js';
     ],
     
     async execute(interaction) {
-    try {
-
         try {
             const action = interaction.options.getString('action');
             const reportId = interaction.options.getString('report_id');
@@ -223,28 +218,13 @@ import { MessageFlags } from 'discord.js';
                 
                 logger.info(`[REPORT] Report ${reportId} dismissed by ${interaction.user.tag}`);
             }
-            
         } catch (error) {
-            const errorEmbed = {
-                color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred while processing reports.',
-                fields: [{ name: 'Error', value: safeError(error), inline: true }],
-                timestamp: new Date().toISOString()
-            };
-            
+            const errorMessage = handleDiscordError(error);
             if (interaction.replied || interaction.deferred) {
-                await interaction.editReply({ embeds: [errorEmbed] });
+                await safeFollowUp(interaction, errorMessage);
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await safeReply(interaction, errorMessage);
             }
         }
-    
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-}
+    }
+};

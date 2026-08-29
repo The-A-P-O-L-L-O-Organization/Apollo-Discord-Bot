@@ -1,13 +1,14 @@
 // Context Menu Command: Scan for NSFW
 // Right-click a message → "Scan for NSFW"
 import { createLogger } from '../../../utils/logger.js';
-const logger = createLogger({ component: 'automod:scanMessage' });
-
 import { ApplicationCommandType, EmbedBuilder, PermissionsBitField, MessageFlags } from 'discord.js';
 import { checkMessageAttachments, formatNsfwPredictions } from '../../../utils/nsfwDetection.js';
 import { safeError } from '../../../utils/safeError.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
+const logger = createLogger({ component: 'automod:scanMessage' });
+
+export default {
     name: 'Scan for NSFW',
     description: 'Scan a message for NSFW content',
     type: ApplicationCommandType.Message,
@@ -15,8 +16,6 @@ import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discord
     dmPermission: false, // Only works in guilds
 
     async execute(interaction) {
-    try {
-
         try {
             // Check if the user has permission to view the channel and message
             if (!interaction.channel.viewable) {
@@ -121,12 +120,5 @@ import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discord
                 }]
             });
         }
-    
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-}
+    }
+};

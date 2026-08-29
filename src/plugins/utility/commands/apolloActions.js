@@ -1,10 +1,11 @@
 import { ContextMenuCommandBuilder, ApplicationCommandType, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, MessageFlags } from 'discord.js';
 import { getData, updateGuildData } from '../../../utils/db.js';
 import { isOwner } from '../../../utils/accessControl.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
-export default {
 
+export default {
+    
     data: new ContextMenuCommandBuilder()
         .setName('Global Ban')
         .setType(ApplicationCommandType.User)
@@ -14,60 +15,58 @@ export default {
     canQueue: false,
 
     async execute(interaction) {
-    try {
-
-        if (!isOwner(interaction.user.id)) {
-            return interaction.reply({
-                embeds: [{
-                    color: 0xFF0000,
-                    title: '[ERROR] Access Denied',
-                    description: 'Only the bot owner can use this command.'
-                }],
-                flags: MessageFlags.Ephemeral
-            });
-        }
-
-        const targetUser = interaction.targetUser;
-
-        if (targetUser.id === interaction.user.id) {
-            return interaction.reply({
-                embeds: [{
-                    color: 0xFF0000,
-                    title: '[ERROR] Self Action',
-                    description: 'You cannot globally ban yourself.'
-                }],
-                flags: MessageFlags.Ephemeral
-            });
-        }
-
-        if (targetUser.id === interaction.client.user.id) {
-            return interaction.reply({
-                embeds: [{
-                    color: 0xFF0000,
-                    title: '[ERROR] Bot Protection',
-                    description: 'You cannot globally ban the bot.'
-                }],
-                flags: MessageFlags.Ephemeral
-            });
-        }
-
-        const modal = new ModalBuilder()
-            .setCustomId(`apollo_gban_${interaction.id}`)
-            .setTitle('Global Ban — Reason');
-
-        const reasonInput = new TextInputBuilder()
-            .setCustomId('reason')
-            .setLabel('Reason for global ban')
-            .setStyle(TextInputStyle.Paragraph)
-            .setPlaceholder('Enter the reason for this global ban...')
-            .setMaxLength(1000)
-            .setRequired(true);
-
-        modal.addComponents(new ActionRowBuilder().addComponents(reasonInput));
-
-        await interaction.showModal(modal);
-
         try {
+            if (!isOwner(interaction.user.id)) {
+                return interaction.reply({
+                    embeds: [{
+                        color: 0xFF0000,
+                        title: '[ERROR] Access Denied',
+                        description: 'Only the bot owner can use this command.'
+                    }],
+                    flags: MessageFlags.Ephemeral
+                });
+            }
+
+            const targetUser = interaction.targetUser;
+
+            if (targetUser.id === interaction.user.id) {
+                return interaction.reply({
+                    embeds: [{
+                        color: 0xFF0000,
+                        title: '[ERROR] Self Action',
+                        description: 'You cannot globally ban yourself.'
+                    }],
+                    flags: MessageFlags.Ephemeral
+                });
+            }
+
+            if (targetUser.id === interaction.client.user.id) {
+                return interaction.reply({
+                    embeds: [{
+                        color: 0xFF0000,
+                        title: '[ERROR] Bot Protection',
+                        description: 'You cannot globally ban the bot.'
+                    }],
+                    flags: MessageFlags.Ephemeral
+                });
+            }
+
+            const modal = new ModalBuilder()
+                .setCustomId(`apollo_gban_${interaction.id}`)
+                .setTitle('Global Ban — Reason');
+
+            const reasonInput = new TextInputBuilder()
+                .setCustomId('reason')
+                .setLabel('Reason for global ban')
+                .setStyle(TextInputStyle.Paragraph)
+                .setPlaceholder('Enter the reason for this global ban...')
+                .setMaxLength(1000)
+                .setRequired(true);
+
+            modal.addComponents(new ActionRowBuilder().addComponents(reasonInput));
+
+            await interaction.showModal(modal);
+
             const modalSubmit = await interaction.awaitModalSubmit({
                 time: 120_000,
                 filter: i => i.customId === `apollo_gban_${interaction.id}`
@@ -119,31 +118,13 @@ export default {
             });
 
             logger.info(`[GLOBAL BAN] User ${targetUser.tag} globally blacklisted by ${interaction.user.tag}. Reason: ${reason}`);
-
         } catch (error) {
-            if (error.message?.includes('time') || error.code === 'InteractionCollectorError') {
-                return;
-            }
-            logger.error('[GLOBAL BAN] Error:', error.message);
-            try {
-                await interaction.followUp({
-                    embeds: [{
-                        color: 0xFF0000,
-                        title: '[ERROR] Command Failed',
-                        description: 'An error occurred while processing the global ban.'
-                    }],
-                    flags: MessageFlags.Ephemeral
-                });
-            } catch (e) {
-                logger.error('[GLOBAL BAN] Failed to send error response:', e.message);
+            const errorMessage = handleDiscordError(error);
+            if (interaction.replied || interaction.deferred) {
+                await safeFollowUp(interaction, errorMessage);
+            } else {
+                await safeReply(interaction, errorMessage);
             }
         }
-    
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-}
+    }
+};

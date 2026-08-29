@@ -204,7 +204,7 @@ async function handleViewCase(interaction) {
             },
             {
                 name: '[INFO] Status',
-                value: caseInfo.active ? '✅ Active' : '❌ Deleted',
+                value: caseInfo.active ? '[OK] Active' : '[ERROR] Deleted',
                 inline: true
             },
             {

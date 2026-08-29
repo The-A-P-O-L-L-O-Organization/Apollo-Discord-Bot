@@ -3,11 +3,13 @@ import { getGuildData, getData, updateGuildData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { safeError } from '../../../utils/safeError.js';
 import { isOwner } from '../../../utils/accessControl.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { createLogger } from '../../../utils/logger.js';
-const logger = createLogger({ component: 'moderation:blacklist' });
 import { MessageFlags } from 'discord.js';
 
+const logger = createLogger({ component: 'moderation:blacklist' });
+
+export default {
     name: 'blacklist',
     description: 'Manage the server join blacklist',
     category: 'Moderation',
@@ -494,3 +496,5 @@ async function replyError(interaction, error) {
         await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
     }
 }
+}
+};

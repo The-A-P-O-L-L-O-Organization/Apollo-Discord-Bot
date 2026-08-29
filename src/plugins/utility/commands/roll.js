@@ -1,7 +1,6 @@
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
 // Dice Command
-// Roll dice for random numbers
-import { MessageFlags } from 'discord.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { EmbedBuilder, MessageFlags } from 'discord.js';
 
 export default {
     name: 'roll',
@@ -10,21 +9,13 @@ export default {
     
     dmPermission: true,
     options: [
-        {
-            name: 'dice',
-            description: 'Dice to roll (e.g., 2d6, 1d20)',
-            type: 3, // STRING
-            required: false
-        }
+        { name: 'dice', description: 'Dice to roll (e.g., 2d6, 1d20)', type: 3, required: false }
     ],
     
     async execute(interaction) {
-    try {
-
         try {
             const diceStr = interaction.options.getString('dice') || '1d6';
             
-            // Validate input length to prevent abuse
             if (diceStr.length > 10) {
                 return interaction.reply({
                     embeds: [{
@@ -37,7 +28,6 @@ export default {
                 });
             }
             
-            // Parse dice notation (e.g., "2d6", "1d20")
             const diceMatch = diceStr.toLowerCase().match(/^(\d+)d(\d+)$/);
             
             if (!diceMatch) {
@@ -52,10 +42,9 @@ export default {
                 });
             }
             
-            const numDice = Math.min(parseInt(diceMatch[1]), 10); // Max 10 dice
-            const sides = Math.min(parseInt(diceMatch[2]), 100); // Max 100 sides
+            const numDice = Math.min(parseInt(diceMatch[1]), 10);
+            const sides = Math.min(parseInt(diceMatch[2]), 100);
             
-            // Additional validation
             if (numDice < 1) {
                 return interaction.reply({
                     embeds: [{
@@ -90,7 +79,7 @@ export default {
                 const isMax = r === sides;
                 const isMin = r === 1;
                 if (isMax) {
-                    return `**${r}** 🎉`;
+                    return `**${r}** [SUCCESS]`;
                 }
                 if (isMin) {
                     return `**${r}** 😱`;
@@ -98,58 +87,26 @@ export default {
                 return `**${r}**`;
             }).join(', ');
             
-            const diceEmbed = {
-                color: sides <= 6 ? 0xFFA500 : sides <= 20 ? 0x3498DB : 0x9B59B6,
-                title: '🎲 Dice Roll',
-                description: `Rolling **${numDice}d${sides}**...`,
-                fields: [
-                    {
-                        name: '[RESULT] Rolls',
-                        value: rollsStr,
-                        inline: false
-                    },
-                    {
-                        name: '[TOTAL] Sum',
-                        value: `**${total}**`,
-                        inline: true
-                    },
-                    {
-                        name: '[INFO] Average',
-                        value: `**${(total / numDice).toFixed(1)}**`,
-                        inline: true
-                    }
-                ],
-                footer: {
-                    text: `Rolled by ${interaction.user.tag}`
-                },
-                timestamp: new Date().toISOString()
-            };
+            const diceEmbed = new EmbedBuilder()
+                .setColor(sides <= 6 ? 0xFFA500 : sides <= 20 ? 0x3498DB : 0x9B59B6)
+                .setTitle('Dice Dice Roll')
+                .setDescription(`Rolling **${numDice}d${sides}**...`)
+                .addFields(
+                    { name: 'Result Rolls', value: rollsStr, inline: false },
+                    { name: 'Total Sum', value: `**${total}**`, inline: true },
+                    { name: 'Info Average', value: `**${(total / numDice).toFixed(1)}**`, inline: true }
+                )
+                .setFooter({ text: `Rolled by ${interaction.user.tag}` })
+                .setTimestamp();
             
             await interaction.reply({ embeds: [diceEmbed] });
-            
         } catch (error) {
-            const errorEmbed = {
-                color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred while rolling dice.',
-                fields: [
-                    {
-                        name: '[ERROR] Details',
-                        value: error.message,
-                        inline: true
-                    }
-                ],
-                timestamp: new Date().toISOString()
-            };
-            
-            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+            const errorMessage = handleDiscordError(error);
+            if (interaction.replied || interaction.deferred) {
+                await safeFollowUp(interaction, errorMessage);
+            } else {
+                await safeReply(interaction, errorMessage);
+            }
         }
-    
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-}
+    }
+};

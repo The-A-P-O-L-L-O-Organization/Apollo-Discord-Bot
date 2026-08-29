@@ -1,7 +1,8 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
-import { updateGuildData, generateId } from '../../../utils/db.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { getGuildData, updateGuildData, generateId } from '../../../utils/db.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { MessageFlags } from 'discord.js';
+
 export default {
     name: 'tickettemplate',
     data: new SlashCommandBuilder()
@@ -75,154 +76,146 @@ export default {
     category: 'admin',
 
     async execute(interaction) {
-    try {
+        try {
+            const subcommand = interaction.options.getSubcommand();
+            const guildId = interaction.guild.id;
 
-        const subcommand = interaction.options.getSubcommand();
-        const guildId = interaction.guild.id;
+            if (subcommand === 'create') {
+                const name = interaction.options.getString('name');
+                const category = interaction.options.getString('category');
+                const response = interaction.options.getString('response');
+                const questionsStr = interaction.options.getString('questions');
 
-        if (subcommand === 'create') {
-            const name = interaction.options.getString('name');
-            const category = interaction.options.getString('category');
-            const response = interaction.options.getString('response');
-            const questionsStr = interaction.options.getString('questions');
+                const templates = await getGuildData('ticket-templates', guildId);
+                if (!templates.list) { templates.list = []; }
 
-            const templates = await getGuildData('ticket-templates', guildId);
-            if (!templates.list) {templates.list = [];}
-
-            if (templates.list.find(t => t.name.toLowerCase() === name.toLowerCase())) {
-                return interaction.reply({
-                    content: `A template named **${name}** already exists. Delete it first to create a new one with this name.`,
-                    flags: MessageFlags.Ephemeral
-                });
-            }
-
-            const questions = questionsStr ? questionsStr.split('|').map(q => q.trim()).filter(q => q.length > 0) : [];
-
-            const template = {
-                id: generateId(),
-                name,
-                category,
-                autoResponse: response,
-                questions,
-                createdBy: interaction.user.id,
-                createdAt: Date.now()
-            };
-
-            await updateGuildData('ticket-templates', guildId, (data) => {
-                if (!data.list) {data.list = [];}
-                data.list.push(template);
-                return data;
-            });
-
-            const embed = new EmbedBuilder()
-                .setColor('#00FF00')
-                .setTitle('Template Created')
-                .setDescription(`Template **${name}** has been created successfully.`)
-                .addFields(
-                    { name: 'Category', value: category, inline: true },
-                    { name: 'Questions', value: questions.length > 0 ? questions.join('\n') : 'None', inline: false },
-                    { name: 'Auto-Response', value: response.substring(0, 1024), inline: false }
-                )
-                .setTimestamp();
-
-            return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
-
-        } else if (subcommand === 'delete') {
-            const name = interaction.options.getString('name');
-
-            const templates = await getGuildData('ticket-templates', guildId);
-            if (!templates.list) {templates.list = [];}
-
-            const templateIndex = templates.list.findIndex(t => t.name.toLowerCase() === name.toLowerCase());
-
-            if (templateIndex === -1) {
-                return interaction.reply({
-                    content: `Template **${name}** not found.`,
-                    flags: MessageFlags.Ephemeral
-                });
-            }
-
-            const deletedTemplate = templates.list[templateIndex];
-            await updateGuildData('ticket-templates', guildId, (data) => {
-                if (data.list) {
-                    data.list = data.list.filter(t => t.id !== deletedTemplate.id);
+                if (templates.list.find(t => t.name.toLowerCase() === name.toLowerCase())) {
+                    return interaction.reply({
+                        content: `A template named **${name}** already exists. Delete it first to create a new one with this name.`,
+                        flags: MessageFlags.Ephemeral
+                    });
                 }
-                return data;
-            });
 
-            return interaction.reply({
-                content: `Template **${deletedTemplate.name}** has been deleted.`,
-                flags: MessageFlags.Ephemeral
-            });
+                const questions = questionsStr ? questionsStr.split('|').map(q => q.trim()).filter(q => q.length > 0) : [];
 
-        } else if (subcommand === 'list') {
-            const templates = await getGuildData('ticket-templates', guildId);
-            
-            if (!templates.list || templates.list.length === 0) {
+                const template = {
+                    id: generateId(),
+                    name,
+                    category,
+                    autoResponse: response,
+                    questions,
+                    createdBy: interaction.user.id,
+                    createdAt: Date.now()
+                };
+
+                await updateGuildData('ticket-templates', guildId, (data) => {
+                    if (!data.list) { data.list = []; }
+                    data.list.push(template);
+                    return data;
+                });
+
+                const embed = new EmbedBuilder()
+                    .setColor('#00FF00')
+                    .setTitle('Template Created')
+                    .setDescription(`Template **${name}** has been created successfully.`)
+                    .addFields(
+                        { name: 'Category', value: category, inline: true },
+                        { name: 'Questions', value: questions.length > 0 ? questions.join('\n') : 'None', inline: false },
+                        { name: 'Auto-Response', value: response.substring(0, 1024), inline: false }
+                    )
+                    .setTimestamp();
+
+                return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+
+            } else if (subcommand === 'delete') {
+                const name = interaction.options.getString('name');
+
+                const templates = await getGuildData('ticket-templates', guildId);
+                if (!templates.list) { templates.list = []; }
+
+                const templateIndex = templates.list.findIndex(t => t.name.toLowerCase() === name.toLowerCase());
+
+                if (templateIndex === -1) {
+                    return interaction.reply({
+                        content: `Template **${name}** not found.`,
+                        flags: MessageFlags.Ephemeral
+                    });
+                }
+
+                const deletedTemplate = templates.list[templateIndex];
+                await updateGuildData('ticket-templates', guildId, (data) => {
+                    if (data.list) {
+                        data.list = data.list.filter(t => t.id !== deletedTemplate.id);
+                    }
+                    return data;
+                });
+
                 return interaction.reply({
-                    content: 'No templates have been created yet. Use `/tickettemplate create` to create one.',
+                    content: `Template **${deletedTemplate.name}** has been deleted.`,
                     flags: MessageFlags.Ephemeral
                 });
-            }
 
-            const embed = new EmbedBuilder()
-                .setColor('#3498DB')
-                .setTitle('Ticket Templates')
-                .setDescription(`Total templates: ${templates.list.length}`)
-                .setTimestamp();
+            } else if (subcommand === 'list') {
+                const templates = await getGuildData('ticket-templates', guildId);
+                
+                if (!templates.list || templates.list.length === 0) {
+                    return interaction.reply({
+                        content: 'No templates have been created yet. Use `/tickettemplate create` to create one.',
+                        flags: MessageFlags.Ephemeral
+                    });
+                }
 
-            templates.list.forEach(template => {
-                embed.addFields({
-                    name: `${template.name} (${template.category})`,
-                    value: `Questions: ${template.questions.length || 0}\nCreated: <t:${Math.floor(template.createdAt / 1000)}:R>`,
-                    inline: false
+                const embed = new EmbedBuilder()
+                    .setColor('#3498DB')
+                    .setTitle('Ticket Templates')
+                    .setDescription(`Total templates: ${templates.list.length}`)
+                    .setTimestamp();
+
+                templates.list.forEach(template => {
+                    embed.addFields({
+                        name: `${template.name} (${template.category})`,
+                        value: `Questions: ${template.questions.length || 0}\nCreated: <t:${Math.floor(template.createdAt / 1000)}:R>`,
+                        inline: false
+                    });
                 });
-            });
 
-            return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+                return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 
-        } else if (subcommand === 'view') {
-            const name = interaction.options.getString('name');
+            } else if (subcommand === 'view') {
+                const name = interaction.options.getString('name');
 
-            const templates = await getGuildData('ticket-templates', guildId);
-            if (!templates.list) {templates.list = [];}
+                const templates = await getGuildData('ticket-templates', guildId);
+                if (!templates.list) { templates.list = []; }
 
-            const template = templates.list.find(t => t.name.toLowerCase() === name.toLowerCase());
+                const template = templates.list.find(t => t.name.toLowerCase() === name.toLowerCase());
 
-            if (!template) {
-                return interaction.reply({
-                    content: `Template **${name}** not found.`,
-                    flags: MessageFlags.Ephemeral
-                });
+                if (!template) {
+                    return interaction.reply({
+                        content: `Template **${name}** not found.`,
+                        flags: MessageFlags.Ephemeral
+                    });
+                }
+
+                const embed = new EmbedBuilder()
+                    .setColor('#3498DB')
+                    .setTitle(`Template: ${template.name}`)
+                    .addFields(
+                        { name: 'Category', value: template.category, inline: true },
+                        { name: 'Created', value: `<t:${Math.floor(template.createdAt / 1000)}:R>`, inline: true },
+                        { name: 'Questions', value: template.questions.length > 0 ? template.questions.join('\n') : 'None', inline: false },
+                        { name: 'Auto-Response', value: template.autoResponse, inline: false }
+                    )
+                    .setTimestamp();
+
+                return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+        }
+        } catch (error) {
+            const errorMessage = handleDiscordError(error);
+            if (interaction.replied || interaction.deferred) {
+                await safeFollowUp(interaction, errorMessage);
+            } else {
+                await safeReply(interaction, errorMessage);
             }
-
-            const embed = new EmbedBuilder()
-                .setColor('#3498DB')
-                .setTitle(`Template: ${template.name}`)
-                .addFields(
-                    { name: 'Category', value: template.category, inline: true },
-                    { name: 'Created', value: `<t:${Math.floor(template.createdAt / 1000)}:R>`, inline: true },
-                    { name: 'Questions', value: template.questions.length > 0 ? template.questions.join('\n') : 'None', inline: false },
-                    { name: 'Auto-Response', value: template.autoResponse, inline: false }
-                )
-                .setTimestamp();
-
-            return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
-        
-} catch (error) {
-    const errorMessage = handleDiscordError(error);
-    if (interaction.replied || interaction.deferred) {
-        await safeFollowUp(interaction, errorMessage);
-    } else {
-        await safeReply(interaction, errorMessage);
-    }
-}
-
-} catch (error) {
-    const errorMessage = handleDiscordError(error);
-    if (interaction.replied || interaction.deferred) {
-        await safeFollowUp(interaction, errorMessage);
-    } else {
-        await safeReply(interaction, errorMessage);
+        }
     }
 };

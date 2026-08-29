@@ -1,18 +1,15 @@
-// Lockdown Command
-export default {
-// Locks channels during raids by preventing @everyone from sending messages
 import { logger } from '../../../utils/logger.js';
-
 import { PermissionsBitField } from 'discord.js';
 import { setGuildData, getGuildData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { MessageFlags } from 'discord.js';
 
+export default {
+    // Locks channels during raids by preventing @everyone from sending messages
     name: 'lockdown',
     description: 'Lock a channel to prevent @everyone from sending messages',
     category: 'Moderation',
-    
     defaultMemberPermissions: PermissionsBitField.Flags.ManageChannels,
     dmPermission: false,
     options: [
@@ -31,8 +28,6 @@ import { MessageFlags } from 'discord.js';
     ],
     
     async execute(interaction) {
-    try {
-
         try {
             // Get the channel to lock
             const channel = interaction.options.getChannel('channel') || interaction.channel;
@@ -155,36 +150,13 @@ import { MessageFlags } from 'discord.js';
             
             // Log the action
             logger.info(`[MODERATION] Channel ${channel.name} was locked by ${interaction.user.tag}. Reason: ${reason}`);
-            
         } catch (error) {
-            logger.error('[ERROR] Lockdown command error:', error);
-            
-            const errorEmbed = {
-                color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred while trying to lock the channel.',
-                fields: [
-                    {
-                        name: '[ERROR] Details',
-                        value: error.message,
-                        inline: true
-                    }
-                ],
-                timestamp: new Date().toISOString()
-            };
-            
+            const errorMessage = handleDiscordError(error);
             if (interaction.replied || interaction.deferred) {
-                await interaction.editReply({ embeds: [errorEmbed] });
+                await safeFollowUp(interaction, errorMessage);
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await safeReply(interaction, errorMessage);
             }
         }
-    
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-}
+    }
+};

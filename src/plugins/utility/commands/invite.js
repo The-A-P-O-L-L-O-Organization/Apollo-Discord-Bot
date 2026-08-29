@@ -1,15 +1,12 @@
-// Invite Command
-export default {
-// Generate an invite link for the bot or create a server invite
 import { logger } from '../../../utils/logger.js';
-
 import { PermissionsBitField, MessageFlags } from 'discord.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
+export default {
+    // Generate an invite link for the bot or create a server invite
     name: 'invite',
     description: 'Generate an invite link or create a server invite',
     category: 'Utility',
-    
     dmPermission: true,
     options: [
         {
@@ -43,8 +40,6 @@ import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discord
     ],
     
     async execute(interaction) {
-    try {
-
         try {
             const type = interaction.options.getString('type') || 'bot';
             
@@ -130,32 +125,13 @@ import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discord
                 
                 logger.info(`[INFO] Invite created by ${interaction.user.tag}: ${invite.url}`);
             }
-            
         } catch (error) {
-            logger.error('[ERROR] Invite command error:', error);
-            
-            const errorEmbed = {
-                color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred while creating invite.',
-                fields: [
-                    {
-                        name: '[ERROR] Details',
-                        value: error.message,
-                        inline: true
-                    }
-                ],
-                timestamp: new Date().toISOString()
-            };
-            
-            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+            const errorMessage = handleDiscordError(error);
+            if (interaction.replied || interaction.deferred) {
+                await safeFollowUp(interaction, errorMessage);
+            } else {
+                await safeReply(interaction, errorMessage);
+            }
         }
-    
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-}
+    }
+};

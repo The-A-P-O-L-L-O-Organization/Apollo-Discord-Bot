@@ -1,21 +1,18 @@
-// Mass Kick Command
-export default {
-// Kicks multiple users
 import { logger } from '../../../utils/logger.js';
-
 import { PermissionsBitField, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { createModCase } from './case.js';
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 import { canModerate } from '../../../utils/moderation.js';
 import { safeError } from '../../../utils/safeError.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { MessageFlags } from 'discord.js';
 
+export default {
+    // Kicks multiple users
     name: 'masskick',
     description: 'Kick multiple users',
     category: 'Moderation',
-    
     defaultMemberPermissions: PermissionsBitField.Flags.KickMembers,
     dmPermission: false,
     options: [
@@ -34,8 +31,6 @@ import { MessageFlags } from 'discord.js';
     ],
     
     async execute(interaction) {
-    try {
-
         try {
             const userIdsStr = interaction.options.getString('user-ids');
             const reason = interaction.options.getString('reason') || 'No reason provided';
@@ -234,30 +229,13 @@ import { MessageFlags } from 'discord.js';
                     interaction.editReply({ content: 'Mass kick timed out (30s).', embeds: [], components: [] }).catch(() => {});
                 }
             });
-            
         } catch (error) {
-            const errorEmbed = {
-                color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred while trying to mass kick users.',
-                fields: [
-                    { name: '[ERROR] Details', value: safeError(error), inline: true }
-                ],
-                timestamp: new Date().toISOString()
-            };
-            
+            const errorMessage = handleDiscordError(error);
             if (interaction.replied || interaction.deferred) {
-                await interaction.editReply({ embeds: [errorEmbed] });
+                await safeFollowUp(interaction, errorMessage);
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await safeReply(interaction, errorMessage);
             }
         }
-    
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-}
+    }
+};

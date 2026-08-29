@@ -1,18 +1,15 @@
 // Timeout Command
-export default {
-// Applies Discord native timeout to a member
 import { logger } from '../../../utils/logger.js';
-
 import { PermissionsBitField } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { createModCase } from './case.js';
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 import { canModerate } from '../../../utils/moderation.js';
-import { safeError } from '../../../utils/safeError.js';
 import { parseDuration, formatDuration, validateDuration } from '../../../utils/duration.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { MessageFlags } from 'discord.js';
 
+export default {
     name: 'timeout',
     description: 'Timeout a user (Discord native timeout)',
     category: 'Moderation',
@@ -20,29 +17,12 @@ import { MessageFlags } from 'discord.js';
     defaultMemberPermissions: PermissionsBitField.Flags.ModerateMembers,
     dmPermission: false,
     options: [
-        {
-            name: 'user',
-            description: 'The user to timeout',
-            type: 6, // USER type
-            required: true
-        },
-        {
-            name: 'duration',
-            description: 'Timeout duration (e.g., 10m, 1h, 1d, 7d)',
-            type: 3, // STRING type
-            required: true
-        },
-        {
-            name: 'reason',
-            description: 'The reason for timeout',
-            type: 3, // STRING type
-            required: false
-        }
+        { name: 'user', description: 'The user to timeout', type: 6, required: true },
+        { name: 'duration', description: 'Timeout duration (e.g., 10m, 1h, 1d, 7d)', type: 3, required: true },
+        { name: 'reason', description: 'The reason for timeout', type: 3, required: false }
     ],
     
     async execute(interaction) {
-    try {
-
         try {
             const user = interaction.options.getUser('user');
             const durationStr = interaction.options.getString('duration');
@@ -58,7 +38,6 @@ import { MessageFlags } from 'discord.js';
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
-            // Parse and validate duration
             const validation = validateDuration(durationStr);
             if (!validation.valid) {
                 const errorEmbed = {
@@ -71,7 +50,6 @@ import { MessageFlags } from 'discord.js';
             }
             
             const durationMs = validation.durationMs;
-            
             const member = await fetchMember(interaction.guild, user.id);
             
             if (!member) {
@@ -125,7 +103,6 @@ import { MessageFlags } from 'discord.js';
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
             
-            // Apply timeout
             await member.timeout(durationMs, reason);
             
             trackModAction(interaction.guild.id, interaction.user.id, 'timeout');
@@ -163,37 +140,17 @@ import { MessageFlags } from 'discord.js';
                 target: user,
                 moderator: interaction.user,
                 reason: reason,
-                extra: {
-                    'Duration': durationDisplay,
-                    'Case ID': `#${caseId}`
-                }
+                extra: { 'Duration': durationDisplay, 'Case ID': `#${caseId}` }
             });
             
             logger.info(`[MODERATION] User ${user.tag} was timed out by ${interaction.user.tag} for ${durationDisplay}. Reason: ${reason}`);
-            
         } catch (error) {
-            const errorEmbed = {
-                color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred while trying to timeout the user.',
-                fields: [
-                    { name: '[ERROR] Details', value: safeError(error), inline: true }
-                ],
-                timestamp: new Date().toISOString()
-            };
-            
+            const errorMessage = handleDiscordError(error);
             if (interaction.replied || interaction.deferred) {
-                await interaction.editReply({ embeds: [errorEmbed] });
+                await safeFollowUp(interaction, errorMessage);
             } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await safeReply(interaction, errorMessage);
             }
         }
-    
-} catch (error) {
-  const errorMessage = handleDiscordError(error);
-  if (interaction.replied || interaction.deferred) {
-    await safeFollowUp(interaction, errorMessage);
-  } else {
-    await safeReply(interaction, errorMessage);
-  }
-}
+    }
+};
