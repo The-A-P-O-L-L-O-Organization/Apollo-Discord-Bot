@@ -14,7 +14,7 @@
   "src/plugins/admin/events/guildBanAdd.js": "98e6124bd043a749aad546e21827508f1934992e9c4047a7b991cdc062f6c579",
   "src/plugins/admin/events/guildBanRemove.js": "effc3b42b8e85e44710a8c83047645550c88aaed33dd0f7e4efbcd5c42342407",
   "src/plugins/admin/events/guildCreate.js": "a450c7a3697a39f8b947744e0281ddf64fadfecdd8d84eb45dd432825800b2d8",
-  "src/plugins/admin/events/guildDelete.js": "905ad4f356c08096a17cee92f55ab18b1b5170f7ac42907a68999bd5f88dd179",
+  "src/plugins/admin/events/guildDelete.js": "a1bb2f2e307f623c272caa73c967159ae9daf98abea866814f293b93154ed8cf",
   "src/plugins/admin/events/guildMemberUpdate.js": "e08e1ec2a386b8fa6a2d81560231220658cfa72ad7130e3009d186b4bb68fe33",
   "src/plugins/admin/events/messageDelete.js": "1eb642ea8af1fd0d50e98dbad1a831bc79b1dc56b5843017f203975a26324bed",
   "src/plugins/admin/events/messageDeleteBulk.js": "a400586455816221c488789566953da7e916d8c44f0523257f6f3f520bf3a0b7",
