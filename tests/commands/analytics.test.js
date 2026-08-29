@@ -192,7 +192,7 @@ describe('Analytics Command', () => {
             await analyticsCommand.execute(interaction);
 
             const embed = interaction.editReply.mock.calls[0][0].embeds[0];
-            const trendField = embed.fields.find(f => f.name === '📊 Member Growth Trend');
+            const trendField = embed.fields.find(f => f.name === 'Statistics Member Growth Trend');
 
             expect(trendField).toBeDefined();
             expect(trendField.value).toContain('```');
@@ -310,7 +310,7 @@ describe('Analytics Command', () => {
             await analyticsCommand.execute(interaction);
 
             const embed = interaction.editReply.mock.calls[0][0].embeds[0];
-            const channelField = embed.fields.find(f => f.name === '📺 Most Active Channels');
+            const channelField = embed.fields.find(f => f.name === 'Channel Most Active Channels');
 
             expect(channelField.value).toContain('Unknown');
         });
@@ -479,7 +479,7 @@ describe('Analytics Command', () => {
             await analyticsCommand.execute(interaction);
 
             expect(interaction.editReply).toHaveBeenCalledWith({
-                content: '❌ Failed to export analytics. Please try again later.'
+                content: '[ERROR] Failed to export analytics. Please try again later.'
             });
         });
 
