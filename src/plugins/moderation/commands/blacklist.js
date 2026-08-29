@@ -4,7 +4,8 @@ import { sendModLog } from '../../../utils/modLog.js';
 import { safeError } from '../../../utils/safeError.js';
 import { isOwner } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../utils/discordErrors.js';
-import { logger } from './utils/logger.js';
+import { createLogger } from './utils/logger.js';
+const logger = createLogger({ component: 'moderation:blacklist' });
 import { MessageFlags } from 'discord.js';
 
     name: 'blacklist',
