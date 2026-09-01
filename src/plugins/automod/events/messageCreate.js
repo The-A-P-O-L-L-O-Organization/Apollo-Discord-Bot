@@ -12,11 +12,19 @@ import {
     checkMentionSpam,
     checkCapsSpam,
     checkSpam,
+    checkBurstSpam,
     checkSpamRedis,
     trackMessageRedis,
     checkAccountAge,
     checkPhishingLinks
 } from '../../../utils/automod.js';
+import { 
+    checkSustainedSpamRedis, 
+    getThreatScore, 
+    getRecommendedAction,
+    updateThreatScore,
+    getViolationCount 
+} from '../../../utils/threatScore.js';
 import { checkRaidPattern, handleRaidDetected } from '../../../utils/raidDetection.js';
 import { appendToUserArray, generateId, getUserData, getGuildData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
@@ -25,6 +33,12 @@ import { trackMessage, trackViolation, flushAnalyticsCritical } from '../../../u
 import { checkMessageModeration, formatViolations } from '../../../utils/openaiModeration.js';
 import { checkMessageAttachments } from '../../../utils/nsfwDetection.js';
 import { getLockRedis } from '../../../utils/lock.js';
+import { 
+    recordSpamDetection, 
+    recordSpamConfidence, 
+    recordThreatScore, 
+    recordSpamAction 
+} from '../../../utils/metrics.js';
 
 export default {
     name: 'messageCreate',
@@ -33,6 +47,9 @@ export default {
     async execute(message, client) {
         // Ignore DMs
         if (!message.guild) {return;}
+        
+        // Ignore bots and webhooks (prevent false positives from bot commands, webhooks)
+        if (message.author.bot || message.webhookId) {return;}
         
         // Track message for analytics
         trackMessage(message.guild.id, message.channel.id, message.author.id);
@@ -132,28 +149,61 @@ export default {
                 }
             }
             
-            // Check message spam
+            // Check message spam - Dual window detection (burst + sustained)
             if (cfg.spamThreshold > 0) {
-                let isSpam = false;
+                const guildId = message.guild.id;
+                const userId = message.author.id;
                 
-                // Try Redis-backed spam tracking if enabled
-                if (config.automod.useRedisSpamTracking) {
-                    const redis = await getLockRedis();
-                    if (redis) {
-                        isSpam = await checkSpam(message, cfg.spamThreshold, cfg.spamInterval, true);
-                    } else {
-                        // Fallback to in-memory
-                        isSpam = checkSpam(message, cfg.spamThreshold, cfg.spamInterval, false);
-                    }
-                } else {
-                    // Use in-memory detection
-                    isSpam = checkSpam(message, cfg.spamThreshold, cfg.spamInterval, false);
+                // 1. Burst detection (in-memory, SimHash-based) - use config values + per-channel overrides
+                const burstResult = await checkBurstSpam(message, cfg.spamThreshold, cfg.spamInterval, cfg.spamChannelOverrides || {});
+                
+                // 2. Sustained detection (Redis ZSET sliding window)
+                let sustainedResult = { isSpam: false, confidence: 0, count: 0 };
+                if (config.queue.enabled) {
+                    sustainedResult = await checkSustainedSpamRedis(guildId, userId, cfg.spamThreshold, cfg.spamInterval);
                 }
                 
-                if (isSpam) {
+                // 3. Get threat score for progressive action
+                const threatScore = await getThreatScore(guildId, userId);
+                const violationCount = await getViolationCount(guildId, userId, 24);
+                
+                // 4. Confidence gating - no punitive action below 0.85 confidence
+                const maxConfidence = Math.max(burstResult.confidence, sustainedResult.confidence);
+                const isSpam = burstResult.isSpam || sustainedResult.isSpam;
+                
+                // Record metrics
+                const detectionType = burstResult.isSpam ? (sustainedResult.isSpam ? 'burst+sustained' : 'burst') : 'sustained';
+                recordSpamDetection(guildId, detectionType, 'none');
+                recordSpamConfidence(guildId, detectionType, maxConfidence);
+                recordThreatScore(guildId, threatScore);
+                
+                if (isSpam && maxConfidence >= 0.85) {
+                    // Update threat score based on detection type
+                    const severity = burstResult.isSpam ? 'high' : 'medium';
+                    await updateThreatScore(guildId, userId, 'spam', severity);
+                    
+                    // Get recommended action based on threat score
+                    const { action, duration } = getRecommendedAction(threatScore, violationCount);
+                    
+                    let deleteMessage = true;
+                    if (action === 'warn') {
+                        deleteMessage = false;
+                    } else if (action === 'timeout' && duration) {
+                        // Timeout handled by handleViolation through warning thresholds
+                        deleteMessage = true;
+                    }
+                    
+                    // Record action metric
+                    recordSpamDetection(guildId, detectionType, action);
+                    recordSpamAction(guildId, action);
+                    
                     await handleViolation(message, 'spam', 
-                        `Sent ${cfg.spamThreshold}+ messages in ${cfg.spamInterval / 1000}s`, client, true, violationCooldownKey);
+                        `Spam detected: ${burstResult.isSpam ? 'burst' : ''}${burstResult.isSpam && sustainedResult.isSpam ? ' + ' : ''}${sustainedResult.isSpam ? 'sustained' : ''} (confidence: ${(maxConfidence * 100).toFixed(0)}%, threat: ${threatScore})`, 
+                        client, deleteMessage, violationCooldownKey);
                     return;
+                } else if (isSpam && maxConfidence < 0.85) {
+                    // Low confidence - log but don't punish
+                    logger.debug(`[AUTOMOD] Low-confidence spam detection (${(maxConfidence * 100).toFixed(0)}%) for ${message.author.tag} - not actioning`);
                 }
             }
 
