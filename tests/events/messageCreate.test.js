@@ -23,6 +23,7 @@ vi.mock('../../src/utils/automod.js', () => ({
     checkMentionSpam: vi.fn().mockReturnValue(false),
     checkCapsSpam: vi.fn().mockReturnValue(false),
     checkSpam: vi.fn().mockReturnValue(false),
+    checkBurstSpam: vi.fn().mockResolvedValue({ isSpam: false, confidence: 0, count: 1 }),
     checkAccountAge: vi.fn().mockReturnValue(false),
     checkPhishingLinks: vi.fn().mockReturnValue(null)
 }));
@@ -94,6 +95,7 @@ import {
     checkMentionSpam,
     checkCapsSpam,
     checkSpam,
+    checkBurstSpam,
     checkAccountAge
 } from '../../src/utils/automod.js';
 import { appendToUserArray, getUserData } from '../../src/utils/db.js';
@@ -193,14 +195,14 @@ describe('MessageCreate Event', () => {
             expect(getAutomodConfig).not.toHaveBeenCalled();
         });
 
-        it('should check bot messages for banned words', async() => {
+        it('should ignore bot messages entirely', async() => {
             mockMessage.author.bot = true;
             automodConfig.bannedWords = ['badword'];
             
             await messageCreateEvent.execute(mockMessage, mockClient);
             
-            expect(getAutomodConfig).toHaveBeenCalled();
-            expect(checkBannedWords).toHaveBeenCalled();
+            expect(getAutomodConfig).not.toHaveBeenCalled();
+            expect(checkBannedWords).not.toHaveBeenCalled();
         });
 
         it('should skip if automod is disabled', async() => {
@@ -368,13 +370,14 @@ describe('MessageCreate Event', () => {
     });
 
     describe('Message Spam Check', () => {
-        it('should check for spam when threshold > 0', async() => {
+        it('should check for burst spam when threshold > 0', async() => {
             automodConfig.spamThreshold = 5;
             getAutomodConfig.mockReturnValue(automodConfig);
+            checkBurstSpam.mockResolvedValue({ isSpam: false, confidence: 0, count: 1 });
             
             await messageCreateEvent.execute(mockMessage, mockClient);
             
-            expect(checkSpam).toHaveBeenCalledWith(mockMessage, 5, 5000, false);
+            expect(checkBurstSpam).toHaveBeenCalled();
         });
 
         it('should not check spam when threshold is 0', async() => {
@@ -383,7 +386,7 @@ describe('MessageCreate Event', () => {
             
             await messageCreateEvent.execute(mockMessage, mockClient);
             
-            expect(checkSpam).not.toHaveBeenCalled();
+            expect(checkBurstSpam).not.toHaveBeenCalled();
         });
     });
 

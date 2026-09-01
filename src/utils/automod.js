@@ -1,5 +1,5 @@
 import { logger } from '../utils/logger.js';
- 
+
 // Automod Utility
 // Core automod checking functions
 
@@ -7,6 +7,7 @@ import { getGuildData } from './db.js';
 import { config } from '../config/config.js';
 import { getLockRedis } from './lock.js';
 import { TwoLevelLRUCache } from './lruCache.js';
+import { simhash, isSimilar } from './simhash.js';
 
 // In-memory spam tracking (fallback when Redis unavailable)
 // Uses O(1) LRU cache for efficient eviction
@@ -14,10 +15,104 @@ const spamTracker = new TwoLevelLRUCache({
     maxGuilds: 1000,
     maxUsersPerGuild: 500,
     maxTotalUsers: 50000,
-    onEvict: (_guildId, _userId, _value) => {
+    onEvict: (_guildId, _userId) => {
         // Optional: log eviction for monitoring
     }
 });
+
+// Burst spam tracking: tracks similar messages in time windows
+// Key: `${guildId}:${userId}` -> {count: number, windowStart: number, hashes: bigint[]}
+const burstTracker = new Map();
+
+// Burst detection config
+const BURST_THRESHOLD = 6;
+const BURST_INTERVAL = 3000;
+const SIMILARITY_THRESHOLD = 8;
+
+/**
+ * Checks for burst spam using in-memory tracking with SimHash similarity
+ * @param {Message} message - The Discord message
+ * @param {number} threshold - Max similar messages in interval (default: 6)
+ * @param {number} intervalMs - Time interval in ms (default: 3000)
+ * @param {Object} channelOverrides - Optional per-channel overrides {threshold, interval}
+ * @returns {Promise<{isSpam: boolean, confidence: number, count: number}>}
+ */
+export async function checkBurstSpam(message, threshold = BURST_THRESHOLD, intervalMs = BURST_INTERVAL, channelOverrides = {}) {
+    const guildId = message.guild.id;
+    const userId = message.author.id;
+    const channelId = message.channel.id;
+    const key = `${guildId}:${userId}:${channelId}`;
+    const now = Date.now();
+    
+    // Apply per-channel overrides
+    const override = channelOverrides[channelId];
+    if (override) {
+        threshold = override.threshold ?? threshold;
+        intervalMs = override.interval ?? intervalMs;
+    }
+    
+    // Get or create tracker (per channel)
+    let tracker = burstTracker.get(key);
+    if (!tracker) {
+        tracker = { hashes: [], windowStart: now };
+        burstTracker.set(key, tracker);
+    }
+    
+    // Compute SimHash for this message
+    const hash = simhash(message.content);
+    
+    // Filter old hashes outside the interval
+    tracker.hashes = tracker.hashes.filter(_h => {
+        return now - tracker.windowStart < intervalMs;
+    });
+    
+    // Update window start if needed
+    if (now - tracker.windowStart >= intervalMs) {
+        tracker.windowStart = now;
+        tracker.hashes = [];
+    }
+    
+    // Count similar messages in window
+    let similarCount = 0;
+    for (const existingHash of tracker.hashes) {
+        if (isSimilar(hash, existingHash, SIMILARITY_THRESHOLD)) {
+            similarCount++;
+        }
+    }
+    
+    // Add current hash (keep max 20)
+    tracker.hashes.push(hash);
+    if (tracker.hashes.length > 20) {
+        tracker.hashes.shift();
+    }
+    
+    const count = similarCount + 1; // +1 for current message
+    
+    return {
+        isSpam: count >= threshold,
+        confidence: Math.min(1.0, count / threshold),
+        count
+    };
+}
+
+/**
+ * Cleanup burst tracker - remove stale entries
+ * @param {number} maxAgeMs - Maximum age in ms before forced cleanup (default: 1 hour)
+ */
+export function cleanupBurstTracker(maxAgeMs = 3600000) {
+    const now = Date.now();
+    for (const [key, tracker] of burstTracker.entries()) {
+        // Remove if window is old and no recent hashes
+        if (now - tracker.windowStart > BURST_INTERVAL * 10 && tracker.hashes.length === 0) {
+            burstTracker.delete(key);
+            continue;
+        }
+        // Proactive cleanup: remove trackers older than maxAgeMs regardless of content
+        if (now - tracker.windowStart > maxAgeMs) {
+            burstTracker.delete(key);
+        }
+    }
+}
 
 // Redis key prefix for spam tracking
 const SPAM_KEY_PREFIX = 'apollo:spam:';
@@ -65,8 +160,9 @@ export async function checkSpamRedis(guildId, userId, threshold, intervalMs, now
     const key = `${SPAM_KEY_PREFIX}${guildId}:${userId}`;
     const cutoff = now - intervalMs;
     
+    // Use exclusive boundary '(' to match in-memory behavior (strictly within interval)
     await redis.zremrangebyscore(key, '-inf', cutoff);
-    const count = await redis.zcount(key, cutoff, '+inf');
+    const count = await redis.zcount(key, '(' + cutoff, '+inf');
     
     return count >= threshold;
 }
@@ -89,6 +185,7 @@ export async function getAutomodConfig(guildId) {
         minAccountAge: guildConfig.minAccountAge ?? config.automod.minAccountAge,
         spamThreshold: guildConfig.spamThreshold ?? config.automod.spamThreshold,
         spamInterval: guildConfig.spamInterval ?? config.automod.spamInterval,
+        spamChannelOverrides: guildConfig.spamChannelOverrides ?? config.automod.spamChannelOverrides,
         aiModeration: guildConfig.aiModeration ?? config.automod.aiModeration,
         nsfwFilter: guildConfig.nsfwFilter ?? config.automod.nsfwFilter,
         exemptChannels: guildConfig.exemptChannels || [],
@@ -323,14 +420,14 @@ function checkSpamMemory(message, threshold, interval) {
         spamTracker.set(guildId, userId, userTracker);
     }
     
+    // Remove old messages outside the interval FIRST
+    userTracker.messages = userTracker.messages.filter(ts => now - ts < interval);
+    
     // Add current message timestamp
     userTracker.messages.push(now);
     
-    // Remove old messages outside the interval
-    userTracker.messages = userTracker.messages.filter(ts => now - ts < interval);
-    
-    // Check if threshold exceeded
-    if (userTracker.messages.length >= threshold) {
+    // Check if threshold exceeded (use > not >= to allow exactly threshold messages)
+    if (userTracker.messages.length > threshold) {
         // Check if we recently warned (avoid spam of warnings)
         if (now - userTracker.lastWarned < interval * 2) {
             return false; // Don't warn again too quickly
@@ -517,6 +614,8 @@ export function checkPhishingLinks(content) {
 export default {
     trackMessageRedis,
     checkSpamRedis,
+    checkBurstSpam,
+    cleanupBurstTracker,
     getAutomodConfig,
     isExempt,
     isChannelExempt,

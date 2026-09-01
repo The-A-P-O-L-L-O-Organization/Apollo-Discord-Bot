@@ -93,9 +93,12 @@ export const config = {
         // Raid detection in automod (detects coordinated attacks)
         raidDetection: false,
         // Spam detection: max messages in interval
-        spamThreshold: 5,
+        spamThreshold: 8,
         // Spam detection: time interval in milliseconds
-        spamInterval: 5000,
+        spamInterval: 10000,
+        // Per-channel spam threshold overrides (channelId -> {threshold, interval})
+        // Example: { '123456789': { threshold: 15, interval: 10000 } }
+        spamChannelOverrides: {},
         // Action to take: 'warn', 'mute', 'kick', 'delete'
         action: 'warn',
         // AI-powered moderation (OpenAI Moderation API)

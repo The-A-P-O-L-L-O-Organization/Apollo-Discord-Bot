@@ -74,6 +74,36 @@ export const spamTrackerSize = new Gauge({
     registers: [register]
 });
 
+export const spamDetectionsTotal = new Counter({
+    name: 'apollo_spam_detections_total',
+    help: 'Total spam detections',
+    labelNames: ['guild', 'type', 'action'],
+    registers: [register]
+});
+
+export const spamConfidence = new Histogram({
+    name: 'apollo_spam_confidence',
+    help: 'Spam detection confidence score',
+    labelNames: ['guild', 'type'],
+    buckets: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 1.0],
+    registers: [register]
+});
+
+export const threatScoreDistribution = new Histogram({
+    name: 'apollo_threat_score',
+    help: 'User threat score distribution',
+    labelNames: ['guild'],
+    buckets: [0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+    registers: [register]
+});
+
+export const spamActionsTotal = new Counter({
+    name: 'apollo_spam_actions_total',
+    help: 'Total spam actions taken',
+    labelNames: ['guild', 'action'],
+    registers: [register]
+});
+
 export const eventBusHandlers = new Gauge({
     name: 'apollo_eventbus_handlers',
     help: 'Number of registered event handlers',
@@ -163,6 +193,22 @@ export function setSpamTrackerSize(guild, count) {
     spamTrackerSize.set({ guild }, count);
 }
 
+export function recordSpamDetection(guild, type, action) {
+    spamDetectionsTotal.inc({ guild, type, action });
+}
+
+export function recordSpamConfidence(guild, type, confidence) {
+    spamConfidence.observe({ guild, type }, confidence);
+}
+
+export function recordThreatScore(guild, score) {
+    threatScoreDistribution.observe({ guild }, score);
+}
+
+export function recordSpamAction(guild, action) {
+    spamActionsTotal.inc({ guild, action });
+}
+
 export function setEventBusHandlers(event, count) {
     eventBusHandlers.set({ event }, count);
 }
@@ -199,6 +245,10 @@ export default {
     redisConnections,
     analyticsCacheSize,
     spamTrackerSize,
+    spamDetectionsTotal,
+    spamConfidence,
+    threatScoreDistribution,
+    spamActionsTotal,
     eventBusHandlers,
     httpRequestsTotal,
     httpRequestDuration,
@@ -215,6 +265,10 @@ export default {
     setRedisConnections,
     setAnalyticsCacheSize,
     setSpamTrackerSize,
+    recordSpamDetection,
+    recordSpamConfidence,
+    recordThreatScore,
+    recordSpamAction,
     setEventBusHandlers,
     recordHttpRequest,
     recordError,
