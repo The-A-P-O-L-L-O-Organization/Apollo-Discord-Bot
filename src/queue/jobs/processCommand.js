@@ -6,11 +6,12 @@ import { pathToFileURL } from 'url';
 import { createHash, randomBytes, createHmac, timingSafeEqual } from 'node:crypto';
 import { config } from '../../config/config.js';
 import RemoteInteraction from '../remoteInteraction.js';
-import { serializeInteraction } from '../serializeInteraction.js';
+import { serializeInteraction, serializeForQueue } from '../serializeInteraction.js';
 import { registerHandler } from '../jobHandler.js';
 import { createQueue } from '../queue.js';
 import { recordCommand, recordCommandDuration, recordError } from '../../utils/metrics.js';
 import { logger } from '../../utils/logger.js';
+import { encode, decode } from 'msgpackr';
 
 export const JobNames = {
     PROCESS_COMMAND: 'process-command'
@@ -38,7 +39,7 @@ function signJobData(payload) {
     }
     const timestamp = Date.now();
     const nonce = randomBytes(16).toString('hex');
-    const signable = JSON.stringify({ ...payload, timestamp, nonce });
+    const signable = encode({ ...payload, timestamp, nonce });
     const hmac = createHmac('sha256', secret).update(signable).digest('hex');
     return { ...payload, timestamp, nonce, hmac };
 }
@@ -67,7 +68,7 @@ function verifyJobData(payload) {
     }
 
     // Verify HMAC
-    const signable = JSON.stringify({ ...rest, timestamp, nonce });
+    const signable = encode({ ...rest, timestamp, nonce });
     const expectedHmac = createHmac('sha256', secret).update(signable).digest('hex');
     const payloadHmacBuffer = Buffer.from(hmac, 'hex');
     const expectedHmacBuffer = Buffer.from(expectedHmac, 'hex');

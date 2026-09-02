@@ -27,12 +27,12 @@ export async function getGuildData(store, guildId) {
     
     const data = deserialize(row.data);
     // Decrypt sensitive fields
-    return decryptFields(data, SENSITIVE_GUILD_FIELDS);
+    return await decryptFields(data, SENSITIVE_GUILD_FIELDS);
 }
 
 export async function setGuildData(store, guildId, data) {
     // Encrypt sensitive fields before storage
-    const encryptedData = encryptFields(data, SENSITIVE_GUILD_FIELDS);
+    const encryptedData = await encryptFields(data, SENSITIVE_GUILD_FIELDS);
     await _db('guild_store')
         .insert({ store, guild_id: guildId, data: serialize(encryptedData) })
         .onConflict(['store', 'guild_id'])
@@ -51,10 +51,10 @@ export async function getAllGuildData(store) {
         .select('guild_id', 'data')
         .where({ store })
         .whereNot({ guild_id: '__global__' });
-    return rows.map(r => ({ 
+    return Promise.all(rows.map(async r => ({ 
         guildId: r.guild_id, 
-        data: decryptFields(deserialize(r.data), SENSITIVE_GUILD_FIELDS) 
-    }));
+        data: await decryptFields(deserialize(r.data), SENSITIVE_GUILD_FIELDS) 
+    })));
 }
 
 export async function getUserData(store, guildId, userId) {
@@ -66,12 +66,12 @@ export async function getUserData(store, guildId, userId) {
     
     const data = deserialize(row.data);
     // Decrypt sensitive fields
-    return decryptFields(data, SENSITIVE_USER_FIELDS);
+    return await decryptFields(data, SENSITIVE_USER_FIELDS);
 }
 
 export async function setUserData(store, guildId, userId, data) {
     // Encrypt sensitive fields before storage
-    const encryptedData = encryptFields(data, SENSITIVE_USER_FIELDS);
+    const encryptedData = await encryptFields(data, SENSITIVE_USER_FIELDS);
     await _db('guild_user_store')
         .insert({ store, guild_id: guildId, user_id: userId, data: serialize(encryptedData) })
         .onConflict(['store', 'guild_id', 'user_id'])
@@ -82,10 +82,10 @@ export async function getAllUserData(store, guildId) {
     const rows = await _db('guild_user_store')
         .select('user_id', 'data')
         .where({ store, guild_id: guildId });
-    return rows.map(r => ({ 
+    return Promise.all(rows.map(async r => ({ 
         userId: r.user_id, 
-        data: decryptFields(deserialize(r.data), SENSITIVE_USER_FIELDS) 
-    }));
+        data: await decryptFields(deserialize(r.data), SENSITIVE_USER_FIELDS) 
+    })));
 }
 
 export async function getData(store) {

@@ -2,9 +2,11 @@ import { logger } from '../utils/logger.js';
  
 // NSFW Detection Utility
 // Scans image attachments for NSFW content using TensorFlow.js
-
+ 
 import { safeFetch } from './safeFetch.js';
 import { getGuildData } from './db.js';
+import { createQueue } from '../queue/queue.js';
+import { JobNames } from '../queue/queue.js';
 
 let model = null;
 let modelLoaded = false;
@@ -191,6 +193,24 @@ export async function checkMessageAttachments(guildId, message, enabledOverride 
     }
     
     return null;
+}
+
+/**
+ * Enqueues NSFW analysis job to worker queue
+ * @param {string} imageUrl - URL of the image to analyze
+ * @param {string} guildId - Guild ID
+ * @param {number} threshold - NSFW threshold
+ * @returns {Promise<Object>} Job info
+ */
+export async function enqueueNsfwAnalysis(imageUrl, guildId, threshold = 0.6) {
+    const queue = await createQueue(JobNames.NSFW_ANALYZE);
+    const job = await queue.add(JobNames.NSFW_ANALYZE, { imageUrl, guildId, threshold }, {
+        attempts: 2,
+        backoff: { type: 'exponential', delay: 2000 },
+        removeOnComplete: { age: 3600 },
+        removeOnFail: { age: 86400, count: 100 }
+    });
+    return job;
 }
 
 /**

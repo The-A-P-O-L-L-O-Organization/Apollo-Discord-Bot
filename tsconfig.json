@@ -1,0 +1,50 @@
+{
+    "compilerOptions": {
+        "target": "ES2024",
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "lib": ["ES2024"],
+        "outDir": "./dist",
+        "rootDir": "./src",
+        "declaration": true,
+        "declarationMap": true,
+        "sourceMap": true,
+        "inlineSources": true,
+        "strict": true,
+        "noUncheckedIndexedAccess": true,
+        "noImplicitOverride": true,
+        "noPropertyAccessFromIndexSignature": true,
+        "exactOptionalPropertyTypes": true,
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "forceConsistentCasingInFileNames": true,
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "verbatimModuleSyntax": true,
+        "skipLibCheck": false,
+        "types": ["node", "vitest/globals", "@discordjs/builders"],
+        "baseUrl": ".",
+        "paths": {
+            "@core/*": ["src/core/*"],
+            "@utils/*": ["src/utils/*"],
+            "@plugins/*": ["src/plugins/*"],
+            "@queue/*": ["src/queue/*"],
+            "@db/*": ["src/db/*"],
+            "@config": ["src/config/config"],
+            "@types/*": ["src/types/*"]
+        }
+    },
+    "include": [
+        "src/**/*",
+        "tests/**/*",
+        "bin/**/*",
+        "scripts/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist",
+        "data",
+        "tests/mocks",
+        "src/handlers"
+    ]
+}

@@ -75,7 +75,8 @@ vi.mock('../../src/config/config.js', () => ({
         automod: {
             useRedisSpamTracking: false,
             useRedisRaidDetection: false
-        }
+        },
+        queue: { enabled: false }
     }
 }));
 

@@ -31,7 +31,7 @@ import { sendModLog } from '../../../utils/modLog.js';
 import { config } from '../../../config/config.js';
 import { trackMessage, trackViolation, flushAnalyticsCritical } from '../../../utils/analyticsCollector.js';
 import { checkMessageModeration, formatViolations } from '../../../utils/openaiModeration.js';
-import { checkMessageAttachments } from '../../../utils/nsfwDetection.js';
+import { checkMessageAttachments, enqueueNsfwAnalysis } from '../../../utils/nsfwDetection.js';
 import { getLockRedis } from '../../../utils/lock.js';
 import { 
     recordSpamDetection, 
@@ -228,12 +228,29 @@ export default {
 
             // Check NSFW image attachments
             if (cfg.nsfwFilter && message.attachments.size > 0) {
-                const nsfwResult = await checkMessageAttachments(message.guild.id, message, true);
-                if (nsfwResult && nsfwResult.detected) {
-                    const count = nsfwResult.images.length;
-                    const reason = `Posted NSFW image${count > 1 ? 's' : ''} (${count} detected)`;
-                    await handleViolation(message, 'nsfw', reason, client, true, violationCooldownKey);
-                    return;
+                // Use worker queue for NSFW analysis if queue is enabled
+                if (config.queue.enabled) {
+                    const imageAttachments = message.attachments.filter(att => {
+                        const contentType = att.contentType || '';
+                        return contentType.startsWith('image/');
+                    });
+                    
+                    for (const [, attachment] of imageAttachments) {
+                        try {
+                            await enqueueNsfwAnalysis(attachment.url, message.guild.id, config.threshold);
+                        } catch (error) {
+                            logger.error(`[ERROR] Failed to enqueue NSFW analysis for ${attachment.name}:`, error.message);
+                        }
+                    }
+                } else {
+                    // Fallback to synchronous analysis
+                    const nsfwResult = await checkMessageAttachments(message.guild.id, message, true);
+                    if (nsfwResult && nsfwResult.detected) {
+                        const count = nsfwResult.images.length;
+                        const reason = `Posted NSFW image${count > 1 ? 's' : ''} (${count} detected)`;
+                        await handleViolation(message, 'nsfw', reason, client, true, violationCooldownKey);
+                        return;
+                    }
                 }
             }
             

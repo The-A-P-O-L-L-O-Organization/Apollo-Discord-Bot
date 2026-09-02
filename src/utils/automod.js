@@ -127,7 +127,7 @@ async function getSpamRedis() {
 }
 
 /**
- * Tracks a message in Redis-backed spam tracking
+ * Tracks a message in Redis-backed spam tracking (optimized with pipeline)
  * @param {string} guildId - Guild ID
  * @param {string} userId - User ID
  * @param {number} timestamp - Message timestamp
@@ -138,14 +138,19 @@ export async function trackMessageRedis(guildId, userId, timestamp, intervalMs =
     if (!redis) {return;}
 
     const key = `${SPAM_KEY_PREFIX}${guildId}:${userId}`;
-    await redis.zadd(key, timestamp, `${timestamp}:${userId}`);
+    
+    // Use Redis pipeline to combine zadd + expire in one round-trip
+    const pipeline = redis.pipeline();
+    pipeline.zadd(key, timestamp, `${timestamp}:${userId}`);
     // TTL = interval + 60s buffer to ensure key survives the check window
     const ttlSeconds = Math.ceil((intervalMs + 60000) / 1000);
-    await redis.expire(key, ttlSeconds);
+    pipeline.expire(key, ttlSeconds);
+    
+    await pipeline.exec();
 }
 
 /**
- * Checks for spam using Redis
+ * Checks for spam using Redis (optimized with pipeline)
  * @param {string} guildId - Guild ID
  * @param {string} userId - User ID
  * @param {number} threshold - Max messages in interval
@@ -160,9 +165,18 @@ export async function checkSpamRedis(guildId, userId, threshold, intervalMs, now
     const key = `${SPAM_KEY_PREFIX}${guildId}:${userId}`;
     const cutoff = now - intervalMs;
     
-    // Use exclusive boundary '(' to match in-memory behavior (strictly within interval)
-    await redis.zremrangebyscore(key, '-inf', cutoff);
-    const count = await redis.zcount(key, '(' + cutoff, '+inf');
+    // Use Redis pipeline to combine zremrangebyscore + zcount in one round-trip
+    const pipeline = redis.pipeline();
+    // Remove expired entries (exclusive boundary '(' to match in-memory behavior)
+    pipeline.zremrangebyscore(key, '-inf', '(' + cutoff);
+    // Count remaining entries within interval
+    pipeline.zcount(key, '(' + cutoff, '+inf');
+    
+    const results = await pipeline.exec();
+    if (!results) {return false;}
+    
+    // results[1] is zcount result: [error, count]
+    const count = results[1]?.[1] ?? 0;
     
     return count >= threshold;
 }
