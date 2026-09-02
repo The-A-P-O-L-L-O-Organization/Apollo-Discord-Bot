@@ -2,16 +2,27 @@ import { createLogger } from '../utils/logger.js';
 import { Queue } from 'bullmq';
 import { config } from '../config/config.js';
 import { createRedisClient } from '../utils/redis.js';
+import { encode, decode } from 'msgpackr';
 
 const logger = createLogger({ component: 'queue' });
 
 export const JobNames = {
     PROCESS_COMMAND: 'process-command',
     HEAVY_OPERATION: 'heavy-operation',
-    SCHEDULED_TASK: 'scheduled-task'
+    SCHEDULED_TASK: 'scheduled-task',
+    NSFW_ANALYZE: 'nsfw:analyze'
 };
 
 const queues = new Map();
+
+// Custom serializer for BullMQ using msgpackr
+function serializeJobData(data) {
+    return encode(data);
+}
+
+function deserializeJobData(data) {
+    return decode(data);
+}
 
 export async function createQueue(name, queueConfig = config.queue) {
     if (queues.has(name)) {return queues.get(name);}
@@ -38,6 +49,11 @@ export async function createQueue(name, queueConfig = config.queue) {
                 backoff: { type: 'exponential', delay: 1000 },
                 removeOnComplete: { age: 3600 },
                 removeOnFail: { age: 86400, count: 1000 }
+            },
+            // Custom serializer for job data
+            serializer: {
+                serialize: serializeJobData,
+                deserialize: deserializeJobData
             }
         });
     } else {

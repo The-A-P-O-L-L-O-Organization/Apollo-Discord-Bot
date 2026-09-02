@@ -5,6 +5,7 @@ import { createAdapter } from './db/adapter.js';
 import { handleJob } from './queue/jobHandler.js';
 import { closeAll as closeQueues } from './queue/queue.js';
 import registerProcessCommand from './queue/jobs/processCommand.js';
+import registerNsfwAnalyze from './queue/jobs/nsfwAnalyze.js';
 import { createLogger } from './utils/logger.js';
 import { warnUnverifiedPlugins } from './utils/startupChecks.js';
 import { closeLockRedis } from './utils/lock.js';
@@ -24,6 +25,7 @@ export async function startWorker() {
     logger.info('[Worker] Database ready');
 
     registerProcessCommand();
+    registerNsfwAnalyze();
     logger.info('[Worker] Job handlers registered');
 
     const { redis } = config.queue;

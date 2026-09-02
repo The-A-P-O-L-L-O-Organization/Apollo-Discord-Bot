@@ -20,46 +20,46 @@ describe('Encryption', () => {
         clearEncryptionKeyCache();
     });
 
-    it('should encrypt and decrypt strings', () => {
+    it('should encrypt and decrypt strings', async() => {
         const plaintext = 'Hello, World!';
-        const encrypted = encrypt(plaintext);
-        const decrypted = decrypt(encrypted);
+        const encrypted = await encrypt(plaintext);
+        const decrypted = await decrypt(encrypted);
         
         expect(decrypted).toBe(plaintext);
     });
 
-    it('should encrypt and decrypt objects', () => {
+    it('should encrypt and decrypt objects', async() => {
         const plaintext = { foo: 'bar', num: 42, arr: [1, 2, 3] };
-        const encrypted = encrypt(plaintext);
-        const decrypted = decrypt(encrypted);
+        const encrypted = await encrypt(plaintext);
+        const decrypted = await decrypt(encrypted);
         
         expect(decrypted).toEqual(plaintext);
     });
 
-    it('should encrypt and decrypt arrays', () => {
+    it('should encrypt and decrypt arrays', async() => {
         const plaintext = ['a', 'b', 'c', { nested: 'object' }];
-        const encrypted = encrypt(plaintext);
-        const decrypted = decrypt(encrypted);
+        const encrypted = await encrypt(plaintext);
+        const decrypted = await decrypt(encrypted);
         
         expect(decrypted).toEqual(plaintext);
     });
 
-    it('should produce different ciphertext for same plaintext (unique salt)', () => {
+    it('should produce different ciphertext for same plaintext (unique salt)', async() => {
         const plaintext = 'Same message';
-        const encrypted1 = encrypt(plaintext);
-        const encrypted2 = encrypt(plaintext);
+        const encrypted1 = await encrypt(plaintext);
+        const encrypted2 = await encrypt(plaintext);
         
         // Should be different due to unique salt per encryption
         expect(encrypted1).not.toBe(encrypted2);
         
         // But both should decrypt to same plaintext
-        expect(decrypt(encrypted1)).toBe(plaintext);
-        expect(decrypt(encrypted2)).toBe(plaintext);
+        expect(await decrypt(encrypted1)).toBe(plaintext);
+        expect(await decrypt(encrypted2)).toBe(plaintext);
     });
 
-    it('should produce valid encrypted format (version:salt:iv:authTag:ciphertext)', () => {
+    it('should produce valid encrypted format (version:salt:iv:authTag:ciphertext)', async() => {
         const plaintext = 'Test';
-        const encrypted = encrypt(plaintext);
+        const encrypted = await encrypt(plaintext);
         const parts = encrypted.split(':');
         
         expect(parts).toHaveLength(5);
@@ -75,20 +75,20 @@ describe('Encryption', () => {
         });
     });
 
-    it('should decrypt with cached derived key', () => {
+    it('should decrypt with cached derived key', async() => {
         const plaintext = 'Cache test';
-        const encrypted = encrypt(plaintext);
+        const encrypted = await encrypt(plaintext);
         
         // First decrypt (populates cache)
-        const decrypted1 = decrypt(encrypted);
+        const decrypted1 = await decrypt(encrypted);
         expect(decrypted1).toBe(plaintext);
         
         // Second decrypt (uses cache)
-        const decrypted2 = decrypt(encrypted);
+        const decrypted2 = await decrypt(encrypted);
         expect(decrypted2).toBe(plaintext);
     });
 
-    it('should encrypt and decrypt object fields selectively', () => {
+    it('should encrypt and decrypt object fields selectively', async() => {
         const obj = {
             public: 'visible',
             secret: 'hidden',
@@ -96,7 +96,7 @@ describe('Encryption', () => {
             normal: 'data'
         };
         
-        const encrypted = encryptFields(obj, ['secret', 'api_key']);
+        const encrypted = await encryptFields(obj, ['secret', 'api_key']);
         
         expect(encrypted.public).toBe('visible');
         expect(encrypted.normal).toBe('data');
@@ -106,37 +106,37 @@ describe('Encryption', () => {
         expect(isEncrypted(encrypted.api_key)).toBe(true);
     });
 
-    it('should decrypt object fields selectively', () => {
+    it('should decrypt object fields selectively', async() => {
         const obj = {
             public: 'visible',
             secret: 'hidden',
             api_key: 'key123'
         };
         
-        const encrypted = encryptFields(obj, ['secret', 'api_key']);
-        const decrypted = decryptFields(encrypted, ['secret', 'api_key']);
+        const encrypted = await encryptFields(obj, ['secret', 'api_key']);
+        const decrypted = await decryptFields(encrypted, ['secret', 'api_key']);
         
         expect(decrypted.public).toBe('visible');
         expect(decrypted.secret).toBe('hidden');
         expect(decrypted.api_key).toBe('key123');
     });
 
-    it('should handle non-object values in encryptFields', () => {
-        expect(encryptFields(null, ['field'])).toBeNull();
-        expect(encryptFields('string', ['field'])).toBe('string');
-        expect(encryptFields(123, ['field'])).toBe(123);
-        expect(encryptFields([1, 2, 3], ['field'])).toEqual([1, 2, 3]);
+    it('should handle non-object values in encryptFields', async() => {
+        expect(await encryptFields(null, ['field'])).toBeNull();
+        expect(await encryptFields('string', ['field'])).toBe('string');
+        expect(await encryptFields(123, ['field'])).toBe(123);
+        expect(await encryptFields([1, 2, 3], ['field'])).toEqual([1, 2, 3]);
     });
 
-    it('should handle non-object values in decryptFields', () => {
-        expect(decryptFields(null, ['field'])).toBeNull();
-        expect(decryptFields('string', ['field'])).toBe('string');
-        expect(decryptFields(123, ['field'])).toBe(123);
-        expect(decryptFields([1, 2, 3], ['field'])).toEqual([1, 2, 3]);
+    it('should handle non-object values in decryptFields', async() => {
+        expect(await decryptFields(null, ['field'])).toBeNull();
+        expect(await decryptFields('string', ['field'])).toBe('string');
+        expect(await decryptFields(123, ['field'])).toBe(123);
+        expect(await decryptFields([1, 2, 3], ['field'])).toEqual([1, 2, 3]);
     });
 
-    it('should identify encrypted values', () => {
-        const encrypted = encrypt('test');
+    it('should identify encrypted values', async() => {
+        const encrypted = await encrypt('test');
         expect(isEncrypted(encrypted)).toBe(true);
         
         expect(isEncrypted('not-encrypted')).toBe(false);
@@ -145,36 +145,36 @@ describe('Encryption', () => {
         expect(isEncrypted(123)).toBe(false);
     });
 
-    it('should clear cache', () => {
-        encrypt('test');
+    it('should clear cache', async() => {
+        await encrypt('test');
         clearEncryptionKeyCache();
         
         // Should not throw and should work after clear
-        const encrypted = encrypt('test2');
-        const decrypted = decrypt(encrypted);
+        const encrypted = await encrypt('test2');
+        const decrypted = await decrypt(encrypted);
         expect(decrypted).toBe('test2');
     });
 
-    it('should throw on invalid encrypted format', () => {
-        expect(() => decrypt('invalid')).toThrow('Invalid encrypted data format');
-        expect(() => decrypt('a:b:c')).toThrow('Invalid encrypted data format');
-        expect(() => decrypt('not-a-number:a:b:c:d')).toThrow('Invalid encrypted data format');
+    it('should throw on invalid encrypted format', async() => {
+        await expect(decrypt('invalid')).rejects.toThrow('Invalid encrypted data format');
+        await expect(decrypt('a:b:c')).rejects.toThrow('Invalid encrypted data format');
+        await expect(decrypt('not-a-number:a:b:c:d')).rejects.toThrow('Invalid encrypted data format');
     });
 
-    it('should throw on missing ENCRYPTION_KEY', () => {
+    it('should throw on missing ENCRYPTION_KEY', async() => {
         vi.unstubAllEnvs();
         clearEncryptionKeyCache();
         
-        expect(() => encrypt('test')).toThrow('ENCRYPTION_KEY environment variable is required');
+        await expect(encrypt('test')).rejects.toThrow('ENCRYPTION_KEY environment variable is required');
     });
 
-    it('should handle decryption errors gracefully in decryptFields', () => {
+    it('should handle decryption errors gracefully in decryptFields', async() => {
         const obj = {
             field: 'not-actually-encrypted'
         };
         
         // Should not throw, should leave value as-is
-        const result = decryptFields(obj, ['field']);
+        const result = await decryptFields(obj, ['field']);
         expect(result.field).toBe('not-actually-encrypted');
     });
 });

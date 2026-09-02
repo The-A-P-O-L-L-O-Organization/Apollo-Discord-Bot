@@ -1,0 +1,16 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "noEmit": true,
+        "types": ["node", "vitest/globals", "@discordjs/builders", "@types/node"]
+    },
+    "include": [
+        "src/**/*",
+        "tests/**/*",
+        "bin/**/*",
+        "scripts/**/*"
+    ],
+    "exclude": [
+        "src/handlers/**"
+    ]
+}

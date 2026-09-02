@@ -1,3 +1,5 @@
+import { encode, decode } from 'msgpackr';
+
 export const MAX_PAYLOAD_BYTES = 1024 * 1024;
 
 let correlationCounter = 0;
@@ -24,13 +26,13 @@ export function isResponse(msg) {
 }
 
 export function isOversize(msg) {
-    return Buffer.byteLength(JSON.stringify(msg)) > MAX_PAYLOAD_BYTES;
+    return Buffer.byteLength(encode(msg)) > MAX_PAYLOAD_BYTES;
 }
 
 export function serialize(payload) {
-    return JSON.stringify(payload);
+    return encode(payload);
 }
 
-export function deserialize(text) {
-    return JSON.parse(text);
+export function deserialize(data) {
+    return decode(data);
 }

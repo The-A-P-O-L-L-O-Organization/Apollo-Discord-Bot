@@ -3,6 +3,7 @@
 import { logger } from '../utils/logger.js';
 
 import crypto from 'crypto';
+import { promisify } from 'util';
 
 const ALGORITHM = 'aes-256-gcm';
 const KEY_LENGTH = 32; // 256 bits
@@ -16,6 +17,9 @@ const PBKDF2_ITERATIONS = parseInt(process.env.PBKDF2_ITERATIONS || '600000', 10
 // LRU cache for decryption keys (salt -> derivedKey)
 const _keyCache = new Map();
 const MAX_KEY_CACHE_SIZE = 100;
+
+// Promisified PBKDF2 for async (non-blocking) key derivation
+const pbkdf2Async = promisify(crypto.pbkdf2);
 
 /**
  * Parses encryption keys from environment
@@ -31,11 +35,11 @@ function getEncryptionKeys() {
 }
 
 /**
- * Gets derived key for a specific salt using the current encryption key
+ * Gets derived key for a specific salt using the current encryption key (async, non-blocking)
  * @param {Buffer} salt - Salt buffer
- * @returns {Buffer} Derived key
+ * @returns {Promise<Buffer>} Derived key
  */
-function getDerivedKeyForSalt(salt) {
+async function getDerivedKeyForSalt(salt) {
     const saltB64 = salt.toString('base64');
     if (_keyCache.has(saltB64)) {
         // Move to end (most recently used)
@@ -52,7 +56,7 @@ function getDerivedKeyForSalt(salt) {
     
     // Use the first (current) key for encryption
     const currentKey = keys[0];
-    const derived = crypto.pbkdf2Sync(currentKey, salt, PBKDF2_ITERATIONS, KEY_LENGTH, 'sha256');
+    const derived = await pbkdf2Async(currentKey, salt, PBKDF2_ITERATIONS, KEY_LENGTH, 'sha256');
     
     // Evict oldest if cache full
     if (_keyCache.size >= MAX_KEY_CACHE_SIZE) {
@@ -67,9 +71,9 @@ function getDerivedKeyForSalt(salt) {
 /**
  * Tries to derive key using any available encryption key (for decryption with key rotation)
  * @param {Buffer} salt - Salt buffer
- * @returns {Buffer|null} Derived key or null if no key works
+ * @returns {Promise<Buffer|null>} Derived key or null if no key works
  */
-function getDerivedKeyForSaltAny(salt) {
+async function getDerivedKeyForSaltAny(salt) {
     const saltB64 = salt.toString('base64');
     if (_keyCache.has(saltB64)) {
         // Move to end (most recently used)
@@ -87,7 +91,7 @@ function getDerivedKeyForSaltAny(salt) {
     // Try each key in order (current first, then legacy)
     for (const keyEnv of keys) {
         try {
-            const derived = crypto.pbkdf2Sync(keyEnv, salt, PBKDF2_ITERATIONS, KEY_LENGTH, 'sha256');
+            const derived = await pbkdf2Async(keyEnv, salt, PBKDF2_ITERATIONS, KEY_LENGTH, 'sha256');
             
             if (_keyCache.size >= MAX_KEY_CACHE_SIZE) {
                 const firstKey = _keyCache.keys().next().value;
@@ -112,17 +116,17 @@ export function clearEncryptionKeyCache() {
 }
 
 /**
- * Encrypts data using AES-256-GCM with version header
+ * Encrypts data using AES-256-GCM with version header (async, non-blocking)
  * @param {string|Object} data - Data to encrypt (string or JSON-serializable object)
- * @returns {string} Base64 encoded encrypted data (version:salt:iv:authTag:ciphertext)
+ * @returns {Promise<string>} Base64 encoded encrypted data (version:salt:iv:authTag:ciphertext)
  */
-export function encrypt(data) {
+export async function encrypt(data) {
     // Generate fresh salt for each encryption (critical for AES-GCM security)
     const salt = crypto.randomBytes(SALT_LENGTH);
     const iv = crypto.randomBytes(IV_LENGTH);
     
-    // Derive key for this specific salt (cached)
-    const derivedKey = getDerivedKeyForSalt(salt);
+    // Derive key for this specific salt (cached, async non-blocking)
+    const derivedKey = await getDerivedKeyForSalt(salt);
     
     const cipher = crypto.createCipheriv(ALGORITHM, derivedKey, iv);
     
@@ -143,9 +147,9 @@ export function encrypt(data) {
 /**
  * Decrypts data using AES-256-GCM (supports v0 legacy format and v1+ versioned format)
  * @param {string} encryptedData - Base64 encoded encrypted data
- * @returns {string|Object|Array} Decrypted plaintext (parsed if JSON)
+ * @returns {Promise<string|Object|Array>} Decrypted plaintext (parsed if JSON)
  */
-export function decrypt(encryptedData) {
+export async function decrypt(encryptedData) {
     const parts = encryptedData.split(':');
     
     // Legacy format (v0): salt:iv:authTag:ciphertext (4 parts)
@@ -171,8 +175,8 @@ export function decrypt(encryptedData) {
     const authTag = Buffer.from(authTagB64, 'base64');
     const ciphertext = Buffer.from(ciphertextB64, 'base64');
     
-    // Derive key with stored salt (tries all available keys for rotation support)
-    const derivedKey = getDerivedKeyForSaltAny(salt);
+    // Derive key with stored salt (tries all available keys for rotation support, async)
+    const derivedKey = await getDerivedKeyForSaltAny(salt);
     if (!derivedKey) {
         throw new Error('No valid encryption key available for decryption');
     }
@@ -211,12 +215,12 @@ export function isEncrypted(value) {
 }
 
 /**
- * Encrypts an object field selectively
+ * Encrypts an object field selectively (async, non-blocking)
  * @param {Object|Array|*} obj - Object to encrypt (only processes if plain object)
  * @param {string[]} fields - Field names to encrypt
- * @returns {Object|Array|*} Object with encrypted fields, or original value if not a plain object
+ * @returns {Promise<Object|Array|*>} Object with encrypted fields, or original value if not a plain object
  */
-export function encryptFields(obj, fields) {
+export async function encryptFields(obj, fields) {
     // Only process plain objects (not arrays, null, or primitives)
     if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
         return obj;
@@ -225,19 +229,19 @@ export function encryptFields(obj, fields) {
     const result = { ...obj };
     for (const field of fields) {
         if (result[field] !== undefined && result[field] !== null) {
-            result[field] = encrypt(result[field]);
+            result[field] = await encrypt(result[field]);
         }
     }
     return result;
 }
 
 /**
- * Decrypts object fields selectively
+ * Decrypts object fields selectively (async, non-blocking)
  * @param {Object|Array|*} obj - Object with encrypted fields (only processes if plain object)
  * @param {string[]} fields - Field names to decrypt
- * @returns {Object|Array|*} Object with decrypted fields, or original value if not a plain object
+ * @returns {Promise<Object|Array|*>} Object with decrypted fields, or original value if not a plain object
  */
-export function decryptFields(obj, fields) {
+export async function decryptFields(obj, fields) {
     // Only process plain objects (not arrays, null, or primitives)
     if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
         return obj;
@@ -247,7 +251,7 @@ export function decryptFields(obj, fields) {
     for (const field of fields) {
         if (result[field] !== undefined && result[field] !== null) {
             try {
-                result[field] = decrypt(result[field]);
+                result[field] = await decrypt(result[field]);
             } catch (err) {
                 // If decryption fails, leave as-is (might be unencrypted legacy data)
                 logger.warn(`[ENCRYPTION] Failed to decrypt field ${field}: ${err.message}`);
@@ -279,16 +283,16 @@ export function needsReEncryption(encryptedData) {
 }
 
 /**
- * Re-encrypts data with current key if needed
+ * Re-encrypts data with current key if needed (async, non-blocking)
  * @param {string} encryptedData - Currently encrypted data
- * @returns {string} Re-encrypted data with current version, or original if already current
+ * @returns {Promise<string>} Re-encrypted data with current version, or original if already current
  */
-export function reEncryptIfNeeded(encryptedData) {
+export async function reEncryptIfNeeded(encryptedData) {
     if (!needsReEncryption(encryptedData)) {
         return encryptedData;
     }
     // Decrypt with any available key, then re-encrypt with current key
-    const plaintext = decrypt(encryptedData);
+    const plaintext = await decrypt(encryptedData);
     return encrypt(plaintext);
 }
 

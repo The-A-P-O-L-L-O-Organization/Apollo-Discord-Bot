@@ -1,3 +1,5 @@
+import { encode } from 'msgpackr';
+
 export function serializeInteraction(interaction) {
     return {
         id: interaction.id,
@@ -24,4 +26,13 @@ function serializeOptionsData(options) {
         focused: o.focused,
         options: o.options ? serializeOptionsData({ data: o.options }) : undefined
     }));
+}
+
+/**
+ * Serializes interaction data using msgpackr for queue transport
+ * @param {Object} data - Interaction data object
+ * @returns {Buffer} msgpackr encoded buffer
+ */
+export function serializeForQueue(data) {
+    return encode(data);
 }

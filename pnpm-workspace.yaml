@@ -4,6 +4,7 @@ allowBuilds:
   '@tensorflow/tfjs-node': true
   better-sqlite3: true
   core-js: true
+  esbuild: set this to true or false
   msgpackr-extract: true
 enablePrePostScripts: true
 overrides:
