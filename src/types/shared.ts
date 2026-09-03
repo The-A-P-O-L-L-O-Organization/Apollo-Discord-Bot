@@ -186,6 +186,28 @@ export interface ParsedArgs {
     _: string[];
 }
 
+// Command module type for dynamic loading
+export interface CommandModule {
+    name: string;
+    description?: string;
+    pluginId: string;
+    data?: import('discord.js').SlashCommandBuilder | import('discord.js').RESTPostAPIChatInputApplicationCommandsJSONBody;
+    type?: number;
+    options?: unknown[];
+    dmPermission?: boolean;
+    canQueue?: boolean;
+    execute: (interaction: import('discord.js').ChatInputCommandInteraction) => Promise<void>;
+    autocomplete?: (interaction: import('discord.js').AutocompleteInteraction) => Promise<void>;
+}
+
+// Event handler module type for dynamic loading
+export interface EventHandlerModule {
+    name: string;
+    once?: boolean;
+    execute: (...args: unknown[]) => Promise<void>;
+    handler?: (...args: unknown[]) => void;
+}
+
 export type RPCHandler = (params: unknown, context: RPCContext) => Promise<unknown>;
 
 export interface RPCContext {
