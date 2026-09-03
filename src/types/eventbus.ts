@@ -25,9 +25,9 @@ export interface EventBusMessage<T = unknown> {
     payload: T;
     source: EventSource;
     timestamp: number;
-    correlationId?: string;
-    guildId?: string;
-    shardId?: number;
+    correlationId: string | undefined;
+    guildId: string | undefined;
+    shardId: number | undefined;
 }
 
 export interface EventSource {
@@ -81,7 +81,7 @@ export interface SubscribeOptions {
 export interface Subscription {
     id: string;
     event: string;
-    filter?: EventFilter;
+    filter: EventFilter | undefined;
     priority: number;
     once: boolean;
     createdAt: number;

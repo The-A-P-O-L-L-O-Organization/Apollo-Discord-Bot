@@ -1,6 +1,7 @@
 // Database types (Knex integration)
 
 import type { Knex } from 'knex';
+import type { Database as BetterSQLite3Database } from 'better-sqlite3';
 
 export interface DatabaseConfig {
     type: 'sqlite' | 'postgres';
@@ -35,6 +36,9 @@ export interface PoolConfig {
     reapIntervalMillis?: number;
     createRetryIntervalMillis?: number;
 }
+
+// Re-export better-sqlite3 Database type
+export type { Database as BetterSQLite3Database } from 'better-sqlite3';
 
 export interface MigrationConfig {
     directory: string;
