@@ -170,8 +170,8 @@ export interface GuildCreateOptions {
     verificationLevel?: number;
     defaultMessageNotifications?: number;
     explicitContentFilter?: number;
-    roles?: Array<{ name: string; color?: number; permissions?: bigint }>;
-    channels?: Array<{ name: string; type: number; parent?: string }>;
+    roles?: { name: string; color?: number; permissions?: bigint }[];
+    channels?: { name: string; type: number; parent?: string }[];
     afkChannelId?: string;
     afkTimeout?: number;
     systemChannelId?: string;
@@ -195,12 +195,12 @@ export interface ChannelCreateOptions {
     userLimit?: number;
     rateLimitPerUser?: number;
     position?: number;
-    permissionOverwrites?: Array<{
+    permissionOverwrites?: {
         id: string;
         type: number;
         allow?: bigint;
         deny?: bigint;
-    }>;
+    }[];
 }
 
 export interface UserManager {

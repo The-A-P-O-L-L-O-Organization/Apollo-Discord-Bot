@@ -1,11 +1,8 @@
-import type { Client, ChatInputCommandInteraction, AutocompleteInteraction } from 'discord.js';
-import { EventBusImpl } from '../core/EventBus.js';
+import type { Client } from 'discord.js';
 import { logger } from '../utils/logger.js';
 import type { CommandModule, EventHandlerModule } from '../types/plugin.js';
 
-export interface PluginDependencies {
-    [key: string]: string;
-}
+export type PluginDependencies = Record<string, string>;
 
 export interface PluginConfig {
     enabled: string[];
@@ -18,12 +15,13 @@ export interface TypedClient extends Client {
     commands?: Map<string, CommandModule>;
 }
 
-export abstract class Plugin<C extends CommandModule = CommandModule, E extends EventHandlerModule = EventHandlerModule> {
+export abstract class Plugin<C extends CommandModule = CommandModule, _E extends EventHandlerModule = EventHandlerModule> {
     public client: TypedClient;
     public manager: any; // PluginManager - JS file not migrated yet
     public bus: any; // EventBusImpl - TS file exists but types not exported
-    public commands: Map<string, C> = new Map();
-    public eventHandlers: E[] = [];
+    public commands = new Map<string, C>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    public eventHandlers: any[] = [];
     public schedulers: NodeJS.Timeout[] = [];
     protected _loaded = false;
     protected _enabled = false;
@@ -74,7 +72,7 @@ export abstract class Plugin<C extends CommandModule = CommandModule, E extends 
                 const filePath = path.join(cmdDir, file);
                 const url = pathToFileURL(filePath).href + (process.env['NODE_ENV'] === 'development' ? '?t=' + Date.now() : '');
                 const mod = await import(url);
-                if (mod.default && mod.default.name) {
+                if (mod.default?.name) {
                     mod.default.pluginId = pluginId;
                     this.commands.set(mod.default.name, mod.default);
                     if (this.client.commands) {
@@ -109,7 +107,7 @@ export abstract class Plugin<C extends CommandModule = CommandModule, E extends 
                 const filePath = path.join(evtDir, file);
                 const url = pathToFileURL(filePath).href + (process.env['NODE_ENV'] === 'development' ? '?t=' + Date.now() : '');
                 const mod = await import(url);
-                if (!mod.default || !mod.default.name || !mod.default.execute) { continue; }
+                if (!mod.default?.name || !mod.default.execute) { continue; }
 
                 const { name, once, execute } = mod.default;
                 const handler = (...args: unknown[]) => execute(...args, this.client);

@@ -82,11 +82,11 @@ export interface EmailSendJobData {
     subject: string;
     html: string;
     text?: string;
-    attachments?: Array<{
+    attachments?: {
         filename: string;
         content: Buffer | string;
         contentType?: string;
-    }>;
+    }[];
 }
 
 export interface BackupCreateJobData {

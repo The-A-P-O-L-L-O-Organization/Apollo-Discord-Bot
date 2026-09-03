@@ -11,16 +11,16 @@ let _pgAdapter: {
     getGuildData: (store: string, guildId: string) => Promise<Record<string, unknown>>;
     setGuildData: (store: string, guildId: string, data: Record<string, unknown>) => Promise<void>;
     updateGuildData: (store: string, guildId: string, updater: (current: Record<string, unknown>) => Record<string, unknown>) => Promise<Record<string, unknown>>;
-    getAllGuildData: (store: string) => Promise<Array<{ guildId: string; data: Record<string, unknown> }>>;
+    getAllGuildData: (store: string) => Promise<{ guildId: string; data: Record<string, unknown> }[]>;
     getUserData: (store: string, guildId: string, userId: string) => Promise<Record<string, unknown> | undefined>;
     setUserData: (store: string, guildId: string, userId: string, data: Record<string, unknown>) => Promise<void>;
-    getAllUserData: (store: string, guildId: string) => Promise<Array<{ userId: string; data: Record<string, unknown> }>>;
+    getAllUserData: (store: string, guildId: string) => Promise<{ userId: string; data: Record<string, unknown> }[]>;
     getData: (store: string) => Promise<Record<string, unknown>>;
     setData: (store: string, data: Record<string, unknown>) => Promise<void>;
 } | null = null;
 
 let _sqliteDb: { db: BetterSQLite3Database; DATA_DIR: string } | null = null;
-let _adapterPromise: Promise<typeof _pgAdapter | typeof _sqliteDb> | null = null;
+let _adapterPromise: Promise<typeof _pgAdapter  > | null = null;
 
 async function getAdapter(): Promise<typeof _pgAdapter | typeof _sqliteDb> {
     if (_adapterPromise) { return _adapterPromise; }
@@ -123,7 +123,7 @@ export async function removeFromGuildArray(store: string, guildId: string, key: 
     return removed;
 }
 
-export async function getAllGuildData(store: string): Promise<Array<{ guildId: string; data: Record<string, unknown> }>> {
+export async function getAllGuildData(store: string): Promise<{ guildId: string; data: Record<string, unknown> }[]> {
     if (USE_PG) { return (await getAdapter()).getAllGuildData!(store); }
     const { db } = await getAdapter() as { db: BetterSQLite3Database };
     const stmt = db.prepare('SELECT guild_id, data FROM guild_store WHERE store = ?');
@@ -176,7 +176,7 @@ export async function removeFromUserArray(store: string, guildId: string, userId
     return removed;
 }
 
-export async function getAllUserData(store: string, guildId: string): Promise<Array<{ userId: string; data: Record<string, unknown> }>> {
+export async function getAllUserData(store: string, guildId: string): Promise<{ userId: string; data: Record<string, unknown> }[]> {
     if (USE_PG) { return (await getAdapter()).getAllUserData!(store, guildId); }
     const { db } = await getAdapter() as { db: BetterSQLite3Database };
     const stmt = db.prepare('SELECT user_id, data FROM guild_user_store WHERE store = ? AND guild_id = ?');
@@ -234,7 +234,7 @@ let _walCheckpointInterval: ReturnType<typeof setInterval> | null = null;
 export function startWalCheckpointInterval(intervalMs = 5 * 60 * 1000): void {
     if (_walCheckpointInterval) { return; }
     if (USE_PG) { return; } // Only for SQLite
-    
+
     _walCheckpointInterval = setInterval(() => {
         if (_sqliteDb) {
             try {
@@ -245,9 +245,9 @@ export function startWalCheckpointInterval(intervalMs = 5 * 60 * 1000): void {
             }
         }
     }, intervalMs);
-    
+
     // Don't prevent process exit
-    if (_walCheckpointInterval) _walCheckpointInterval.unref();
+    if (_walCheckpointInterval) {_walCheckpointInterval.unref();}
 }
 
 export function stopWalCheckpointInterval(): void {

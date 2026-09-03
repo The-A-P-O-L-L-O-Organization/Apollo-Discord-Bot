@@ -1,8 +1,7 @@
 // Guild logging utilities
 // Handles fetching guild log config and sending log events
 
-import { EmbedBuilder } from 'discord.js';
-import { config } from '../config/config.js';
+import type { EmbedBuilder } from 'discord.js';
 
 /**
  * Gets logging configuration for a guild
@@ -14,18 +13,21 @@ export async function getLoggingConfig(guildId: string): Promise<{
     events: Record<string, boolean>;
 }> {
     // Import db.js dynamically since it's not yet migrated
-    // @ts-ignore - db.js is not yet migrated to TS
     const { getGuildData } = await import('./db.js');
-    const guildConfig = await getGuildData('logging', guildId);
+    const guildConfig = await getGuildData('logging', guildId) as Record<string, unknown> | null;
+    if (!guildConfig) {
+        return { channelId: null, events: {} };
+    }
+    const events = (guildConfig['events'] as Record<string, boolean>) || {};
     return {
-        channelId: guildConfig.channelId ?? null,
+        channelId: (guildConfig['channelId'] as string) ?? null,
         events: {
-            messageDelete: guildConfig.events?.messageDelete ?? false,
-            messageEdit: guildConfig.events?.messageEdit ?? false,
-            memberJoin: guildConfig.events?.memberJoin ?? false,
-            memberLeave: guildConfig.events?.memberLeave ?? false,
-            roleChanges: guildConfig.events?.roleChanges ?? false,
-            voiceChanges: guildConfig.events?.voiceChanges ?? false
+            messageDelete: events['messageDelete'] ?? false,
+            messageEdit: events['messageEdit'] ?? false,
+            memberJoin: events['memberJoin'] ?? false,
+            memberLeave: events['memberLeave'] ?? false,
+            roleChanges: events['roleChanges'] ?? false,
+            voiceChanges: events['voiceChanges'] ?? false
         }
     };
 }
