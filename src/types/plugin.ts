@@ -62,7 +62,9 @@ export type {
     PluginContext,
     CommandData,
     CommandOption,
-    CommandChoice
+    CommandChoice,
+    CommandModule,
+    EventHandlerModule
 } from './shared.js';
 
 export interface PluginDatabase {

@@ -57,7 +57,9 @@ export type {
     CommandOption,
     CommandChoice,
     PluginEvent,
-    ParsedArgs
+    ParsedArgs,
+    CommandModule,
+    EventHandlerModule
 } from './plugin.js';
 
 // RPC types
