@@ -180,13 +180,13 @@ export interface SerializedInteraction {
         id: string;
         name: string;
         type: number;
-        options: Array<{
+        options: {
             name: string;
             type: number;
             value: unknown;
-            options?: Array<unknown>;
+            options?: unknown[];
             focused?: boolean;
-        }> | null;
+        }[] | null;
     } | null;
     token: string;
     version: number;
@@ -275,12 +275,12 @@ export interface SystemHealthEvent {
     eventLoop: {
         latency: number;
     };
-    shards: Array<{
+    shards: {
         id: number;
         status: string;
         latency: number;
         guilds: number;
-    }>;
+    }[];
     queues: Record<string, {
         waiting: number;
         active: number;

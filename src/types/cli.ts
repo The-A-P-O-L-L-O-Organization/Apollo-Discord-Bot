@@ -1,13 +1,13 @@
 // CLI types for Apollo bot administration
 
-import type { 
-    PluginLogger, 
-    PluginDatabase, 
-    PluginQueue, 
-    PluginRPC, 
-    PluginScheduler, 
+import type {
+    PluginLogger,
+    PluginDatabase,
+    PluginQueue,
+    PluginRPC,
+    PluginScheduler,
     PluginInterlink,
-    CLIContext as SharedCLIContext 
+    CLIContext as SharedCLIContext
 } from './shared.js';
 
 export interface CLIConfig {

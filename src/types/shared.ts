@@ -527,7 +527,7 @@ export interface LevelsConfig {
     xpPerMessage: number;
     xpCooldownMs: number;
     xpPerMinuteVoice: number;
-    roles: Array<{ level: number; roleId: string }>;
+    roles: { level: number; roleId: string }[];
     ignoredChannels: string[];
     ignoredRoles: string[];
     announceChannelId: string | undefined;
@@ -661,7 +661,7 @@ export interface NSFWAnalyzeJobData { imageUrl: string; guildId: string; thresho
 export interface AnalyticsFlushJobData { guildId?: string; force?: boolean; }
 export interface ModerationActionJobData { guildId: string; userId: string; moderatorId: string; type: 'ban' | 'kick' | 'timeout' | 'warn' | 'mute' | 'unmute' | 'unban'; reason: string; duration?: number; deleteMessageSeconds?: number; }
 export interface WebhookDeliverJobData { webhookId: string; webhookToken: string; payload: Record<string, unknown>; retries?: number; }
-export interface EmailSendJobData { to: string; subject: string; html: string; text?: string; attachments?: Array<{ filename: string; content: Buffer | string; contentType?: string }>; }
+export interface EmailSendJobData { to: string; subject: string; html: string; text?: string; attachments?: { filename: string; content: Buffer | string; contentType?: string }[]; }
 export interface BackupCreateJobData { type: 'full' | 'incremental'; includeData: boolean; destination: string; }
 export interface CleanupExpiredJobData { type: 'reminders' | 'polls' | 'tickets' | 'warnings' | 'analytics'; olderThan: number; dryRun?: boolean; }
 

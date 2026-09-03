@@ -1,7 +1,6 @@
 import type {
     EventBus,
     EventBusMessage,
-    EventSource,
     EventFilter,
     PublishOptions,
     SubscribeOptions,
@@ -15,12 +14,12 @@ const logger = createLogger({ component: 'eventbus' });
 
 export interface EventBusImplOptions {
     redisPub?: {
-        publish: (channel: string, message: string) => Promise<number>;
+        publish: (_channel: string, _message: string) => Promise<number>;
     };
     redisSub?: {
-        subscribe: (channel: string) => Promise<void>;
-        unsubscribe: (channel: string) => Promise<void>;
-        on: (event: 'message', listener: (channel: string, message: string) => void) => void;
+        subscribe: (_channel: string) => Promise<void>;
+        unsubscribe: (_channel: string) => Promise<void>;
+        on: (_event: 'message', _listener: (_channel: string, _message: string) => void) => void;
     };
     podId?: string;
 }
@@ -34,7 +33,7 @@ export interface HandlerEntry {
 }
 
 interface ApiEntry {
-    fn: (...args: unknown[]) => Promise<unknown>;
+    fn: (..._args: unknown[]) => Promise<unknown>;
     pluginId: string;
 }
 
@@ -45,7 +44,7 @@ interface StateEntry<T = unknown> {
 }
 
 interface StateWatcher {
-    fn: (newValue: unknown, oldValue: unknown) => void;
+    fn: (_newValue: unknown, _oldValue: unknown) => void;
     pluginId: string;
 }
 
@@ -62,9 +61,9 @@ interface CrossPodStateMessage extends EventBusMessage {
 }
 
 export class EventBusImpl implements EventBus {
-    private _handlers: Map<string, Set<HandlerEntry>> = new Map();
-    private _apis: Map<string, ApiEntry> = new Map();
-    private _state: Map<string, StateEntry> = new Map();
+    private _handlers = new Map<string, Set<HandlerEntry>>();
+    private _apis = new Map<string, ApiEntry>();
+    private _state = new Map<string, StateEntry>();
     private _redisPub: EventBusImplOptions['redisPub'] = undefined;
     private _redisSub: EventBusImplOptions['redisSub'] = undefined;
     private _podId: string | undefined = undefined;
@@ -103,7 +102,9 @@ export class EventBusImpl implements EventBus {
             if (set.has(entry)) {
                 set.delete(entry);
                 if (this._crossPodEnabled && set.size === 0) {
-                    this._redisSub?.unsubscribe(`apollo:event:${event}`).catch(() => {});
+                    this._redisSub?.unsubscribe(`apollo:event:${event}`).catch(() => {
+                        // ignore unsubscribe errors
+                    });
                 }
             }
         };
@@ -180,7 +181,7 @@ export class EventBusImpl implements EventBus {
         }
     }
 
-    provide(namespace: string, fn: (...args: unknown[]) => Promise<unknown>, pluginId: string): void {
+    provide(namespace: string, fn: (..._args: unknown[]) => Promise<unknown>, pluginId: string): void {
         if (this._apis.has(namespace)) {
             throw new Error(`API "${namespace}" is already registered`);
         }
@@ -236,7 +237,7 @@ export class EventBusImpl implements EventBus {
         }
     }
 
-    watchState(key: string, fn: (newValue: unknown, oldValue: unknown) => void, pluginId: string): () => void {
+    watchState(key: string, fn: (_newValue: unknown, _oldValue: unknown) => void, pluginId: string): () => void {
         const entry = this._state.get(key);
         if (!entry) { throw new Error(`Unknown state key: "${key}"`); }
         const watcher: StateWatcher = { fn, pluginId };
@@ -252,7 +253,9 @@ export class EventBusImpl implements EventBus {
         return () => {
             entry.watchers.delete(watcher);
             if (this._crossPodEnabled && entry.watchers.size === 0) {
-                this._redisSub?.unsubscribe(`apollo:state:${key}`).catch(() => {});
+                this._redisSub?.unsubscribe(`apollo:state:${key}`).catch(() => {
+                    // ignore unsubscribe errors
+                });
             }
         };
     }
@@ -264,7 +267,9 @@ export class EventBusImpl implements EventBus {
                     if (entry.pluginId === pluginId) {
                         set.delete(entry);
                         if (set.size === 0) {
-                            this._redisSub?.unsubscribe(`apollo:event:${event}`).catch(() => {});
+                            this._redisSub?.unsubscribe(`apollo:event:${event}`).catch(() => {
+                                // ignore unsubscribe errors
+                            });
                         }
                     }
                 }
@@ -304,11 +309,11 @@ export class EventBusImpl implements EventBus {
     }
 
     private _matchesFilter(filter: EventFilter, message: EventBusMessage): boolean {
-        if (filter.guildId && message.guildId !== filter.guildId) return false;
-        if (filter.shardId && message.shardId !== filter.shardId) return false;
-        if (filter.sourceType && message.source.type !== filter.sourceType) return false;
-        if (filter.sourcePlugin && message.source.plugin !== filter.sourcePlugin) return false;
-        if (filter.custom && !filter.custom(message)) return false;
+        if (filter.guildId && message.guildId !== filter.guildId) {return false;}
+        if (filter.shardId && message.shardId !== filter.shardId) {return false;}
+        if (filter.sourceType && message.source.type !== filter.sourceType) {return false;}
+        if (filter.sourcePlugin && message.source.plugin !== filter.sourcePlugin) {return false;}
+        if (filter.custom && !filter.custom(message)) {return false;}
         return true;
     }
 
@@ -321,7 +326,7 @@ export class EventBusImpl implements EventBus {
                 const set = this._handlers.get(data._event);
                 if (set) {
                     for (const entry of set) {
-                        entry.handler(data);
+                        void entry.handler(data);
                     }
                     this._receivedCount++;
                 }
@@ -335,9 +340,9 @@ export class EventBusImpl implements EventBus {
                     for (const w of entry.watchers) {
                         try {
                             w.fn(data._stateValue, oldValue);
-} catch (err) {
-                logger.error({ err: err as Error, msg: `[EventBus] Error in cross-pod state watcher for "${data._stateKey}"` });
-            }
+                        } catch (err) {
+                            logger.error({ err: err as Error, msg: `[EventBus] Error in cross-pod state watcher for "${data._stateKey}"` });
+                        }
                     }
                 }
             }
@@ -346,8 +351,8 @@ export class EventBusImpl implements EventBus {
         }
     }
 
-    async healthCheck(): Promise<EventBusHealth> {
-        return {
+    healthCheck(): Promise<EventBusHealth> {
+        return Promise.resolve({
             healthy: true,
             redisConnected: !!this._redisPub && !!this._redisSub,
             subscriptions: Array.from(this._handlers.values()).reduce((sum, set) => sum + set.size, 0),
@@ -355,40 +360,42 @@ export class EventBusImpl implements EventBus {
             receivedCount: this._receivedCount,
             errorCount: this._errorCount,
             latency: 0
-        };
+        });
     }
 
-    async publish<T>(event: string, payload: T, options?: PublishOptions): Promise<void> {
+    publish<T>(event: string, payload: T, options?: PublishOptions): Promise<void> {
         return this.emit(event, payload, options);
     }
 
-    async subscribe<T>(event: string, handler: EventHandler<T>, options?: SubscribeOptions): Promise<Subscription> {
+    subscribe<T>(event: string, handler: EventHandler<T>, options?: SubscribeOptions): Promise<Subscription> {
         const pluginId = options?.filter?.sourcePlugin ?? 'unknown';
         this.on(event, handler, pluginId, options);
-        return {
+        return Promise.resolve({
             id: crypto.randomUUID(),
             event,
             filter: options?.filter,
             priority: options?.priority ?? 0,
             once: options?.once ?? false,
             createdAt: Date.now()
-        };
+        });
     }
 
-    async unsubscribe(subscription: Subscription): Promise<void> {
+    unsubscribe(_subscription: Subscription): Promise<void> {
         // Note: We can't easily find the exact entry without storing subscription ID
         // This is a limitation - in practice we'd need to track subscriptions differently
+        return Promise.resolve();
     }
 
-    async unsubscribeAll(event?: string): Promise<void> {
+    unsubscribeAll(event?: string): Promise<void> {
         if (event) {
             this._handlers.delete(event);
         } else {
             this._handlers.clear();
         }
+        return Promise.resolve();
     }
 
-    async getSubscriptions(event?: string): Promise<Subscription[]> {
+    getSubscriptions(event?: string): Promise<Subscription[]> {
         const subscriptions: Subscription[] = [];
         const eventsToCheck = event ? [event] : Array.from(this._handlers.keys());
         for (const e of eventsToCheck) {
@@ -406,7 +413,7 @@ export class EventBusImpl implements EventBus {
                 }
             }
         }
-        return subscriptions;
+        return Promise.resolve(subscriptions);
     }
 }
 

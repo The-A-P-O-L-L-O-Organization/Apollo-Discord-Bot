@@ -1,7 +1,8 @@
 // Knex Database Configuration - TypeScript migration
 // Handles PostgreSQL and SQLite connections with migrations
 
-import knex, { Knex } from 'knex';
+import type { Knex } from 'knex';
+import knex from 'knex';
 import { config } from '../config/config.js';
 import path from 'path';
 import { fileURLToPath } from 'url';

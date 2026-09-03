@@ -2,10 +2,10 @@
 // Validates plugin command modules at load time
 
 import { z } from 'zod';
-import type { 
-    PluginCommand, 
-    PluginEvent, 
-    CLICommand, 
+import type {
+    PluginCommand,
+    PluginEvent,
+    CLICommand,
     PluginContext,
     CommandData,
     CommandOption,
@@ -98,7 +98,7 @@ export const PluginManifestSchema = z.object({
     license: z.string().optional(),
     main: z.string().min(1),
     capabilities: z.array(z.enum([
-        'commands', 'events', 'cli', 'rpc', 'database', 'queue', 
+        'commands', 'events', 'cli', 'rpc', 'database', 'queue',
         'schedule', 'interlink', 'web', 'voice'
     ])),
     dependencies: z.record(z.string()).optional(),
@@ -110,12 +110,12 @@ const DISCORD_EVENTS = [
     'ready',
     'channelCreate', 'channelDelete', 'channelUpdate', 'channelPinsUpdate',
     'threadCreate', 'threadDelete', 'threadUpdate', 'threadListSync', 'threadMemberUpdate', 'threadMembersUpdate',
-    'guildCreate', 'guildDelete', 'guildUpdate', 'guildUnavailable', 'guildMemberAdd', 'guildMemberRemove', 
-    'guildMemberUpdate', 'guildMemberAvailable', 'guildMembersChunk', 'guildRoleCreate', 'guildRoleDelete', 
-    'guildRoleUpdate', 'guildEmojiCreate', 'guildEmojiDelete', 'guildEmojiUpdate', 'guildStickerCreate', 
-    'guildStickerDelete', 'guildStickerUpdate', 'guildScheduledEventCreate', 'guildScheduledEventDelete', 
+    'guildCreate', 'guildDelete', 'guildUpdate', 'guildUnavailable', 'guildMemberAdd', 'guildMemberRemove',
+    'guildMemberUpdate', 'guildMemberAvailable', 'guildMembersChunk', 'guildRoleCreate', 'guildRoleDelete',
+    'guildRoleUpdate', 'guildEmojiCreate', 'guildEmojiDelete', 'guildEmojiUpdate', 'guildStickerCreate',
+    'guildStickerDelete', 'guildStickerUpdate', 'guildScheduledEventCreate', 'guildScheduledEventDelete',
     'guildScheduledEventUpdate', 'guildScheduledEventUserAdd', 'guildScheduledEventUserRemove',
-    'messageCreate', 'messageDelete', 'messageUpdate', 'messageDeleteBulk', 'messageReactionAdd', 
+    'messageCreate', 'messageDelete', 'messageUpdate', 'messageDeleteBulk', 'messageReactionAdd',
     'messageReactionRemove', 'messageReactionRemoveAll', 'messageReactionRemoveEmoji',
     'interactionCreate', 'interactionDelete',
     'voiceStateUpdate', 'voiceServerUpdate',

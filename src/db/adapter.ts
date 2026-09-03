@@ -27,7 +27,7 @@ export async function getGuildData(store: string, guildId: string): Promise<Reco
         .where({ store, guild_id: guildId })
         .first();
     if (!row) { return {}; }
-    
+
     const data = deserialize(row.data);
     // Decrypt sensitive fields
     return await decryptFields(data as Record<string, unknown>, SENSITIVE_GUILD_FIELDS);
@@ -49,14 +49,14 @@ export async function updateGuildData(store: string, guildId: string, updater: (
     return next;
 }
 
-export async function getAllGuildData(store: string): Promise<Array<{ guildId: string; data: Record<string, unknown> }>> {
+export async function getAllGuildData(store: string): Promise<{ guildId: string; data: Record<string, unknown> }[]> {
     const rows = await _db('guild_store')
         .select('guild_id', 'data')
         .where({ store })
         .whereNot({ guild_id: '__global__' });
-    return Promise.all(rows.map(async (r: { guild_id: string; data: string }) => ({ 
-        guildId: r.guild_id, 
-        data: await decryptFields(deserialize(r.data) as Record<string, unknown>, SENSITIVE_GUILD_FIELDS) 
+    return Promise.all(rows.map(async (r: { guild_id: string; data: string }) => ({
+        guildId: r.guild_id,
+        data: await decryptFields(deserialize(r.data) as Record<string, unknown>, SENSITIVE_GUILD_FIELDS)
     })));
 }
 
@@ -66,7 +66,7 @@ export async function getUserData(store: string, guildId: string, userId: string
         .where({ store, guild_id: guildId, user_id: userId })
         .first();
     if (!row) { return undefined; }
-    
+
     const data = deserialize(row.data);
     // Decrypt sensitive fields
     return await decryptFields(data as Record<string, unknown>, SENSITIVE_USER_FIELDS);
@@ -81,13 +81,13 @@ export async function setUserData(store: string, guildId: string, userId: string
         .merge();
 }
 
-export async function getAllUserData(store: string, guildId: string): Promise<Array<{ userId: string; data: Record<string, unknown> }>> {
+export async function getAllUserData(store: string, guildId: string): Promise<{ userId: string; data: Record<string, unknown> }[]> {
     const rows = await _db('guild_user_store')
         .select('user_id', 'data')
         .where({ store, guild_id: guildId });
-    return Promise.all(rows.map(async (r: { user_id: string; data: string }) => ({ 
-        userId: r.user_id, 
-        data: await decryptFields(deserialize(r.data) as Record<string, unknown>, SENSITIVE_USER_FIELDS) 
+    return Promise.all(rows.map(async (r: { user_id: string; data: string }) => ({
+        userId: r.user_id,
+        data: await decryptFields(deserialize(r.data) as Record<string, unknown>, SENSITIVE_USER_FIELDS)
     })));
 }
 

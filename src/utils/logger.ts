@@ -16,17 +16,17 @@ const NEVER_SAMPLE_LEVELS = new Set(['fatal', 'error']);
  * @param sampleRate - Sample rate (0.0 to 1.0)
  * @returns Sampling function
  */
-function createSampler(sampleRate: number): (level: string) => boolean {
+function createSampler(sampleRate: number): (_level: string) => boolean {
     if (sampleRate >= 1.0) {
         return () => true; // No sampling
     }
     if (sampleRate <= 0) {
-        return (level: string) => NEVER_SAMPLE_LEVELS.has(level); // Only log never-sample levels
+        return (_level: string) => NEVER_SAMPLE_LEVELS.has(_level); // Only log never-sample levels
     }
-    return (level: string) => NEVER_SAMPLE_LEVELS.has(level) || Math.random() < sampleRate;
+    return (_level: string) => NEVER_SAMPLE_LEVELS.has(_level) || Math.random() < sampleRate;
 }
 
-const shouldSample = createSampler(LOG_SAMPLE_RATE);
+createSampler(LOG_SAMPLE_RATE); // Initialize sampler (logger uses internal sampling)
 
 // Create a logger instance for this module
 const logger = pino({

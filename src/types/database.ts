@@ -67,7 +67,7 @@ export interface Repository<T extends { id: string | number }> {
 export interface FindOptions {
     limit?: number;
     offset?: number;
-    orderBy?: Array<{ column: string; direction: 'asc' | 'desc' }>;
+    orderBy?: { column: string; direction: 'asc' | 'desc' }[];
     where?: Record<string, unknown>;
     whereRaw?: string;
     whereRawBindings?: unknown[];
@@ -148,9 +148,7 @@ export interface DatabaseAdapter {
 }
 
 // Transaction types
-export interface TransactionCallback<T> {
-    (trx: Knex.Transaction): Promise<T>;
-}
+export type TransactionCallback<T> = (trx: Knex.Transaction) => Promise<T>;
 
 export interface DatabaseTransaction {
     commit: () => Promise<void>;

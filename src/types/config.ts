@@ -140,10 +140,10 @@ export interface LevelsConfig {
     xpPerMessage: number;
     xpCooldownMs: number;
     xpPerMinuteVoice: number;
-    roles: Array<{
+    roles: {
         level: number;
         roleId: string;
-    }>;
+    }[];
     ignoredChannels: string[];
     ignoredRoles: string[];
     announceChannelId: string | undefined;
@@ -237,7 +237,7 @@ export interface ApolloConfig {
 
 // Type guard for config validation
 export function isApolloConfig(obj: unknown): obj is ApolloConfig {
-    if (!obj || typeof obj !== 'object') return false;
+    if (!obj || typeof obj !== 'object') {return false;}
     const config = obj as Record<string, unknown>;
     return (
         typeof config['discord'] === 'object' &&
