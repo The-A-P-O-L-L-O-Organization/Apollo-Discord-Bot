@@ -1,7 +1,7 @@
 // Queue system types (BullMQ integration)
 
-import type { Job, Queue, QueueEvents, Worker, JobsOptions } from 'bullmq';
-import type { SerializedInteraction, SerializedUser, SerializedMember, SerializedCommandData, SerializedCommandOption } from './shared.js';
+import type { Job, Queue, JobsOptions } from 'bullmq';
+import type { SerializedInteraction } from './shared.js';
 
 export type JobName =
     | 'process-command'
@@ -153,8 +153,8 @@ export interface RemoveOptions {
 }
 
 export interface JobSerializer {
-    serialize: (data: unknown) => Buffer | string;
-    deserialize: (data: Buffer | string) => unknown;
+    serialize: (_data: unknown) => Buffer | string;
+    deserialize: (_data: Buffer | string) => unknown;
 }
 
 export interface QueueMetrics {
@@ -177,7 +177,7 @@ export interface QueueHealthCheck {
 }
 
 export type WorkerProcessor<T extends JobName = JobName> = (
-    job: Job<QueueJobDataMap[T]>
+    _job: Job<QueueJobDataMap[T]>
 ) => Promise<WorkerResult>;
 
 export interface WorkerResult {
@@ -211,13 +211,13 @@ export interface QueueManager {
     pauseQueue: (name: string) => Promise<void>;
     resumeQueue: (name: string) => Promise<void>;
     addJob: <T extends JobName>(
-        queueName: T,
+        _queueName: T,
         jobName: T,
         data: QueueJobDataMap[T],
         options?: JobsOptions
     ) => Promise<Job<QueueJobDataMap[T]>>;
-    getJob: <T extends JobName>(queueName: T, jobId: string) => Promise<Job<QueueJobDataMap[T]> | undefined>;
-    removeJob: (queueName: string, jobId: string) => Promise<void>;
-    retryJob: (queueName: string, jobId: string) => Promise<void>;
-    promoteJob: (queueName: string, jobId: string) => Promise<void>;
+    getJob: <T extends JobName>(_queueName: T, jobId: string) => Promise<Job<QueueJobDataMap[T]> | undefined>;
+    removeJob: (_queueName: string, jobId: string) => Promise<void>;
+    retryJob: (_queueName: string, jobId: string) => Promise<void>;
+    promoteJob: (_queueName: string, jobId: string) => Promise<void>;
 }

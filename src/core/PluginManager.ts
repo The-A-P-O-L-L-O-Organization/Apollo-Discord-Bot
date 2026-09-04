@@ -8,7 +8,7 @@ import { verifyPluginManifest, verifyPluginFile } from '../utils/manifest.js';
 import { WorkerHost } from './worker/workerHost.js';
 // @ts-expect-error - JS files not yet migrated
 import { parsePluginManifest } from './worker/pluginManifest.js';
-// @ts-expect-error - JS files not yet migrated
+// @ts-expect-error - dynamic import for commandModuleCache
 import { commandModuleCache } from '../queue/jobs/processCommand.js';
 import type { Client, REST } from 'discord.js';
 import type { EventBusImpl } from '../core/EventBus.js';

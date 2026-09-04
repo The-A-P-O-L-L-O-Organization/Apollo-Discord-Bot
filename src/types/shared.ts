@@ -25,6 +25,7 @@ export interface SerializedUser {
     discriminator: string;
     avatar: string | null;
     bot: boolean;
+    system: boolean;
 }
 
 export interface SerializedMember {

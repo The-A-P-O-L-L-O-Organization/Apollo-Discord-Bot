@@ -1,39 +1,43 @@
+// Process Command Job - TypeScript migration
+// Handles command processing in worker mode with HMAC verification
+
 import { REST } from '@discordjs/rest';
 import { Collection } from 'discord.js';
 import { existsSync } from 'fs';
 import path from 'path';
 import { pathToFileURL } from 'url';
-import { createHash, randomBytes, createHmac, timingSafeEqual } from 'node:crypto';
+import { randomBytes, createHmac, timingSafeEqual } from 'node:crypto';
 import { config } from '../../config/config.js';
 import RemoteInteraction from '../remoteInteraction.js';
-import { serializeInteraction, serializeForQueue } from '../serializeInteraction.js';
+import { serializeInteraction } from '../serializeInteraction.js';
 import { registerHandler } from '../jobHandler.js';
 import { createQueue } from '../queue.js';
 import { recordCommand, recordCommandDuration, recordError } from '../../utils/metrics.js';
 import { logger } from '../../utils/logger.js';
-import { encode, decode } from 'msgpackr';
+import { encode } from 'msgpackr';
+import type { Job } from 'bullmq';
 
 export const JobNames = {
     PROCESS_COMMAND: 'process-command'
-};
+} as const;
 
-let rest = null;
+let rest: REST | null = null;
 
 // Command module cache to avoid re-importing on every job
-export const commandModuleCache = new Map();
+export const commandModuleCache = new Map<string, { execute: (_interaction: unknown) => Promise<unknown> }>();
 
 // Nonce store for HMAC replay protection (Redis-backed in production)
-const nonceStore = new Map(); // In-memory fallback for dev; replace with Redis SET in production
+const nonceStore = new Map<string, number>(); // In-memory fallback for dev; replace with Redis SET in production
 
-function getRest() {
+function getRest(): REST {
     if (!rest) {
-        rest = new REST({ version: '10' }).setToken(config.DISCORD_TOKEN);
+        rest = new REST({ version: '10' }).setToken(config.discord.token);
     }
     return rest;
 }
 
-function signJobData(payload) {
-    const secret = config.queue.hmacSecret;
+function signJobData(payload: Record<string, unknown>): Record<string, unknown> {
+    const secret = (config.queue as Record<string, unknown>)['hmacSecret'] as string | undefined;
     if (!secret) {
         return { ...payload, _hmacUnsigned: true };
     }
@@ -44,11 +48,11 @@ function signJobData(payload) {
     return { ...payload, timestamp, nonce, hmac };
 }
 
-function verifyJobData(payload) {
-    const secret = config.queue.hmacSecret;
+function verifyJobData(payload: Record<string, unknown>): boolean {
+    const secret = (config.queue as Record<string, unknown>)['hmacSecret'] as string | undefined;
     if (!secret) {
         // Backward compat: accept unsigned jobs in dev, warn
-        if (process.env.NODE_ENV !== 'production') {
+        if (process.env['NODE_ENV'] !== 'production') {
             logger.warn('[HMAC] QUEUE_HMAC_SECRET not set — accepting unsigned job (dev mode)');
         }
         return true;
@@ -62,7 +66,7 @@ function verifyJobData(payload) {
 
     // Check timestamp window (5 minutes)
     const now = Date.now();
-    if (now - timestamp > 5 * 60 * 1000) {
+    if (now - Number(timestamp) > 5 * 60 * 1000) {
         logger.warn('[HMAC] Job timestamp expired — rejecting job');
         return false;
     }
@@ -70,7 +74,7 @@ function verifyJobData(payload) {
     // Verify HMAC
     const signable = encode({ ...rest, timestamp, nonce });
     const expectedHmac = createHmac('sha256', secret).update(signable).digest('hex');
-    const payloadHmacBuffer = Buffer.from(hmac, 'hex');
+    const payloadHmacBuffer = Buffer.from(hmac as string, 'hex');
     const expectedHmacBuffer = Buffer.from(expectedHmac, 'hex');
     if (payloadHmacBuffer.length !== expectedHmacBuffer.length || !timingSafeEqual(payloadHmacBuffer, expectedHmacBuffer)) {
         logger.warn('[HMAC] HMAC mismatch — rejecting job');
@@ -78,7 +82,7 @@ function verifyJobData(payload) {
     }
 
     // Nonce deduplication (in-memory; for production use Redis SET with TTL)
-    const nonceKey = `${nonce}:${timestamp}`;
+    const nonceKey = `${String(nonce)}:${String(timestamp)}`;
     if (nonceStore.has(nonceKey)) {
         logger.warn('[HMAC] Duplicate nonce — rejecting job');
         return false;
@@ -94,36 +98,50 @@ function verifyJobData(payload) {
     return true;
 }
 
-export async function enqueueCommand(interaction) {
-    const command = interaction.client.commands.get(interaction.commandName);
-    if (!command) {return null;}
+export async function enqueueCommand(_interaction: {
+    client: { commands: Map<string, { pluginId?: string; execute: (_interaction: unknown) => Promise<unknown> }> };
+    commandName: string;
+    id: string;
+    token: string;
+    commandId: string;
+    createdTimestamp: number;
+    guildId: string | null;
+    channelId: string;
+    user: { id: string };
+    member?: { permissions?: { toArray?: () => string[] }; roles?: { cache?: Map<string, { id: string }> } };
+    options: { data?: { name: string; type: number; value: unknown; focused?: boolean; options?: unknown[] }[] };
+}): Promise<{ id: string; name: string; data: unknown } | null> {
+    const command = _interaction.client.commands.get(_interaction.commandName);
+    if (!command) { return null; }
 
-    const data = serializeInteraction(interaction);
-    data.pluginId = command.pluginId || null;
+    const data = serializeInteraction(_interaction);
+    // @ts-expect-error pluginId added to serialized interaction
+    data.pluginId = command.pluginId ?? null;
 
     // Sign job data with HMAC
-    const signedData = signJobData(data);
+    const signedData = signJobData(data as unknown as Record<string, unknown>);
 
     const queue = await createQueue(config.queue.prefix);
     const job = await queue.add(JobNames.PROCESS_COMMAND, signedData, {
-        jobId: interaction.id,
-        deduplication: { id: interaction.id, ttl: 300000 }
+        jobId: _interaction.id,
+        deduplication: { id: _interaction.id, ttl: 300000 }
     });
 
-    return job;
+    return { id: job.id!, name: job.name, data: job.data };
 }
 
-export default function register() {
-    registerHandler(JobNames.PROCESS_COMMAND, async(job) => {
+export default function register(): void {
+    // @ts-expect-error handler type mismatch due to transitional types
+    registerHandler(JobNames.PROCESS_COMMAND, async (job: Job<Record<string, unknown>>) => {
         const data = job.data;
-        
+
         // Verify HMAC signature
         if (!verifyJobData(data)) {
             logger.warn('[Worker] Job HMAC verification failed — rejecting');
             return { status: 'error', reason: 'hmac_verification_failed' };
         }
 
-        logger.info(`[Worker] Processing /${data.commandName} in guild ${data.guildId}`);
+        logger.info(`[Worker] Processing /${String(data['commandName'])} in guild ${String(data['guildId'])}`);
 
         const r = getRest();
 
@@ -131,22 +149,22 @@ export default function register() {
             commands: new Collection(),
             config: {
                 ...config,
-                CLIENT_ID: config.CLIENT_ID
+                CLIENT_ID: config.discord.clientId
             }
         });
 
         const startTime = Date.now();
         try {
-            const commandModule = await importCommandModule(data.commandName, data.pluginId);
+            const commandModule = await importCommandModule(data['commandName'] as string, data['pluginId'] as string | null);
             if (!commandModule) {
                 await interaction.editReply({
                     embeds: [{
                         color: 0xFF0000,
                         title: 'Error',
-                        description: `Command \`/${data.commandName}\` not found on worker.`
+                        description: `\`/${String(data['commandName'])}\` not found on worker.`
                     }]
                 });
-                recordCommand(data.commandName, data.guildId, 'not_found');
+                recordCommand(String(data['commandName']), String(data['guildId']), 'not_found');
                 return { status: 'error', reason: 'command_not_found' };
             }
 
@@ -155,53 +173,53 @@ export default function register() {
                     embeds: [{
                         color: 0xFF0000,
                         title: 'Error',
-                        description: `Command \`/${data.commandName}\` has invalid execute method.`
+                        description: `\`/${String(data['commandName'])}\` has invalid execute method.`
                     }]
                 });
-                recordCommand(data.commandName, data.guildId, 'invalid');
+                recordCommand(String(data['commandName']), String(data['guildId']), 'invalid');
                 return { status: 'error', reason: 'invalid_command' };
             }
 
             await commandModule.execute(interaction);
 
-            logger.info(`[Worker] /${data.commandName} completed`);
-            recordCommand(data.commandName, data.guildId, 'success');
-            recordCommandDuration(data.commandName, Date.now() - startTime);
-            return { status: 'completed', commandName: data.commandName };
+            logger.info({ msg: `[Worker] /${String(data['commandName'])} completed` });
+            recordCommand(String(data['commandName']), String(data['guildId'] ?? 'unknown'), 'success');
+            recordCommandDuration(String(data['commandName']), Date.now() - startTime);
+            return { status: 'completed', commandName: data['commandName'] };
         } catch (error) {
-            logger.error(`[Worker] Error executing /${data.commandName}:`, error.message);
+            logger.error({ err: error as Error, msg: `[Worker] Error executing /${String(data['commandName'])}` });
 
             const errorEmbed = {
                 color: 0xFF0000,
                 title: 'Error',
                 description: 'An error occurred while executing this command.',
-                fields: [{ name: 'Error', value: error.message || 'Unknown error' }],
+                fields: [{ name: 'Error', value: (error as Error).message ?? 'Unknown error' }],
                 timestamp: new Date().toISOString()
             };
 
             try {
                 await interaction.editReply({ embeds: [errorEmbed] });
             } catch (e) {
-                logger.error('[Worker] Failed to send error response:', e.message);
+                logger.error({ err: e as Error, msg: '[Worker] Failed to send error response' });
             }
 
-            recordCommand(data.commandName, data.guildId, 'error');
-            recordError('command_execution', data.commandName);
-            return { status: 'error', error: error.message };
+            recordCommand(String(data['commandName']), String(data['guildId'] ?? 'unknown'), 'error');
+            recordError('command_execution', String(data['commandName']));
+            return { status: 'error', error: (error as Error).message };
         }
     });
 }
 
-async function importCommandModule(commandName, pluginId) {
-    const cacheKey = `${pluginId || 'global'}:${commandName}`;
+async function importCommandModule(commandName: string, pluginId: string | null): Promise<{ execute: (_interaction: unknown) => Promise<unknown> } | null> {
+    const cacheKey = `${pluginId ?? 'global'}:${commandName}`;
     if (commandModuleCache.has(cacheKey)) {
-        return commandModuleCache.get(cacheKey);
+        return commandModuleCache.get(cacheKey) ?? null;
     }
 
     const cwd = process.cwd();
     const baseDirs = [
-        pluginId ? path.join(cwd, 'src/plugins', pluginId) : null,
-        pluginId ? path.join(cwd, 'data/plugins', pluginId) : null
+        pluginId ? path.join(cwd, 'src/plugins', pluginId) : '',
+        pluginId ? path.join(cwd, 'data/plugins', pluginId) : ''
     ].filter(Boolean);
 
     for (const baseDir of baseDirs) {
@@ -210,7 +228,7 @@ async function importCommandModule(commandName, pluginId) {
             try {
                 const url = pathToFileURL(cmdPath);
                 // Remove cache-busting in production
-                if (process.env.NODE_ENV === 'development') {
+                if (process.env['NODE_ENV'] === 'development') {
                     url.searchParams.set('t', Date.now().toString());
                 }
                 const mod = await import(url.href);
@@ -219,7 +237,7 @@ async function importCommandModule(commandName, pluginId) {
                     return mod.default;
                 }
             } catch (err) {
-                logger.error(`[Worker] Failed to import ${cmdPath}:`, err.message);
+                logger.error({ err: err as Error, msg: `[Worker] Failed to import ${cmdPath}` });
             }
         }
     }
@@ -233,7 +251,7 @@ async function importCommandModule(commandName, pluginId) {
             if (existsSync(cmdPath)) {
                 try {
                     const url = pathToFileURL(cmdPath);
-                    if (process.env.NODE_ENV === 'development') {
+                    if (process.env['NODE_ENV'] === 'development') {
                         url.searchParams.set('t', Date.now().toString());
                     }
                     const mod = await import(url.href);
