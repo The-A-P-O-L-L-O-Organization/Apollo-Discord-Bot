@@ -10,6 +10,6 @@ describe('Gateway router', () => {
     const result = await queueOrRun('test-job', { msg: 'hello' }, async (data) => {
       return { processed: data.msg };
     });
-    expect(result).toEqual({ processed: 'hello' });
+    expect(result).toEqual({ queued: false, result: { processed: 'hello' } });
   });
 });

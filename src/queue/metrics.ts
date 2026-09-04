@@ -1,12 +1,21 @@
+// Queue Metrics - TypeScript migration
+
 import { logger } from '../utils/logger.js';
- 
+import type { ApolloConfig } from '../types/config.js';
+
 export const MetricsNames = {
     QUEUE_WAITING: 'apollo_queue_waiting',
     QUEUE_ACTIVE: 'apollo_queue_active',
     QUEUE_FAILED: 'apollo_queue_failed'
-};
+} as const;
 
-export async function getQueueMetrics(queueConfig) {
+export interface QueueMetricsResult {
+    waiting: number;
+    active: number;
+    failed: number;
+}
+
+export async function getQueueMetrics(queueConfig: ApolloConfig['queue']): Promise<QueueMetricsResult> {
     if (!queueConfig.enabled) {
         return { waiting: 0, active: 0, failed: 0 };
     }
@@ -18,7 +27,7 @@ export async function getQueueMetrics(queueConfig) {
         const connection = new Redis({
             host: queueConfig.redis.host,
             port: queueConfig.redis.port,
-            password: queueConfig.redis.password || undefined,
+            password: queueConfig.redis.password ?? undefined,
             maxRetriesPerRequest: null
         });
 
@@ -34,7 +43,7 @@ export async function getQueueMetrics(queueConfig) {
 
         return { waiting, active, failed };
     } catch (err) {
-        logger.error('[Metrics] Failed to get queue metrics:', err.message);
+        logger.error({ err: err as Error, msg: '[Metrics] Failed to get queue metrics' });
         return { waiting: -1, active: -1, failed: -1 };
     }
 }
