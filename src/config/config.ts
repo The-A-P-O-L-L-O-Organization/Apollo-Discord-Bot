@@ -118,15 +118,6 @@ const config = {
         pretty: true,
         destination: 'stdout'
     },
-
-    // Reminder Settings
-    reminders: {
-        enabled: true,
-        maxRemindersPerUser: 50,
-        defaultTimezone: 'UTC'
-    },
-
-    // Poll Settings
     polls: {
         enabled: true,
         maxOptions: 10,
@@ -236,6 +227,14 @@ const config = {
         shard: {
             queuePrefixBase: 'apollo'
         }
+    },
+
+    // Reminders Configuration
+    reminders: {
+        enabled: parseBoolSafe(getEnv('REMINDERS_ENABLED')),
+        maxRemindersPerUser: parseIntSafe(getEnv('MAX_REMINDERS_PER_USER'), 10),
+        defaultTimezone: getEnv('DEFAULT_TIMEZONE') ?? 'UTC',
+        maxDuration: parseIntSafe(getEnv('MAX_REMINDER_DURATION'), 7 * 24 * 60 * 60 * 1000) // 7 days in ms
     },
 
     // Operator Agreement (required to start the bot)
