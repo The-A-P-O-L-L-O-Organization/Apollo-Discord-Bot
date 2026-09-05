@@ -1,5 +1,5 @@
-// Apollo Organization Command
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+// @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
@@ -17,9 +17,9 @@ export default {
                 .setName('docs')
                 .setDescription('Get the link to Apollo Organization documentation')
         ),
-    category: 'utility',
+    category: 'Utility',
 
-    async execute(interaction) {
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
             const subcommand = interaction.options.getSubcommand();
 
@@ -39,7 +39,7 @@ export default {
     }
 };
 
-async function handleInfo(interaction) {
+async function handleInfo(interaction: ChatInputCommandInteraction): Promise<void> {
     const infoEmbed = new EmbedBuilder()
         .setColor('#5865F2')
         .setTitle('The A.P.O.L.L.O Organization')
@@ -59,13 +59,13 @@ async function handleInfo(interaction) {
         .setTimestamp()
         .setFooter({
             text: `Requested by ${interaction.user.tag}`,
-            iconURL: interaction.user.displayAvatarURL()
+            iconURL: interaction.user.displayAvatarURL({ extension: 'png', size: 256 })
         });
 
-    return interaction.reply({ embeds: [infoEmbed] });
+    await interaction.reply({ embeds: [infoEmbed] });
 }
 
-async function handleDocs(interaction) {
+async function handleDocs(interaction: ChatInputCommandInteraction): Promise<void> {
     const docsEmbed = new EmbedBuilder()
         .setColor('#5865F2')
         .setTitle('Apollo Organization Documentation')
@@ -73,8 +73,8 @@ async function handleDocs(interaction) {
         .setTimestamp()
         .setFooter({
             text: `Requested by ${interaction.user.tag}`,
-            iconURL: interaction.user.displayAvatarURL()
+            iconURL: interaction.user.displayAvatarURL({ extension: 'png', size: 256 })
         });
 
-    return interaction.reply({ embeds: [docsEmbed] });
+    await interaction.reply({ embeds: [docsEmbed] });
 }

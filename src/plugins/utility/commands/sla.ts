@@ -1,8 +1,30 @@
-// SLA Command
-import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { calculateSLAMetrics, formatTime, DEFAULT_SLA_THRESHOLDS } from '../../../utils/slaTracker.js';
 import { getGuildData } from '../../../utils/db.js';
+// @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+
+interface SLAMetrics {
+    totalTickets: number;
+    avgResponseTime: number;
+    avgResolutionTime: number;
+    slaMet: number;
+    slaBreached: number;
+    openTicketsBreached: number;
+    byPriority: Record<string, { count: number; avgResponseTime: number }>;
+    byCategory: Record<string, { count: number; avgResponseTime: number }>;
+}
+
+interface SLAThresholds {
+    urgent: number;
+    high: number;
+    medium: number;
+    low: number;
+}
+
+interface TicketConfig {
+    slaThresholds?: SLAThresholds;
+}
 
 export default {
     data: new SlashCommandBuilder()
@@ -11,16 +33,16 @@ export default {
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
         .setDMPermission(false),
     name: 'sla',
-    category: 'utility',
+    category: 'Utility',
 
-    async execute(interaction) {
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
             await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-            const guildId = interaction.guild.id;
-            const metrics = await calculateSLAMetrics(guildId);
-            const ticketConfig = await getGuildData('tickets', guildId);
-            const slaThresholds = ticketConfig.slaThresholds || DEFAULT_SLA_THRESHOLDS;
+            const guildId = interaction.guild!.id;
+            const metrics = await calculateSLAMetrics(guildId) as SLAMetrics;
+            const ticketConfig = await getGuildData('tickets', guildId) as TicketConfig | null;
+            const slaThresholds = ticketConfig?.slaThresholds ?? DEFAULT_SLA_THRESHOLDS;
 
             const embed = new EmbedBuilder()
                 .setColor('#3498DB')
@@ -28,7 +50,7 @@ export default {
                 .setDescription('Service Level Agreement statistics for ticket support')
                 .setTimestamp();
 
-            const slaComplianceRate = metrics.totalTickets > 0 
+            const slaComplianceRate = metrics.totalTickets > 0
                 ? ((metrics.slaMet / metrics.totalTickets) * 100).toFixed(1)
                 : 'N/A';
 
@@ -102,7 +124,7 @@ export default {
                 });
             }
 
-            return interaction.editReply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
         } catch (error) {
             const errorMessage = handleDiscordError(error);
             if (interaction.replied || interaction.deferred) {

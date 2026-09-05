@@ -1,37 +1,54 @@
+import { ChatInputCommandInteraction, PermissionsBitField, EmbedBuilder, MessageFlags, Message } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
-import { PermissionsBitField, EmbedBuilder, MessageFlags } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
+// @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
+interface GiveawayData {
+    messageId: string;
+    channelId: string;
+    guildId: string;
+    prize: string;
+    hostId: string;
+    hostTag: string;
+    winners: number;
+    endTime: number;
+    participants: string[];
+    createdAt: number;
+}
+
+interface GiveawayStore {
+    active?: GiveawayData[];
+}
+
 export default {
-    // Create and manage giveaways
     name: 'giveaway',
     description: 'Create and manage giveaways',
-    category: 'Fun',
+    category: 'Utility',
     defaultMemberPermissions: PermissionsBitField.Flags.ManageMessages,
     dmPermission: false,
     options: [
         {
             name: 'create',
             description: 'Create a new giveaway',
-            type: 1, // SUB_COMMAND
+            type: 1,
             options: [
                 {
                     name: 'prize',
                     description: 'What is being given away',
-                    type: 3, // STRING
+                    type: 3,
                     required: true
                 },
                 {
                     name: 'duration',
                     description: 'Duration (e.g., 1h, 30m, 1d)',
-                    type: 3, // STRING
+                    type: 3,
                     required: true
                 },
                 {
                     name: 'winners',
                     description: 'Number of winners',
-                    type: 4, // INTEGER
+                    type: 4,
                     required: false
                 }
             ]
@@ -39,12 +56,12 @@ export default {
         {
             name: 'end',
             description: 'End a giveaway early',
-            type: 1, // SUB_COMMAND
+            type: 1,
             options: [
                 {
                     name: 'message_id',
                     description: 'Giveaway message ID',
-                    type: 3, // STRING
+                    type: 3,
                     required: true
                 }
             ]
@@ -52,19 +69,19 @@ export default {
         {
             name: 'reroll',
             description: 'Reroll a giveaway winner',
-            type: 1, // SUB_COMMAND
+            type: 1,
             options: [
                 {
                     name: 'message_id',
                     description: 'Giveaway message ID',
-                    type: 3, // STRING
+                    type: 3,
                     required: true
                 }
             ]
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
             const subcommand = interaction.options.getSubcommand();
             
@@ -86,15 +103,15 @@ export default {
     }
 };
 
-async function handleCreate(interaction) {
-    const prize = interaction.options.getString('prize');
-    const durationStr = interaction.options.getString('duration');
-    const winners = interaction.options.getInteger('winners') || 1;
+async function handleCreate(interaction: ChatInputCommandInteraction): Promise<void> {
+    const prize = interaction.options.getString('prize', true);
+    const durationStr = interaction.options.getString('duration', true);
+    const winners = interaction.options.getInteger('winners') ?? 1;
     
     // Parse duration
     const durationMs = parseDuration(durationStr);
     if (!durationMs) {
-        return interaction.reply({
+        await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
                 title: '[ERROR] Invalid Duration',
@@ -103,6 +120,7 @@ async function handleCreate(interaction) {
             }],
             flags: MessageFlags.Ephemeral
         });
+        return;
     }
     
     const endTime = Date.now() + durationMs;
@@ -123,16 +141,16 @@ async function handleCreate(interaction) {
     const message = await interaction.reply({
         embeds: [giveawayEmbed],
         fetchReply: true
-    });
+    }) as Message;
     
     // Add reaction
     await message.react('[SUCCESS]');
     
     // Store giveaway data
-    const giveawayData = {
+    const giveawayData: GiveawayData = {
         messageId: message.id,
-        channelId: interaction.channel.id,
-        guildId: interaction.guild.id,
+        channelId: interaction.channel!.id,
+        guildId: interaction.guild!.id,
         prize: prize,
         hostId: interaction.user.id,
         hostTag: interaction.user.tag,
@@ -142,9 +160,9 @@ async function handleCreate(interaction) {
         createdAt: Date.now()
     };
     
-    await updateGuildData('giveaways', interaction.guild.id, data => {
-        if (!data.active) {data.active = [];}
-        data.active.push(giveawayData);
+    await updateGuildData('giveaways', interaction.guild!.id, (data: Record<string, unknown>) => {
+        if (!data['active']) { data['active'] = []; }
+        (data['active'] as GiveawayData[]).push(giveawayData);
         return data;
     });
     
@@ -170,14 +188,14 @@ async function handleCreate(interaction) {
     await interaction.followUp({ embeds: [successEmbed], flags: MessageFlags.Ephemeral });
 }
 
-async function handleEnd(interaction) {
-    const messageId = interaction.options.getString('message_id');
+async function handleEnd(interaction: ChatInputCommandInteraction): Promise<void> {
+    const messageId = interaction.options.getString('message_id', true);
     
-    const giveawayData = await getGuildData('giveaways', interaction.guild.id);
-    const giveaway = giveawayData?.active?.find(g => g.messageId === messageId);
+    const giveawayData = await getGuildData('giveaways', interaction.guild!.id) as GiveawayStore | undefined;
+    const giveaway = giveawayData?.active?.find((g: GiveawayData) => g.messageId === messageId);
     
     if (!giveaway) {
-        return interaction.reply({
+        await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
                 title: '[ERROR] Giveaway Not Found',
@@ -186,6 +204,7 @@ async function handleEnd(interaction) {
             }],
             flags: MessageFlags.Ephemeral
         });
+        return;
     }
     
     // End the giveaway (simplified - would need full implementation)
@@ -199,8 +218,8 @@ async function handleEnd(interaction) {
     await interaction.reply({ embeds: [successEmbed], flags: MessageFlags.Ephemeral });
 }
 
-async function handleReroll(interaction) {
-    const messageId = interaction.options.getString('message_id');
+async function handleReroll(interaction: ChatInputCommandInteraction): Promise<void> {
+    const messageId = interaction.options.getString('message_id', true);
     
     const successEmbed = {
         color: 0x00FF00,
@@ -212,18 +231,18 @@ async function handleReroll(interaction) {
     await interaction.reply({ embeds: [successEmbed], flags: MessageFlags.Ephemeral });
 }
 
-function parseDuration(str) {
+function parseDuration(str: string): number | null {
     const match = str.match(/^(\d+)([mhd])$/i);
-    if (!match) {return null;}
+    if (!match) { return null; }
     
-    const value = parseInt(match[1]);
-    const unit = match[2].toLowerCase();
+    const value = parseInt(match[1]!);
+    const unit = match[2]!.toLowerCase();
     
-    const multipliers = {
+    const multipliers: Record<string, number> = {
         m: 60 * 1000,
         h: 60 * 60 * 1000,
         d: 24 * 60 * 60 * 1000
     };
     
-    return value * (multipliers[unit] || 0);
+    return value * (multipliers[unit] ?? 0);
 }

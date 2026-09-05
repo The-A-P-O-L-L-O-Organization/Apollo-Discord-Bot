@@ -1,35 +1,46 @@
-// Analytics Commands
-// Provides comprehensive analytics and statistics for server management
+import { ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits, AttachmentBuilder, MessageFlags, User, Channel } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
-
-import { 
-    SlashCommandBuilder, 
-    EmbedBuilder, 
-    PermissionFlagsBits,
-    AttachmentBuilder,
-    MessageFlags
-} from 'discord.js';
-import {
-    getCommandStats,
-    getMessageStats,
-    getViolationStats,
-    getModActionStats,
-    getMemberGrowthStats
-} from '../../../utils/analyticsCollector.js';
-import {
-    createBarChart,
-    createSparkline,
-    formatDuration,
-    formatNumber
-} from '../../../utils/charts.js';
-import {
-    exportAnalytics,
-    cleanupExport,
-    getAnalyticsSummary
-} from '../../../utils/exportAnalytics.js';
+import { getCommandStats, getMessageStats, getViolationStats, getModActionStats, getMemberGrowthStats } from '../../../utils/analyticsCollector.js';
+import { createBarChart, createSparkline, formatDuration, formatNumber } from '../../../utils/charts.js';
+import { exportAnalytics, cleanupExport, getAnalyticsSummary } from '../../../utils/exportAnalytics.js';
 import { getGuildData, getUserData } from '../../../utils/db.js';
 import { readFileSync } from 'fs';
+// @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+
+interface MemberGrowthData {
+    date: string;
+    totalMembers: number;
+    joinCount: number;
+    leaveCount: number;
+}
+
+interface CommandStats {
+    byCommand: { name: string; count: number }[];
+    byUser: { userId: string; count: number }[];
+}
+
+interface MessageStats {
+    byChannel: { channelId: string; count: number }[];
+    byUser: { userId: string; count: number }[];
+    byHour: { hour: string; count: number }[];
+}
+
+interface ModActionStats {
+    byAction: { action: string; count: number }[];
+    byModerator: { moderatorId: string; count: number }[];
+}
+
+interface ViolationStats {
+    type: string;
+    count: number;
+}
+
+interface ExportResult {
+    filepath: string;
+    filename: string;
+    size: number;
+}
 
 export default {
     data: new SlashCommandBuilder()
@@ -134,7 +145,7 @@ export default {
     name: 'analytics',
     category: 'analytics',
 
-    async execute(interaction) {
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
             const subcommand = interaction.options.getSubcommand();
 
@@ -152,7 +163,7 @@ export default {
             case 'export':
                 return handleExport(interaction);
             }
-        
+
         } catch (error) {
             const errorMessage = handleDiscordError(error);
             if (interaction.replied || interaction.deferred) {
@@ -168,23 +179,23 @@ export default {
 /**
  * Handles server-wide statistics
  */
-async function handleServerStats(interaction) {
+async function handleServerStats(interaction: ChatInputCommandInteraction): Promise<void> {
     await interaction.deferReply();
-    
-    const days = interaction.options.getInteger('days') || 7;
-    const guildId = interaction.guild.id;
-    
+
+    const days = interaction.options.getInteger('days') ?? 7;
+    const guildId = interaction.guild!.id;
+
     // Get summary data
     const summary = await getAnalyticsSummary(guildId, days);
-    const memberGrowth = await getMemberGrowthStats(guildId, days);
-    
+    const memberGrowth = await getMemberGrowthStats(guildId, days) as MemberGrowthData[];
+
     // Create sparklines for trends
-    const memberCounts = memberGrowth.map(d => d.totalMembers);
+    const memberCounts = memberGrowth.map((d: MemberGrowthData) => d.totalMembers);
 
     const embed = new EmbedBuilder()
         .setColor('#3498DB')
         .setTitle(`Statistics Server Analytics - Last ${days} Days`)
-        .setDescription(`Comprehensive statistics for **${interaction.guild.name}**`)
+        .setDescription(`Comprehensive statistics for **${interaction.guild!.name}**`)
         .addFields(
             {
                 name: 'Chart Activity Overview',
@@ -209,7 +220,7 @@ async function handleServerStats(interaction) {
         )
         .setTimestamp()
         .setFooter({ text: `Data from ${memberGrowth[0]?.date || 'N/A'} to ${memberGrowth[memberGrowth.length - 1]?.date || 'N/A'}` });
-    
+
     // Add member growth trend if we have data
     if (memberCounts.length > 0) {
         embed.addFields({
@@ -218,41 +229,41 @@ async function handleServerStats(interaction) {
             inline: false
         });
     }
-    
+
     // Add daily breakdown
     if (memberGrowth.length > 0) {
         const recentDays = memberGrowth.slice(-7);
-        const breakdown = recentDays.map(d => {
+        const breakdown = recentDays.map((d: MemberGrowthData) => {
             const net = d.joinCount - d.leaveCount;
             return `\`${d.date}\` +${d.joinCount} -${d.leaveCount} (${net >= 0 ? '+' : ''}${net})`;
         }).join('\n');
-        
+
         embed.addFields({
             name: '📅 Recent Daily Changes',
             value: breakdown || 'No data',
             inline: false
         });
     }
-    
+
     await interaction.editReply({ embeds: [embed] });
 }
 
 /**
  * Handles command usage statistics
  */
-async function handleCommandStats(interaction) {
+async function handleCommandStats(interaction: ChatInputCommandInteraction): Promise<void> {
     await interaction.deferReply();
-    
-    const days = interaction.options.getInteger('days') || 7;
-    const guildId = interaction.guild.id;
-    
-    const stats = await getCommandStats(guildId, days);
-    
+
+    const days = interaction.options.getInteger('days') ?? 7;
+    const guildId = interaction.guild!.id;
+
+    const stats = await getCommandStats(guildId, days) as CommandStats;
+
     const embed = new EmbedBuilder()
         .setColor('#9B59B6')
         .setTitle(`⚙️ Command Usage - Last ${days} Days`)
         .setDescription('Most used commands and active users');
-    
+
     // Top commands
     if (stats.byCommand.length > 0) {
         const topCommands = stats.byCommand.slice(0, 10);
@@ -260,13 +271,13 @@ async function handleCommandStats(interaction) {
             label: c.name,
             value: c.count
         }));
-        
+
         embed.addFields({
             name: '🏆 Top Commands',
             value: `\`\`\`\n${createBarChart(chartData, 15)}\n\`\`\``,
             inline: false
         });
-        
+
         // Total commands
         const totalCommands = stats.byCommand.reduce((sum, c) => sum + c.count, 0);
         embed.addFields({
@@ -285,11 +296,11 @@ async function handleCommandStats(interaction) {
             inline: false
         });
     }
-    
+
     // Top users
     if (stats.byUser.length > 0) {
         const topUsers = stats.byUser.slice(0, 10);
-        const userLines = await Promise.all(topUsers.map(async(u, i) => {
+        const userLines = await Promise.all(topUsers.map(async (u, i) => {
             try {
                 const user = await interaction.client.users.fetch(u.userId);
                 return `${i + 1}. ${user.tag} - ${u.count} commands`;
@@ -297,14 +308,14 @@ async function handleCommandStats(interaction) {
                 return `${i + 1}. Unknown User - ${u.count} commands`;
             }
         }));
-        
+
         embed.addFields({
             name: '👤 Most Active Users',
             value: userLines.join('\n'),
             inline: false
         });
     }
-    
+
     embed.setTimestamp();
     await interaction.editReply({ embeds: [embed] });
 }
@@ -312,22 +323,22 @@ async function handleCommandStats(interaction) {
 /**
  * Handles message activity statistics
  */
-async function handleActivityStats(interaction) {
+async function handleActivityStats(interaction: ChatInputCommandInteraction): Promise<void> {
     await interaction.deferReply();
-    
-    const days = interaction.options.getInteger('days') || 7;
-    const guildId = interaction.guild.id;
-    
-    const stats = await getMessageStats(guildId, days);
-    
+
+    const days = interaction.options.getInteger('days') ?? 7;
+    const guildId = interaction.guild!.id;
+
+    const stats = await getMessageStats(guildId, days) as MessageStats;
+
     const embed = new EmbedBuilder()
         .setColor('#2ECC71')
         .setTitle(`Messages Message Activity - Last ${days} Days`)
         .setDescription('Message statistics by channel and user');
-    
+
     // Total messages
     const totalMessages = stats.byChannel.reduce((sum, c) => sum + c.count, 0);
-    
+
     embed.addFields({
         name: 'Statistics Overview',
         value: [
@@ -338,27 +349,27 @@ async function handleActivityStats(interaction) {
         ].join('\n'),
         inline: false
     });
-    
+
     // Top channels
     if (stats.byChannel.length > 0) {
         const topChannels = stats.byChannel.slice(0, 10);
         const channelLines = topChannels.map((c, i) => {
-            const channel = interaction.guild.channels.cache.get(c.channelId);
+            const channel = interaction.guild!.channels.cache.get(c.channelId);
             const percentage = (c.count / totalMessages * 100).toFixed(1);
             return `${i + 1}. ${channel ? `#${channel.name}` : 'Unknown'} - ${formatNumber(c.count)} (${percentage}%)`;
         });
-        
+
         embed.addFields({
             name: 'Channel Most Active Channels',
             value: channelLines.join('\n'),
             inline: false
         });
     }
-    
+
     // Top users
     if (stats.byUser.length > 0) {
         const topUsers = stats.byUser.slice(0, 10);
-        const userLines = await Promise.all(topUsers.map(async(u, i) => {
+        const userLines = await Promise.all(topUsers.map(async (u, i) => {
             try {
                 const user = await interaction.client.users.fetch(u.userId);
                 const percentage = (u.count / totalMessages * 100).toFixed(1);
@@ -367,22 +378,22 @@ async function handleActivityStats(interaction) {
                 return `${i + 1}. Unknown - ${formatNumber(u.count)}`;
             }
         }));
-        
+
         embed.addFields({
             name: '👥 Most Active Users',
             value: userLines.join('\n'),
             inline: false
         });
     }
-    
+
     // Hourly activity pattern (last 24 hours)
     if (stats.byHour.length > 0) {
         const last24Hours = stats.byHour.slice(-24);
-        const hourlyData = last24Hours.map(h => ({
+        const hourlyData = last24Hours.map((h: { hour: string; count: number }) => ({
             label: h.hour.split(':')[1] + 'h',
             value: h.count
         }));
-        
+
         if (hourlyData.length > 0) {
             embed.addFields({
                 name: '⏰ Activity Pattern (Last 24 Hours)',
@@ -391,7 +402,7 @@ async function handleActivityStats(interaction) {
             });
         }
     }
-    
+
     embed.setTimestamp();
     await interaction.editReply({ embeds: [embed] });
 }
@@ -399,36 +410,36 @@ async function handleActivityStats(interaction) {
 /**
  * Handles moderation statistics
  */
-async function handleModerationStats(interaction) {
+async function handleModerationStats(interaction: ChatInputCommandInteraction): Promise<void> {
     await interaction.deferReply();
-    
-    const days = interaction.options.getInteger('days') || 30;
-    const guildId = interaction.guild.id;
-    
-    const modStats = await getModActionStats(guildId, days);
-    const violations = await getViolationStats(guildId, days);
+
+    const days = interaction.options.getInteger('days') ?? 30;
+    const guildId = interaction.guild!.id;
+
+    const modStats = await getModActionStats(guildId, days) as ModActionStats;
+    const violations = await getViolationStats(guildId, days) as ViolationStats[];
     const ticketData = await getGuildData('tickets', guildId);
-    
+
     const embed = new EmbedBuilder()
         .setColor('#E74C3C')
         .setTitle(`🛡️ Moderation Analytics - Last ${days} Days`)
         .setDescription('Moderation team performance and statistics');
-    
+
     // Mod action overview
     if (modStats.byAction.length > 0) {
         const totalActions = modStats.byAction.reduce((sum, a) => sum + a.count, 0);
-        
+
         const actionLines = modStats.byAction.map(a => ({
             label: a.action,
             value: a.count
         }));
-        
+
         embed.addFields({
             name: 'Statistics Actions by Type',
             value: `\`\`\`\n${createBarChart(actionLines, 15)}\n\`\`\``,
             inline: false
         });
-        
+
         embed.addFields({
             name: 'Chart Overview',
             value: [
@@ -445,11 +456,11 @@ async function handleModerationStats(interaction) {
             inline: false
         });
     }
-    
+
     // Top moderators
     if (modStats.byModerator.length > 0) {
         const topMods = modStats.byModerator.slice(0, 10);
-        const modLines = await Promise.all(topMods.map(async(m, i) => {
+        const modLines = await Promise.all(topMods.map(async (m, i) => {
             try {
                 const user = await interaction.client.users.fetch(m.moderatorId);
                 return `${i + 1}. ${user.tag} - ${m.count} actions`;
@@ -457,41 +468,41 @@ async function handleModerationStats(interaction) {
                 return `${i + 1}. Unknown - ${m.count} actions`;
             }
         }));
-        
+
         embed.addFields({
             name: '👮 Most Active Moderators',
             value: modLines.join('\n'),
             inline: false
         });
     }
-    
+
     // Automod violations
     if (violations.length > 0) {
         const violationLines = violations.slice(0, 8).map(v => ({
             label: v.type.replace('_', ' '),
             value: v.count
         }));
-        
+
         embed.addFields({
             name: '[WARNING] Automod Violations',
             value: `\`\`\`\n${createBarChart(violationLines, 12)}\n\`\`\``,
             inline: false
         });
     }
-    
+
     // Ticket statistics
     if (ticketData) {
         const closedTickets = ticketData.closedTickets || [];
-        const recentClosed = closedTickets.filter(t => {
+        const recentClosed = closedTickets.filter((t: { closedAt: number; createdAt: number }) => {
             const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000);
             return t.closedAt >= cutoff;
         });
-        
+
         if (recentClosed.length > 0) {
             // Calculate average resolution time
-            const resolutionTimes = recentClosed.map(t => t.closedAt - t.createdAt);
+            const resolutionTimes = recentClosed.map((t: { closedAt: number; createdAt: number }) => t.closedAt - t.createdAt);
             const avgResolution = resolutionTimes.reduce((a, b) => a + b, 0) / resolutionTimes.length;
-            
+
             embed.addFields({
                 name: '🎫 Ticket Statistics',
                 value: [
@@ -503,15 +514,15 @@ async function handleModerationStats(interaction) {
             });
         }
     }
-    
+
     // Warning effectiveness
     const warningsData = await getUserData('warnings', guildId, 'ALL');
     if (warningsData) {
         const allWarnings = Object.values(warningsData).flat();
         const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000);
-        const recentWarnings = allWarnings.filter(w => w.timestamp >= cutoff);
-        const automodWarnings = recentWarnings.filter(w => w.automod);
-        
+        const recentWarnings = allWarnings.filter((w: { timestamp: number }) => w.timestamp >= cutoff);
+        const automodWarnings = recentWarnings.filter((w: { automod: boolean }) => w.automod);
+
         embed.addFields({
             name: '[WARNING] Warnings',
             value: [
@@ -522,7 +533,7 @@ async function handleModerationStats(interaction) {
             inline: true
         });
     }
-    
+
     embed.setTimestamp();
     await interaction.editReply({ embeds: [embed] });
 }
@@ -530,37 +541,37 @@ async function handleModerationStats(interaction) {
 /**
  * Handles individual user statistics
  */
-async function handleUserStats(interaction) {
+async function handleUserStats(interaction: ChatInputCommandInteraction): Promise<void> {
     await interaction.deferReply();
-    
+
     const user = interaction.options.getUser('target');
-    const days = interaction.options.getInteger('days') || 30;
-    const guildId = interaction.guild.id;
-    
-    const commandStats = await getCommandStats(guildId, days);
-    const messageStats = await getMessageStats(guildId, days);
-    
+    const days = interaction.options.getInteger('days') ?? 30;
+    const guildId = interaction.guild!.id;
+
+    const commandStats = await getCommandStats(guildId, days) as CommandStats;
+    const messageStats = await getMessageStats(guildId, days) as MessageStats;
+
     // Find user's command count
     const userCommands = commandStats.byUser.find(u => u.userId === user.id);
-    const commandCount = userCommands?.count || 0;
+    const commandCount = userCommands?.count ?? 0;
     const commandRank = commandStats.byUser.findIndex(u => u.userId === user.id) + 1;
-    
+
     // Find user's message count
     const userMessages = messageStats.byUser.find(u => u.userId === user.id);
-    const messageCount = userMessages?.count || 0;
+    const messageCount = userMessages?.count ?? 0;
     const messageRank = messageStats.byUser.findIndex(u => u.userId === user.id) + 1;
-    
+
     // Get warnings
-    const warnings = await getUserData('warnings', guildId, user.id) || [];
-    const activeWarnings = warnings.filter(w => w.active !== false);
+    const warnings = (await getUserData('warnings', guildId, user.id) as { active?: boolean; timestamp: number; automod?: boolean }[]) ?? [];
+    const activeWarnings = warnings.filter((w: { active?: boolean }) => w.active !== false);
     const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000);
-    const recentWarnings = warnings.filter(w => w.timestamp >= cutoff);
-    
+    const recentWarnings = warnings.filter((w: { timestamp: number }) => w.timestamp >= cutoff);
+
     const embed = new EmbedBuilder()
         .setColor('#3498DB')
         .setTitle(`Statistics User Analytics - ${user.tag}`)
         .setDescription(`Statistics for the last ${days} days`)
-        .setThumbnail(user.displayAvatarURL())
+        .setThumbnail(user.displayAvatarURL({ extension: 'png', size: 256 }))
         .addFields(
             {
                 name: '⚙️ Command Usage',
@@ -592,43 +603,43 @@ async function handleUserStats(interaction) {
         )
         .setTimestamp()
         .setFooter({ text: `User ID: ${user.id}` });
-    
+
     await interaction.editReply({ embeds: [embed] });
 }
 
 /**
  * Handles analytics export
  */
-async function handleExport(interaction) {
+async function handleExport(interaction: ChatInputCommandInteraction): Promise<void> {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-    
-    const format = interaction.options.getString('format');
-    const days = interaction.options.getInteger('days') || 30;
-    const guildId = interaction.guild.id;
-    
+
+    const format = interaction.options.getString('format', true);
+    const days = interaction.options.getInteger('days') ?? 30;
+    const guildId = interaction.guild!.id;
+
     try {
         // Export the data
         const result = await exportAnalytics(guildId, format, {
             types: ['commands', 'messages', 'violations', 'modactions', 'members'],
             days
-        });
-        
+        }) as ExportResult;
+
         // Read the file
         const fileData = readFileSync(result.filepath);
         const attachment = new AttachmentBuilder(fileData, { name: result.filename });
-        
+
         await interaction.editReply({
             content: `[OK] Analytics exported successfully!\n**Format:** ${format.toUpperCase()}\n**Period:** Last ${days} days\n**Size:** ${(result.size / 1024).toFixed(2)} KB`,
             files: [attachment]
         });
-        
+
         // Clean up the temporary file after 5 seconds
         setTimeout(() => {
             cleanupExport(result.filepath);
         }, 5000);
-        
+
     } catch (error) {
-        logger.error('[ERROR] Analytics export failed:', error);
+        logger.error({ err: error, msg: '[ERROR] Analytics export failed:' });
         await interaction.editReply({
             content: '[ERROR] Failed to export analytics. Please try again later.'
         });

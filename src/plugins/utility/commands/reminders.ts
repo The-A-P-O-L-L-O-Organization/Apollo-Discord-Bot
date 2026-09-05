@@ -11,7 +11,7 @@ export default {
         .setName('reminders')
         .setDescription('List your active reminders'),
     name: 'reminders',
-    category: 'Utility',
+    category: 'utility',
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
@@ -36,7 +36,7 @@ export default {
 
             const embed = new EmbedBuilder()
                 .setColor('#3498DB')
-                .setTitle('[REMINDERS] Your Reminders')
+                .setTitle('Your Reminders')
                 .setDescription(`You have ${activeReminders.length} active reminder(s)`)
                 .setTimestamp()
                 .setFooter({ text: 'Use /cancelreminder <id> to cancel a reminder' });

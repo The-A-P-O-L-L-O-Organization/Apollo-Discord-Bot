@@ -1,10 +1,13 @@
+import { ChatInputCommandInteraction, EmbedBuilder, MessageFlags, PermissionFlagsBits, SlashCommandBuilder, Attachment } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
-import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
+// @ts-expect-error markdownParser.js not yet migrated
 import { parseMarkdownToEmbed } from '../../../utils/markdownParser.js';
+// @ts-expect-error automod.js not yet migrated
 import { getAutomodConfig, checkBannedWords } from '../../../utils/automod.js';
+// @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
-function isValidUrl(string) {
+function isValidUrl(string: string): boolean {
     try {
         new URL(string);
         return true;
@@ -81,7 +84,7 @@ export default {
     name: 'embed',
     category: 'utility',
 
-    async execute(interaction) {
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
             const title = interaction.options.getString('title');
             const description = interaction.options.getString('description');
@@ -92,39 +95,44 @@ export default {
             const author = interaction.options.getString('author');
             const url = interaction.options.getString('url');
             const timestamp = interaction.options.getBoolean('timestamp');
-            const fileAttachment = interaction.options.getAttachment('file');
+            const fileAttachment = interaction.options.getAttachment('file') as Attachment | null;
 
-            let parsed = {};
+            let parsed: Record<string, unknown> = {};
             if (fileAttachment) {
                 if (!fileAttachment.name.toLowerCase().endsWith('.md')) {
-                    return interaction.reply({
+                    await interaction.reply({
                         content: 'Only `.md` files are supported. Please upload a markdown file.',
                         flags: MessageFlags.Ephemeral
                     });
+                    return;
                 }
                 try {
                     const response = await fetch(fileAttachment.url);
                     const content = await response.text();
                     if (!content.trim()) {
-                        return interaction.reply({
+                        await interaction.reply({
                             content: 'The uploaded .md file is empty.',
                             flags: MessageFlags.Ephemeral
                         });
+                        return;
                     }
-                    parsed = parseMarkdownToEmbed(content, fileAttachment.name, { title, description });
+                    // @ts-expect-error markdownParser.js not yet migrated
+                    parsed = parseMarkdownToEmbed(content, fileAttachment.name, { title, description }) as Record<string, unknown>;
                 } catch {
-                    return interaction.reply({
+                    await interaction.reply({
                         content: 'Could not read the attached file. Please try again.',
                         flags: MessageFlags.Ephemeral
                     });
+                    return;
                 }
             }
 
             if (!title && !description && !fileAttachment) {
-                return interaction.reply({
+                await interaction.reply({
                     content: 'You must provide at least a title or description for the embed.',
                     flags: MessageFlags.Ephemeral
                 });
+                return;
             }
 
             const embed = new EmbedBuilder();
@@ -132,13 +140,13 @@ export default {
             if (title) {
                 embed.setTitle(title);
             } else if (parsed.title) {
-                embed.setTitle(parsed.title);
+                embed.setTitle(parsed.title as string);
             }
 
             if (description) {
                 embed.setDescription(description);
             } else if (parsed.description) {
-                embed.setDescription(parsed.description);
+                embed.setDescription(parsed.description as string);
             }
 
             if (color) {
@@ -147,10 +155,11 @@ export default {
                 if (match) {
                     embed.setColor(`#${match[1]}`);
                 } else {
-                    return interaction.reply({
+                    await interaction.reply({
                         content: 'Invalid color format. Please use a hex color code (e.g., #FF0000 or FF0000).',
                         flags: MessageFlags.Ephemeral
                     });
+                    return;
                 }
             } else {
                 embed.setColor('#3498DB');
@@ -158,20 +167,22 @@ export default {
 
             if (image) {
                 if (!isValidUrl(image)) {
-                    return interaction.reply({
+                    await interaction.reply({
                         content: 'Invalid image URL. Please provide a valid URL.',
                         flags: MessageFlags.Ephemeral
                     });
+                    return;
                 }
                 embed.setImage(image);
             }
 
             if (thumbnail) {
                 if (!isValidUrl(thumbnail)) {
-                    return interaction.reply({
+                    await interaction.reply({
                         content: 'Invalid thumbnail URL. Please provide a valid URL.',
                         flags: MessageFlags.Ephemeral
                     });
+                    return;
                 }
                 embed.setThumbnail(thumbnail);
             }
@@ -186,10 +197,11 @@ export default {
 
             if (url) {
                 if (!isValidUrl(url)) {
-                    return interaction.reply({
+                    await interaction.reply({
                         content: 'Invalid URL. Please provide a valid URL.',
                         flags: MessageFlags.Ephemeral
                     });
+                    return;
                 }
                 embed.setURL(url);
             }
@@ -199,48 +211,52 @@ export default {
             }
 
             if (parsed.fields) {
-                for (const field of parsed.fields) {
+                for (const field of parsed.fields as Array<{ name: string; value: string; inline?: boolean }>) {
                     embed.addFields(field);
                 }
             }
             if (parsed.footer && !footer) {
+                // @ts-expect-error parsed.footer type
                 embed.setFooter(parsed.footer);
             }
 
-            const cfg = await getAutomodConfig(interaction.guild.id);
+            const cfg = await getAutomodConfig(interaction.guild!.id);
             if (cfg.enabled && cfg.bannedWords.length > 0) {
-                const embedTexts = [];
-                if (title) {embedTexts.push(title);} else if (parsed.title) {embedTexts.push(parsed.title);}
-                if (description) {embedTexts.push(description);} else if (parsed.description) {embedTexts.push(parsed.description);}
-                if (footer) {embedTexts.push(footer);}
-                if (author) {embedTexts.push(author);}
+                const embedTexts: string[] = [];
+                if (title) { embedTexts.push(title); } else if (parsed.title) { embedTexts.push(parsed.title as string); }
+                if (description) { embedTexts.push(description); } else if (parsed.description) { embedTexts.push(parsed.description as string); }
+                if (footer) { embedTexts.push(footer); }
+                if (author) { embedTexts.push(author); }
                 if (parsed.fields) {
-                    for (const field of parsed.fields) {
+                    for (const field of parsed.fields as Array<{ name: string; value: string }>) {
                         embedTexts.push(field.name);
                         embedTexts.push(field.value);
                     }
                 }
                 const matchedWord = checkBannedWords(embedTexts.join(' '), cfg.bannedWords);
                 if (matchedWord) {
-                    return interaction.reply({
+                    await interaction.reply({
                         content: 'Your embed contains a banned word and cannot be sent.',
                         flags: MessageFlags.Ephemeral
                     });
+                    return;
                 }
             }
 
             try {
-                await interaction.channel.send({ embeds: [embed] });
-                return interaction.reply({
+                await interaction.channel?.send({ embeds: [embed] });
+                await interaction.reply({
                     content: 'Embed created successfully!',
                     flags: MessageFlags.Ephemeral
                 });
+                return;
             } catch (error) {
-                logger.error('[ERROR] Failed to send embed:', error);
-                return interaction.reply({
+                logger.error({ err: error, msg: '[ERROR] Failed to send embed' });
+                await interaction.reply({
                     content: 'Failed to create the embed. Please check your inputs and try again.',
                     flags: MessageFlags.Ephemeral
                 });
+                return;
             }
 
         } catch (error) {

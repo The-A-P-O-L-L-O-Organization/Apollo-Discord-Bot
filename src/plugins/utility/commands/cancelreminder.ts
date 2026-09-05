@@ -17,7 +17,7 @@ export default {
                 .setRequired(true)
         ),
     name: 'cancelreminder',
-    category: 'Utility',
+    category: 'utility',
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {

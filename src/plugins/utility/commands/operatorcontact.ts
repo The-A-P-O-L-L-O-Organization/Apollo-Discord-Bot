@@ -1,5 +1,6 @@
-import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
 import { config } from '../../../config/config.js';
+// @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
@@ -9,10 +10,10 @@ export default {
         .setDMPermission(true),
     name: 'operator-contact',
     description: 'View the contact information for this bot instance\'s operator',
-    category: 'utility',
+    category: 'Utility',
     dmPermission: true,
 
-    async execute(interaction) {
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
             const operator = config.operator;
 
@@ -27,10 +28,11 @@ export default {
                     )
                     .setTimestamp();
 
-                return interaction.reply({
+                await interaction.reply({
                     embeds: [errorEmbed],
                     flags: MessageFlags.Ephemeral
                 });
+                return;
             }
 
             const embed = new EmbedBuilder()
@@ -50,7 +52,7 @@ export default {
                 embeds: [embed],
                 flags: MessageFlags.Ephemeral
             });
-    
+
         } catch (error) {
             const errorMessage = handleDiscordError(error);
             if (interaction.replied || interaction.deferred) {

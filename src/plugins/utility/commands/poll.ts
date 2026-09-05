@@ -1,28 +1,28 @@
+import { ChatInputCommandInteraction, EmbedBuilder, MessageFlags, PermissionFlagsBits } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
-import { EmbedBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
-import { appendToGuildArray, generateId } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
+import { appendToGuildArray, generateId } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 const POLL_EMOJIS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
 
-function parseTimeString(timeString) {
+function parseTimeString(timeString: string): number | null {
     const regex = /^(\d+)(m|h|d|w)$/i;
     const match = timeString.trim().match(regex);
 
-    if (!match) {return null;}
+    if (!match) { return null; }
 
-    const value = parseInt(match[1], 10);
-    const unit = match[2].toLowerCase();
+    const value = parseInt(match[1]!, 10);
+    const unit = match[2]!.toLowerCase();
 
-    const multipliers = {
+    const multipliers: Record<string, number> = {
         'm': 60 * 1000,
         'h': 60 * 60 * 1000,
         'd': 24 * 60 * 60 * 1000,
         'w': 7 * 24 * 60 * 60 * 1000
     };
 
-    return value * multipliers[unit];
+    return value * (multipliers[unit] ?? 1);
 }
 
 export default {
@@ -58,12 +58,12 @@ export default {
         }
     ],
 
-    async execute(interaction) {
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
-            const question = interaction.options.getString('question');
-            const optionsInput = interaction.options.getString('options');
+            const question = interaction.options.getString('question') ?? '';
+            const optionsInput = interaction.options.getString('options') ?? '';
             const durationInput = interaction.options.getString('duration');
-            const anonymous = interaction.options.getBoolean('anonymous') || false;
+            const anonymous = interaction.options.getBoolean('anonymous') ?? false;
 
             const options = optionsInput
                 .split('|')
@@ -71,35 +71,39 @@ export default {
                 .filter(opt => opt.length > 0);
 
             if (options.length < 2) {
-                return interaction.reply({
+                await interaction.reply({
                     content: 'A poll must have at least 2 options. Separate options with `|`.',
                     flags: MessageFlags.Ephemeral
                 });
+                return;
             }
 
             if (options.length > config.polls.maxOptions) {
-                return interaction.reply({
+                await interaction.reply({
                     content: `A poll can have a maximum of ${config.polls.maxOptions} options.`,
                     flags: MessageFlags.Ephemeral
                 });
+                return;
             }
 
-            let endTime = null;
+            let endTime: number | null = null;
             if (durationInput) {
                 const duration = parseTimeString(durationInput);
                 if (!duration) {
-                    return interaction.reply({
+                    await interaction.reply({
                         content: 'Invalid duration format. Use formats like: `1h` (1 hour), `6h` (6 hours), `1d` (1 day).',
                         flags: MessageFlags.Ephemeral
                     });
+                    return;
                 }
 
                 if (duration > config.polls.maxDuration) {
                     const maxDays = Math.floor(config.polls.maxDuration / (1000 * 60 * 60 * 24));
-                    return interaction.reply({
+                    await interaction.reply({
                         content: `Poll duration cannot exceed ${maxDays} days.`,
                         flags: MessageFlags.Ephemeral
                     });
+                    return;
                 }
 
                 endTime = Date.now() + duration;
@@ -133,9 +137,9 @@ export default {
 
             for (let i = 0; i < options.length; i++) {
                 try {
-                    await pollMessage.react(POLL_EMOJIS[i]);
+                    await pollMessage.react(POLL_EMOJIS[i]!);
                 } catch (error) {
-                    logger.error(`[ERROR] Failed to add reaction ${POLL_EMOJIS[i]}:`, error);
+                    logger.error({ err: error, msg: `[ERROR] Failed to add reaction ${POLL_EMOJIS[i]}` });
                 }
             }
 
@@ -144,7 +148,7 @@ export default {
                 const pollData = {
                     id: pollId,
                     messageId: pollMessage.id,
-                    channelId: interaction.channel.id,
+                    channelId: interaction.channel!.id,
                     question,
                     options,
                     anonymous,
@@ -153,7 +157,7 @@ export default {
                     endTime
                 };
 
-                await appendToGuildArray('polls', interaction.guild.id, 'active', pollData);
+                await appendToGuildArray('polls', interaction.guild!.id, 'active', pollData);
             }
 
         } catch (error) {

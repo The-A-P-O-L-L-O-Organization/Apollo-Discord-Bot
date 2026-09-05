@@ -46,7 +46,7 @@ describe('Data Deletion Command', () => {
         });
 
         it('should be in utility category', () => {
-            expect(dataDeletionCommand.category).toBe('utility');
+            expect(dataDeletionCommand.category).toBe('Utility');
         });
 
         it('should allow DM usage', () => {

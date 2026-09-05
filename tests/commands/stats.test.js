@@ -65,7 +65,7 @@ describe('Stats Command', () => {
         });
 
         it('should be in utility category', () => {
-            expect(statsCommand.category).toBe('utility');
+            expect(statsCommand.category).toBe('Utility');
         });
     });
 

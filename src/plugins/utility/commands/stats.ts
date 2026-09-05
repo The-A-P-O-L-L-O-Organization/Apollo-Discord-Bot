@@ -1,22 +1,34 @@
-// Stats Command
-// Displays bot statistics
-
-import { SlashCommandBuilder, EmbedBuilder, version as djsVersion } from 'discord.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder, version as djsVersion } from 'discord.js';
+// @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+
+interface BotStats {
+    commandsRan: number;
+    messagesProcessed: number;
+}
+
+interface ApolloClient {
+    stats?: BotStats;
+    uptime?: number;
+    ws: { ping: number };
+    guilds: { cache: { values: () => Iterable<{ memberCount: number; channels: { cache: { size: number } } }>; size: number } };
+    commands?: { size: number };
+    user: { id: string; displayAvatarURL: () => string };
+}
 
 export default {
     data: new SlashCommandBuilder()
         .setName('stats')
         .setDescription('Display bot statistics'),
     name: 'stats',
-    category: 'utility',
+    category: 'Utility',
 
-    async execute(interaction) {
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
-            const client = interaction.client;
+            const client = interaction.client as ApolloClient;
 
             // Calculate uptime
-            const uptime = formatUptime(client.uptime);
+            const uptime = formatUptime(client.uptime ?? 0);
 
             // Get memory usage
             const memoryUsage = process.memoryUsage();
@@ -85,8 +97,8 @@ export default {
                 .setTimestamp()
                 .setFooter({ text: `Bot ID: ${client.user.id}` });
 
-            return interaction.reply({ embeds: [embed] });
-    
+            await interaction.reply({ embeds: [embed] });
+
         } catch (error) {
             const errorMessage = handleDiscordError(error);
             if (interaction.replied || interaction.deferred) {
@@ -100,21 +112,21 @@ export default {
 
 /**
  * Formats uptime in a human-readable format
- * @param {number} ms - Uptime in milliseconds
- * @returns {string} Formatted uptime string
+ * @param ms - Uptime in milliseconds
+ * @returns Formatted uptime string
  */
-function formatUptime(ms) {
+function formatUptime(ms: number): string {
     const seconds = Math.floor(ms / 1000);
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
 
-    const parts = [];
-    
-    if (days > 0) {parts.push(`${days}d`);}
-    if (hours % 24 > 0) {parts.push(`${hours % 24}h`);}
-    if (minutes % 60 > 0) {parts.push(`${minutes % 60}m`);}
-    if (seconds % 60 > 0 || parts.length === 0) {parts.push(`${seconds % 60}s`);}
+    const parts: string[] = [];
+
+    if (days > 0) { parts.push(`${days}d`); }
+    if (hours % 24 > 0) { parts.push(`${hours % 24}h`); }
+    if (minutes % 60 > 0) { parts.push(`${minutes % 60}m`); }
+    if (seconds % 60 > 0 || parts.length === 0) { parts.push(`${seconds % 60}s`); }
 
     return parts.join(' ');
 }

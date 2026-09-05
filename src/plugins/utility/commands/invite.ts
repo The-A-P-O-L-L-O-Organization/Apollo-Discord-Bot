@@ -8,7 +8,7 @@ export default {
     // Generate an invite link for the bot or create a server invite
     name: 'invite',
     description: 'Generate an invite link or create a server invite',
-    category: 'Utility',
+    category: 'utility',
     dmPermission: true,
     options: [
         {

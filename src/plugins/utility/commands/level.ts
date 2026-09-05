@@ -1,9 +1,15 @@
-// Level Command
+import { ChatInputCommandInteraction, EmbedBuilder, MessageFlags, User } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
-import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { getUserData } from '../../../utils/db.js';
 import { calculateXPForLevel } from '../../../utils/xp.js';
+// @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+
+interface LevelData {
+    xp: number;
+    level: number;
+    messages: number;
+}
 
 export default {
     name: 'level',
@@ -15,19 +21,20 @@ export default {
         { name: 'user', description: 'User to check level for', type: 6, required: false }
     ],
     
-    async execute(interaction) {
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
-            const user = interaction.options.getUser('user') || interaction.user;
+            const user = interaction.options.getUser('user') ?? interaction.user;
             
-            const levelData = await getUserData('levels', interaction.guild.id, user.id) || {
+            const levelData = await getUserData('levels', interaction.guild!.id, user.id);
+            const typedLevelData = (levelData as unknown as LevelData) ?? {
                 xp: 0,
                 level: 0,
                 messages: 0
             };
             
-            const xpForNextLevel = calculateXPForLevel(levelData.level + 1);
-            const currentLevelXP = calculateXPForLevel(levelData.level);
-            const xpProgress = levelData.xp - currentLevelXP;
+            const xpForNextLevel = calculateXPForLevel(typedLevelData.level + 1);
+            const currentLevelXP = calculateXPForLevel(typedLevelData.level);
+            const xpProgress = typedLevelData.xp - currentLevelXP;
             const xpNeeded = xpForNextLevel - currentLevelXP;
             const progressPercent = Math.floor((xpProgress / xpNeeded) * 100);
             
@@ -38,16 +45,16 @@ export default {
                 .setTitle(`[LEVEL] ${user.tag}`)
                 .setDescription(`${user}'s level and experience`)
                 .addFields(
-                    { name: '[INFO] Level', value: `**${levelData.level}**`, inline: true },
-                    { name: '[INFO] XP', value: `**${formatNumber(levelData.xp)}** / ${formatNumber(xpForNextLevel)}`, inline: true },
-                    { name: '[INFO] Total Messages', value: `${formatNumber(levelData.messages)}`, inline: true },
-                    { name: `[PROGRESS] To Level ${levelData.level + 1}`, value: `${progressBar} ${progressPercent}%`, inline: false },
+                    { name: '[INFO] Level', value: `**${typedLevelData.level}**`, inline: true },
+                    { name: '[INFO] XP', value: `**${formatNumber(typedLevelData.xp)}** / ${formatNumber(xpForNextLevel)}`, inline: true },
+                    { name: '[INFO] Total Messages', value: `${formatNumber(typedLevelData.messages)}`, inline: true },
+                    { name: `[PROGRESS] To Level ${typedLevelData.level + 1}`, value: `${progressBar} ${progressPercent}%`, inline: false },
                     { name: '[INFO] XP Needed', value: `${formatNumber(xpNeeded - xpProgress)} more XP`, inline: true }
                 )
                 .setTimestamp();
             
             if (user.displayAvatarURL()) {
-                levelEmbed.setThumbnail(user.displayAvatarURL({ dynamic: true }));
+                levelEmbed.setThumbnail(user.displayAvatarURL({ extension: 'png', size: 256 }));
             }
             
             await interaction.reply({ embeds: [levelEmbed] });
@@ -62,13 +69,13 @@ export default {
     }
 };
 
-function createProgressBar(percent, length = 20) {
+function createProgressBar(percent: number, length = 20): string {
     const filled = Math.floor((percent / 100) * length);
     const empty = length - filled;
     return '█'.repeat(filled) + '░'.repeat(empty);
 }
 
-function formatNumber(num) {
+function formatNumber(num: number): string {
     if (num >= 1000000) {
         return (num / 1000000).toFixed(1) + 'M';
     }

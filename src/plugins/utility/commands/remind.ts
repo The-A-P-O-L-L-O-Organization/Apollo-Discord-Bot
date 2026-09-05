@@ -11,7 +11,7 @@ export default {
     // Allows users to set reminders
     name: 'remind',
     description: 'Set a reminder',
-    category: 'Utility',
+    category: 'utility',
     dmPermission: false,
     options: [
         {

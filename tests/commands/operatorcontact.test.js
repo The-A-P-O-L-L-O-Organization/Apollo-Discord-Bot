@@ -43,7 +43,7 @@ describe('Operator Contact Command', () => {
         });
 
         it('should be in utility category', () => {
-            expect(operatorContactCommand.category).toBe('utility');
+            expect(operatorContactCommand.category).toBe('Utility');
         });
 
         it('should allow DM usage', () => {
