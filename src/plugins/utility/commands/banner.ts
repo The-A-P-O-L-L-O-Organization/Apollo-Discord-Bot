@@ -8,7 +8,7 @@ export default {
     // Display a user's banner image (requires Nitro)
     name: 'banner',
     description: 'Display a user\'s banner image (requires Nitro)',
-    category: 'Utility',
+    category: 'utility',
     dmPermission: true,
     options: [
         {

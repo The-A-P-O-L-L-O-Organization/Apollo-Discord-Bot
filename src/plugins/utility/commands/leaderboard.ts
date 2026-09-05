@@ -1,10 +1,21 @@
+import { ChatInputCommandInteraction, EmbedBuilder, MessageFlags, User } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { getAllUserData } from '../../../utils/db.js';
+// @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
-import { MessageFlags } from 'discord.js';
+
+interface LevelData {
+    xp: number;
+    level: number;
+    messages: number;
+}
+
+interface UserDataEntry {
+    user_id: string;
+    data: LevelData;
+}
 
 export default {
-    // Show the top users by level/XP
     name: 'leaderboard',
     description: 'Show the top users by level or XP',
     category: 'Utility',
@@ -13,7 +24,7 @@ export default {
         {
             name: 'type',
             description: 'What to rank by',
-            type: 3, // STRING
+            type: 3,
             required: false,
             choices: [
                 { name: 'Level', value: 'level' },
@@ -24,23 +35,22 @@ export default {
         {
             name: 'limit',
             description: 'Number of users to show (default: 10)',
-            type: 4, // INTEGER
+            type: 4,
             required: false,
             min_value: 1,
             max_value: 25
         }
     ],
     
-    async execute(interaction) {
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
-            const type = interaction.options.getString('type') || 'level';
-            const limit = interaction.options.getInteger('limit') || 10;
+            const type = interaction.options.getString('type') ?? 'level';
+            const limit = interaction.options.getInteger('limit') ?? 10;
             
-            // Get all level data for the guild
-            const allLevelData = await getAllUserData('levels', interaction.guild.id);
+            const allLevelData = (await getAllUserData('levels', interaction.guild!.id)) as unknown as UserDataEntry[];
             
             if (allLevelData.length === 0) {
-                return interaction.reply({
+                await interaction.reply({
                     embeds: [{
                         color: 0xFFA500,
                         title: '[INFO] No Data',
@@ -49,37 +59,35 @@ export default {
                     }],
                     flags: MessageFlags.Ephemeral
                 });
+                return;
             }
             
-            // Sort based on type
             const sorted = allLevelData
                 .filter(data => data.data && (data.data.xp || data.data.level || data.data.messages))
                 .map(data => ({
                     userId: data.user_id,
-                    xp: data.data.xp || 0,
-                    level: data.data.level || 0,
-                    messages: data.data.messages || 0
+                    xp: data.data.xp ?? 0,
+                    level: data.data.level ?? 0,
+                    messages: data.data.messages ?? 0
                 }))
                 .sort((a, b) => {
-                    if (type === 'level') {return b.level - a.level;}
-                    if (type === 'xp') {return b.xp - a.xp;}
-                    if (type === 'messages') {return b.messages - a.messages;}
+                    if (type === 'level') { return b.level - a.level; }
+                    if (type === 'xp') { return b.xp - a.xp; }
+                    if (type === 'messages') { return b.messages - a.messages; }
                     return 0;
                 })
                 .slice(0, limit);
             
-            // Get user objects
-            const userMap = new Map();
+            const userMap = new Map<string, User>();
             for (const entry of sorted) {
                 try {
                     const user = await interaction.client.users.fetch(entry.userId);
                     userMap.set(entry.userId, user);
-                } catch (err) {
+                } catch {
                     // User not found, skip
                 }
             }
             
-            // Create leaderboard fields
             const typeLabel = type === 'level' ? 'Level' : type === 'xp' ? 'XP' : 'Messages';
             const fields = sorted.map((entry, index) => {
                 const user = userMap.get(entry.userId);
@@ -95,13 +103,12 @@ export default {
                 };
             });
             
-            const leaderboardEmbed = {
-                color: 0x3498DB,
-                title: `[LEADERBOARD] Top ${typeLabel}`,
-                description: `Top ${limit} users by ${typeLabel.toLowerCase()}`,
-                fields: fields,
-                timestamp: new Date().toISOString()
-            };
+            const leaderboardEmbed = new EmbedBuilder()
+                .setColor(0x3498DB)
+                .setTitle(`[LEADERBOARD] Top ${typeLabel}`)
+                .setDescription(`Top ${limit} users by ${typeLabel.toLowerCase()}`)
+                .addFields(fields)
+                .setTimestamp();
             
             await interaction.reply({ embeds: [leaderboardEmbed] });
         } catch (error) {
@@ -115,7 +122,7 @@ export default {
     }
 };
 
-function formatNumber(num) {
+function formatNumber(num: number): string {
     if (num >= 1000000) {
         return (num / 1000000).toFixed(1) + 'M';
     }

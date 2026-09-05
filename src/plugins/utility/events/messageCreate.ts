@@ -1,26 +1,30 @@
-// Message Create Event (Utility)
-// Awards XP for messages and announces level-ups
+import { Message } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
-
 import { EmbedBuilder } from 'discord.js';
 import { getLevelsConfig, isOnCooldown, awardXp } from '../../../utils/xp.js';
+
+interface LevelData {
+    level: number;
+    xp: number;
+    messages: number;
+}
 
 export default {
     name: 'messageCreate',
     once: false,
     
-    async execute(message, client) {
+    async execute(message: Message): Promise<void> {
         // Ignore DMs and bots
-        if (!message.guild) {return;}
-        if (message.author.bot) {return;}
+        if (!message.guild) { return; }
+        if (message.author.bot) { return; }
         
         try {
             const cfg = await getLevelsConfig(message.guild.id);
             
-            if (!cfg.enabled) {return;}
+            if (!cfg.enabled) { return; }
             
             // Award XP subject to cooldown
-            if (isOnCooldown(message.guild.id, message.author.id, cfg.cooldown)) {return;}
+            if (isOnCooldown(message.guild.id, message.author.id, cfg.cooldown)) { return; }
             
             const amount = Math.floor(Math.random() * (cfg.maxXp - cfg.minXp + 1)) + cfg.minXp;
             const { data, leveledUp } = await awardXp(message.guild.id, message.author.id, amount);
@@ -32,11 +36,12 @@ export default {
                     .setDescription(`${message.author} reached level **${data.level}**!`)
                     .setTimestamp();
                 
-                await message.channel.send({ embeds: [embed] }).catch(() => {});
+                // @ts-expect-error - channel.send exists on text-based channels
+await message.channel.send({ embeds: [embed] }).catch(() => {});
             }
             
         } catch (error) {
-            logger.error('[ERROR] XP award failed:', error);
+            logger.error({ err: error, msg: '[ERROR] XP award failed:' });
         }
     }
 };

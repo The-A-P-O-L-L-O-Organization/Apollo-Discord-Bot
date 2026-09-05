@@ -1,5 +1,4 @@
-import { MessageContextMenuCommandInteraction, MessageFlags } from 'discord.js';
-import { ContextMenuCommandBuilder, ApplicationCommandType, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from 'discord.js';
+import { MessageContextMenuCommandInteraction, MessageFlags, ApplicationCommandType, ContextMenuCommandBuilder } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 // @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
@@ -32,22 +31,24 @@ export default {
                 return;
             }
 
-            const modal = new ModalBuilder()
-                .setCustomId('report_reason_modal')
-                .setTitle('Report Message')
-                .addComponents(
-                    new ActionRowBuilder<TextInputBuilder>().addComponents(
-                        new TextInputBuilder()
-                            .setCustomId('reason')
-                            .setLabel('Reason for report')
-                            .setStyle(TextInputStyle.Paragraph)
-                            .setPlaceholder('Please describe why you are reporting this message...')
-                            .setRequired(true)
-                            .setMaxLength(500)
-                    )
-                );
+            const reasonModal = {
+                title: 'Report Message',
+                custom_id: 'report_reason_modal',
+                components: [{
+                    type: 1,
+                    components: [{
+                        type: 4,
+                        custom_id: 'reason',
+                        label: 'Reason for report',
+                        style: 2,
+                        placeholder: 'Please describe why you are reporting this message...',
+                        required: true,
+                        max_length: 500
+                    }]
+                }]
+            };
 
-            await interaction.showModal(modal);
+            await interaction.showModal(reasonModal);
 
         } catch (error) {
             logger.error({ err: error, msg: '[ERROR] Report command error' });

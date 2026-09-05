@@ -37,7 +37,7 @@ export default {
 
             const jokeEmbed = {
                 color: 0x3498DB,
-                title: '[JOKE] Random Joke',
+                title: '😂 Random Joke',
                 description: `**${joke.setup}**\n\n${joke.punchline}`,
                 fields: [
                     {

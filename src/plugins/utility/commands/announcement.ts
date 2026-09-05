@@ -1,15 +1,27 @@
-// Announcement Command
-// Schedule announcements to be sent later
+import { ChatInputCommandInteraction, MessageFlags, PermissionsBitField, GuildChannel, TextChannel } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
-import { PermissionsBitField, MessageFlags } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
+// @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
+interface AnnouncementData {
+    id: string;
+    channelId: string;
+    channelName: string;
+    message: string;
+    scheduledBy: string;
+    scheduledByTag: string;
+    scheduledAt: number;
+    sendAt: number;
+}
+
 export default {
+    // Announcement Command
+    // Schedule announcements to be sent later
     name: 'announcement',
     description: 'Schedule an announcement to be sent',
-    category: 'Utility',
-    
+    category: 'utility',
+
     defaultMemberPermissions: PermissionsBitField.Flags.ManageMessages,
     dmPermission: false,
     options: [
@@ -57,11 +69,11 @@ export default {
             ]
         }
     ],
-    
-    async execute(interaction) {
+
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
             const subcommand = interaction.options.getSubcommand();
-            
+
             if (subcommand === 'schedule') {
                 await handleSchedule(interaction);
             } else if (subcommand === 'view') {
@@ -69,10 +81,10 @@ export default {
             } else if (subcommand === 'cancel') {
                 await handleCancel(interaction);
             }
-            
+
         } catch (error) {
-            logger.error('[ERROR] Announcement command error:', error);
-            
+            logger.error({ err: error, msg: '[ERROR] Announcement command error' });
+
             const errorEmbed = {
                 color: 0xFF0000,
                 title: '[ERROR] Command Failed',
@@ -80,27 +92,40 @@ export default {
                 fields: [
                     {
                         name: '[ERROR] Details',
-                        value: error.message,
+                        value: error instanceof Error ? error.message : 'Unknown error',
                         inline: true
                     }
                 ],
                 timestamp: new Date().toISOString()
             };
-            
+
             await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
         }
     }
 };
 
-async function handleSchedule(interaction) {
+async function handleSchedule(interaction: ChatInputCommandInteraction): Promise<void> {
     const channel = interaction.options.getChannel('channel');
-    const message = interaction.options.getString('message');
-    const delayStr = interaction.options.getString('delay');
-    
+    const message = interaction.options.getString('message') ?? '';
+    const delayStr = interaction.options.getString('delay') ?? '';
+
+    if (!channel || !message || !delayStr) {
+        await interaction.reply({
+            embeds: [{
+                color: 0xFF0000,
+                title: '[ERROR] Missing Parameters',
+                description: 'Channel, message, and delay are required.',
+                timestamp: new Date().toISOString()
+            }],
+            flags: MessageFlags.Ephemeral
+        });
+        return;
+    }
+
     // Parse delay
     const delayMs = parseDelay(delayStr);
     if (!delayMs) {
-        return interaction.reply({
+        await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
                 title: '[ERROR] Invalid Delay',
@@ -109,27 +134,28 @@ async function handleSchedule(interaction) {
             }],
             flags: MessageFlags.Ephemeral
         });
+        return;
     }
-    
+
     const scheduledTime = Date.now() + delayMs;
     const announcementId = generateId();
-    
+
     // Store announcement
-    const announcement = {
+    const announcement: AnnouncementData = {
         id: announcementId,
         channelId: channel.id,
-        channelName: channel.name,
+        channelName: channel.name ?? 'unknown',
         message: message,
         scheduledBy: interaction.user.id,
         scheduledByTag: interaction.user.tag,
         scheduledAt: Date.now(),
         sendAt: scheduledTime
     };
-    
-    await setGuildData('announcements', interaction.guild.id, {
+
+    await setGuildData('announcements', interaction.guild!.id, {
         [announcementId]: announcement
     });
-    
+
     const successEmbed = {
         color: 0x00FF00,
         title: '[SUCCESS] Announcement Scheduled',
@@ -153,17 +179,17 @@ async function handleSchedule(interaction) {
         ],
         timestamp: new Date().toISOString()
     };
-    
+
     await interaction.reply({ embeds: [successEmbed], flags: MessageFlags.Ephemeral });
-    
+
     logger.info(`[ANNOUNCEMENT] Scheduled by ${interaction.user.tag} for ${channel.name}`);
 }
 
-async function handleView(interaction) {
-    const announcements = await getGuildData('announcements', interaction.guild.id);
-    
+async function handleView(interaction: ChatInputCommandInteraction): Promise<void> {
+    const announcements = await getGuildData('announcements', interaction.guild!.id) as Record<string, AnnouncementData> | null;
+
     if (!announcements || Object.keys(announcements).length === 0) {
-        return interaction.reply({
+        await interaction.reply({
             embeds: [{
                 color: 0xFFA500,
                 title: '[INFO] No Scheduled Announcements',
@@ -172,13 +198,14 @@ async function handleView(interaction) {
             }],
             flags: MessageFlags.Ephemeral
         });
+        return;
     }
-    
+
     const now = Date.now();
     const scheduled = Object.values(announcements).filter(a => a.sendAt > now);
-    
+
     if (scheduled.length === 0) {
-        return interaction.reply({
+        await interaction.reply({
             embeds: [{
                 color: 0xFFA500,
                 title: '[INFO] No Active Announcements',
@@ -187,8 +214,9 @@ async function handleView(interaction) {
             }],
             flags: MessageFlags.Ephemeral
         });
+        return;
     }
-    
+
     const viewEmbed = {
         color: 0x3498DB,
         title: '[ANNOUNCEMENTS] Scheduled',
@@ -200,17 +228,17 @@ async function handleView(interaction) {
         })),
         timestamp: new Date().toISOString()
     };
-    
+
     await interaction.reply({ embeds: [viewEmbed], flags: MessageFlags.Ephemeral });
 }
 
-async function handleCancel(interaction) {
-    const id = interaction.options.getString('id');
-    
-    const announcements = await getGuildData('announcements', interaction.guild.id);
-    
+async function handleCancel(interaction: ChatInputCommandInteraction): Promise<void> {
+    const id = interaction.options.getString('id') ?? '';
+
+    const announcements = await getGuildData('announcements', interaction.guild!.id) as Record<string, AnnouncementData> | null;
+
     if (!announcements || !announcements[id]) {
-        return interaction.reply({
+        await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
                 title: '[ERROR] Not Found',
@@ -219,38 +247,38 @@ async function handleCancel(interaction) {
             }],
             flags: MessageFlags.Ephemeral
         });
+        return;
     }
-    
+
     delete announcements[id];
-    await setGuildData('announcements', interaction.guild.id, announcements);
-    
+    await setGuildData('announcements', interaction.guild!.id, announcements);
+
     const successEmbed = {
         color: 0x00FF00,
         title: '[SUCCESS] Announcement Cancelled',
         description: `Announcement #${id} has been cancelled.`,
         timestamp: new Date().toISOString()
     };
-    
+
     await interaction.reply({ embeds: [successEmbed], flags: MessageFlags.Ephemeral });
 }
 
-function parseDelay(str) {
+function parseDelay(str: string): number | null {
     const match = str.match(/^(\d+)([mhd])$/i);
-    if (!match) {return null;}
-    
-    const value = parseInt(match[1]);
-    const unit = match[2].toLowerCase();
-    
-    const multipliers = {
+    if (!match) { return null; }
+
+    const value = parseInt(match[1]!, 10);
+    const unit = match[2]!.toLowerCase();
+
+    const multipliers: Record<string, number> = {
         m: 60 * 1000,
         h: 60 * 60 * 1000,
         d: 24 * 60 * 60 * 1000
     };
-    
-    return value * (multipliers[unit] || 0);
+
+    return value * (multipliers[unit] ?? 0);
 }
 
-function generateId() {
-     return `ANN-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-  }
-
+function generateId(): string {
+    return `ANN-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+}

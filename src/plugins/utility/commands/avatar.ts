@@ -8,7 +8,7 @@ export default {
     // Display a user's avatar
     name: 'avatar',
     description: 'Display a user\'s avatar',
-    category: 'Utility',
+    category: 'utility',
     dmPermission: true,
     options: [
         {

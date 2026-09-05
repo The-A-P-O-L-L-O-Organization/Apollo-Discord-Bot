@@ -1,23 +1,34 @@
-import { ContextMenuCommandBuilder, ApplicationCommandType, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, MessageFlags } from 'discord.js';
+import { UserContextMenuCommandInteraction, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, MessageFlags } from 'discord.js';
 import { getData, updateGuildData } from '../../../utils/db.js';
 import { isOwner } from '../../../utils/accessControl.js';
+// @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
 
+interface GlobalBlacklistData {
+    entries: Record<string, {
+        userId: string;
+        userTag: string;
+        reason: string;
+        moderatorId: string;
+        moderatorTag: string;
+        addedAt: number;
+    }>;
+}
+
 export default {
-    
-    data: new ContextMenuCommandBuilder()
+    data: new (require('discord.js').ContextMenuCommandBuilder)()
         .setName('Global Ban')
-        .setType(ApplicationCommandType.User)
+        .setType(require('discord.js').ApplicationCommandType.User)
         .setDMPermission(true),
     name: 'Global Ban',
     type: 2,
     canQueue: false,
 
-    async execute(interaction) {
+    async execute(interaction: UserContextMenuCommandInteraction): Promise<void> {
         try {
             if (!isOwner(interaction.user.id)) {
-                return interaction.reply({
+                await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
                         title: '[ERROR] Access Denied',
@@ -25,12 +36,13 @@ export default {
                     }],
                     flags: MessageFlags.Ephemeral
                 });
+                return;
             }
 
             const targetUser = interaction.targetUser;
 
             if (targetUser.id === interaction.user.id) {
-                return interaction.reply({
+                await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
                         title: '[ERROR] Self Action',
@@ -38,10 +50,11 @@ export default {
                     }],
                     flags: MessageFlags.Ephemeral
                 });
+                return;
             }
 
             if (targetUser.id === interaction.client.user.id) {
-                return interaction.reply({
+                await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
                         title: '[ERROR] Bot Protection',
@@ -49,6 +62,7 @@ export default {
                     }],
                     flags: MessageFlags.Ephemeral
                 });
+                return;
             }
 
             const modal = new ModalBuilder()
@@ -63,22 +77,22 @@ export default {
                 .setMaxLength(1000)
                 .setRequired(true);
 
-            modal.addComponents(new ActionRowBuilder().addComponents(reasonInput));
+            modal.addComponents(new ActionRowBuilder<TextInputBuilder>().addComponents(reasonInput));
 
             await interaction.showModal(modal);
 
             const modalSubmit = await interaction.awaitModalSubmit({
                 time: 120_000,
-                filter: i => i.customId === `apollo_gban_${interaction.id}`
+                filter: (i) => i.customId === `apollo_gban_${interaction.id}`
             });
 
             const reason = modalSubmit.fields.getTextInputValue('reason').trim();
 
-            const globalData = await getData('global_blacklist') || { entries: {} };
-            const entries = globalData.entries || {};
+            const globalData = await getData('global_blacklist') as GlobalBlacklistData | undefined ?? { entries: {} };
+            const entries = globalData.entries ?? {};
 
             if (entries[targetUser.id]) {
-                return modalSubmit.reply({
+                await modalSubmit.reply({
                     embeds: [{
                         color: 0xFFA500,
                         title: '[WARNING] Already Blacklisted',
@@ -86,11 +100,12 @@ export default {
                     }],
                     flags: MessageFlags.Ephemeral
                 });
+                return;
             }
 
-            await updateGuildData('global_blacklist', '__global__', (data) => {
-                if (!data.entries) data.entries = {};
-                data.entries[targetUser.id] = {
+            await updateGuildData('global_blacklist', '__global__', (data: Record<string, unknown>) => {
+                if (!data.entries) { data.entries = {}; }
+                (data.entries as Record<string, unknown>)[targetUser.id] = {
                     userId: targetUser.id,
                     userTag: targetUser.tag,
                     reason: reason,
@@ -111,13 +126,13 @@ export default {
                         { name: 'Moderator', value: interaction.user.tag, inline: true },
                         { name: 'Reason', value: reason, inline: false }
                     ],
-                    thumbnail: { url: targetUser.displayAvatarURL() },
+                    thumbnail: { url: targetUser.displayAvatarURL({ extension: 'png', size: 256 }) },
                     timestamp: new Date().toISOString()
                 }],
                 flags: MessageFlags.Ephemeral
             });
 
-            logger.info(`[GLOBAL BAN] User ${targetUser.tag} globally blacklisted by ${interaction.user.tag}. Reason: ${reason}`);
+            logger.info({ msg: `[GLOBAL BAN] User ${targetUser.tag} globally blacklisted by ${interaction.user.tag}. Reason: ${reason}` });
         } catch (error) {
             const errorMessage = handleDiscordError(error);
             if (interaction.replied || interaction.deferred) {

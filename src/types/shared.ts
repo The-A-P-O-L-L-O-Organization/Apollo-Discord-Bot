@@ -474,6 +474,8 @@ export interface ShardConfig {
 }
 
 export interface OperatorConfig {
+    agreed: boolean;
+    contact: string;
     requireAgreement: boolean;
     agreementUrl: string;
     agreementVersion: string;

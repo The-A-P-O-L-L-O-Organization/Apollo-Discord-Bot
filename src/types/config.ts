@@ -75,6 +75,8 @@ export interface ShardConfig {
 }
 
 export interface OperatorConfig {
+    agreed: boolean;
+    contact: string;
     requireAgreement: boolean;
     agreementUrl: string;
     agreementVersion: string;
@@ -172,6 +174,7 @@ export interface PollsConfig {
     maxOptions: number;
     maxDurationHours: number;
     defaultDurationHours: number;
+    maxDuration: number;
 }
 
 export interface IntegrationsConfig {

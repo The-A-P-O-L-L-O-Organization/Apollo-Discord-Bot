@@ -1,5 +1,6 @@
+import { ChatInputCommandInteraction, EmbedBuilder, MessageFlags, User, GuildMember } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
-import { EmbedBuilder, MessageFlags } from 'discord.js';
+// @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
@@ -16,11 +17,11 @@ export default {
         }
     ],
 
-    async execute(interaction) {
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
-            const targetUser = interaction.options.getUser('user') || interaction.user;
-            const member = interaction.guild.members.cache.get(targetUser.id) ||
-                          await interaction.guild.members.fetch(targetUser.id);
+            const targetUser = interaction.options.getUser('user') ?? interaction.user;
+            const member = interaction.guild!.members.cache.get(targetUser.id) ||
+                await interaction.guild!.members.fetch(targetUser.id);
 
             if (!member) {
                 await interaction.reply({
@@ -33,11 +34,11 @@ export default {
             const accountAge = Date.now() - targetUser.createdTimestamp;
             const daysOld = Math.floor(accountAge / (1000 * 60 * 60 * 24));
 
-            const joinAge = Date.now() - member.joinedTimestamp;
+            const joinAge = Date.now() - (member.joinedTimestamp ?? Date.now());
             const daysInServer = Math.floor(joinAge / (1000 * 60 * 60 * 24));
 
-            const status = member.presence?.status || 'offline';
-            let statusIndicator;
+            const status = member.presence?.status ?? 'offline';
+            let statusIndicator: string;
             if (status === 'online') {
                 statusIndicator = '[ONLINE]';
             } else if (status === 'idle') {
@@ -50,6 +51,19 @@ export default {
 
             const topRole = member.roles.highest;
             const roleCount = member.roles.cache.size - 1;
+
+            // Calculate join position
+            let joinPosition = 'Unknown';
+            if (member.joinedTimestamp) {
+                const sortedMembers = interaction.guild!.members.cache
+                    .filter(m => m.joinedTimestamp)
+                    .sort((a, b) => a.joinedTimestamp! - b.joinedTimestamp!);
+                const index = sortedMembers.map(m => m.id).indexOf(member.id);
+                if (index >= 0) {
+                    joinPosition = `#${index + 1}`;
+                }
+            }
+            joinPosition += ` of ${interaction.guild!.memberCount}`;
 
             const userInfoEmbed = new EmbedBuilder()
                 .setColor('#0099FF')
@@ -78,7 +92,7 @@ export default {
                     },
                     {
                         name: 'Joined Server',
-                        value: `<t:${Math.floor(member.joinedTimestamp / 1000)}:F>\n(${daysInServer} days ago)`,
+                        value: `<t:${Math.floor((member.joinedTimestamp ?? Date.now()) / 1000)}:F>\n(${daysInServer} days ago)`,
                         inline: true
                     },
                     {
@@ -100,9 +114,7 @@ export default {
                     },
                     {
                         name: 'Position',
-                        value: `${member.joinedTimestamp ?
-                            (interaction.guild.members.cache.filter(m => m.joinedTimestamp).sort((a, b) => a.joinedTimestamp - b.joinedTimestamp).map(m => m.id).indexOf(member.id) + 1) :
-                            'Unknown'} of ${interaction.guild.memberCount}`,
+                        value: joinPosition,
                         inline: true
                     }
                 );

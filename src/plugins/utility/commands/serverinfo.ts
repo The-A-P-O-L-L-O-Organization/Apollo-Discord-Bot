@@ -1,19 +1,19 @@
-// Server Info Command
-// Displays detailed information about the server
-
-import { SlashCommandBuilder, EmbedBuilder, ChannelType } from 'discord.js';
+import { ChatInputCommandInteraction, EmbedBuilder, ChannelType, SlashCommandBuilder } from 'discord.js';
+// @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
+    // Server Info Command
+    // Displays detailed information about the server
     data: new SlashCommandBuilder()
         .setName('serverinfo')
         .setDescription('Display information about the server'),
     name: 'serverinfo',
     category: 'utility',
 
-    async execute(interaction) {
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
-            const { guild } = interaction;
+            const guild = interaction.guild!;
 
             // Fetch the guild to ensure we have the most up-to-date info
             await guild.fetch();
@@ -35,10 +35,10 @@ export default {
 
             // Get boost info
             const boostLevel = guild.premiumTier;
-            const boostCount = guild.premiumSubscriptionCount || 0;
+            const boostCount = guild.premiumSubscriptionCount ?? 0;
 
             // Get verification level
-            const verificationLevels = {
+            const verificationLevels: Record<number, string> = {
                 0: 'None',
                 1: 'Low',
                 2: 'Medium',
@@ -47,7 +47,7 @@ export default {
             };
 
             // Get explicit content filter
-            const contentFilterLevels = {
+            const contentFilterLevels: Record<number, string> = {
                 0: 'Disabled',
                 1: 'Members without roles',
                 2: 'All members'
@@ -57,27 +57,27 @@ export default {
             const embed = new EmbedBuilder()
                 .setColor('#3498DB')
                 .setTitle(guild.name)
-                .setThumbnail(guild.iconURL({ dynamic: true, size: 256 }))
+                .setThumbnail(guild.iconURL({ size: 256 }))
                 .addFields(
-                    { 
-                        name: 'General', 
+                    {
+                        name: 'General',
                         value: [
                             `**Owner:** ${owner.user.tag}`,
                             `**Created:** <t:${Math.floor(guild.createdTimestamp / 1000)}:R>`,
                             `**Server ID:** ${guild.id}`
                         ].join('\n'),
-                        inline: false 
+                        inline: false
                     },
-                    { 
-                        name: `Members (${totalMembers})`, 
+                    {
+                        name: `Members (${totalMembers})`,
                         value: [
                             `**Humans:** ${humanCount}`,
                             `**Bots:** ${botCount}`
                         ].join('\n'),
-                        inline: true 
+                        inline: true
                     },
-                    { 
-                        name: `Channels (${guild.channels.cache.size})`, 
+                    {
+                        name: `Channels (${guild.channels.cache.size})`,
                         value: [
                             `**Text:** ${textChannels}`,
                             `**Voice:** ${voiceChannels}`,
@@ -85,32 +85,32 @@ export default {
                             forumChannels > 0 ? `**Forum:** ${forumChannels}` : null,
                             stageChannels > 0 ? `**Stage:** ${stageChannels}` : null
                         ].filter(Boolean).join('\n'),
-                        inline: true 
+                        inline: true
                     },
-                    { 
-                        name: 'Other', 
+                    {
+                        name: 'Other',
                         value: [
                             `**Roles:** ${guild.roles.cache.size}`,
                             `**Emojis:** ${guild.emojis.cache.size}`,
                             `**Stickers:** ${guild.stickers.cache.size}`
                         ].join('\n'),
-                        inline: true 
+                        inline: true
                     },
-                    { 
-                        name: 'Boost Status', 
+                    {
+                        name: 'Boost Status',
                         value: [
                             `**Level:** ${boostLevel}`,
                             `**Boosts:** ${boostCount}`
                         ].join('\n'),
-                        inline: true 
+                        inline: true
                     },
-                    { 
-                        name: 'Security', 
+                    {
+                        name: 'Security',
                         value: [
                             `**Verification:** ${verificationLevels[guild.verificationLevel]}`,
                             `**Content Filter:** ${contentFilterLevels[guild.explicitContentFilter]}`
                         ].join('\n'),
-                        inline: true 
+                        inline: true
                     }
                 )
                 .setTimestamp()
@@ -126,8 +126,8 @@ export default {
                 embed.setDescription(guild.description);
             }
 
-            return interaction.reply({ embeds: [embed] });
-    
+            await interaction.reply({ embeds: [embed] });
+
         } catch (error) {
             const errorMessage = handleDiscordError(error);
             if (interaction.replied || interaction.deferred) {

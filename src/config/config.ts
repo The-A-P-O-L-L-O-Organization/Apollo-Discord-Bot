@@ -122,7 +122,8 @@ const config = {
         enabled: true,
         maxOptions: 10,
         maxDurationHours: 168,
-        defaultDurationHours: 24
+        defaultDurationHours: 24,
+        maxDuration: 168 * 60 * 60 * 1000 // 7 days in ms
     },
 
     // Integration Settings
