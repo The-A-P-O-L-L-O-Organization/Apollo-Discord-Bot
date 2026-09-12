@@ -2,7 +2,7 @@
 // Tests for the strike command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import strikeCommand from '../../src/plugins/moderation/commands/strike.js';
+import strikeCommand from '../../src/plugins/moderation/commands/strike.ts';
 import {
     createMockInteraction,
     createMockUser,
@@ -11,7 +11,7 @@ import {
 } from '../mocks/discord.js';
 
 // Mock the dependencies
-vi.mock('../../src/utils/db.js', () => ({
+vi.mock('../../src/utils/db.ts', () => ({
     getUserData: vi.fn(),
     appendToUserArray: vi.fn(),
     generateId: vi.fn().mockReturnValue('test-strike-id'),
@@ -23,7 +23,7 @@ vi.mock('../../src/utils/modLog.js', () => ({
     fetchMember: vi.fn()
 }));
 
-import { getUserData, appendToUserArray, getGuildData } from '../../src/utils/db.js';
+import { getUserData, appendToUserArray, getGuildData } from '../../src/utils/db.ts';
 import { sendModLog, fetchMember } from '../../src/utils/modLog.js';
 
 describe('Strike Command', () => {

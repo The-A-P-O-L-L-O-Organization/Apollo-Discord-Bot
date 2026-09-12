@@ -160,6 +160,8 @@ export interface LoggingConfig {
         maxSize: string;
         maxFiles: number;
     };
+    defaultEvents: Record<string, boolean>;
+    availableEvents: string[];
 }
 
 export interface RemindersConfig {
@@ -218,6 +220,7 @@ export interface ApolloConfig {
     deleteMessages: boolean;
     warnOnDetection: boolean;
     env: 'development' | 'production' | 'test';
+    podId: string;
     activity: {
         name: string;
         type: string;

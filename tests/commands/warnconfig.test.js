@@ -2,7 +2,7 @@
 // Tests for the warnconfig command functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import warnconfigCommand from '../../src/plugins/moderation/commands/warnconfig.js';
+import warnconfigCommand from '../../src/plugins/moderation/commands/warnconfig.ts';
 import { 
     createMockInteraction, 
     createMockUser, 
@@ -10,7 +10,7 @@ import {
 } from '../mocks/discord.js';
 
 // Mock the db module
-vi.mock('../../src/utils/db.js', () => ({
+vi.mock('../../src/utils/db.ts', () => ({
     getGuildData: vi.fn(),
     setGuildData: vi.fn(),
     updateGuildData: vi.fn((store, guildId, updater) => {
@@ -19,7 +19,7 @@ vi.mock('../../src/utils/db.js', () => ({
 }));
 
 // Mock the config
-vi.mock('../../src/config/config.js', () => ({
+vi.mock('../../src/config/config.ts', () => ({
     config: {
         warnings: {
             thresholds: {
@@ -32,7 +32,7 @@ vi.mock('../../src/config/config.js', () => ({
     }
 }));
 
-import { getGuildData, setGuildData } from '../../src/utils/db.js';
+import { getGuildData, setGuildData } from '../../src/utils/db.ts';
 
 describe('WarnConfig Command', () => {
     let mockInteraction;

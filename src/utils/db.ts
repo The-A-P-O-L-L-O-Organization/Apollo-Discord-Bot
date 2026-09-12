@@ -1,34 +1,20 @@
-// Database Utility - TypeScript migration
-// Unified interface for both PostgreSQL and SQLite
-
+// Unified PG/SQLite interface with adapter pattern
 import { config } from '../config/config.js';
 import { getDb } from '../db/knex.js';
-import type { BetterSQLite3Database } from '../types/database.js';
 
 const USE_PG = config.database.type === 'postgres';
 
-let _pgAdapter: {
-    getGuildData: (store: string, guildId: string) => Promise<Record<string, unknown>>;
-    setGuildData: (store: string, guildId: string, data: Record<string, unknown>) => Promise<void>;
-    updateGuildData: (store: string, guildId: string, updater: (current: Record<string, unknown>) => Record<string, unknown>) => Promise<Record<string, unknown>>;
-    getAllGuildData: (store: string) => Promise<{ guildId: string; data: Record<string, unknown> }[]>;
-    getUserData: (store: string, guildId: string, userId: string) => Promise<Record<string, unknown> | undefined>;
-    setUserData: (store: string, guildId: string, userId: string, data: Record<string, unknown>) => Promise<void>;
-    getAllUserData: (store: string, guildId: string) => Promise<{ userId: string; data: Record<string, unknown> }[]>;
-    getData: (store: string) => Promise<Record<string, unknown>>;
-    setData: (store: string, data: Record<string, unknown>) => Promise<void>;
-} | null = null;
+let _pgAdapter: Record<string, unknown> | null = null;
+let _sqliteDb: { db: unknown; DATA_DIR: string } | null = null;
+let _adapterPromise: Promise<Record<string, unknown>> | null = null;
 
-let _sqliteDb: { db: BetterSQLite3Database; DATA_DIR: string } | null = null;
-let _adapterPromise: Promise<typeof _pgAdapter  > | null = null;
-
-async function getAdapter(): Promise<typeof _pgAdapter | typeof _sqliteDb> {
+async function getAdapter(): Promise<Record<string, unknown>> {
     if (_adapterPromise) { return _adapterPromise; }
     _adapterPromise = _initAdapter();
     return _adapterPromise;
 }
 
-async function _initAdapter(): Promise<typeof _pgAdapter | typeof _sqliteDb> {
+async function _initAdapter(): Promise<Record<string, unknown>> {
     if (USE_PG) {
         const { createAdapter, getGuildData, setGuildData, updateGuildData,
             getAllGuildData, getUserData, setUserData, getAllUserData,
@@ -64,8 +50,8 @@ async function _initAdapter(): Promise<typeof _pgAdapter | typeof _sqliteDb> {
 }
 
 export async function getGuildData(store: string, guildId: string): Promise<Record<string, unknown>> {
-    if (USE_PG) { return (await getAdapter()).getGuildData!(store, guildId); }
-    const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
+    if (USE_PG) { return (await getAdapter()).getGuildData(store, guildId); }
+    const isTest = process.env['NODE_ENV'] === 'test' || process.env['VITEST'] === 'true';
     if (isTest && config.database.type === 'sqlite') {
         const db = await getDb();
         const row = await db('guild_store')
@@ -74,15 +60,15 @@ export async function getGuildData(store: string, guildId: string): Promise<Reco
             .first();
         try { return row ? JSON.parse(row.data) : {}; } catch { return {}; }
     }
-    const { db } = await getAdapter() as { db: BetterSQLite3Database };
-    const stmt = db.prepare('SELECT data FROM guild_store WHERE store = ? AND guild_id = ?');
+    const { db } = await getAdapter() as { db: unknown };
+    const stmt = (db as { prepare: (sql: string) => { get: (store: string, guildId: string) => { data?: string } } }).prepare('SELECT data FROM guild_store WHERE store = ? AND guild_id = ?');
     const row = stmt.get(store, guildId);
-    try { return row ? JSON.parse(row.data) : {}; } catch { return {}; }
+    try { return row?.data ? JSON.parse(row.data) : {}; } catch { return {}; }
 }
 
 export async function setGuildData(store: string, guildId: string, data: Record<string, unknown>): Promise<void> {
-    if (USE_PG) { return (await getAdapter()).setGuildData!(store, guildId, data); }
-    const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
+    if (USE_PG) { return (await getAdapter()).setGuildData(store, guildId, data); }
+    const isTest = process.env['NODE_ENV'] === 'test' || process.env['VITEST'] === 'true';
     if (isTest && config.database.type === 'sqlite') {
         const db = await getDb();
         await db.raw(
@@ -91,12 +77,12 @@ export async function setGuildData(store: string, guildId: string, data: Record<
         );
         return;
     }
-    const { db } = await getAdapter() as { db: BetterSQLite3Database };
-    const stmt = db.prepare('INSERT INTO guild_store (store, guild_id, data) VALUES (?, ?, ?) ON CONFLICT(store, guild_id) DO UPDATE SET data = excluded.data');
+    const { db } = await getAdapter() as { db: unknown };
+    const stmt = (db as { prepare: (sql: string) => { run: (store: string, guildId: string, data: string) => void } }).prepare('INSERT INTO guild_store (store, guild_id, data) VALUES (?, ?, ?) ON CONFLICT(store, guild_id) DO UPDATE SET data = excluded.data');
     stmt.run(store, guildId, JSON.stringify(data));
 }
 
-export async function updateGuildData(store: string, guildId: string, updater: (current: Record<string, unknown>) => Record<string, unknown>): Promise<Record<string, unknown>> {
+export async function updateGuildData(store: string, guildId: string, updater: (data: Record<string, unknown>) => Record<string, unknown>): Promise<Record<string, unknown>> {
     const current = await getGuildData(store, guildId);
     const next = updater(current);
     await setGuildData(store, guildId, next);
@@ -104,29 +90,29 @@ export async function updateGuildData(store: string, guildId: string, updater: (
 }
 
 export async function appendToGuildArray(store: string, guildId: string, key: string, item: unknown): Promise<void> {
-    return updateGuildData(store, guildId, (data: Record<string, unknown>) => {
+    return updateGuildData(store, guildId, (data) => {
         if (!Array.isArray(data[key])) { data[key] = []; }
-        (data[key] as unknown[]).push(item);
+        data[key].push(item);
         return data;
     });
 }
 
 export async function removeFromGuildArray(store: string, guildId: string, key: string, predicate: (item: unknown) => boolean): Promise<number> {
     let removed = 0;
-    await updateGuildData(store, guildId, (data: Record<string, unknown>) => {
+    await updateGuildData(store, guildId, (data) => {
         if (!Array.isArray(data[key])) { return data; }
-        const before = (data[key] as unknown[]).length;
-        data[key] = (data[key] as unknown[]).filter((item) => !predicate(item));
-        removed = before - (data[key] as unknown[]).length;
+        const before = data[key].length;
+        data[key] = data[key].filter((item) => !predicate(item));
+        removed = before - data[key].length;
         return data;
     });
     return removed;
 }
 
-export async function getAllGuildData(store: string): Promise<{ guildId: string; data: Record<string, unknown> }[]> {
-    if (USE_PG) { return (await getAdapter()).getAllGuildData!(store); }
-    const { db } = await getAdapter() as { db: BetterSQLite3Database };
-    const stmt = db.prepare('SELECT guild_id, data FROM guild_store WHERE store = ?');
+export async function getAllGuildData(store: string): Promise<Array<{ guildId: string; data: Record<string, unknown> }>> {
+    if (USE_PG) { return (await getAdapter()).getAllGuildData(store); }
+    const { db } = await getAdapter() as { db: unknown };
+    const stmt = (db as { prepare: (sql: string) => { all: (store: string) => Array<{ guild_id: string; data: string }> } }).prepare('SELECT guild_id, data FROM guild_store WHERE store = ?');
     const rows = stmt.all(store).filter((r) => r.guild_id !== '__global__');
     return rows.map((r) => {
         try { return { guildId: r.guild_id, data: JSON.parse(r.data) }; } catch { return { guildId: r.guild_id, data: {} }; }
@@ -139,24 +125,24 @@ export async function getAllGuildIds(store: string): Promise<string[]> {
         const data = await getAllGuildData(store);
         return data.map(d => d.guildId);
     }
-    const { db } = await getAdapter() as { db: BetterSQLite3Database };
-    const stmt = db.prepare('SELECT guild_id FROM guild_store WHERE store = ? AND guild_id != ?');
+    const { db } = await getAdapter() as { db: unknown };
+    const stmt = (db as { prepare: (sql: string) => { all: (store: string, global: string) => Array<{ guild_id: string }> } }).prepare('SELECT guild_id FROM guild_store WHERE store = ? AND guild_id != ?');
     const rows = stmt.all(store, '__global__');
     return rows.map(r => r.guild_id);
 }
 
 export async function getUserData(store: string, guildId: string, userId: string): Promise<Record<string, unknown> | undefined> {
-    if (USE_PG) { return (await getAdapter()).getUserData!(store, guildId, userId); }
-    const { db } = await getAdapter() as { db: BetterSQLite3Database };
-    const stmt = db.prepare('SELECT data FROM guild_user_store WHERE store = ? AND guild_id = ? AND user_id = ?');
+    if (USE_PG) { return (await getAdapter()).getUserData(store, guildId, userId); }
+    const { db } = await getAdapter() as { db: unknown };
+    const stmt = (db as { prepare: (sql: string) => { get: (store: string, guildId: string, userId: string) => { data?: string } } }).prepare('SELECT data FROM guild_user_store WHERE store = ? AND guild_id = ? AND user_id = ?');
     const row = stmt.get(store, guildId, userId);
-    try { return row ? JSON.parse(row.data) : undefined; } catch { return undefined; }
+    try { return row?.data ? JSON.parse(row.data) : undefined; } catch { return undefined; }
 }
 
 export async function setUserData(store: string, guildId: string, userId: string, data: Record<string, unknown>): Promise<void> {
-    if (USE_PG) { return (await getAdapter()).setUserData!(store, guildId, userId, data); }
-    const { db } = await getAdapter() as { db: BetterSQLite3Database };
-    const stmt = db.prepare('INSERT INTO guild_user_store (store, guild_id, user_id, data) VALUES (?, ?, ?, ?) ON CONFLICT(store, guild_id, user_id) DO UPDATE SET data = excluded.data');
+    if (USE_PG) { return (await getAdapter()).setUserData(store, guildId, userId, data); }
+    const { db } = await getAdapter() as { db: unknown };
+    const stmt = (db as { prepare: (sql: string) => { run: (store: string, guildId: string, userId: string, data: string) => void } }).prepare('INSERT INTO guild_user_store (store, guild_id, user_id, data) VALUES (?, ?, ?, ?) ON CONFLICT(store, guild_id, user_id) DO UPDATE SET data = excluded.data');
     stmt.run(store, guildId, userId, JSON.stringify(data));
 }
 
@@ -176,10 +162,10 @@ export async function removeFromUserArray(store: string, guildId: string, userId
     return removed;
 }
 
-export async function getAllUserData(store: string, guildId: string): Promise<{ userId: string; data: Record<string, unknown> }[]> {
-    if (USE_PG) { return (await getAdapter()).getAllUserData!(store, guildId); }
-    const { db } = await getAdapter() as { db: BetterSQLite3Database };
-    const stmt = db.prepare('SELECT user_id, data FROM guild_user_store WHERE store = ? AND guild_id = ?');
+export async function getAllUserData(store: string, guildId: string): Promise<Array<{ userId: string; data: Record<string, unknown> }>> {
+    if (USE_PG) { return (await getAdapter()).getAllUserData(store, guildId); }
+    const { db } = await getAdapter() as { db: unknown };
+    const stmt = (db as { prepare: (sql: string) => { all: (store: string, guildId: string) => Array<{ user_id: string; data: string }> } }).prepare('SELECT user_id, data FROM guild_user_store WHERE store = ? AND guild_id = ?');
     return stmt.all(store, guildId).map((r) => {
         try { return { userId: r.user_id, data: JSON.parse(r.data) }; } catch { return { userId: r.user_id, data: [] }; }
     });
@@ -219,35 +205,39 @@ export async function close(): Promise<void> {
     if (!USE_PG && _sqliteDb) {
         // Perform final WAL checkpoint before closing
         try {
-            _sqliteDb.db.pragma('wal_checkpoint(TRUNCATE)');
+            (_sqliteDb.db as { pragma: (cmd: string) => void }).pragma('wal_checkpoint(TRUNCATE)');
         } catch {
             // Ignore checkpoint errors on close
         }
-        _sqliteDb.db.close();
+        (_sqliteDb.db as { close: () => void }).close();
         _sqliteDb = null;
     }
 }
 
 // Periodic WAL checkpoint for SQLite (call from main process)
-let _walCheckpointInterval: ReturnType<typeof setInterval> | null = null;
+let _walCheckpointInterval: NodeJS.Timeout | null = null;
 
 export function startWalCheckpointInterval(intervalMs = 5 * 60 * 1000): void {
     if (_walCheckpointInterval) { return; }
     if (USE_PG) { return; } // Only for SQLite
-
+    
     _walCheckpointInterval = setInterval(() => {
         if (_sqliteDb) {
             try {
-                _sqliteDb.db.pragma('wal_checkpoint(TRUNCATE)');
+                (_sqliteDb.db as { pragma: (cmd: string) => void }).pragma('wal_checkpoint(TRUNCATE)');
             } catch (err) {
-                // eslint-disable-next-line no-console
-                console.warn('[DB] WAL checkpoint failed:', (err as Error).message);
+                import('./logger.js').then(({ logger }) => {
+                    logger.warn('[DB] WAL checkpoint failed:', err.message);
+                }).catch(err => {
+                    // eslint-disable-next-line no-console
+                    console.warn('[DB] WAL checkpoint failed (logger import error):', err.message);
+                });
             }
         }
     }, intervalMs);
-
+    
     // Don't prevent process exit
-    if (_walCheckpointInterval) {_walCheckpointInterval.unref();}
+    _walCheckpointInterval.unref();
 }
 
 export function stopWalCheckpointInterval(): void {
