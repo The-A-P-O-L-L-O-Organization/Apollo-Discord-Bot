@@ -67,7 +67,7 @@ export async function checkModeration(content: string): Promise<ModerationResult
             const data = await response.json() as { results: ModerationResult[] };
             return data.results[0] ?? null;
         });
-        
+
         return result ?? null;
     } catch (error) {
         if (error instanceof CircuitBreakerOpenError) {
@@ -81,7 +81,7 @@ export async function checkModeration(content: string): Promise<ModerationResult
 
 export async function checkMessageModeration(content: string): Promise<{ flagged: true; violations: ModerationViolation[] } | null> {
     const result = await checkModeration(content);
-    if (!result || !result.flagged) {return null;}
+    if (!result?.flagged) {return null;}
 
     const violations = Object.entries(result.categories)
         .filter(([, flagged]) => flagged)

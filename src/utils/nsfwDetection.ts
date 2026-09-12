@@ -1,7 +1,8 @@
 // NSFW Detection Utility
 // Scans image attachments for NSFW content using TensorFlow.js
 import { logger } from '../utils/logger.js';
-import { safeFetch, SafeFetchResult } from './safeFetch.js';
+import type { SafeFetchResult } from './safeFetch.js';
+import { safeFetch } from './safeFetch.js';
 import { getGuildData } from './db.js';
 import { createQueue } from '../queue/queue.js';
 import { JobNames } from '../queue/queue.js';
@@ -91,28 +92,28 @@ export async function analyzeImage(imageUrl: string): Promise<Record<string, num
     if (!isNsfwDetectionAvailable()) {
         return null;
     }
-    
+
     try {
         // Download image
         const imageBuffer = await downloadImage(imageUrl);
-        
+
         // Decode image using TensorFlow
         const decodedImage = tfModule.node.decodeImage(imageBuffer, 3);
-        
+
         // Analyze with NSFW model
         const predictions = await model.classify(decodedImage);
-        
+
         // Clean up tensor
         decodedImage.dispose();
-        
+
         // Convert predictions to object
         const result: Record<string, number> = {};
         predictions.forEach((pred: { className: string; probability: number }) => {
             result[pred.className] = pred.probability;
         });
-        
+
         return result;
-        
+
     } catch (error) {
         logger.error({ err: error as Error, msg: '[ERROR] NSFW detection error' });
         return null;
@@ -127,16 +128,16 @@ export async function analyzeImage(imageUrl: string): Promise<Record<string, num
  */
 export function isImageNsfw(predictions: Record<string, number> | null, threshold = 0.6): boolean {
     if (!predictions) {return false;}
-    
+
     // Categories considered NSFW
     const nsfwCategories = ['Porn', 'Sexy', 'Hentai'];
-    
+
     for (const category of nsfwCategories) {
         if (predictions[category] && predictions[category] >= threshold) {
             return true;
         }
     }
-    
+
     return false;
 }
 
@@ -156,12 +157,12 @@ interface MessageLike {
  * @returns Detection result or null
  */
 export async function checkMessageAttachments(
-    guildId: string, 
-    message: MessageLike, 
+    guildId: string,
+    message: MessageLike,
     enabledOverride: boolean | null = null
 ): Promise<{
     detected: boolean;
-    images: Array<{ url: string; name: string; predictions: Record<string, number> }>;
+    images: { url: string; name: string; predictions: Record<string, number> }[];
     shouldDelete: boolean;
     shouldWarn: boolean;
 } | null> {
@@ -171,29 +172,29 @@ export async function checkMessageAttachments(
     if (!enabled || !isNsfwDetectionAvailable()) {
         return null;
     }
-    
+
     // Skip if channel is NSFW and exemption is enabled
     if (config.exemptNsfwChannels && message.channel.nsfw) {
         return null;
     }
-    
+
     // Check if message has image attachments
     const imageAttachments = message.attachments.filter(att => {
         const contentType = att.contentType || '';
         return contentType.startsWith('image/');
     });
-    
+
     if (imageAttachments.size === 0) {
         return null;
     }
-    
-    const nsfwImages: Array<{ url: string; name: string; predictions: Record<string, number> }> = [];
-    
+
+    const nsfwImages: { url: string; name: string; predictions: Record<string, number> }[] = [];
+
     // Analyze each image
     for (const [, attachment] of imageAttachments) {
         try {
             const predictions = await analyzeImage(attachment.url);
-            
+
             if (predictions && isImageNsfw(predictions, config.threshold)) {
                 nsfwImages.push({
                     url: attachment.url ?? '',
@@ -205,7 +206,7 @@ export async function checkMessageAttachments(
             logger.error({ err: error as Error, msg: `[ERROR] Failed to analyze attachment ${attachment.name}` });
         }
     }
-    
+
     if (nsfwImages.length > 0) {
         return {
             detected: true,
@@ -214,7 +215,7 @@ export async function checkMessageAttachments(
             shouldWarn: config.warnOnDetection
         };
     }
-    
+
     return null;
 }
 

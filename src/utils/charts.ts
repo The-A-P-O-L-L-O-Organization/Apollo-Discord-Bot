@@ -16,21 +16,21 @@ export function createBarChart(data: DataPoint[], maxWidth = 20): string {
     if (!data || data.length === 0) {
         return 'No data available';
     }
-    
+
     // Find the maximum value for scaling
     const maxValue = Math.max(...data.map(d => d.value), 1);
-    
+
     const lines = data.map(item => {
         const barLength = Math.round((item.value / maxValue) * maxWidth);
-        
+
         // Create bar using block characters
         const fullBlocks = Math.floor(barLength);
         const bar = '█'.repeat(fullBlocks) + '░'.repeat(maxWidth - fullBlocks);
-        
+
         // Format the line
         return `${item.label.padEnd(15)} ${bar} ${item.value.toLocaleString()}`;
     });
-    
+
     return lines.join('\n');
 }
 
@@ -45,7 +45,7 @@ export function createPercentageBar(value: number, max: number, width = 10): str
     const percentage = Math.min((value / max) * 100, 100);
     const filled = Math.round((percentage / 100) * width);
     const empty = width - filled;
-    
+
     return `${'█'.repeat(filled)}${'░'.repeat(empty)} ${percentage.toFixed(1)}%`;
 }
 
@@ -59,20 +59,20 @@ export function createLineChart(data: DataPoint[], height = 5): string {
     if (!data || data.length === 0) {
         return 'No data available';
     }
-    
+
     const maxValue = Math.max(...data.map(d => d.value), 1);
     const minValue = Math.min(...data.map(d => d.value), 0);
     const range = maxValue - minValue || 1;
-    
+
     const lines: string[] = [];
-    
+
     // Create the chart from top to bottom
     for (let row = height - 1; row >= 0; row--) {
         let line = '';
         for (let i = 0; i < data.length; i++) {
             const normalized = ((data[i].value - minValue) / range) * height;
             const level = Math.round(normalized);
-            
+
             if (level === row) {
                 line += '●';
             } else if (level > row) {
@@ -80,7 +80,7 @@ export function createLineChart(data: DataPoint[], height = 5): string {
             } else {
                 line += ' ';
             }
-            
+
             // Add connector
             if (i < data.length - 1) {
                 line += '─';
@@ -88,12 +88,12 @@ export function createLineChart(data: DataPoint[], height = 5): string {
         }
         lines.push(line);
     }
-    
+
     // Add labels at the bottom
     const labelLine = data.map(d => d.label.charAt(0)).join(' ');
     lines.push('─'.repeat(data.length * 2 - 1));
     lines.push(labelLine);
-    
+
     return lines.join('\n');
 }
 
@@ -106,12 +106,12 @@ export function createSparkline(values: number[]): string {
     if (!values || values.length === 0) {
         return '';
     }
-    
+
     const sparkChars = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
     const max = Math.max(...values);
     const min = Math.min(...values);
     const range = max - min || 1;
-    
+
     return values.map(val => {
         const normalized = (val - min) / range;
         const index = Math.min(Math.floor(normalized * sparkChars.length), sparkChars.length - 1);
@@ -129,9 +129,9 @@ export function createTrendIndicator(current: number, previous: number): string 
     if (previous === 0) {
         return '➡️ New';
     }
-    
+
     const change = ((current - previous) / previous) * 100;
-    
+
     if (change > 5) {
         return `📈 +${change.toFixed(1)}%`;
     } else if (change < -5) {
@@ -151,14 +151,14 @@ export function createTable(data: Record<string, unknown>[], columns: string[]):
     if (!data || data.length === 0) {
         return 'No data available';
     }
-    
+
     const rows = data.map(item => {
         return columns.map(col => String(item[col] || '').substring(0, 15)).join(' │ ');
     });
-    
+
     const header = columns.map(col => col.substring(0, 15)).join(' │ ');
     const separator = '─'.repeat(header.length);
-    
+
     return [header, separator, ...rows].join('\n');
 }
 
@@ -172,7 +172,7 @@ export function formatDuration(ms: number): string {
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
-    
+
     if (days > 0) { return `${days}d ${hours % 24}h`; }
     if (hours > 0) { return `${hours}h ${minutes % 60}m`; }
     if (minutes > 0) { return `${minutes}m ${seconds % 60}s`; }

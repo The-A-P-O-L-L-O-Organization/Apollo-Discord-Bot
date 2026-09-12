@@ -1,7 +1,5 @@
-import { PermissionFlagsBits, EmbedBuilder, ChatInputCommandInteraction, MessageFlags, Role, Channel, GuildBasedChannel } from 'discord.js';
-// @ts-expect-error - JS file not yet migrated
+import { PermissionFlagsBits, EmbedBuilder, ChatInputCommandInteraction, MessageFlags, Role, type Channel, type GuildBasedChannel } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
-// @ts-expect-error - JS file not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 interface EmojiData {
@@ -171,16 +169,17 @@ export default {
                     });
                 }
 
-                if (!channel || !channel.isTextBased()) {
+                if (!channel || !('isTextBased' in channel) || !channel.isTextBased()) {
                     return interaction.reply({
                         content: 'Invalid channel.',
                         flags: MessageFlags.Ephemeral
                     });
                 }
 
+                const textChannel = channel as { messages: { fetch: (id: string) => Promise<unknown> } };
                 let message;
                 try {
-                    message = await channel.messages.fetch(messageId!);
+                    message = await textChannel.messages.fetch(messageId!);
                 } catch {
                     return interaction.reply({
                         content: `Could not find a message with ID \`${messageId}\` in ${channel}.`,
@@ -205,13 +204,13 @@ export default {
                     });
                 }
 
-                const reactionRoles = await getGuildData('reactionroles', guildId);
-                if (!reactionRoles.roles) {
-                    reactionRoles.roles = [];
+                const reactionRoles = await getGuildData('reactionroles', guildId) as Record<string, unknown>;
+                if (!reactionRoles['roles']) {
+                    reactionRoles['roles'] = [];
                 }
 
-                const existingIndex = reactionRoles.roles.findIndex(
-                    rr => rr.messageId === messageId && rr.emoji === emoji.identifier
+                const existingIndex = (reactionRoles['roles'] as Array<Record<string, unknown>>).findIndex(
+                    (rr: Record<string, unknown>) => rr['messageId'] === messageId && rr['emoji'] === emoji.identifier
                 );
 
                 if (existingIndex !== -1) {

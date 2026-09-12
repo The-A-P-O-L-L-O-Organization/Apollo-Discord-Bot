@@ -3,12 +3,9 @@ import { readdirSync, existsSync, rmSync, readFileSync } from 'fs';
 import path, { join, relative, sep } from 'path';
 import { pathToFileURL } from 'url';
 import { Routes } from 'discord.js';
-// @ts-expect-error - JS files not yet migrated
 import { verifyPluginManifest, verifyPluginFile } from '../utils/manifest.js';
 import { WorkerHost } from './worker/workerHost.js';
-// @ts-expect-error - JS files not yet migrated
 import { parsePluginManifest } from './worker/pluginManifest.js';
-// @ts-expect-error - dynamic import for commandModuleCache
 import { commandModuleCache } from '../queue/jobs/processCommand.js';
 import type { Client, REST } from 'discord.js';
 import type { EventBusImpl } from '../core/EventBus.js';

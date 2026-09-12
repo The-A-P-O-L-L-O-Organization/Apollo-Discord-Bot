@@ -158,9 +158,9 @@ export function traceMiddleware(): (req: unknown, res: unknown, next: () => void
         const headers = (req.headers as Record<string, string>) ?? {};
         const traceId = headers['x-trace-id'] ?? headers['traceparent']?.split('-')[1];
         const parentSpanId = headers['x-parent-span-id'];
-        
+
         const ctx = createTraceContext({ traceId, parentSpanId });
-        
+
         // Add request info to span
         ctx.attributes = {
             'http.method': req.method,
@@ -168,7 +168,7 @@ export function traceMiddleware(): (req: unknown, res: unknown, next: () => void
             'http.route': req.route?.path ?? req.path,
             'http.user_agent': headers['user-agent']
         };
-        
+
         // Run handler with trace context
         traceContext.run(ctx, () => {
             // Add trace headers to response
@@ -197,7 +197,7 @@ export function traceInteraction<T extends Record<string, unknown>>(
         const customId = interaction.customId as string | undefined;
         const traceId = customId?.split(':')[0];
         const parentSpanId = customId?.split(':')[1];
-        
+
         const ctx = createTraceContext({ traceId, parentSpanId });
         ctx.attributes = {
             'discord.interaction.type': interaction.type,
@@ -206,7 +206,7 @@ export function traceInteraction<T extends Record<string, unknown>>(
             'discord.channel.id': interaction.channelId,
             'discord.user.id': interaction.user?.id
         };
-        
+
         return traceContext.run(ctx, () => handler(interaction));
     };
 }
@@ -223,14 +223,14 @@ export function traceJob<T extends { data?: Record<string, unknown>; name: strin
         // Extract trace context from job data
         const traceId = job.data?.traceId as string | undefined;
         const parentSpanId = job.data?.spanId as string | undefined;
-        
+
         const ctx = createTraceContext({ traceId, parentSpanId });
         ctx.attributes = {
             'job.name': job.name,
             'job.id': job.id,
             'job.queue': job.queueName
         };
-        
+
         return traceContext.run(ctx, () => processor(job));
     };
 }

@@ -5,7 +5,8 @@ import { logger } from './logger.js';
 import { getData, setData } from './db.js';
 import { config } from '../config/config.js';
 import { getLockRedis, withLock } from './lock.js';
-import { Client, Guild } from 'discord.js';
+import type { Client} from 'discord.js';
+import { Guild } from 'discord.js';
 
 let client: Client | null = null;
 let schedulerInterval: NodeJS.Timeout | null = null;
@@ -174,7 +175,7 @@ async function processTempbanExpiry(tempban: TempbanData): Promise<void> {
  */
 export async function addTempban(tempbanData: TempbanData): Promise<void> {
     const data = getData('tempbans') as TempbansData | null;
-    if (!data || !data.tempbans) {
+    if (!data?.tempbans) {
         data.tempbans = [];
     }
 

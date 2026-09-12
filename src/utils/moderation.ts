@@ -34,7 +34,7 @@ export function canModerate(
     moderator: MemberLike | null,
     target: MemberLike | null
 ): ModerationResult {
-    if (!moderator || !moderator.id) {
+    if (!moderator?.id) {
         return { ok: false, reason: 'Cannot verify moderator identity.' };
     }
 

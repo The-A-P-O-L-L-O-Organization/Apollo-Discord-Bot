@@ -8,12 +8,12 @@
  */
 export function parseDuration(str: string): number | null {
     const match = str.match(/^(\d+)([smhd])$/i);
-    if (!match || !match[1] || !match[2]) {
+    if (!match?.[1] || !match[2]) {
         return null;
     }
-    
-    const value = parseInt(match[1]!, 10);
-    const unit = match[2]!.toLowerCase();
+
+    const value = parseInt(match[1], 10);
+    const unit = match[2].toLowerCase();
 
     switch (unit) {
     case 's': return value * 1000;

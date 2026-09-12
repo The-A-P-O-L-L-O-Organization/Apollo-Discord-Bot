@@ -1,5 +1,6 @@
 import { logger } from '../utils/logger.js';
-import { EmbedBuilder, Client, User, type TextBasedChannel } from 'discord.js';
+import type { Client} from 'discord.js';
+import { EmbedBuilder, User, type TextBasedChannel } from 'discord.js';
 import { getData, setData } from './db.js';
 import { config } from '../config/config.js';
 import { getLockRedis, withLock } from './lock.js';
@@ -55,10 +56,10 @@ async function loadRemindersFromDatabase(): Promise<void> {
  */
 export async function initReminderScheduler(discordClient: Client): Promise<void> {
     client = discordClient;
-    
+
     // Load reminders from database on startup
     await loadRemindersFromDatabase();
-    
+
     schedulerInterval = setInterval(async () => {
         const redis = await getLockRedis();
         if (redis) {
@@ -68,9 +69,9 @@ export async function initReminderScheduler(discordClient: Client): Promise<void
             await checkReminders();
         }
     }, config.reminders.checkInterval);
-    
+
     logger.info({ msg: `[INFO] Reminder scheduler started (checking every ${config.reminders.checkInterval / 1000}s)` });
-    
+
     // Run an immediate check
     checkReminders().catch(err => logger.error({ err: err as Error, msg: '[ERROR] Reminder check failed' }));
 }
@@ -91,43 +92,43 @@ export function stopReminderScheduler(): void {
  */
 async function checkReminders(): Promise<void> {
     if (!client) {return;}
-    
+
     const startTime = Date.now();
-    
+
     try {
         const data = await getData('reminders');
         const reminders = data.reminders || [];
         const now = Date.now();
-        
+
         // Find due reminders
         const dueReminders = reminders.filter(r => r.remindAt <= now);
-        
+
         if (dueReminders.length === 0) {
             performanceStats.checksPerformed++;
             performanceStats.lastCheckTime = Date.now() - startTime;
             performanceStats.totalCheckTime += performanceStats.lastCheckTime;
             return;
         }
-        
+
         // Process each due reminder
         for (const reminder of dueReminders) {
             await sendReminder(reminder);
         }
-        
+
         // Remove sent reminders
         data.reminders = reminders.filter(r => r.remindAt > now);
         await setData('reminders', data);
-        
+
         // Update performance stats
         performanceStats.checksPerformed++;
         performanceStats.remindersSent += dueReminders.length;
         performanceStats.lastCheckTime = Date.now() - startTime;
         performanceStats.totalCheckTime += performanceStats.lastCheckTime;
-        
+
         if (dueReminders.length > 0) {
             logger.info({ msg: `[INFO] Sent ${dueReminders.length} reminder(s) in ${performanceStats.lastCheckTime}ms` });
         }
-        
+
     } catch (error) {
         performanceStats.errors++;
         logger.error({ err: error as Error, msg: '[ERROR] Reminder scheduler error' });
@@ -152,7 +153,7 @@ async function sendReminder(reminder: Reminder): Promise<void> {
             })
             .setTimestamp()
             .setFooter({ text: `Reminder ID: ${reminder.id}` });
-        
+
         // Try to DM the user first
         try {
             const user = await client.users.fetch(reminder.userId);
@@ -162,7 +163,7 @@ async function sendReminder(reminder: Reminder): Promise<void> {
             // DM failed, try to send in the original channel
             logger.info({ msg: `[INFO] Could not DM user ${reminder.userId}, trying channel` });
         }
-        
+
         // Try to send in the original channel
         if (reminder.channelId) {
             try {
@@ -177,7 +178,7 @@ async function sendReminder(reminder: Reminder): Promise<void> {
                 logger.error({ err: channelError as Error, msg: `[ERROR] Could not send reminder to channel ${reminder.channelId}` });
             }
         }
-        
+
     } catch (error) {
         logger.error({ err: error as Error, msg: `[ERROR] Failed to send reminder ${reminder.id}` });
     }
@@ -190,13 +191,13 @@ async function sendReminder(reminder: Reminder): Promise<void> {
  */
 export async function addReminder(reminderData: Reminder): Promise<Reminder> {
     const data = await getData('reminders') as RemindersData | null;
-    if (!data || !data.reminders) {
+    if (!data?.reminders) {
         data.reminders = [];
     }
-    
+
     data.reminders.push(reminderData);
     await setData('reminders', data);
-    
+
     return reminderData;
 }
 
@@ -220,16 +221,16 @@ export async function getUserReminders(userId: string): Promise<Reminder[]> {
 export async function cancelReminder(reminderId: string, userId: string): Promise<boolean> {
     const data = await getData('reminders') as RemindersData | null;
     if (!data?.reminders) {return false;}
-    
+
     const index = data.reminders.findIndex(
         r => r.id === reminderId && r.userId === userId
     );
-    
+
     if (index === -1) {return false;}
-    
+
     data.reminders.splice(index, 1);
     await setData('reminders', data);
-    
+
     return true;
 }
 
@@ -238,10 +239,10 @@ export async function cancelReminder(reminderId: string, userId: string): Promis
  * @returns Performance stats
  */
 export function getReminderSchedulerStats(): PerformanceStats & { averageCheckTime: number; uptime: number } {
-    const avgCheckTime = performanceStats.checksPerformed > 0 
-        ? performanceStats.totalCheckTime / performanceStats.checksPerformed 
+    const avgCheckTime = performanceStats.checksPerformed > 0
+        ? performanceStats.totalCheckTime / performanceStats.checksPerformed
         : 0;
-    
+
     return {
         ...performanceStats,
         averageCheckTime: Math.round(avgCheckTime),
@@ -257,10 +258,10 @@ export function getReminderSchedulerStats(): PerformanceStats & { averageCheckTi
 export function parseTimeString(timeStr: string): number | null {
     const match = timeStr.match(/^(\d+)([smhdw])$/i);
     if (!match) {return null;}
-    
+
     const value = parseInt(match[1]);
     const unit = match[2].toLowerCase();
-    
+
     const multipliers: Record<string, number> = {
         's': 1000,           // seconds
         'm': 60000,          // minutes
@@ -268,6 +269,6 @@ export function parseTimeString(timeStr: string): number | null {
         'd': 86400000,       // days
         'w': 604800000       // weeks
     };
-    
+
     return value * (multipliers[unit] ?? 0);
 }

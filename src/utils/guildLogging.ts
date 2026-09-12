@@ -105,7 +105,7 @@ export function createMessageDeleteEmbed(message: Message): EmbedBuilder {
         )
         .setTimestamp()
         .setFooter({ text: 'Message Deleted' });
-    
+
     // Add attachment info if any
     if (message.attachments.size > 0) {
         const attachmentList = Array.from(message.attachments.values()).map(a => a.url).join('\n');
@@ -115,12 +115,12 @@ export function createMessageDeleteEmbed(message: Message): EmbedBuilder {
             inline: false
         });
     }
-    
+
     // Add author thumbnail if available
     if (message.author) {
         embed.setThumbnail(message.author.displayAvatarURL());
     }
-    
+
     return embed;
 }
 
@@ -143,11 +143,11 @@ export function createMessageEditEmbed(oldMessage: Message, newMessage: Message)
         )
         .setTimestamp()
         .setFooter({ text: `Message ID: ${newMessage.id}` });
-    
+
     if (newMessage.author) {
         embed.setThumbnail(newMessage.author.displayAvatarURL());
     }
-    
+
     return embed;
 }
 
@@ -159,7 +159,7 @@ export function createMessageEditEmbed(oldMessage: Message, newMessage: Message)
 export function createMemberJoinEmbed(member: GuildMember): EmbedBuilder {
     const accountAge = Date.now() - member.user.createdTimestamp;
     const daysOld = Math.floor(accountAge / (1000 * 60 * 60 * 24));
-    
+
     const embed = new EmbedBuilder()
         .setColor('#4ECDC4')
         .setTitle('[Join] Member Joined')
@@ -174,7 +174,7 @@ export function createMemberJoinEmbed(member: GuildMember): EmbedBuilder {
         )
         .setTimestamp()
         .setFooter({ text: 'Member Joined' });
-    
+
     // Flag new accounts
     if (daysOld < 7) {
         embed.addFields({
@@ -183,7 +183,7 @@ export function createMemberJoinEmbed(member: GuildMember): EmbedBuilder {
             inline: false
         });
     }
-    
+
     return embed;
 }
 
@@ -196,13 +196,13 @@ export function createMemberLeaveEmbed(member: GuildMember): EmbedBuilder {
     const joinedAt = member.joinedTimestamp;
     const timeInServer = joinedAt ? Date.now() - joinedAt : null;
     const daysInServer = timeInServer ? Math.floor(timeInServer / (1000 * 60 * 60 * 24)) : 'Unknown';
-    
+
     // Get roles (excluding @everyone)
     const roles = Array.from(member.roles.cache.values())
         .filter(r => r.id !== member.guild.id)
         .map(r => r.name)
         .join(', ') || 'None';
-    
+
     const embed = new EmbedBuilder()
         .setColor('#FF6B6B')
         .setTitle('[Leave] Member Left')
@@ -218,7 +218,7 @@ export function createMemberLeaveEmbed(member: GuildMember): EmbedBuilder {
         )
         .setTimestamp()
         .setFooter({ text: 'Member Left' });
-    
+
     return embed;
 }
 
@@ -231,15 +231,15 @@ export function createMemberLeaveEmbed(member: GuildMember): EmbedBuilder {
 export function createRoleChangeEmbed(oldMember: GuildMember, newMember: GuildMember): EmbedBuilder | null {
     const oldRoles = oldMember.roles.cache;
     const newRoles = newMember.roles.cache;
-    
+
     const addedRoles = Array.from(newRoles.values()).filter(r => !oldRoles.has(r.id));
     const removedRoles = Array.from(oldRoles.values()).filter(r => !newRoles.has(r.id));
-    
+
     // No role changes
     if (addedRoles.length === 0 && removedRoles.length === 0) {
         return null;
     }
-    
+
     const embed = new EmbedBuilder()
         .setColor('#9B59B6')
         .setTitle('[Role] Role Update')
@@ -251,7 +251,7 @@ export function createRoleChangeEmbed(oldMember: GuildMember, newMember: GuildMe
         )
         .setTimestamp()
         .setFooter({ text: 'Role Update' });
-    
+
     if (addedRoles.length > 0) {
         embed.addFields({
             name: '+ Roles Added',
@@ -259,7 +259,7 @@ export function createRoleChangeEmbed(oldMember: GuildMember, newMember: GuildMe
             inline: false
         });
     }
-    
+
     if (removedRoles.length > 0) {
         embed.addFields({
             name: '- Roles Removed',
@@ -267,7 +267,7 @@ export function createRoleChangeEmbed(oldMember: GuildMember, newMember: GuildMe
             inline: false
         });
     }
-    
+
     return embed;
 }
 
@@ -280,11 +280,11 @@ export function createRoleChangeEmbed(oldMember: GuildMember, newMember: GuildMe
 export function createVoiceChangeEmbed(oldState: VoiceState, newState: VoiceState): EmbedBuilder | null {
     const member = newState.member || oldState.member;
     if (!member) { return null; }
-    
+
     let title: string;
     let description: string;
     let color: import('discord.js').ColorResolvable;
-    
+
     if (!oldState.channel && newState.channel) {
         // Joined voice channel
         title = '[Voice] Voice Channel Joined';
@@ -304,7 +304,7 @@ export function createVoiceChangeEmbed(oldState: VoiceState, newState: VoiceStat
         // Other state change (mute, deafen, etc.) - skip for now
         return null;
     }
-    
+
     const embed = new EmbedBuilder()
         .setColor(color)
         .setTitle(title)
@@ -316,14 +316,14 @@ export function createVoiceChangeEmbed(oldState: VoiceState, newState: VoiceStat
         )
         .setTimestamp()
         .setFooter({ text: 'Voice Update' });
-    
+
     if (oldState.channel) {
         embed.addFields({ name: 'From', value: oldState.channel.name, inline: true });
     }
-    
+
     if (newState.channel) {
         embed.addFields({ name: 'To', value: newState.channel.name, inline: true });
     }
-    
+
     return embed;
 }

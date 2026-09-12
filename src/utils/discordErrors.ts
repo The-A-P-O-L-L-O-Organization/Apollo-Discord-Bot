@@ -12,11 +12,11 @@ export const DiscordErrorCodes = {
     // Permission/Access errors
     MISSING_PERMISSIONS: 50013,
     MISSING_ACCESS: 50001,
-    
+
     // Interaction errors
     UNKNOWN_INTERACTION: 10062,
     INTERACTION_ALREADY_ACKNOWLEDGED: 40060,
-    
+
     // Validation errors
     INVALID_FORM_BODY: 50035,
     MAXIMUM_GUILDS: 30013,
@@ -44,10 +44,10 @@ export const DiscordErrorCodes = {
     MAXIMUM_NUMBER_OF_AUTO_MOD_RULES: 30071,
     MAXIMUM_NUMBER_OF_AUTO_MOD_ACTIONS: 30072,
     MAXIMUM_NUMBER_OF_AUTO_MOD_ACTION_METADATA: 30073,
-    
+
     // Rate limiting
     RATE_LIMITED: 429,
-    
+
     // Other common errors
     UNKNOWN_MESSAGE: 10008,
     UNKNOWN_CHANNEL: 10003,
@@ -128,36 +128,36 @@ interface DiscordAPIError {
  */
 export function handleDiscordError(error: unknown, options: { silent?: boolean } = {}): string | null {
     const { silent = false } = options;
-    
+
     // Check if it's a DiscordAPIError
     if (!error || typeof error !== 'object' || !('code' in error)) {
         return 'An unexpected error occurred.';
     }
-    
+
     const discordError = error as DiscordAPIError;
     const code = discordError.code;
-    
+
     // Silent handling for unknown interaction (already acknowledged or expired)
     if (code === DiscordErrorCodes.UNKNOWN_INTERACTION && silent) {
         return null;
     }
-    
+
     // Return user-friendly message if we have one
     if (ERROR_MESSAGES[code]) {
         return ERROR_MESSAGES[code];
     }
-    
+
     // For validation errors (50035), try to extract details
     if (code === DiscordErrorCodes.INVALID_FORM_BODY && discordError.errors) {
         const details = extractValidationErrors(discordError.errors);
         return `Invalid input: ${details}`;
     }
-    
+
     // For rate limiting, include retry-after if available
     if (code === DiscordErrorCodes.RATE_LIMITED && discordError.retryAfter) {
         return `Rate limited. Please try again in ${Math.ceil(discordError.retryAfter / 1000)} seconds.`;
     }
-    
+
     // Generic fallback
     return `Discord API error (${code}): ${discordError.message || 'Unknown error'}`;
 }
@@ -169,19 +169,19 @@ export function handleDiscordError(error: unknown, options: { silent?: boolean }
  */
 function extractValidationErrors(errors: Record<string, unknown>): string {
     const messages: string[] = [];
-    
+
     for (const [field, fieldErrors] of Object.entries(errors)) {
         if (Array.isArray(fieldErrors)) {
             for (const fieldError of fieldErrors) {
                 if (fieldError && typeof fieldError === 'object' && '_errors' in fieldError && Array.isArray((fieldError as Record<string, unknown>)['_errors'])) {
-                    for (const err of (fieldError as { _errors: Array<{ message?: string; code?: string }> })['_errors']) {
+                    for (const err of (fieldError as { _errors: { message?: string; code?: string }[] })._errors) {
                         messages.push(`${field}: ${err.message || err.code}`);
                     }
                 }
             }
         }
     }
-    
+
     return messages.length > 0 ? messages.join('; ') : 'Validation failed';
 }
 
@@ -213,14 +213,14 @@ export async function safeReply(
 ): Promise<boolean> {
     try {
         if (interaction.replied || interaction.deferred) {
-            await interaction.editReply({ 
+            await interaction.editReply({
                 embeds: [createErrorEmbed(message)],
-                components: [] 
+                components: []
             });
         } else {
-            await interaction.reply({ 
+            await interaction.reply({
                 embeds: [createErrorEmbed(message)],
-                flags: ephemeral ? MessageFlags.Ephemeral : undefined 
+                flags: ephemeral ? MessageFlags.Ephemeral : undefined
             });
         }
         return true;
@@ -248,9 +248,9 @@ export async function safeFollowUp(
     ephemeral = true
 ): Promise<boolean> {
     try {
-        await interaction.followUp({ 
+        await interaction.followUp({
             embeds: [createErrorEmbed(message)],
-            flags: ephemeral ? MessageFlags.Ephemeral : undefined 
+            flags: ephemeral ? MessageFlags.Ephemeral : undefined
         });
         return true;
     } catch (error) {

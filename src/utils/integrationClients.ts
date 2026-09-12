@@ -18,16 +18,16 @@ interface TwitchTokenResponse {
 }
 
 interface TwitchStreamResponse {
-    data: Array<{
+    data: {
         title: string;
         game_name: string;
         viewer_count: number;
         thumbnail_url: string;
-    }>;
+    }[];
 }
 
 interface YoutubeSearchResponse {
-    items?: Array<{
+    items?: {
         snippet: {
             title: string;
             description: string;
@@ -40,7 +40,7 @@ interface YoutubeSearchResponse {
         id: {
             videoId: string;
         };
-    }>;
+    }[];
 }
 
 // Create circuit breakers for each service
@@ -66,12 +66,12 @@ interface YoutubeVideoResult {
 
 interface RssFeedResult {
     feedTitle: string;
-    items: Array<{
+    items: {
         title: string;
         link: string;
         guid: string;
         pubDate: string;
-    }>;
+    }[];
 }
 
 /**
@@ -216,7 +216,7 @@ function parseFeedXml(xml: string): RssFeedResult {
     let feedTitle = '';
 
     const titleMatch = xml.match(/<title[^>]*>([^<]+)<\/title>/);
-    if (titleMatch && titleMatch[1]) { feedTitle = titleMatch[1]; }
+    if (titleMatch?.[1]) { feedTitle = titleMatch[1]; }
 
     const isAtom = xml.includes('<feed ');
 
@@ -225,7 +225,7 @@ function parseFeedXml(xml: string): RssFeedResult {
         let entryMatch: RegExpExecArray | null;
         while ((entryMatch = entryRegex.exec(xml)) !== null) {
             const entry = entryMatch[1];
-            if (!entry) continue;
+            if (!entry) {continue;}
             const title = entry.match(/<title[^>]*>([^<]+)<\/title>/)?.[1] || '';
             const link = entry.match(/<link[^>]+href="([^"]+)"/)?.[1] || '';
             const guid = entry.match(/<id[^>]*>([^<]+)<\/id>/)?.[1] || '';
@@ -237,7 +237,7 @@ function parseFeedXml(xml: string): RssFeedResult {
         let itemMatch: RegExpExecArray | null;
         while ((itemMatch = itemRegex.exec(xml)) !== null) {
             const entry = itemMatch[1];
-            if (!entry) continue;
+            if (!entry) {continue;}
             const title = entry.match(/<title[^>]*>([^<]+)<\/title>/)?.[1] || '';
             const link = entry.match(/<link[^>]*>([^<]+)<\/link>/)?.[1] || '';
             const guid = entry.match(/<guid[^>]*>([^<]+)<\/guid>/)?.[1] || '';

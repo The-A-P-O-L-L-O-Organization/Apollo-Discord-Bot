@@ -11,7 +11,13 @@ export const SECURITY_LOG_ENTRY_KEYS = [
     'userId',
     'targetId',
     'reason',
-    'requestId'
+    'requestId',
+    'capability',
+    'grantedCapabilities',
+    'error',
+    'exitCode',
+    'signal',
+    'riskLevel'
 ] as const;
 
 type SecurityLogKey = typeof SECURITY_LOG_ENTRY_KEYS[number];
@@ -25,6 +31,12 @@ interface SecurityLogEntry {
     targetId: string | null;
     reason: string | null;
     requestId: string | null;
+    capability: string | null;
+    grantedCapabilities: string[] | null;
+    error: string | null;
+    exitCode: number | null;
+    signal: string | null;
+    riskLevel: string | null;
 }
 
 export function logSecurityEvent(fields: Partial<SecurityLogEntry>): SecurityLogEntry {
@@ -36,7 +48,13 @@ export function logSecurityEvent(fields: Partial<SecurityLogEntry>): SecurityLog
         userId: fields.userId ?? null,
         targetId: fields.targetId ?? null,
         reason: fields.reason ?? null,
-        requestId: fields.requestId ?? null
+        requestId: fields.requestId ?? null,
+        capability: fields.capability ?? null,
+        grantedCapabilities: fields.grantedCapabilities ?? null,
+        error: fields.error ?? null,
+        exitCode: fields.exitCode ?? null,
+        signal: fields.signal ?? null,
+        riskLevel: fields.riskLevel ?? null
     };
 
     logger.info(`[SECURITY] ${JSON.stringify(entry)}`);

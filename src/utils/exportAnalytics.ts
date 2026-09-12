@@ -71,14 +71,14 @@ interface AnalyticsSummary {
  * @param {ExportOptions} options - Export options
  * @returns {Promise<ExportResult>} Export result with file path
  */
-export async function exportAnalytics(guildId: string, format: string = 'csv', options: ExportOptions = {}): Promise<ExportResult> {
+export async function exportAnalytics(guildId: string, format = 'csv', options: ExportOptions = {}): Promise<ExportResult> {
     const types = options.types || ['commands', 'messages', 'violations', 'modactions', 'members'];
     const days = options.days || 30;
-    
+
     const cutoffDate = getDateString(Date.now() - (days * 24 * 60 * 60 * 1000));
-    
+
     const exportData: Record<string, unknown> = {};
-    
+
     // Collect data for each requested type
     for (const type of types) {
         switch (type) {
@@ -99,13 +99,13 @@ export async function exportAnalytics(guildId: string, format: string = 'csv', o
             break;
         }
     }
-    
+
     // Generate filename
     const timestamp = Date.now();
     const filename = `analytics-${guildId}-${timestamp}.${format}`;
     mkdirSync(EXPORT_DIR, { recursive: true });
     const filepath = join(EXPORT_DIR, filename);
-    
+
     // Export based on format
     if (format === 'json') {
         writeFileSync(filepath, JSON.stringify(exportData, null, 2));
@@ -115,7 +115,7 @@ export async function exportAnalytics(guildId: string, format: string = 'csv', o
     } else {
         throw new Error(`Unsupported format: ${format}`);
     }
-    
+
     return {
         filename,
         filepath,
@@ -142,7 +142,7 @@ export function cleanupExport(filepath: string): void {
 async function exportCommandData(guildId: string, cutoffDate: string): Promise<CommandEntry[]> {
     const data = await getGuildData('analytics-commands', guildId) as Record<string, CommandEntry>;
     const results: CommandEntry[] = [];
-    
+
     for (const key in data) {
         const entry = data[key];
         if (entry && entry.date >= cutoffDate) {
@@ -154,7 +154,7 @@ async function exportCommandData(guildId: string, cutoffDate: string): Promise<C
             });
         }
     }
-    
+
     return results;
 }
 
@@ -164,7 +164,7 @@ async function exportCommandData(guildId: string, cutoffDate: string): Promise<C
 async function exportMessageData(guildId: string, cutoffDate: string): Promise<MessageEntry[]> {
     const data = await getGuildData('analytics-messages', guildId) as Record<string, MessageEntry>;
     const results: MessageEntry[] = [];
-    
+
     for (const key in data) {
         const entry = data[key];
         if (entry && entry.hour >= cutoffDate) {
@@ -176,7 +176,7 @@ async function exportMessageData(guildId: string, cutoffDate: string): Promise<M
             });
         }
     }
-    
+
     return results;
 }
 
@@ -186,7 +186,7 @@ async function exportMessageData(guildId: string, cutoffDate: string): Promise<M
 async function exportViolationData(guildId: string, cutoffDate: string): Promise<ViolationEntry[]> {
     const data = await getGuildData('analytics-violations', guildId) as Record<string, ViolationEntry>;
     const results: ViolationEntry[] = [];
-    
+
     for (const key in data) {
         const entry = data[key];
         if (entry && entry.date >= cutoffDate) {
@@ -197,7 +197,7 @@ async function exportViolationData(guildId: string, cutoffDate: string): Promise
             });
         }
     }
-    
+
     return results;
 }
 
@@ -207,7 +207,7 @@ async function exportViolationData(guildId: string, cutoffDate: string): Promise
 async function exportModActionData(guildId: string, cutoffDate: string): Promise<ModActionEntry[]> {
     const data = await getGuildData('analytics-modactions', guildId) as Record<string, ModActionEntry>;
     const results: ModActionEntry[] = [];
-    
+
     for (const key in data) {
         const entry = data[key];
         if (entry && entry.date >= cutoffDate) {
@@ -219,7 +219,7 @@ async function exportModActionData(guildId: string, cutoffDate: string): Promise
             });
         }
     }
-    
+
     return results;
 }
 
@@ -229,14 +229,14 @@ async function exportModActionData(guildId: string, cutoffDate: string): Promise
 async function exportMemberData(guildId: string, cutoffDate: string): Promise<MemberEntry[]> {
     const data = await getGuildData('analytics-members', guildId) as Record<string, MemberEntry>;
     const results: MemberEntry[] = [];
-    
+
     for (const key in data) {
         const entry = data[key];
         if (entry && key >= cutoffDate) {
             results.push(entry);
         }
     }
-    
+
     return results.sort((a, b) => a.date.localeCompare(b.date));
 }
 
@@ -245,7 +245,7 @@ async function exportMemberData(guildId: string, cutoffDate: string): Promise<Me
  */
 function convertToCSV(data: Record<string, unknown>): string {
     const sections: string[] = [];
-    
+
     // Commands section
     const commandsData = data['commands'];
     if (commandsData && Array.isArray(commandsData) && commandsData.length > 0) {
@@ -256,7 +256,7 @@ function convertToCSV(data: Record<string, unknown>): string {
         }
         sections.push('');
     }
-    
+
     // Messages section
     const messagesData = data['messages'];
     if (messagesData && Array.isArray(messagesData) && messagesData.length > 0) {
@@ -267,7 +267,7 @@ function convertToCSV(data: Record<string, unknown>): string {
         }
         sections.push('');
     }
-    
+
     // Violations section
     const violationsData = data['violations'];
     if (violationsData && Array.isArray(violationsData) && violationsData.length > 0) {
@@ -278,7 +278,7 @@ function convertToCSV(data: Record<string, unknown>): string {
         }
         sections.push('');
     }
-    
+
     // Mod actions section
     const modactionsData = data['modactions'];
     if (modactionsData && Array.isArray(modactionsData) && modactionsData.length > 0) {
@@ -289,7 +289,7 @@ function convertToCSV(data: Record<string, unknown>): string {
         }
         sections.push('');
     }
-    
+
     // Members section
     const membersData = data['members'];
     if (membersData && Array.isArray(membersData) && membersData.length > 0) {
@@ -300,7 +300,7 @@ function convertToCSV(data: Record<string, unknown>): string {
         }
         sections.push('');
     }
-    
+
     return sections.join('\n');
 }
 
@@ -330,7 +330,7 @@ function getHourString(timestamp: number): string {
  */
 export async function getAnalyticsSummary(guildId: string, days = 7): Promise<AnalyticsSummary> {
     const cutoffDate = getDateString(Date.now() - (days * 24 * 60 * 60 * 1000));
-    
+
     // Count commands
     const commands = await getGuildData('analytics-commands', guildId) as Record<string, CommandEntry>;
     let totalCommands = 0;
@@ -340,7 +340,7 @@ export async function getAnalyticsSummary(guildId: string, days = 7): Promise<An
             totalCommands += entry.count;
         }
     }
-    
+
     // Count messages
     const messages = await getGuildData('analytics-messages', guildId) as Record<string, MessageEntry>;
     let totalMessages = 0;
@@ -351,7 +351,7 @@ export async function getAnalyticsSummary(guildId: string, days = 7): Promise<An
             totalMessages += entry.count;
         }
     }
-    
+
     // Count violations
     const violations = await getGuildData('analytics-violations', guildId) as Record<string, ViolationEntry>;
     let totalViolations = 0;
@@ -361,7 +361,7 @@ export async function getAnalyticsSummary(guildId: string, days = 7): Promise<An
             totalViolations += entry.count;
         }
     }
-    
+
     // Count mod actions
     const modActions = await getGuildData('analytics-modactions', guildId) as Record<string, ModActionEntry>;
     let totalModActions = 0;
@@ -371,7 +371,7 @@ export async function getAnalyticsSummary(guildId: string, days = 7): Promise<An
             totalModActions += entry.count;
         }
     }
-    
+
     // Get member changes
     const members = await getGuildData('analytics-members', guildId) as Record<string, MemberEntry>;
     let totalJoins = 0;
@@ -385,7 +385,7 @@ export async function getAnalyticsSummary(guildId: string, days = 7): Promise<An
             latestTotal = entry.totalMembers;
         }
     }
-    
+
     return {
         period: `${days} days`,
         commands: totalCommands,

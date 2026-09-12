@@ -1,10 +1,8 @@
-// @ts-expect-error - JS file not yet migrated
 import { safeError } from '../../../utils/safeError.js';
-// @ts-expect-error - JS file not yet migrated
 import { requireOwner } from '../../../utils/accessControl.js';
-// @ts-expect-error - JS file not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
-import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
+import { ChatInputCommandInteraction, MessageFlags, EmbedBuilder } from 'discord.js';
+import type { PluginManifest } from '../../../types/plugin.js';
 
 export default {
     name: 'plugin',
@@ -115,7 +113,7 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction) {
         try {
-            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+            await interaction.deferReply({ flags: MessageFlags.Ephemeral as number });
             const denial = await requireOwner(interaction);
             if (denial) {
                 return interaction.editReply(denial);
@@ -153,7 +151,7 @@ export default {
                     ],
                     timestamp: new Date().toISOString()
                 };
-                return interaction.editReply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+                return interaction.editReply({ embeds: [embed], flags: MessageFlags.Ephemeral as number });
             }
 
             case 'enable': {
@@ -167,14 +165,14 @@ export default {
                             description: '**' + name + '** has been enabled.',
                             timestamp: new Date().toISOString()
                         }],
-                        flags: MessageFlags.Ephemeral
+                        flags: MessageFlags.Ephemeral as number
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
-                        flags: MessageFlags.Ephemeral
+                        flags: MessageFlags.Ephemeral as number
                     });
                 }
             }
@@ -190,14 +188,14 @@ export default {
                             description: '**' + name + '** has been disabled.',
                             timestamp: new Date().toISOString()
                         }],
-                        flags: MessageFlags.Ephemeral
+                        flags: MessageFlags.Ephemeral as number
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
-                        flags: MessageFlags.Ephemeral
+                        flags: MessageFlags.Ephemeral as number
                     });
                 }
             }
@@ -213,14 +211,14 @@ export default {
                             description: '**' + name + '** has been hot-reloaded.',
                             timestamp: new Date().toISOString()
                         }],
-                        flags: MessageFlags.Ephemeral
+                        flags: MessageFlags.Ephemeral as number
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
-                        flags: MessageFlags.Ephemeral
+                        flags: MessageFlags.Ephemeral as number
                     });
                 }
             }
@@ -228,7 +226,6 @@ export default {
             case 'load': {
                 const name = interaction.options.getString('name');
                 try {
-                    // @ts-expect-error - loadPlugin returns any
                     const plugin = await manager.loadPlugin(name);
                     await manager.enablePlugin(name);
                     await manager._syncDiscordCommands();
@@ -239,14 +236,14 @@ export default {
                             description: '**' + name + '** v' + (plugin.constructor as any).version + ' loaded and enabled.',
                             timestamp: new Date().toISOString()
                         }],
-                        flags: MessageFlags.Ephemeral
+                        flags: MessageFlags.Ephemeral as number
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
-                        flags: MessageFlags.Ephemeral
+                        flags: MessageFlags.Ephemeral as number
                     });
                 }
             }
@@ -264,7 +261,7 @@ export default {
                                 'Re-run with `confirm: true` to proceed.',
                             timestamp: new Date().toISOString()
                         }],
-                        flags: MessageFlags.Ephemeral
+                        flags: MessageFlags.Ephemeral as number
                     });
                 }
                 try {
@@ -297,24 +294,24 @@ export default {
                             description: '**' + name + '** has been removed.',
                             timestamp: new Date().toISOString()
                         }],
-                        flags: MessageFlags.Ephemeral
+                        flags: MessageFlags.Ephemeral as number
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
-                        flags: MessageFlags.Ephemeral
+                        flags: MessageFlags.Ephemeral as number
                     });
                 }
             }
 
             case 'search': {
-                const query = interaction.options.getString('query');
+                const query = interaction.options.getString('query') ?? '';
                 const { default: PluginRegistry } = await import('../../../core/PluginRegistry.js');
+                const clientWithConfig = interaction.client as unknown as { config: { plugins?: { registryFile?: string } } };
                 const registry = new PluginRegistry(
-                    // @ts-expect-error - config.plugins access
-                    interaction.client.config.plugins.registryFile || './data/plugins/registry.json'
+                    clientWithConfig.config.plugins?.registryFile ?? './data/plugins/registry.json'
                 );
                 const results = registry.search(query);
                 return interaction.editReply({
@@ -330,7 +327,7 @@ export default {
                         }] : [],
                         timestamp: new Date().toISOString()
                     }],
-                    flags: MessageFlags.Ephemeral
+                    flags: MessageFlags.Ephemeral as number
                 });
             }
 
@@ -358,7 +355,7 @@ export default {
         }
 
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unexpected error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

@@ -54,20 +54,20 @@ const performanceStats: PerformanceStats = {
  */
 export function initAnalyticsCollector(client: Client): void {
     logger.info('[ANALYTICS] Starting analytics collector...');
-    
+
     // Start the batch write interval
     batchIntervalId = setInterval(() => {
         flushAnalyticsCache();
     }, BATCH_INTERVAL);
-    
+
     // Run cleanup on startup
     cleanupOldAnalytics(client);
-    
+
     // Schedule daily cleanup
     setInterval(() => {
         cleanupOldAnalytics(client);
     }, 24 * 60 * 60 * 1000); // Once per day
-    
+
     logger.info('[ANALYTICS] Analytics collector started successfully');
 }
 
@@ -76,16 +76,16 @@ export function initAnalyticsCollector(client: Client): void {
  */
 export function stopAnalyticsCollector(): void {
     logger.info('[ANALYTICS] Stopping analytics collector...');
-    
+
     // Flush any remaining cached data
     flushAnalyticsCache();
-    
+
     // Clear the interval
     if (batchIntervalId) {
         clearInterval(batchIntervalId);
         batchIntervalId = null;
     }
-    
+
     logger.info('[ANALYTICS] Analytics collector stopped');
 }
 
@@ -99,13 +99,13 @@ export function trackCommand(guildId: string, commandName: string, userId: strin
     if (!analyticsCache.commands.has(guildId)) {
         analyticsCache.commands.set(guildId, new Map());
     }
-    
+
     const guildCommands = analyticsCache.commands.get(guildId)!;
-    
+
     if (!guildCommands.has(commandName)) {
         guildCommands.set(commandName, new Map());
     }
-    
+
     const commandUsers = guildCommands.get(commandName)!;
     const currentCount = commandUsers.get(userId) ?? 0;
     commandUsers.set(userId, currentCount + 1);
@@ -121,13 +121,13 @@ export function trackMessage(guildId: string, channelId: string, userId: string)
     if (!analyticsCache.messages.has(guildId)) {
         analyticsCache.messages.set(guildId, new Map());
     }
-    
+
     const guildMessages = analyticsCache.messages.get(guildId)!;
-    
+
     if (!guildMessages.has(channelId)) {
         guildMessages.set(channelId, new Map());
     }
-    
+
     const channelUsers = guildMessages.get(channelId)!;
     const currentCount = channelUsers.get(userId) ?? 0;
     channelUsers.set(userId, currentCount + 1);
@@ -142,7 +142,7 @@ export function trackViolation(guildId: string, violationType: string): void {
     if (!analyticsCache.violations.has(guildId)) {
         analyticsCache.violations.set(guildId, new Map());
     }
-    
+
     const guildViolations = analyticsCache.violations.get(guildId)!;
     const currentCount = guildViolations.get(violationType) ?? 0;
     guildViolations.set(violationType, currentCount + 1);
@@ -158,13 +158,13 @@ export function trackModAction(guildId: string, moderatorId: string, action: str
     if (!analyticsCache.modActions.has(guildId)) {
         analyticsCache.modActions.set(guildId, new Map());
     }
-    
+
     const guildModActions = analyticsCache.modActions.get(guildId)!;
-    
+
     if (!guildModActions.has(moderatorId)) {
         guildModActions.set(moderatorId, new Map());
     }
-    
+
     const moderatorActions = guildModActions.get(moderatorId)!;
     const currentCount = moderatorActions.get(action) ?? 0;
     moderatorActions.set(action, currentCount + 1);
@@ -184,7 +184,7 @@ export async function trackMemberChange(guildId: string, isJoin: boolean, totalM
         leaveCount: number;
         totalMembers: number;
     }>;
-    
+
     const key = `${today}:${Date.now()}`;
     if (!data[key]) {
         data[key] = {
@@ -201,7 +201,7 @@ export async function trackMemberChange(guildId: string, isJoin: boolean, totalM
         }
         data[key].totalMembers = totalMembers;
     }
-    
+
     await setGuildData('analytics-members', guildId, data);
 }
 
@@ -228,13 +228,13 @@ export async function flushAnalyticsCritical(): Promise<void> {
  */
 export async function flushAnalyticsCache(): Promise<void> {
     const startTime = Date.now();
-    
+
     try {
         const now = Date.now();
         const hour = getHourString(now);
         const date = getDateString(now);
         let recordsProcessed = 0;
-        
+
         // Flush command analytics
         for (const [guildId, guildCommands] of analyticsCache.commands) {
             const data = await getGuildData('analytics-commands', guildId) as Record<string, {
@@ -243,7 +243,7 @@ export async function flushAnalyticsCache(): Promise<void> {
                 userId: string;
                 count: number;
             }>;
-            
+
             for (const [commandName, users] of guildCommands) {
                 for (const [userId, count] of users) {
                     const key = `${date}:${commandName}:${userId}`;
@@ -259,11 +259,11 @@ export async function flushAnalyticsCache(): Promise<void> {
                     recordsProcessed++;
                 }
             }
-            
+
             await setGuildData('analytics-commands', guildId, data);
         }
         analyticsCache.commands.clear();
-        
+
         // Flush message analytics (hourly aggregation)
         for (const [guildId, guildMessages] of analyticsCache.messages) {
             const data = await getGuildData('analytics-messages', guildId) as Record<string, {
@@ -272,7 +272,7 @@ export async function flushAnalyticsCache(): Promise<void> {
                 userId: string;
                 count: number;
             }>;
-            
+
             for (const [channelId, users] of guildMessages) {
                 for (const [userId, count] of users) {
                     const key = `${hour}:${channelId}:${userId}`;
@@ -288,11 +288,11 @@ export async function flushAnalyticsCache(): Promise<void> {
                     recordsProcessed++;
                 }
             }
-            
+
             await setGuildData('analytics-messages', guildId, data);
         }
         analyticsCache.messages.clear();
-        
+
         // Flush violation analytics (daily aggregation)
         for (const [guildId, violations] of analyticsCache.violations) {
             const data = await getGuildData('analytics-violations', guildId) as Record<string, {
@@ -300,7 +300,7 @@ export async function flushAnalyticsCache(): Promise<void> {
                 type: string;
                 count: number;
             }>;
-            
+
             for (const [type, count] of violations) {
                 const key = `${date}:${type}`;
                 if (!data[key]) {
@@ -313,11 +313,11 @@ export async function flushAnalyticsCache(): Promise<void> {
                 data[key].count += count;
                 recordsProcessed++;
             }
-            
+
             await setGuildData('analytics-violations', guildId, data);
         }
         analyticsCache.violations.clear();
-        
+
         // Flush mod action analytics (daily aggregation)
         for (const [guildId, guildModActions] of analyticsCache.modActions) {
             const data = await getGuildData('analytics-modactions', guildId) as Record<string, {
@@ -326,7 +326,7 @@ export async function flushAnalyticsCache(): Promise<void> {
                 action: string;
                 count: number;
             }>;
-            
+
             for (const [moderatorId, actions] of guildModActions) {
                 for (const [action, count] of actions) {
                     const key = `${date}:${moderatorId}:${action}`;
@@ -342,21 +342,21 @@ export async function flushAnalyticsCache(): Promise<void> {
                     recordsProcessed++;
                 }
             }
-            
+
             await setGuildData('analytics-modactions', guildId, data);
         }
         analyticsCache.modActions.clear();
-        
+
         // Update performance stats
         const flushTime = Date.now() - startTime;
         performanceStats.flushesPerformed++;
         performanceStats.totalFlushTime += flushTime;
         performanceStats.recordsProcessed += recordsProcessed;
-        
+
         if (now % (5 * 60 * 1000) < BATCH_INTERVAL) {
             logger.info(`[ANALYTICS] Flushed ${recordsProcessed} records in ${flushTime}ms`);
         }
-        
+
     } catch (error) {
         performanceStats.errors++;
         // @ts-expect-error - pino logger overloads
@@ -370,20 +370,20 @@ export async function flushAnalyticsCache(): Promise<void> {
  */
 async function cleanupOldAnalytics(client: Client): Promise<void> {
     const startTime = Date.now();
-    
+
     try {
         const cutoffDate = Date.now() - (RETENTION_DAYS * 24 * 60 * 60 * 1000);
         const cutoffDateStr = getDateString(cutoffDate);
         const cutoffHourStr = getHourString(cutoffDate);
-        
+
         logger.info(`[ANALYTICS] Cleaning up analytics older than ${cutoffDateStr}...`);
-        
+
         let totalDeleted = 0;
-        
+
         // Clean up each guild's analytics
         for (const guild of client.guilds.cache.values()) {
             const guildId = guild.id;
-            
+
             // Clean commands
             const commands = await getGuildData('analytics-commands', guildId) as Record<string, {
                 date: string;
@@ -398,7 +398,7 @@ async function cleanupOldAnalytics(client: Client): Promise<void> {
                 }
             }
             await setGuildData('analytics-commands', guildId, commands);
-            
+
             // Clean messages
             const messages = await getGuildData('analytics-messages', guildId) as Record<string, {
                 hour: string;
@@ -413,7 +413,7 @@ async function cleanupOldAnalytics(client: Client): Promise<void> {
                 }
             }
             await setGuildData('analytics-messages', guildId, messages);
-            
+
             // Clean violations
             const violations = await getGuildData('analytics-violations', guildId) as Record<string, {
                 date: string;
@@ -427,7 +427,7 @@ async function cleanupOldAnalytics(client: Client): Promise<void> {
                 }
             }
             await setGuildData('analytics-violations', guildId, violations);
-            
+
             // Clean mod actions
             const modActions = await getGuildData('analytics-modactions', guildId) as Record<string, {
                 date: string;
@@ -442,7 +442,7 @@ async function cleanupOldAnalytics(client: Client): Promise<void> {
                 }
             }
             await setGuildData('analytics-modactions', guildId, modActions);
-            
+
             // Clean members (keep all member data, it's already daily)
             const members = await getGuildData('analytics-members', guildId) as Record<string, {
                 date: string;
@@ -458,15 +458,15 @@ async function cleanupOldAnalytics(client: Client): Promise<void> {
             }
             await setGuildData('analytics-members', guildId, members);
         }
-        
+
         // Update performance stats
         const cleanupTime = Date.now() - startTime;
         performanceStats.cleanupsPerformed++;
         performanceStats.totalCleanupTime += cleanupTime;
         performanceStats.recordsDeleted += totalDeleted;
-        
+
         logger.info(`[ANALYTICS] Cleanup complete. Deleted ${totalDeleted} old records in ${cleanupTime}ms.`);
-        
+
     } catch (error) {
         performanceStats.errors++;
         // @ts-expect-error - pino logger overloads
@@ -503,8 +503,8 @@ function getHourString(timestamp: number): string {
  * @returns {Object} Command statistics
  */
 export async function getCommandStats(guildId: string, days = 7): Promise<{
-    byCommand: Array<{ name: string; count: number }>;
-    byUser: Array<{ userId: string; count: number }>;
+    byCommand: { name: string; count: number }[];
+    byUser: { userId: string; count: number }[];
 }> {
     const data = await getGuildData('analytics-commands', guildId) as Record<string, {
         date: string;
@@ -513,23 +513,23 @@ export async function getCommandStats(guildId: string, days = 7): Promise<{
         count: number;
     }>;
     const cutoffDate = getDateString(Date.now() - (days * 24 * 60 * 60 * 1000));
-    
+
     const commandCounts = new Map<string, number>();
     const userCounts = new Map<string, number>();
-    
+
     for (const key in data) {
         const entry = data[key];
         if (entry.date >= cutoffDate) {
             // Count by command
             const cmdCount = commandCounts.get(entry.commandName) ?? 0;
             commandCounts.set(entry.commandName, cmdCount + entry.count);
-            
+
             // Count by user
             const usrCount = userCounts.get(entry.userId) ?? 0;
             userCounts.set(entry.userId, usrCount + entry.count);
         }
     }
-    
+
     return {
         byCommand: Array.from(commandCounts.entries())
             .map(([name, count]) => ({ name, count }))
@@ -547,9 +547,9 @@ export async function getCommandStats(guildId: string, days = 7): Promise<{
  * @returns {Object} Message statistics
  */
 export async function getMessageStats(guildId: string, days = 7): Promise<{
-    byChannel: Array<{ channelId: string; count: number }>;
-    byUser: Array<{ userId: string; count: number }>;
-    byHour: Array<{ hour: string; count: number }>;
+    byChannel: { channelId: string; count: number }[];
+    byUser: { userId: string; count: number }[];
+    byHour: { hour: string; count: number }[];
 }> {
     const data = await getGuildData('analytics-messages', guildId) as Record<string, {
         hour: string;
@@ -558,28 +558,28 @@ export async function getMessageStats(guildId: string, days = 7): Promise<{
         count: number;
     }>;
     const cutoffHour = getHourString(Date.now() - (days * 24 * 60 * 60 * 1000));
-    
+
     const channelCounts = new Map<string, number>();
     const userCounts = new Map<string, number>();
     const hourCounts = new Map<string, number>();
-    
+
     for (const key in data) {
         const entry = data[key];
         if (entry.hour >= cutoffHour) {
             // Count by channel
             const chnCount = channelCounts.get(entry.channelId) ?? 0;
             channelCounts.set(entry.channelId, chnCount + entry.count);
-            
+
             // Count by user
             const usrCount = userCounts.get(entry.userId) ?? 0;
             userCounts.set(entry.userId, usrCount + entry.count);
-            
+
             // Count by hour
             const hrCount = hourCounts.get(entry.hour) ?? 0;
             hourCounts.set(entry.hour, hrCount + entry.count);
         }
     }
-    
+
     return {
         byChannel: Array.from(channelCounts.entries())
             .map(([channelId, count]) => ({ channelId, count }))
@@ -599,16 +599,16 @@ export async function getMessageStats(guildId: string, days = 7): Promise<{
  * @param {number} days - Number of days to look back (default: 30)
  * @returns {Array} Violation statistics
  */
-export async function getViolationStats(guildId: string, days = 30): Promise<Array<{ type: string; count: number }>> {
+export async function getViolationStats(guildId: string, days = 30): Promise<{ type: string; count: number }[]> {
     const data = await getGuildData('analytics-violations', guildId) as Record<string, {
         date: string;
         type: string;
         count: number;
     }>;
     const cutoffDate = getDateString(Date.now() - (days * 24 * 60 * 60 * 1000));
-    
+
     const typeCounts = new Map<string, number>();
-    
+
     for (const key in data) {
         const entry = data[key];
         if (entry.date >= cutoffDate) {
@@ -616,7 +616,7 @@ export async function getViolationStats(guildId: string, days = 30): Promise<Arr
             typeCounts.set(entry.type, count + entry.count);
         }
     }
-    
+
     return Array.from(typeCounts.entries())
         .map(([type, count]) => ({ type, count }))
         .sort((a, b) => b.count - a.count);
@@ -629,8 +629,8 @@ export async function getViolationStats(guildId: string, days = 30): Promise<Arr
  * @returns {Object} Moderator statistics
  */
 export async function getModActionStats(guildId: string, days = 30): Promise<{
-    byModerator: Array<{ moderatorId: string; count: number }>;
-    byAction: Array<{ action: string; count: number }>;
+    byModerator: { moderatorId: string; count: number }[];
+    byAction: { action: string; count: number }[];
 }> {
     const data = await getGuildData('analytics-modactions', guildId) as Record<string, {
         date: string;
@@ -639,23 +639,23 @@ export async function getModActionStats(guildId: string, days = 30): Promise<{
         count: number;
     }>;
     const cutoffDate = getDateString(Date.now() - (days * 24 * 60 * 60 * 1000));
-    
+
     const moderatorCounts = new Map<string, number>();
     const actionCounts = new Map<string, number>();
-    
+
     for (const key in data) {
         const entry = data[key];
         if (entry.date >= cutoffDate) {
             // Count by moderator
             const modCount = moderatorCounts.get(entry.moderatorId) ?? 0;
             moderatorCounts.set(entry.moderatorId, modCount + entry.count);
-            
+
             // Count by action type
             const actCount = actionCounts.get(entry.action) ?? 0;
             actionCounts.set(entry.action, actCount + entry.count);
         }
     }
-    
+
     return {
         byModerator: Array.from(moderatorCounts.entries())
             .map(([moderatorId, count]) => ({ moderatorId, count }))
@@ -672,12 +672,12 @@ export async function getModActionStats(guildId: string, days = 30): Promise<{
  * @param {number} days - Number of days to look back (default: 30)
  * @returns {Array} Member growth data
  */
-export async function getMemberGrowthStats(guildId: string, days = 30): Promise<Array<Record<string, unknown>>> {
+export async function getMemberGrowthStats(guildId: string, days = 30): Promise<Record<string, unknown>[]> {
     const data = await getGuildData('analytics-members', guildId);
     const cutoffDate = getDateString(Date.now() - (days * 24 * 60 * 60 * 1000));
-    
+
     const growth: Record<string, unknown>[] = [];
-    
+
     for (const key in data) {
         // Extract the date from the key: the part before the first colon
         const entryDate = key.split(':')[0];
@@ -685,7 +685,7 @@ export async function getMemberGrowthStats(guildId: string, days = 30): Promise<
             growth.push(data[key]);
         }
     }
-    
+
     return growth.sort((a, b) => a.date.localeCompare(b.date));
 }
 
@@ -697,14 +697,14 @@ export function getAnalyticsCollectorStats(): PerformanceStats & {
     averageFlushTime: number;
     averageCleanupTime: number;
     uptime: number;
-} {
+    } {
     const avgFlushTime = performanceStats.flushesPerformed > 0
         ? performanceStats.totalFlushTime / performanceStats.flushesPerformed
         : 0;
     const avgCleanupTime = performanceStats.cleanupsPerformed > 0
         ? performanceStats.totalCleanupTime / performanceStats.cleanupsPerformed
         : 0;
-    
+
     return {
         ...performanceStats,
         averageFlushTime: Math.round(avgFlushTime),

@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 
-export const KNOWN_CAPABILITIES = new Set([
+export const KNOWN_CAPABILITIES = new Set<string>([
     'events:messageCreate',
     'events:messageDelete',
     'events:messageUpdate',
@@ -14,11 +14,11 @@ export const KNOWN_CAPABILITIES = new Set([
     'api:commandReply'
 ]);
 
-export function normalizeCapabilities(capabilities) {
+export function normalizeCapabilities(capabilities: unknown): string[] {
     if (!Array.isArray(capabilities)) {
         throw new Error('Manifest capabilities must be an array.');
     }
-    const unique = [...new Set(capabilities)];
+    const unique = [...new Set(capabilities as string[])];
     for (const cap of unique) {
         if (!KNOWN_CAPABILITIES.has(cap)) {
             throw new Error(`Unknown capability '${cap}' declared in plugin manifest.`);
@@ -27,15 +27,26 @@ export function normalizeCapabilities(capabilities) {
     return unique;
 }
 
-export async function parsePluginManifest({ dir, readFile: readFileImpl = readFile }) {
+export interface ParsedPluginManifest {
+    id: string;
+    name: string;
+    capabilities: string[];
+}
+
+export interface ParsePluginManifestOptions {
+    dir: string;
+    readFile?: typeof readFile;
+}
+
+export async function parsePluginManifest({ dir, readFile: readFileImpl = readFile }: ParsePluginManifestOptions): Promise<ParsedPluginManifest> {
     const raw = await readFileImpl(`${dir}/plugin.json`, 'utf8');
-    const manifest = JSON.parse(raw);
-    if (!manifest.id) {
+    const manifest = JSON.parse(raw) as Record<string, unknown>;
+    if (!manifest['id']) {
         throw new Error('Plugin manifest is missing "id".');
     }
-    if (!manifest.capabilities) {
+    if (!manifest['capabilities']) {
         throw new Error('Plugin manifest must declare "capabilities".');
     }
-    const capabilities = normalizeCapabilities(manifest.capabilities);
-    return { id: manifest.id, name: manifest.name || manifest.id, capabilities };
+    const capabilities = normalizeCapabilities(manifest['capabilities']);
+    return { id: String(manifest['id']), name: String(manifest['name'] ?? manifest['id']), capabilities };
 }

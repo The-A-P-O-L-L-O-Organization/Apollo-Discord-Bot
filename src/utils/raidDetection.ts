@@ -1,12 +1,13 @@
 import { logger } from '../utils/logger.js';
-import { EmbedBuilder, ChannelType, Guild, GuildMember } from 'discord.js';
+import type { Guild, GuildMember } from 'discord.js';
+import { EmbedBuilder, ChannelType } from 'discord.js';
 import { config } from '../config/config.js';
 import { getLockRedis } from './lock.js';
 
 // In-memory raid state tracking (fallback when Redis unavailable)
 // Map<guildId, { joins: Array<{userId, username, timestamp, accountAge}>, raidMode: boolean, lastAlert: timestamp }>
 const raidState = new Map<string, {
-    joins: Array<{userId: string; username: string; timestamp: number; accountAge: number}>;
+    joins: {userId: string; username: string; timestamp: number; accountAge: number}[];
     raidMode: boolean;
     lastAlert: number;
 }>();
@@ -40,7 +41,7 @@ interface RaidCheckResult {
 }
 
 interface RaidState {
-    joins: Array<{userId: string; username: string; timestamp: number; accountAge: number}>;
+    joins: {userId: string; username: string; timestamp: number; accountAge: number}[];
     raidMode: boolean;
     lastAlert: number;
 }
@@ -86,7 +87,7 @@ export async function trackJoinRedis(guildId: string, userId: string, username: 
 
     const key = `${RAID_KEY_PREFIX}${guildId}`;
     const memberData = JSON.stringify({ userId, username, timestamp, accountAgeDays });
-    
+
     await redis.zadd(key, timestamp, memberData);
     await redis.expire(key, 300); // 5 minute TTL
 }
@@ -108,10 +109,10 @@ export async function checkRaidPatternRedis(guildId: string, threshold: number, 
 
     const key = `${RAID_KEY_PREFIX}${guildId}`;
     const cutoff = now - intervalMs;
-    
+
     await redis.zremrangebyscore(key, '-inf', cutoff);
     const members = await redis.zrange(key, 0, -1) as string[];
-    
+
     const recentJoins = members.length;
     if (recentJoins < threshold) {
         return { detected: false, recentJoins, newAccounts: 0, similarNames: 0 };
@@ -120,17 +121,17 @@ export async function checkRaidPatternRedis(guildId: string, threshold: number, 
     // Parse member data
     const parsedMembers = members.map(m => {
         try { return JSON.parse(m); } catch { return null; }
-    }).filter(Boolean) as Array<{userId: string; username: string; timestamp: number; accountAge: number}>;
+    }).filter(Boolean) as {userId: string; username: string; timestamp: number; accountAge: number}[];
 
     // Count new accounts
     const newAccounts = parsedMembers.filter(m => m.accountAge < thresholds.newAccountAge).length;
-    
+
     // Count similar names
     const usernames = parsedMembers.map(m => m.username);
     const similarNames = countSimilarNames(usernames);
 
-    const detected = recentJoins >= threshold || 
-                     (newAccounts >= 3 && recentJoins >= 4) || 
+    const detected = recentJoins >= threshold ||
+                     (newAccounts >= 3 && recentJoins >= 4) ||
                      (similarNames >= 3 && recentJoins >= 3);
 
     return { detected, recentJoins, newAccounts, similarNames };
@@ -144,7 +145,7 @@ export async function checkRaidPatternRedis(guildId: string, threshold: number, 
 export async function isRaidModeEnabledRedis(guildId: string): Promise<boolean> {
     const redis = await getRaidRedis();
     if (!redis) {return false;}
-    
+
     const key = `${RAID_MODE_KEY_PREFIX}${guildId}`;
     const value = await redis.get(key);
     return value === '1';
@@ -158,7 +159,7 @@ export async function isRaidModeEnabledRedis(guildId: string): Promise<boolean> 
 export async function setRaidModeRedis(guildId: string, enabled: boolean): Promise<void> {
     const redis = await getRaidRedis();
     if (!redis) {return;}
-    
+
     const key = `${RAID_MODE_KEY_PREFIX}${guildId}`;
     if (enabled) {
         await redis.set(key, '1');
@@ -178,9 +179,9 @@ export async function checkRaidPattern(guildId: string, member: GuildMember, gui
     const now = Date.now();
     const accountAge = now - member.user.createdTimestamp;
     const accountAgeDays = accountAge / (1000 * 60 * 60 * 24);
-    
+
     const thresholds = getRaidThresholds(guildConfig);
-    
+
     // Try Redis first
     const redis = await getRaidRedis();
     if (redis) {
@@ -188,7 +189,7 @@ export async function checkRaidPattern(guildId: string, member: GuildMember, gui
         const result = await checkRaidPatternRedis(guildId, thresholds.joinCount, thresholds.timeWindow, now, thresholds);
         return result.detected;
     }
-    
+
     // Fallback to in-memory
     return checkRaidPatternMemory(guildId, member, now, accountAgeDays, thresholds);
 }
@@ -211,9 +212,9 @@ function checkRaidPatternMemory(guildId: string, member: GuildMember, now: numbe
             lastAlert: 0
         });
     }
-    
+
     const state = raidState.get(guildId)!;
-    
+
     // Add this join to the tracking
     state.joins.push({
         userId: member.user.id,
@@ -221,26 +222,26 @@ function checkRaidPatternMemory(guildId: string, member: GuildMember, now: numbe
         timestamp: now,
         accountAge: accountAgeDays
     });
-    
+
     // Remove old joins outside the time window
     state.joins = state.joins.filter(j => now - j.timestamp < thresholds.timeWindow);
-    
+
     // Check for raid patterns
     const recentJoins = state.joins.length;
-    
+
     // Pattern 1: Too many joins in short time
     if (recentJoins >= thresholds.joinCount) {
         logger.info({ msg: `[RAID] Pattern detected: ${recentJoins} joins in ${thresholds.timeWindow}ms` });
         return true;
     }
-    
+
     // Pattern 2: Multiple new accounts joining
     const newAccounts = state.joins.filter(j => j.accountAge < thresholds.newAccountAge);
     if (newAccounts.length >= 3 && recentJoins >= 4) {
         logger.info({ msg: `[RAID] Pattern detected: ${newAccounts.length} new accounts in recent joins` });
         return true;
     }
-    
+
     // Pattern 3: Similar usernames
     if (recentJoins >= 3) {
         const usernames = state.joins.map(j => j.username);
@@ -250,7 +251,7 @@ function checkRaidPatternMemory(guildId: string, member: GuildMember, now: numbe
             return true;
         }
     }
-    
+
     return false;
 }
 
@@ -261,7 +262,7 @@ function checkRaidPatternMemory(guildId: string, member: GuildMember, now: numbe
  */
 export async function handleRaidDetected(guild: Guild, member: GuildMember): Promise<void> {
     const now = Date.now();
-    
+
     // Get state (Redis or memory)
     let state: RaidState | null = null;
     const redis = await getRaidRedis();
@@ -270,17 +271,17 @@ export async function handleRaidDetected(guild: Guild, member: GuildMember): Pro
         const members = await redis.zrange(key, 0, -1) as string[];
         const parsedMembers = members.map(m => {
             try { return JSON.parse(m); } catch { return null; }
-        }).filter(Boolean) as Array<{userId: string; username: string; timestamp: number; accountAge: number}>;
-        
+        }).filter(Boolean) as {userId: string; username: string; timestamp: number; accountAge: number}[];
+
         const lastAlertKey = `${RAID_KEY_PREFIX}${guild.id}:lastalert`;
         const lastAlert = parseInt(await redis.get(lastAlertKey) || '0', 10);
-        
+
         if (now - lastAlert < DEFAULT_RAID_THRESHOLDS.alertCooldown) {
             return; // Don't spam alerts
         }
-        
+
         await redis.set(lastAlertKey, now.toString());
-        
+
         state = {
             joins: parsedMembers,
             raidMode: await isRaidModeEnabledRedis(guild.id),
@@ -289,24 +290,24 @@ export async function handleRaidDetected(guild: Guild, member: GuildMember): Pro
     } else {
         state = raidState.get(guild.id) ?? null;
         if (!state) {return;}
-        
+
         if (now - state.lastAlert < DEFAULT_RAID_THRESHOLDS.alertCooldown) {
             return; // Don't spam alerts
         }
-        
+
         state.lastAlert = now;
     }
-    
+
     // Find mod log channel
     const modChannel = guild.channels.cache.find(
         ch => ch.name === config.moderation?.moderationLogChannel
     );
-    
+
     if (!modChannel) {
         logger.info({ msg: '[RAID] No mod channel found to send raid alert' });
         return;
     }
-    
+
     // Create raid alert embed
     const alertEmbed = new EmbedBuilder()
         .setColor('#FF0000')
@@ -324,31 +325,31 @@ export async function handleRaidDetected(guild: Guild, member: GuildMember): Pro
         })
         .setTimestamp()
         .setFooter({ text: 'Raid detection is automated - verify before taking action' });
-    
+
     // List suspicious accounts
     if (state.joins.length > 0) {
         const suspiciousAccounts = state.joins
             .slice(-10) // Last 10 joins
             .map(j => {
-                const ageStr = j.accountAge < 1 ? 
-                    `${Math.round(j.accountAge * 24)}h old` : 
+                const ageStr = j.accountAge < 1 ?
+                    `${Math.round(j.accountAge * 24)}h old` :
                     `${Math.round(j.accountAge)}d old`;
                 return `• ${j.username} (\`${j.userId}\`) - ${ageStr}`;
             })
             .join('\n');
-        
+
         alertEmbed.addFields({
             name: 'Recent Join Accounts',
             value: suspiciousAccounts || 'None',
             inline: false
         });
     }
-    
-    await modChannel.send({ 
+
+    await modChannel.send({
         content: '@here',
-        embeds: [alertEmbed] 
+        embeds: [alertEmbed]
     });
-    
+
     logger.info({ msg: `[RAID] Raid alert sent to ${guild.name}` });
 }
 
@@ -363,15 +364,15 @@ export async function enableRaidMode(guild: Guild): Promise<{success: boolean; r
     if (raidModeEnabled) {
         return { success: false, reason: 'Raid mode already enabled' };
     }
-    
+
     let locked = 0;
     let failed = 0;
-    
+
     // Lock all text channels
     const channels = guild.channels.cache.filter(
         ch => ch.type === ChannelType.GuildText || ch.type === ChannelType.GuildVoice
     );
-    
+
     for (const [, channel] of channels) {
         try {
             // Deny @everyone from sending messages
@@ -385,20 +386,20 @@ export async function enableRaidMode(guild: Guild): Promise<{success: boolean; r
             failed++;
         }
     }
-    
+
     // Set raid mode in Redis or memory
     await setRaidModeRedis(guild.id, true);
-    
+
     // Also update in-memory state for consistency
     const state = raidState.get(guild.id) || { joins: [], raidMode: false, lastAlert: 0 };
     state.raidMode = true;
     raidState.set(guild.id, state);
-    
+
     logger.info({ msg: `[RAID] Raid mode enabled in ${guild.name}. Locked: ${locked}, Failed: ${failed}` });
-    
-    return { 
-        success: true, 
-        locked, 
+
+    return {
+        success: true,
+        locked,
         failed,
         total: channels.size
     };
@@ -413,19 +414,19 @@ export async function disableRaidMode(guild: Guild): Promise<{success: boolean; 
     // Check current state (Redis or memory)
     const raidModeEnabled = await isRaidModeEnabledRedis(guild.id);
     const memState = raidState.get(guild.id);
-    
-    if (!raidModeEnabled && (!memState || !memState.raidMode)) {
+
+    if (!raidModeEnabled && (!memState?.raidMode)) {
         return { success: false, reason: 'Raid mode not enabled' };
     }
-    
+
     let unlocked = 0;
     let failed = 0;
-    
+
     // Unlock all text channels
     const channels = guild.channels.cache.filter(
         ch => ch.type === ChannelType.GuildText || ch.type === ChannelType.GuildVoice
     );
-    
+
     for (const [, channel] of channels) {
         try {
             // Remove the @everyone send messages deny
@@ -439,20 +440,20 @@ export async function disableRaidMode(guild: Guild): Promise<{success: boolean; 
             failed++;
         }
     }
-    
+
     // Clear raid mode in Redis and memory
     await setRaidModeRedis(guild.id, false);
-    
+
     if (memState) {
         memState.raidMode = false;
         memState.joins = []; // Clear join history
     }
-    
+
     logger.info({ msg: `[RAID] Raid mode disabled in ${guild.name}. Unlocked: ${unlocked}, Failed: ${failed}` });
-    
-    return { 
-        success: true, 
-        unlocked, 
+
+    return {
+        success: true,
+        unlocked,
         failed,
         total: channels.size
     };
@@ -468,7 +469,7 @@ export async function isRaidModeEnabled(guildId: string): Promise<boolean> {
     if (redis) {
         return isRaidModeEnabledRedis(guildId);
     }
-    
+
     const state = raidState.get(guildId);
     return state ? state.raidMode : false;
 }
@@ -480,9 +481,9 @@ export async function isRaidModeEnabled(guildId: string): Promise<boolean> {
  */
 function countSimilarNames(usernames: string[]): number {
     if (usernames.length < 2) {return 0;}
-    
+
     let similarCount = 0;
-    
+
     for (let i = 0; i < usernames.length - 1; i++) {
         for (let j = i + 1; j < usernames.length; j++) {
             const similarity = calculateSimilarity(usernames[i], usernames[j]);
@@ -491,7 +492,7 @@ function countSimilarNames(usernames: string[]): number {
             }
         }
     }
-    
+
     return similarCount;
 }
 
@@ -504,9 +505,9 @@ function countSimilarNames(usernames: string[]): number {
 function calculateSimilarity(str1: string, str2: string): number {
     const longer = str1.length > str2.length ? str1 : str2;
     const shorter = str1.length > str2.length ? str2 : str1;
-    
+
     if (longer.length === 0) {return 1.0;}
-    
+
     const editDistance = levenshteinDistance(longer, shorter);
     return (longer.length - editDistance) / longer.length;
 }
@@ -519,15 +520,15 @@ function calculateSimilarity(str1: string, str2: string): number {
  */
 function levenshteinDistance(str1: string, str2: string): number {
     const matrix: number[][] = [];
-    
+
     for (let i = 0; i <= str2.length; i++) {
         matrix[i] = [i];
     }
-    
+
     for (let j = 0; j <= str1.length; j++) {
         matrix[0][j] = j;
     }
-    
+
     for (let i = 1; i <= str2.length; i++) {
         for (let j = 1; j <= str1.length; j++) {
             if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
@@ -541,7 +542,7 @@ function levenshteinDistance(str1: string, str2: string): number {
             }
         }
     }
-    
+
     return matrix[str2.length][str1.length];
 }
 
@@ -551,11 +552,11 @@ function levenshteinDistance(str1: string, str2: string): number {
 export function cleanupRaidState(): void {
     const now = Date.now();
     const maxAge = 300000; // 5 minutes
-    
+
     for (const [guildId, state] of raidState) {
         // Clear old joins
         state.joins = state.joins.filter(j => now - j.timestamp < maxAge);
-        
+
         // Remove empty states that aren't in raid mode
         if (state.joins.length === 0 && !state.raidMode && now - state.lastAlert > maxAge) {
             raidState.delete(guildId);

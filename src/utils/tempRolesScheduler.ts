@@ -5,7 +5,8 @@ import { logger } from './logger.js';
 import { getGuildData, setGuildData } from './db.js';
 import { config } from '../config/config.js';
 import { getLockRedis, withLock } from './lock.js';
-import { Client, Guild, Role } from 'discord.js';
+import type { Client, Role } from 'discord.js';
+import { Guild } from 'discord.js';
 
 let checkInterval: NodeJS.Timeout | null = null;
 const CHECK_DELAY = 60000;
@@ -15,9 +16,7 @@ interface TempRoleData {
     expiresAt: number;
 }
 
-interface GuildTempRoles {
-    [userId: string]: TempRoleData;
-}
+type GuildTempRoles = Record<string, TempRoleData>;
 
 export function initTempRolesScheduler(client: Client): void {
     if (checkInterval) {
@@ -66,7 +65,7 @@ async function checkExpiredTempRoles(client: Client): Promise<void> {
                 if (tempRole.expiresAt && tempRole.expiresAt <= now) {
                     try {
                         const member = await guild.members.fetch(userId).catch(() => null);
-                        const role = guild.roles.cache.get(tempRole.roleId) as Role | undefined;
+                        const role = guild.roles.cache.get(tempRole.roleId);
 
                         if (member && role && member.roles.cache.has(role.id)) {
                             await member.roles.remove(role, 'Temporary role expired');

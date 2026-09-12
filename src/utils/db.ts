@@ -109,10 +109,10 @@ export async function removeFromGuildArray(store: string, guildId: string, key: 
     return removed;
 }
 
-export async function getAllGuildData(store: string): Promise<Array<{ guildId: string; data: Record<string, unknown> }>> {
+export async function getAllGuildData(store: string): Promise<{ guildId: string; data: Record<string, unknown> }[]> {
     if (USE_PG) { return (await getAdapter()).getAllGuildData(store); }
     const { db } = await getAdapter() as { db: unknown };
-    const stmt = (db as { prepare: (sql: string) => { all: (store: string) => Array<{ guild_id: string; data: string }> } }).prepare('SELECT guild_id, data FROM guild_store WHERE store = ?');
+    const stmt = (db as { prepare: (sql: string) => { all: (store: string) => { guild_id: string; data: string }[] } }).prepare('SELECT guild_id, data FROM guild_store WHERE store = ?');
     const rows = stmt.all(store).filter((r) => r.guild_id !== '__global__');
     return rows.map((r) => {
         try { return { guildId: r.guild_id, data: JSON.parse(r.data) }; } catch { return { guildId: r.guild_id, data: {} }; }
@@ -126,7 +126,7 @@ export async function getAllGuildIds(store: string): Promise<string[]> {
         return data.map(d => d.guildId);
     }
     const { db } = await getAdapter() as { db: unknown };
-    const stmt = (db as { prepare: (sql: string) => { all: (store: string, global: string) => Array<{ guild_id: string }> } }).prepare('SELECT guild_id FROM guild_store WHERE store = ? AND guild_id != ?');
+    const stmt = (db as { prepare: (sql: string) => { all: (store: string, global: string) => { guild_id: string }[] } }).prepare('SELECT guild_id FROM guild_store WHERE store = ? AND guild_id != ?');
     const rows = stmt.all(store, '__global__');
     return rows.map(r => r.guild_id);
 }
@@ -162,10 +162,10 @@ export async function removeFromUserArray(store: string, guildId: string, userId
     return removed;
 }
 
-export async function getAllUserData(store: string, guildId: string): Promise<Array<{ userId: string; data: Record<string, unknown> }>> {
+export async function getAllUserData(store: string, guildId: string): Promise<{ userId: string; data: Record<string, unknown> }[]> {
     if (USE_PG) { return (await getAdapter()).getAllUserData(store, guildId); }
     const { db } = await getAdapter() as { db: unknown };
-    const stmt = (db as { prepare: (sql: string) => { all: (store: string, guildId: string) => Array<{ user_id: string; data: string }> } }).prepare('SELECT user_id, data FROM guild_user_store WHERE store = ? AND guild_id = ?');
+    const stmt = (db as { prepare: (sql: string) => { all: (store: string, guildId: string) => { user_id: string; data: string }[] } }).prepare('SELECT user_id, data FROM guild_user_store WHERE store = ? AND guild_id = ?');
     return stmt.all(store, guildId).map((r) => {
         try { return { userId: r.user_id, data: JSON.parse(r.data) }; } catch { return { userId: r.user_id, data: [] }; }
     });
@@ -220,7 +220,7 @@ let _walCheckpointInterval: NodeJS.Timeout | null = null;
 export function startWalCheckpointInterval(intervalMs = 5 * 60 * 1000): void {
     if (_walCheckpointInterval) { return; }
     if (USE_PG) { return; } // Only for SQLite
-    
+
     _walCheckpointInterval = setInterval(() => {
         if (_sqliteDb) {
             try {
@@ -235,7 +235,7 @@ export function startWalCheckpointInterval(intervalMs = 5 * 60 * 1000): void {
             }
         }
     }, intervalMs);
-    
+
     // Don't prevent process exit
     _walCheckpointInterval.unref();
 }

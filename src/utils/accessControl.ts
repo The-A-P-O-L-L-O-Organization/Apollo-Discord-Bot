@@ -70,7 +70,7 @@ export function createAccessDeniedEmbed(message = 'Only bot owners can use this 
  */
 export async function requireOwner(interaction: Interaction, options: { ephemeral?: boolean; customMessage?: string } = {}): Promise<{ embeds: EmbedBuilder[]; ephemeral: boolean } | null> {
     const { ephemeral = true, customMessage } = options;
-    
+
     if (!isOwnerInteraction(interaction)) {
         return {
             embeds: [createAccessDeniedEmbed(customMessage)],
@@ -154,14 +154,14 @@ export function createPermissionDeniedEmbed(permissionName = 'the required permi
  */
 export async function requirePermission(interaction: Interaction, permission: PermissionResolvable, options: { ephemeral?: boolean } = {}): Promise<{ embeds: EmbedBuilder[]; ephemeral: boolean } | null> {
     const { ephemeral = true } = options;
-    
+
     if (!interaction.guild || !interaction.member || !('permissions' in interaction.member)) {
         return {
             embeds: [createPermissionDeniedEmbed('guild context')],
             ephemeral
         };
     }
-    
+
     const member = interaction.member as GuildMember;
     if (!hasPermission(member, permission)) {
         const permName = Object.entries(PermissionsBitField.Flags)

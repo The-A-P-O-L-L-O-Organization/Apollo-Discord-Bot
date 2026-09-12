@@ -116,7 +116,16 @@ const config = {
     logging: {
         level: 'info',
         pretty: true,
-        destination: 'stdout'
+        destination: 'stdout',
+        defaultEvents: {
+            messageDelete: false,
+            messageEdit: false,
+            memberJoin: false,
+            memberLeave: false,
+            roleChanges: false,
+            voiceChanges: false
+        },
+        availableEvents: ['messageDelete', 'messageEdit', 'memberJoin', 'memberLeave', 'roleChanges', 'voiceChanges']
     },
     polls: {
         enabled: true,
@@ -240,6 +249,8 @@ const config = {
 
     // Operator Agreement (required to start the bot)
     operator: {
+        agreed: false,
+        contact: getEnv('OPERATOR_CONTACT') ?? '',
         requireAgreement: true,
         agreementUrl: 'https://github.com/CodeMaster013/Apollo-Discord-Bot/blob/main/legal/TOS.md',
         agreementVersion: '1.0.0',

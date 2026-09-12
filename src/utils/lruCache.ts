@@ -60,7 +60,7 @@ export class LRUCache<K, V> {
     _addToHead(node: LRUNode<K, V>): void {
         node.prev = this.head;
         node.next = this.head.next;
-        if (this.head.next) this.head.next.prev = node;
+        if (this.head.next) {this.head.next.prev = node;}
         this.head.next = node;
     }
 
@@ -69,8 +69,8 @@ export class LRUCache<K, V> {
      * @private
      */
     _removeNode(node: LRUNode<K, V>): void {
-        if (node.prev) node.prev.next = node.next;
-        if (node.next) node.next.prev = node.prev;
+        if (node.prev) {node.prev.next = node.next;}
+        if (node.next) {node.next.prev = node.prev;}
     }
 
     /**
@@ -101,7 +101,7 @@ export class LRUCache<K, V> {
     get(key: K): V | undefined {
         const node = this.cache.get(key);
         if (!node) { return undefined; }
-        
+
         node.accessTime = Date.now();
         this._moveToHead(node);
         return node.value;
@@ -121,12 +121,12 @@ export class LRUCache<K, V> {
             this._moveToHead(existing);
             return false;
         }
-        
+
         // Check if we need to evict
         if (this.size >= this.maxSize) {
             this._evictLRU();
         }
-        
+
         const node = new LRUNode(key, value);
         this.cache.set(key, node);
         this._addToHead(node);
@@ -167,7 +167,7 @@ export class LRUCache<K, V> {
     delete(key: K): boolean {
         const node = this.cache.get(key);
         if (!node) { return false; }
-        
+
         this._removeNode(node);
         this.cache.delete(key);
         this.size--;
@@ -210,8 +210,8 @@ export class LRUCache<K, V> {
      * Gets all entries in LRU order (most recent first)
      * @returns Array of {key, value} objects
      */
-    entries(): Array<{ key: K; value: V }> {
-        const result: Array<{ key: K; value: V }> = [];
+    entries(): { key: K; value: V }[] {
+        const result: { key: K; value: V }[] = [];
         let current: LRUNode<K, V> | null = this.head.next;
         while (current !== this.tail && current !== null) {
             result.push({ key: current.key, value: current.value });
@@ -247,19 +247,19 @@ export class TwoLevelLRUCache {
      * @param options.maxTotalUsers - Maximum total users across all guilds (default: 50000)
      * @param options.onEvict - Optional callback (guildId, userId, value)
      */
-    constructor({ 
-        maxGuilds = 1000, 
-        maxUsersPerGuild = 500, 
+    constructor({
+        maxGuilds = 1000,
+        maxUsersPerGuild = 500,
         maxTotalUsers = 50000,
-        onEvict = null 
+        onEvict = null
     }: TwoLevelLRUCacheOptions = {}) {
         this.maxGuilds = maxGuilds;
         this.maxUsersPerGuild = maxUsersPerGuild;
         this.maxTotalUsers = maxTotalUsers;
         this.onEvict = onEvict;
-        
+
         // Guild-level LRU (tracks guild access order)
-        this.guildLRU = new LRUCache<string, LRUCache<string, unknown>>({ 
+        this.guildLRU = new LRUCache<string, LRUCache<string, unknown>>({
             maxSize: maxGuilds,
             onEvict: (guildId: string, guildCache: LRUCache<string, unknown>) => {
                 // Clean up guild cache when guild is evicted
@@ -271,7 +271,7 @@ export class TwoLevelLRUCache {
                 }
             }
         });
-        
+
         // Global user count
         this.totalUsers = 0;
     }
@@ -283,7 +283,7 @@ export class TwoLevelLRUCache {
     _getGuildCache(guildId: string): LRUCache<string, unknown> {
         let guildCache = this.guildLRU.get(guildId);
         if (!guildCache) {
-            guildCache = new LRUCache<string, unknown>({ 
+            guildCache = new LRUCache<string, unknown>({
                 maxSize: this.maxUsersPerGuild,
                 onEvict: (userId: string, value: unknown) => {
                     this.totalUsers--;
@@ -320,12 +320,12 @@ export class TwoLevelLRUCache {
     set(guildId: string, userId: string, value: unknown): boolean {
         const guildCache = this._getGuildCache(guildId);
         const isNew = guildCache.set(userId, value);
-        
+
         if (isNew) {
             this.totalUsers++;
             this._enforceGlobalLimit();
         }
-        
+
         return isNew;
     }
 
@@ -350,11 +350,11 @@ export class TwoLevelLRUCache {
     delete(guildId: string, userId: string): boolean {
         const guildCache = this.guildLRU.get(guildId);
         if (!guildCache) { return false; }
-        
+
         const deleted = guildCache.delete(userId);
         if (deleted) {
             this.totalUsers--;
-            
+
             // Clean up empty guild cache
             if (guildCache.getSize() === 0) {
                 this.guildLRU.delete(guildId);
@@ -395,24 +395,24 @@ export class TwoLevelLRUCache {
      */
     _enforceGlobalLimit(): void {
         if (this.totalUsers <= this.maxTotalUsers) { return; }
-        
+
         // Evict 10% of excess
         const toEvict = Math.ceil((this.totalUsers - this.maxTotalUsers) * 1.1);
-        
+
         // Evict from guilds with most users first
         const guildsBySize = this.guildLRU.entries()
-            .map(({ key: guildId, value: guildCache }) => ({ 
-                guildId, 
-                size: guildCache.getSize() 
+            .map(({ key: guildId, value: guildCache }) => ({
+                guildId,
+                size: guildCache.getSize()
             }))
             .sort((a, b) => b.size - a.size);
-        
+
         let evicted = 0;
         for (const { guildId } of guildsBySize) {
             if (evicted >= toEvict) { break; }
             const guildCache = this.guildLRU.get(guildId);
             if (!guildCache) { continue; }
-            
+
             // Evict LRU from this guild
             const tail = guildCache._popTail();
             if (tail) {
@@ -425,7 +425,7 @@ export class TwoLevelLRUCache {
                     try { this.onEvict(guildId, tail.key, tail.value); } catch {}
                 }
             }
-            
+
             // Clean up empty guild
             if (guildCache.getSize() === 0) {
                 this.guildLRU.delete(guildId);

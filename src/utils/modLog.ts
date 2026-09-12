@@ -1,7 +1,8 @@
 // Mod Log Utility
 // Sends moderation action logs to a designated channel
 import { logger } from '../utils/logger.js';
-import { EmbedBuilder, Guild, GuildMember, TextChannel } from 'discord.js';
+import type { Guild, GuildMember, TextChannel } from 'discord.js';
+import { EmbedBuilder } from 'discord.js';
 import { config } from '../config/config.js';
 
 interface ModLogOptions {
@@ -120,12 +121,12 @@ export async function fetchMember(guild: Guild, userId: string): Promise<GuildMe
     try {
         // First try cache
         let member = guild.members.cache.get(userId) ?? undefined;
-        
+
         // If not in cache, fetch from API
         if (!member) {
             member = await guild.members.fetch(userId).catch(() => undefined);
         }
-        
+
         return member ?? null;
     } catch (error) {
         logger.error({ err: error as Error, msg: `[ERROR] Failed to fetch member ${userId}` });
