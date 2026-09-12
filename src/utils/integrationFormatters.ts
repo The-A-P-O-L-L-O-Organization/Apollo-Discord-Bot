@@ -46,15 +46,15 @@ export interface GithubIssue {
 
 export interface NotificationPayload {
     content?: string;
-    embeds: Array<{
+    embeds: {
         color: number;
         title: string;
         url: string;
-        fields?: Array<{ name: string; value: string; inline?: boolean }>;
+        fields?: { name: string; value: string; inline?: boolean }[];
         thumbnail?: { url: string };
         timestamp: string;
         description?: string;
-    }>;
+    }[];
 }
 
 /**

@@ -10,7 +10,7 @@ function hashFile(filePath: string): string {
     return createHash('sha256').update(readFileSync(filePath)).digest('hex');
 }
 
-function walk(dir: string, base: string, files: Array<{ rel: string; full: string }> = []): Array<{ rel: string; full: string }> {
+function walk(dir: string, base: string, files: { rel: string; full: string }[] = []): { rel: string; full: string }[] {
     if (!existsSync(dir)) {
         return files;
     }
@@ -91,11 +91,11 @@ export async function verifyPluginManifest({
 export function verifyPluginFile(pluginPath: string, expectedHash: string): boolean {
     const hash = createHash('sha256').update(readFileSync(pluginPath)).digest('hex');
     if (hash !== expectedHash) {
-        logSecurityEvent({ 
-            event: 'plugin.toctou_hash_mismatch', 
-            pluginPath, 
-            expected: expectedHash, 
-            actual: hash 
+        logSecurityEvent({
+            event: 'plugin.toctou_hash_mismatch',
+            pluginPath,
+            expected: expectedHash,
+            actual: hash
         });
         throw new Error(`[SECURITY] Plugin file hash mismatch for ${pluginPath}. Expected ${expectedHash}, got ${hash}.`);
     }

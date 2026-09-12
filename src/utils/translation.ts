@@ -58,7 +58,7 @@ export class TranslationService {
             if (!response.ok) {
                 throw new Error(`Failed to fetch languages: ${response.status}`);
             }
-            const languages = await response.json() as Array<{ code: string; name: string }>;
+            const languages = await response.json() as { code: string; name: string }[];
             this.cachedLanguages = languages.map(lang => ({
                 language: lang.code.toUpperCase(),
                 name: lang.name
@@ -115,7 +115,7 @@ export class TranslationService {
         }
 
         if (!response.ok) { return null; }
-        const result = await response.json() as Array<{ language: string }>;
+        const result = await response.json() as { language: string }[];
         return result && result.length > 0 && result[0] ? result[0].language.toUpperCase() : null;
     }
 

@@ -1,9 +1,6 @@
 import { config } from '../../../config/config.js';
-// @ts-expect-error - JS file not yet migrated
 import { getQueueMetrics } from '../../../queue/metrics.js';
-// @ts-expect-error - JS file not yet migrated
 import { requireOwner } from '../../../utils/accessControl.js';
-// @ts-expect-error - JS file not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
 
@@ -55,7 +52,7 @@ export default {
             });
 
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unexpected error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

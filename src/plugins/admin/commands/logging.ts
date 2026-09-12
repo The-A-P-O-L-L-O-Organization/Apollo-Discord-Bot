@@ -1,8 +1,6 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ChatInputCommandInteraction, MessageFlags } from 'discord.js';
-// @ts-expect-error - JS file not yet migrated
 import { setGuildData, getGuildData } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
-// @ts-expect-error - JS file not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
@@ -69,15 +67,15 @@ export default {
                     const event = interaction.options.getString('event');
                     const enabled = subcommand === 'enable';
 
-                    const existingConfig = await getGuildData('logging', guildId);
-                    const events = existingConfig.events || { ...config.logging.defaultEvents };
+                    const existingConfig = await getGuildData('logging', guildId) as Record<string, unknown>;
+                    const events = (existingConfig['events'] as Record<string, boolean>) || { ...config.logging.defaultEvents };
 
                     if (event === 'all') {
                         for (const eventName of config.logging.availableEvents) {
                             events[eventName] = enabled;
                         }
                     } else {
-                        events[event] = enabled;
+                        events[event as string] = enabled;
                     }
 
                     await setGuildData('logging', guildId, {
@@ -85,19 +83,20 @@ export default {
                         events
                     });
 
-                    const eventDisplay = event === 'all' ? 'All events' : getEventDisplayName(event);
+                    const eventDisplay = event === 'all' ? 'All events' : getEventDisplayName(event ?? '');
                     return interaction.reply({
                         content: `${eventDisplay} logging has been **${enabled ? 'enabled' : 'disabled'}**.`,
                         flags: MessageFlags.Ephemeral
                     });
                 } else if (subcommand === 'status') {
-                    const loggingConfig = await getGuildData('logging', guildId);
-                    const events = loggingConfig.events || config.logging.defaultEvents;
+                    const loggingConfig = await getGuildData('logging', guildId) as Record<string, unknown>;
+                    const events = (loggingConfig['events'] as Record<string, boolean>) || config.logging.defaultEvents;
 
                     let channelStatus = 'Not configured';
-                    if (loggingConfig.channelId) {
+                    const channelId = loggingConfig['channelId'] as string | undefined;
+                    if (channelId) {
                         try {
-                            const channel = await interaction.guild!.channels.fetch(loggingConfig.channelId);
+                            const channel = await interaction.guild!.channels.fetch(channelId);
                             if (channel) {
                                 channelStatus = `<#${channel.id}>`;
                             } else {
@@ -117,32 +116,32 @@ export default {
                             { name: '\u200B', value: '**Event Status**', inline: false },
                             { 
                                 name: 'Message Delete', 
-                                value: events.messageDelete ?? config.logging.defaultEvents.messageDelete ? '[ON] Enabled' : '[OFF] Disabled', 
+                                value: events['messageDelete'] ?? config.logging.defaultEvents.messageDelete ? '[ON] Enabled' : '[OFF] Disabled', 
                                 inline: true 
                             },
                             { 
                                 name: 'Message Edit', 
-                                value: events.messageEdit ?? config.logging.defaultEvents.messageEdit ? '[ON] Enabled' : '[OFF] Disabled', 
+                                value: events['messageEdit'] ?? config.logging.defaultEvents.messageEdit ? '[ON] Enabled' : '[OFF] Disabled', 
                                 inline: true 
                             },
                             { 
                                 name: 'Member Join', 
-                                value: events.memberJoin ?? config.logging.defaultEvents.memberJoin ? '[ON] Enabled' : '[OFF] Disabled', 
+                                value: events['memberJoin'] ?? config.logging.defaultEvents.memberJoin ? '[ON] Enabled' : '[OFF] Disabled', 
                                 inline: true 
                             },
                             { 
                                 name: 'Member Leave', 
-                                value: events.memberLeave ?? config.logging.defaultEvents.memberLeave ? '[ON] Enabled' : '[OFF] Disabled', 
+                                value: events['memberLeave'] ?? config.logging.defaultEvents.memberLeave ? '[ON] Enabled' : '[OFF] Disabled', 
                                 inline: true 
                             },
                             { 
                                 name: 'Role Changes', 
-                                value: events.roleChanges ?? config.logging.defaultEvents.roleChanges ? '[ON] Enabled' : '[OFF] Disabled', 
+                                value: events['roleChanges'] ?? config.logging.defaultEvents.roleChanges ? '[ON] Enabled' : '[OFF] Disabled', 
                                 inline: true 
                             },
                             { 
                                 name: 'Voice Changes', 
-                                value: events.voiceChanges ?? config.logging.defaultEvents.voiceChanges ? '[ON] Enabled' : '[OFF] Disabled', 
+                                value: events['voiceChanges'] ?? config.logging.defaultEvents.voiceChanges ? '[ON] Enabled' : '[OFF] Disabled', 
                                 inline: true 
                             }
                         )
@@ -158,7 +157,7 @@ export default {
                 }
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

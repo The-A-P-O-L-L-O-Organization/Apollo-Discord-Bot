@@ -1,9 +1,16 @@
 import { logger } from '../utils/logger.js';
- 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { dirname } from 'path';
 
-const DEFAULT_PLUGINS = [
+interface PluginRegistryEntry {
+    id: string;
+    name: string;
+    version: string;
+    description: string;
+    downloadUrl: string;
+}
+
+const DEFAULT_PLUGINS: PluginRegistryEntry[] = [
     {
         id: 'ssa',
         name: 'SSA',
@@ -14,13 +21,16 @@ const DEFAULT_PLUGINS = [
 ];
 
 export default class PluginRegistry {
-    constructor(filePath) {
+    private _filePath: string;
+    private _plugins: PluginRegistryEntry[];
+
+    constructor(filePath: string) {
         this._filePath = filePath;
         this._plugins = [];
         this._load();
     }
 
-    _load() {
+    _load(): void {
         if (!existsSync(this._filePath)) {
             this._initDefault();
             return;
@@ -30,40 +40,43 @@ export default class PluginRegistry {
             const data = JSON.parse(raw);
             this._plugins = data.plugins || [];
         } catch (err) {
-            logger.error('[PluginRegistry] Failed to load, using defaults:', err.message);
+            // @ts-expect-error - pino logger overloads
+            logger.error('[PluginRegistry] Failed to load, using defaults:', (err as Error).message);
             this._plugins = [...DEFAULT_PLUGINS];
         }
     }
 
-    _initDefault() {
+    _initDefault(): void {
         this._plugins = [...DEFAULT_PLUGINS];
         try {
             mkdirSync(dirname(this._filePath), { recursive: true });
             writeFileSync(this._filePath, JSON.stringify({ plugins: DEFAULT_PLUGINS }, null, 2), 'utf-8');
+            // @ts-expect-error - pino logger overloads
             logger.info('[PluginRegistry] Created default registry at', this._filePath);
         } catch (err) {
-            logger.error('[PluginRegistry] Failed to create default registry:', err.message);
+            // @ts-expect-error - pino logger overloads
+            logger.error('[PluginRegistry] Failed to create default registry:', (err as Error).message);
         }
     }
 
-    listAvailable() {
+    listAvailable(): PluginRegistryEntry[] {
         return [...this._plugins];
     }
 
-    get(id) {
+    get(id: string): PluginRegistryEntry | null {
         return this._plugins.find(p => p.id === id) || null;
     }
 
-    search(query) {
+    search(query: string): PluginRegistryEntry[] {
         const lower = query.toLowerCase();
         return this._plugins.filter(p =>
             p.id.toLowerCase().includes(lower) ||
-      (p.name && p.name.toLowerCase().includes(lower)) ||
-      (p.description && p.description.toLowerCase().includes(lower))
+            (p.name && p.name.toLowerCase().includes(lower)) ||
+            (p.description && p.description.toLowerCase().includes(lower))
         );
     }
 
-    reload() {
+    reload(): void {
         this._plugins = [];
         this._load();
     }

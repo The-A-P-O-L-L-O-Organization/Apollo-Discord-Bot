@@ -4,7 +4,8 @@
 import { updateGuildData, generateId } from './db.js';
 import { flushAnalyticsCritical } from './analyticsCollector.js';
 import { logger, getLoggingConfig } from './logger.js';
-import { MessageFlags, Message, type TextChannel } from 'discord.js';
+import type { Message} from 'discord.js';
+import { MessageFlags, type TextChannel } from 'discord.js';
 
 interface ReportData {
     reportId: string;
@@ -25,9 +26,9 @@ interface ReportData {
 }
 
 export async function handleReportSubmission(
-    interaction: { 
-        isModalSubmit(): boolean; 
-        customId: string; 
+    interaction: {
+        isModalSubmit(): boolean;
+        customId: string;
         fields: { getTextInputValue(name: string): string };
         message?: { reference?: { messageId?: string } };
         channel: { messages: { fetch(id: string): Promise<Message | null> } };
@@ -195,7 +196,7 @@ export async function handleReportSubmission(
         // Get logging channel and send report
         const logConfig = await getLoggingConfig(interaction.guild.id);
 
-        if (logConfig && logConfig.channelId) {
+        if (logConfig?.channelId) {
             const logChannel = interaction.guild.channels.cache.get(logConfig.channelId);
             if (logChannel) {
                 // Create action buttons

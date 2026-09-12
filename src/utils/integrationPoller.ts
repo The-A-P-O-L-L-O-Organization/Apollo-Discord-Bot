@@ -119,7 +119,7 @@ async function pollTwitchSubscriptions(): Promise<void> {
             const streamData = await checkTwitchStream(sub.target_id, integrationConfig);
             if (streamData && streamData.live) {
                 const channel = client.channels.cache.get(sub.channel_id);
-                if (channel && channel.isTextBased()) {
+                if (channel?.isTextBased()) {
                     const notification = formatTwitchNotification(sub.target_id, streamData);
                     if (notification) {
                         (channel as TextChannel).send(notification).catch(() => {});
@@ -150,7 +150,7 @@ async function pollYoutubeSubscriptions(): Promise<void> {
             for (const video of videos) {
                 if (!seen.has(video.videoId)) {
                     const channel = client.channels.cache.get(sub.channel_id);
-                    if (channel && channel.isTextBased()) {
+                    if (channel?.isTextBased()) {
                         const notification = formatYoutubeNotification(sub.target_id, video);
                         if (notification) {
                             (channel as TextChannel).send(notification).catch(() => {});
@@ -188,7 +188,7 @@ async function pollRssSubscriptions(): Promise<void> {
                 const key = item.guid || item.link;
                 if (!seen.has(key)) {
                     const channel = client.channels.cache.get(sub.channel_id);
-                    if (channel && channel.isTextBased()) {
+                    if (channel?.isTextBased()) {
                         const notification = formatRssNotification(feed.feedTitle, item);
                         if (notification) {
                             (channel as TextChannel).send(notification).catch(() => {});

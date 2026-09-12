@@ -9,7 +9,7 @@ interface ParsedField {
 interface ParsedMarkdown {
     title?: string;
     description?: string;
-    fields?: Array<{ name: string; value: string }>;
+    fields?: { name: string; value: string }[];
     footer?: { text: string };
 }
 
@@ -26,7 +26,7 @@ interface ExistingEmbedData {
  * @returns Parsed embed data object
  */
 export function parseMarkdownToEmbed(content: string, filename: string, existing: ExistingEmbedData = {}): ParsedMarkdown {
-    if (!content || !content.trim()) {return {};}
+    if (!content?.trim()) {return {};}
 
     const lines = content.split('\n');
     let parsedTitle: string | undefined;

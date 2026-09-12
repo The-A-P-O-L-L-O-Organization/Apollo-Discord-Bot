@@ -54,7 +54,7 @@ function getFilePath(filename: string): string {
  */
 export function getData(filename: string): Record<string, unknown> {
     const filePath = getFilePath(filename);
-    
+
     try {
         if (existsSync(filePath)) {
             const data = readFileSync(filePath, 'utf8');
@@ -74,7 +74,7 @@ export function getData(filename: string): Record<string, unknown> {
  */
 export function setData(filename: string, data: Record<string, unknown>): void {
     const filePath = getFilePath(filename);
-    
+
     try {
         writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
     } catch (error) {
@@ -106,16 +106,16 @@ export async function setGuildData(filename: string, guildId: string, guildData:
     if (pendingWrite) {
         await pendingWrite;
     }
-    
+
     // Create a new write operation
     const writeOperation = (async () => {
         const data = getData(filename);
         data[guildId] = guildData;
         setData(filename, data);
     })();
-    
+
     writeQueue.set(filename, writeOperation);
-    
+
     try {
         await writeOperation;
     } finally {
@@ -139,7 +139,7 @@ export async function updateGuildData(filename: string, guildId: string, key: st
     if (pendingWrite) {
         await pendingWrite;
     }
-    
+
     const writeOperation = (async () => {
         const data = getData(filename);
         if (!data[guildId]) {
@@ -148,9 +148,9 @@ export async function updateGuildData(filename: string, guildId: string, key: st
         (data[guildId] as Record<string, unknown>)[key] = value;
         setData(filename, data);
     })();
-    
+
     writeQueue.set(filename, writeOperation);
-    
+
     try {
         await writeOperation;
     } finally {
@@ -173,7 +173,7 @@ export async function appendToGuildArray(filename: string, guildId: string, key:
     if (pendingWrite) {
         await pendingWrite;
     }
-    
+
     const writeOperation = (async () => {
         const data = getData(filename);
         if (!data[guildId]) {
@@ -185,9 +185,9 @@ export async function appendToGuildArray(filename: string, guildId: string, key:
         ((data[guildId] as Record<string, unknown>)[key] as unknown[]).push(item);
         setData(filename, data);
     })();
-    
+
     writeQueue.set(filename, writeOperation);
-    
+
     try {
         await writeOperation;
     } finally {
@@ -215,27 +215,27 @@ export async function removeFromGuildArray(
     if (pendingWrite) {
         await pendingWrite;
     }
-    
+
     let removed = 0;
     const writeOperation = (async () => {
         const data = getData(filename);
         if (!data[guildId] || !Array.isArray((data[guildId] as Record<string, unknown>)[key])) {
             return 0;
         }
-        
+
         const originalLength = ((data[guildId] as Record<string, unknown>)[key] as unknown[]).length;
         (data[guildId] as Record<string, unknown>)[key] = ((data[guildId] as Record<string, unknown>)[key] as unknown[]).filter(item => !predicate(item));
         removed = originalLength - ((data[guildId] as Record<string, unknown>)[key] as unknown[]).length;
-        
+
         if (removed > 0) {
             setData(filename, data);
         }
-        
+
         return removed;
     })();
-    
+
     writeQueue.set(filename, writeOperation);
-    
+
     try {
         await writeOperation;
     } finally {
@@ -243,7 +243,7 @@ export async function removeFromGuildArray(
             writeQueue.delete(filename);
         }
     }
-    
+
     return removed;
 }
 
@@ -277,7 +277,7 @@ export async function setUserData(
     if (pendingWrite) {
         await pendingWrite;
     }
-    
+
     const writeOperation = (async () => {
         const data = getData(filename);
         if (!data[guildId]) {
@@ -286,9 +286,9 @@ export async function setUserData(
         data[guildId][userId] = userData;
         setData(filename, data);
     })();
-    
+
     writeQueue.set(filename, writeOperation);
-    
+
     try {
         await writeOperation;
     } finally {
@@ -316,7 +316,7 @@ export async function appendToUserArray(
     if (pendingWrite) {
         await pendingWrite;
     }
-    
+
     const writeOperation = (async () => {
         const data = getData(filename);
         if (!data[guildId]) {
@@ -328,9 +328,9 @@ export async function appendToUserArray(
         ((data[guildId] as Record<string, unknown>)[userId] as unknown[]).push(item);
         setData(filename, data);
     })();
-    
+
     writeQueue.set(filename, writeOperation);
-    
+
     try {
         await writeOperation;
     } finally {
@@ -358,27 +358,27 @@ export async function removeFromUserArray(
     if (pendingWrite) {
         await pendingWrite;
     }
-    
+
     let removed = 0;
     const writeOperation = (async () => {
         const data = getData(filename);
         if (!data[guildId] || !Array.isArray((data[guildId] as Record<string, unknown>)[userId])) {
             return 0;
         }
-        
+
         const originalLength = ((data[guildId] as Record<string, unknown>)[userId] as unknown[]).length;
         (data[guildId] as Record<string, unknown>)[userId] = ((data[guildId] as Record<string, unknown>)[userId] as unknown[]).filter(item => !predicate(item));
         removed = originalLength - ((data[guildId] as Record<string, unknown>)[userId] as unknown[]).length;
-        
+
         if (removed > 0) {
             setData(filename, data);
         }
-        
+
         return removed;
     })();
-    
+
     writeQueue.set(filename, writeOperation);
-    
+
     try {
         await writeOperation;
     } finally {
@@ -386,7 +386,7 @@ export async function removeFromUserArray(
             writeQueue.delete(filename);
         }
     }
-    
+
     return removed;
 }
 
@@ -407,7 +407,7 @@ export function generateId(): string {
 export function writeToSubDir(subdir: string, filename: string, data: Record<string, unknown>): void {
     const subdirPath = ensureSubDir(subdir);
     const filePath = path.join(subdirPath, filename);
-    
+
     try {
         writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
         logger.info(`[INFO] Wrote file: ${subdir}/${filename}`);

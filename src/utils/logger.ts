@@ -57,6 +57,3 @@ export { logger };
 export function createLogger(context: Record<string, unknown>): typeof logger {
     return logger.child(context);
 }
-
-// Re-export guild logging functions for backward compatibility
-export { getLoggingConfig, isEventEnabled, getLogChannel, logEvent } from './guildLogging.js';

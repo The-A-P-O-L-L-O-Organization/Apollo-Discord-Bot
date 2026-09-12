@@ -20,7 +20,7 @@ interface TranscriptData {
 
 interface TranscriptMessage {
     content?: string;
-    attachments?: Array<{ name: string; size: number }>;
+    attachments?: { name: string; size: number }[];
     embeds?: number;
     edited?: boolean;
     author: { tag: string; bot?: boolean };
@@ -34,7 +34,7 @@ interface TranscriptMessage {
  */
 export function generateHtmlTranscript(transcript: TranscriptData): string {
     const { ticketNumber, guildName, channelName, createdBy, closedBy, reason, closeReason, createdAt, closedAt, messageCount, messages } = transcript;
-    
+
     const formatDate = (timestamp: number): string => {
         const date = new Date(timestamp);
         return date.toLocaleString('en-US', {
@@ -47,7 +47,7 @@ export function generateHtmlTranscript(transcript: TranscriptData): string {
             hour12: false
         });
     };
-    
+
     const escapeHtml = (text: string): string => {
         if (!text) {
             return '';
@@ -62,27 +62,27 @@ export function generateHtmlTranscript(transcript: TranscriptData): string {
             .replace(/`/g, '&#x60;')
             .replace(/=/g, '&#x3D;');
     };
-    
+
     const formatMessageContent = (msg: TranscriptMessage): string => {
         let content = escapeHtml(msg.content ?? '');
-        
+
         // Handle attachments
         if (msg.attachments && msg.attachments.length > 0) {
             content += '\n\n[Attachments: ' + msg.attachments.map(a => `${a.name} (${formatBytes(a.size)})`).join(', ') + ']';
         }
-        
+
         // Handle embeds
         if (msg.embeds && msg.embeds > 0) {
             content += `\n\n[${msg.embeds} embed(s)]`;
         }
-        
+
         if (msg.edited) {
             content += ' *(edited)*';
         }
-        
+
         return content;
     };
-    
+
     const formatBytes = (bytes: number): string => {
         if (bytes === 0) {
             return '0 B';
@@ -92,12 +92,12 @@ export function generateHtmlTranscript(transcript: TranscriptData): string {
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
-    
+
     const messagesHtml = messages.map(msg => {
         const isBot = msg.author.bot ? 'bot' : '';
         const authorClass = isBot ? 'message-bot' : 'message-user';
         const timestamp = formatDate(msg.timestamp);
-        
+
         return `
         <div class="message ${authorClass}">
             <div class="message-header">
@@ -107,7 +107,7 @@ export function generateHtmlTranscript(transcript: TranscriptData): string {
             <div class="message-content">${formatMessageContent(msg).replace(/\n/g, '<br>')}</div>
         </div>`;
     }).join('\n');
-    
+
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -326,7 +326,7 @@ export function generateHtmlTranscript(transcript: TranscriptData): string {
  */
 export function generateTextTranscript(transcript: TranscriptData): string {
     const { ticketNumber, guildName, channelName, createdBy, closedBy, reason, closeReason, createdAt, closedAt, messageCount, messages } = transcript;
-    
+
     const formatDate = (timestamp: number): string => {
         const date = new Date(timestamp);
         return date.toLocaleString('en-US', {
@@ -339,7 +339,7 @@ export function generateTextTranscript(transcript: TranscriptData): string {
             hour12: false
         });
     };
-    
+
     const formatBytes = (bytes: number): string => {
         if (bytes === 0) {
             return '0 B';
@@ -349,12 +349,12 @@ export function generateTextTranscript(transcript: TranscriptData): string {
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
-    
+
     let output = '';
     output += '='.repeat(60) + '\n';
     output += `TICKET TRANSCRIPT #${ticketNumber}\n`;
     output += '='.repeat(60) + '\n\n';
-    
+
     output += `Guild:        ${guildName}\n`;
     output += `Channel:      #${channelName}\n`;
     output += `Created By:   ${createdBy.tag} (${createdBy.id})\n`;
@@ -365,42 +365,42 @@ export function generateTextTranscript(transcript: TranscriptData): string {
     output += `Closed At:    ${formatDate(closedAt)}\n`;
     output += `Messages:     ${messageCount}\n`;
     output += '\n' + '-'.repeat(60) + '\n\n';
-    
+
     if (messages.length === 0) {
         output += '[No messages in this ticket]\n';
     } else {
         messages.forEach(msg => {
             const timestamp = formatDate(msg.timestamp);
             const authorTag = msg.author.bot ? `${msg.author.tag} [BOT]` : msg.author.tag;
-            
+
             output += `[${timestamp}] ${authorTag}:\n`;
-            
+
             let content = msg.content ?? '[No text content]';
-            
+
             if (msg.attachments && msg.attachments.length > 0) {
                 content += '\n  [Attachments: ' + msg.attachments.map(a => `${a.name} (${formatBytes(a.size)})`).join(', ') + ']';
             }
-            
+
             if (msg.embeds && msg.embeds > 0) {
                 content += `\n  [${msg.embeds} embed(s)]`;
             }
-            
+
             if (msg.edited) {
                 content += ' *(edited)*';
             }
-            
+
             // Indent content
             content.split('\n').forEach(line => {
                 output += `  ${line}\n`;
             });
-            
+
             output += '\n';
         });
     }
-    
+
     output += '-'.repeat(60) + '\n';
     output += `End of transcript | Generated: ${formatDate(Date.now())}\n`;
-    
+
     return output;
 }
 
@@ -412,10 +412,10 @@ export function generateTextTranscript(transcript: TranscriptData): string {
 export async function saveTranscripts(transcript: TranscriptData): Promise<{ htmlFile: string; textFile: string }> {
     const timestamp = Date.now();
     const baseName = `ticket-${transcript.ticketNumber}-${transcript.guildId}-${timestamp}`;
-    
+
     const htmlContent = generateHtmlTranscript(transcript);
     const textContent = generateTextTranscript(transcript);
-    
+
     // Check transcript size (max 5MB)
     const MAX_SIZE = 5 * 1024 * 1024; // 5MB
     if (htmlContent.length > MAX_SIZE || textContent.length > MAX_SIZE) {
@@ -423,22 +423,22 @@ export async function saveTranscripts(transcript: TranscriptData): Promise<{ htm
         const truncatedTranscript: TranscriptData = { ...transcript, messages: transcript.messages.slice(-500) };
         const truncatedHtml = generateHtmlTranscript(truncatedTranscript);
         const truncatedText = generateTextTranscript(truncatedTranscript);
-        
+
         const htmlFile = `${baseName}.html`;
         const textFile = `${baseName}.txt`;
-        
+
         await writeToSubDir('transcripts', htmlFile, truncatedHtml);
         await writeToSubDir('transcripts', textFile, truncatedText);
-        
+
         return { htmlFile, textFile };
     }
-    
+
     const htmlFile = `${baseName}.html`;
     const textFile = `${baseName}.txt`;
-    
+
     await writeToSubDir('transcripts', htmlFile, htmlContent);
     await writeToSubDir('transcripts', textFile, textContent);
-    
+
     return { htmlFile, textFile };
 }
 

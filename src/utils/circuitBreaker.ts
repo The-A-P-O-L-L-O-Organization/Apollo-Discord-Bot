@@ -42,14 +42,14 @@ export const DEFAULT_CONFIG: CircuitBreakerConfig = {
 export class CircuitBreaker extends EventEmitter {
     public readonly name: string;
     public readonly config: CircuitBreakerConfig;
-    
+
     public state: CircuitStateType = CircuitState.CLOSED;
     public failures = 0;
     public successes = 0;
     public requests = 0;
     public lastFailureTime = 0;
     public lastStateChange = Date.now();
-    
+
     // Rolling window for failure tracking
     private failureTimestamps: number[] = [];
 
@@ -58,7 +58,7 @@ export class CircuitBreaker extends EventEmitter {
         this.name = name;
         this.config = { ...DEFAULT_CONFIG, ...config };
     }
-    
+
     /**
      * Executes a function with circuit breaker protection
      * @param {Function} fn - Async function to execute
@@ -72,9 +72,9 @@ export class CircuitBreaker extends EventEmitter {
                 throw new CircuitBreakerOpenError(this.name);
             }
         }
-        
+
         this.requests++;
-        
+
         try {
             const result = await fn();
             this._onSuccess();
@@ -84,13 +84,13 @@ export class CircuitBreaker extends EventEmitter {
             throw error;
         }
     }
-    
+
     /**
      * Handles successful execution
      */
     private _onSuccess(): void {
         this._cleanOldFailures();
-        
+
         if (this.state === CircuitState.HALF_OPEN) {
             this.successes++;
             if (this.successes >= this.config.successThreshold) {
@@ -102,22 +102,22 @@ export class CircuitBreaker extends EventEmitter {
             this.failureTimestamps = [];
         }
     }
-    
+
     /**
      * Handles failed execution
      */
     private _onFailure(error: unknown): void {
         this._cleanOldFailures();
-        
+
         // Check if error should be excluded
         if (this._isExcludedError(error)) {
             return;
         }
-        
+
         this.failures++;
         this.failureTimestamps.push(Date.now());
         this.lastFailureTime = Date.now();
-        
+
         if (this.state === CircuitState.HALF_OPEN) {
             // Any failure in half-open goes back to open
             this._transitionToOpen();
@@ -128,37 +128,37 @@ export class CircuitBreaker extends EventEmitter {
             }
         }
     }
-    
+
     /**
      * Checks if error should be excluded from failure counting
      */
     private _isExcludedError(error: unknown): boolean {
         if (!this.config.excludedErrors.length) { return false; }
-        
+
         // Check error code
         if (error && typeof error === 'object' && 'code' in error && this.config.excludedErrors.includes(String(error.code))) {
             return true;
         }
-        
+
         // Check error name
         if (error && typeof error === 'object' && 'name' in error && this.config.excludedErrors.includes(String(error.name))) {
             return true;
         }
-        
+
         // Check HTTP status codes (convert to string for comparison)
         if (error && typeof error === 'object' && 'status' in error && this.config.excludedErrors.includes(String(error.status))) {
             return true;
         }
-        
-        if (error && typeof error === 'object' && 'response' in error && 
+
+        if (error && typeof error === 'object' && 'response' in error &&
             error.response && typeof error.response === 'object' && 'status' in error.response &&
             this.config.excludedErrors.includes(String(error.response.status))) {
             return true;
         }
-        
+
         return false;
     }
-    
+
     /**
      * Cleans old failure timestamps outside the rolling window
      */
@@ -167,7 +167,7 @@ export class CircuitBreaker extends EventEmitter {
         this.failureTimestamps = this.failureTimestamps.filter(ts => ts > cutoff);
         this.failures = this.failureTimestamps.length;
     }
-    
+
     /**
      * Determines if circuit should open
      */
@@ -176,11 +176,11 @@ export class CircuitBreaker extends EventEmitter {
         if (this.requests < this.config.minimumRequests) {
             return false;
         }
-        
+
         // Check failure threshold
         return this.failures >= this.config.failureThreshold;
     }
-    
+
     /**
      * Transitions to OPEN state
      */
@@ -191,7 +191,7 @@ export class CircuitBreaker extends EventEmitter {
         this.emit('open', { name: this.name, failures: this.failures });
         logger.info(`[CIRCUIT] ${this.name} opened after ${this.failures} failures`);
     }
-    
+
     /**
      * Transitions to HALF_OPEN state
      */
@@ -202,7 +202,7 @@ export class CircuitBreaker extends EventEmitter {
         this.emit('half_open', { name: this.name });
         logger.info(`[CIRCUIT] ${this.name} half-open (testing recovery)`);
     }
-    
+
     /**
      * Transitions to CLOSED state
      */
@@ -216,7 +216,7 @@ export class CircuitBreaker extends EventEmitter {
         this.emit('close', { name: this.name });
         logger.info(`[CIRCUIT] ${this.name} closed (recovered)`);
     }
-    
+
     /**
      * Gets current circuit breaker status
      */
@@ -232,14 +232,14 @@ export class CircuitBreaker extends EventEmitter {
             config: this.config
         };
     }
-    
+
     /**
      * Manually resets the circuit breaker
      */
     reset(): void {
         this._transitionToClosed();
     }
-    
+
     /**
      * Manually forces the circuit open
      */
@@ -264,7 +264,7 @@ export interface CircuitBreakerStatus {
  */
 export class CircuitBreakerOpenError extends Error {
     public readonly circuitName: string;
-    
+
     constructor(name: string) {
         super(`Circuit breaker "${name}" is OPEN`);
         this.name = 'CircuitBreakerOpenError';
@@ -277,7 +277,7 @@ export class CircuitBreakerOpenError extends Error {
  */
 export class CircuitBreakerRegistry {
     private breakers = new Map<string, CircuitBreaker>();
-    
+
     /**
      * Gets or creates a circuit breaker
      */
@@ -287,7 +287,7 @@ export class CircuitBreakerRegistry {
         }
         return this.breakers.get(name)!;
     }
-    
+
     /**
      * Executes a function with a named circuit breaker
      */
@@ -295,7 +295,7 @@ export class CircuitBreakerRegistry {
         const breaker = this.get(name, config);
         return breaker.execute(fn);
     }
-    
+
     /**
      * Gets status of all circuit breakers
      */
@@ -306,7 +306,7 @@ export class CircuitBreakerRegistry {
         }
         return status;
     }
-    
+
     /**
      * Gets status of a specific circuit breaker
      */
@@ -314,7 +314,7 @@ export class CircuitBreakerRegistry {
         const breaker = this.breakers.get(name);
         return breaker ? breaker.getStatus() : null;
     }
-    
+
     /**
      * Resets a specific circuit breaker
      */
@@ -324,7 +324,7 @@ export class CircuitBreakerRegistry {
             breaker.reset();
         }
     }
-    
+
     /**
      * Resets all circuit breakers
      */
@@ -377,7 +377,7 @@ export function createServiceBreaker(serviceName: string, config: Partial<Circui
             excludedErrors: ['ECONNREFUSED', 'ETIMEDOUT', '429', '500', '502', '503', '504']
         }
     };
-    
+
     const defaultConfig = serviceConfigs[serviceName] || {};
     return circuitBreakers.get(serviceName, { ...defaultConfig, ...config });
 }

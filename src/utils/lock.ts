@@ -15,7 +15,7 @@ let _lockRedis: Redis | null = null;
  * - A single connection is sufficient for all lock operations
  * - Avoids connection overhead for distributed locking
  * - The lock connection is only used when QUEUE_ENABLED=true
- * 
+ *
  * Callers should use closeLockRedis() during shutdown to clean up.
  */
 export async function getLockRedis(): Promise<Redis | null> {

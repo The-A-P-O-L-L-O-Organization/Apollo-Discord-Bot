@@ -1,13 +1,9 @@
 import { config } from '../../../config/config.js';
-// @ts-expect-error - JS file not yet migrated
 import { getDb, runMigrations } from '../../../db/knex.js';
-// @ts-expect-error - JS file not yet migrated
 import { safeError } from '../../../utils/safeError.js';
-// @ts-expect-error - JS file not yet migrated
 import { requireOwner } from '../../../utils/accessControl.js';
-// @ts-expect-error - JS file not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
-import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
+import { ChatInputCommandInteraction, MessageFlags, EmbedBuilder } from 'discord.js';
 
 export default {
     name: 'migrate',
@@ -32,7 +28,11 @@ export default {
         try {
             const denial = await requireOwner(interaction);
             if (denial) {
-                return safeReply(interaction, denial);
+                if (typeof denial === 'string') {
+                    return safeReply(interaction, denial);
+                }
+                // If denial is an embed object, use a generic message
+                return safeReply(interaction, 'Access denied: bot owner only');
             }
 
             const subcommand = interaction.options.getSubcommand();
@@ -41,24 +41,13 @@ export default {
                 const db = getDb();
                 const [completed, pending] = await db.migrate.list();
                 const completedNames = completed && completed.length > 0
-                    ? completed.map(m => '`' + (m.name || m.file || m) + '`').join('\n')
+                    ? completed.map((m: { name?: string; file?: string }) => '`' + (m.name || m.file || m) + '`').join('\n')
                     : 'None';
                 const pendingFiles = pending && pending.length > 0
-                    ? pending.map(m => '`' + (m.file || m) + '`').join('\n')
+                    ? pending.map((m: { file?: string }) => '`' + (m.file || m) + '`').join('\n')
                     : 'None';
 
-                return safeReply(interaction, {
-                    embeds: [{
-                        color: pending && pending.length > 0 ? 0xFFA500 : 0x00FF00,
-                        title: 'Migration Status (' + config.database.type + ')',
-                        fields: [
-                            { name: 'Completed', value: completedNames, inline: false },
-                            { name: 'Pending', value: pendingFiles, inline: false },
-                        ],
-                        timestamp: new Date().toISOString()
-                    }],
-                    flags: MessageFlags.Ephemeral
-                });
+                return safeReply(interaction, `Migration Status (${config.database.type}):\n\nCompleted:\n${completedNames}\n\nPending:\n${pendingFiles}`);
             }
 
             if (subcommand === 'run') {
@@ -81,7 +70,7 @@ export default {
                 }
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

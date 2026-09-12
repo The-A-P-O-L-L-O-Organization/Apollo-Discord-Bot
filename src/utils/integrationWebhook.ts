@@ -82,13 +82,13 @@ export async function startWebhookServer(port: number, secret: string, discordCl
                 try {
                     const { getData } = await import('./db.js');
                     const data = await getData('integrations') as Record<string, unknown> | undefined;
-                    const subs = (data?.['subscriptions'] as Array<Record<string, unknown>>) || [];
+                    const subs = (data?.['subscriptions'] as Record<string, unknown>[]) || [];
                     const githubSubs = subs.filter((s: Record<string, unknown>) =>
                         s['type'] === 'github' && s['target_id'] === repoName
                     );
                     for (const sub of githubSubs) {
                         const channel = discordClient.channels.cache.get(sub['channel_id'] as string);
-                        if (channel && channel.isTextBased()) {
+                        if (channel?.isTextBased()) {
                             (channel as TextChannel).send(notification).catch(() => {});
                         }
                     }

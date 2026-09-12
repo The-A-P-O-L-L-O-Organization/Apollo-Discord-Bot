@@ -126,11 +126,11 @@ export default class RemoteInteraction {
         return {
             listPlugins: () => managerInfo.plugins || [],
             getPlugin: (id: string) => {
-                const p = (managerInfo.plugins as Array<{ id: string }> || []).find(pl => pl.id === id);
+                const p = (managerInfo.plugins as { id: string }[] || []).find(pl => pl.id === id);
                 return p ? { _enabled: p.enabled, _loaded: p.loaded } : null;
             },
             isEnabled: (id: string) => {
-                const p = (managerInfo.plugins as Array<{ id: string }> || []).find(pl => pl.id === id);
+                const p = (managerInfo.plugins as { id: string }[] || []).find(pl => pl.id === id);
                 return p ? p.enabled : false;
             },
             scanPlugins: () => managerInfo.scanned || [],
@@ -231,11 +231,11 @@ function buildMessageBody(options: Record<string, unknown>): Record<string, unkn
 }
 
 class RemoteOptions {
-    _data: Array<{ name: string; type: number; value: unknown; focused?: boolean; options?: unknown[] }>;
+    _data: { name: string; type: number; value: unknown; focused?: boolean; options?: unknown[] }[];
     _resolved: Record<string, unknown> | null;
-    data: Array<{ name: string; type: number; value: unknown; focused?: boolean; options?: unknown[] }>;
+    data: { name: string; type: number; value: unknown; focused?: boolean; options?: unknown[] }[];
 
-    constructor(optionsData: Array<{ name: string; type: number; value: unknown; focused?: boolean; options?: unknown[] }> = [], resolved: Record<string, unknown> | null = null) {
+    constructor(optionsData: { name: string; type: number; value: unknown; focused?: boolean; options?: unknown[] }[] = [], resolved: Record<string, unknown> | null = null) {
         this._data = optionsData || [];
         this._resolved = resolved;
         this.data = this._data;
@@ -247,22 +247,22 @@ class RemoteOptions {
     getNumber(name: string): number | null { const v = this._find(name)?.value; return v !== null && v !== undefined ? Number(v) : null; }
     getChannel(name: string): Record<string, unknown> | null {
         const opt = this._find(name);
-        if (!opt || !opt.value) { return null; }
+        if (!opt?.value) { return null; }
         return this._resolved?.channels?.[opt.value as string] || { id: opt.value, name: opt.value };
     }
     getRole(name: string): Record<string, unknown> | null {
         const opt = this._find(name);
-        if (!opt || !opt.value) { return null; }
+        if (!opt?.value) { return null; }
         return this._resolved?.roles?.[opt.value as string] || { id: opt.value, name: opt.value };
     }
     getUser(name: string): Record<string, unknown> | null {
         const opt = this._find(name);
-        if (!opt || !opt.value) { return null; }
+        if (!opt?.value) { return null; }
         return this._resolved?.users?.[opt.value as string] || { id: opt.value, username: opt.value };
     }
     getMember(name: string): Record<string, unknown> | null {
         const opt = this._find(name);
-        if (!opt || !opt.value) { return null; }
+        if (!opt?.value) { return null; }
         const resolvedUser = this._resolved?.users?.[opt.value as string];
         const resolvedMember = this._resolved?.members?.[opt.value as string];
         if (resolvedUser) {

@@ -49,11 +49,11 @@ export function isOnCooldown(guildId: string, userId: string, cooldownMs: number
     const key = `${guildId}:${userId}`;
     const lastAwarded = cooldowns.get(key) ?? 0;
     const now = Date.now();
-    
+
     if (now - lastAwarded < cooldownMs) {
         return true;
     }
-    
+
     cooldowns.set(key, now);
     return false;
 }
@@ -83,20 +83,20 @@ export async function awardXp(
     incrementMessages = true
 ): Promise<{ data: LevelData; leveledUp: boolean }> {
     const data = await getUserData('levels', guildId, userId) as LevelData | null ?? { xp: 0, level: 0, messages: 0 };
-    
+
     data.xp += amount;
     if (incrementMessages) {
         data.messages = (data.messages ?? 0) + 1;
     }
-    
+
     let leveledUp = false;
     while (data.xp >= calculateXPForLevel(data.level + 1)) {
         data.level += 1;
         leveledUp = true;
     }
-    
+
     await setUserData('levels', guildId, userId, data);
-    
+
     return { data, leveledUp };
 }
 

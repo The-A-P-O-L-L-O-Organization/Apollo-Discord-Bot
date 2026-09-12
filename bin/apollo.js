@@ -2,7 +2,6 @@
 import 'dotenv/config';
 import { discoverCommands } from '../src/cli/discover.js';
 import { run } from '../src/cli/index.js';
-import { logger } from './utils/logger.js';
 import { logger } from '../src/utils/logger.js';
 
 async function main() {

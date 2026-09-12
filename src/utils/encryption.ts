@@ -49,16 +49,16 @@ async function getDerivedKeyForSalt(salt: Buffer): Promise<Buffer> {
         }
         return key!;
     }
-    
+
     const keys = getEncryptionKeys();
     if (keys.length === 0) {
         throw new Error('ENCRYPTION_KEY environment variable is required for encryption at rest');
     }
-    
+
     // Use the first (current) key for encryption
     const currentKey = keys[0];
-    const derived = await pbkdf2Async(currentKey as string, salt, PBKDF2_ITERATIONS, KEY_LENGTH, 'sha256');
-    
+    const derived = await pbkdf2Async(currentKey!, salt, PBKDF2_ITERATIONS, KEY_LENGTH, 'sha256');
+
     // Evict oldest if cache full
     if (_keyCache.size >= MAX_KEY_CACHE_SIZE) {
         const firstKey = _keyCache.keys().next().value;
@@ -66,7 +66,7 @@ async function getDerivedKeyForSalt(salt: Buffer): Promise<Buffer> {
             _keyCache.delete(firstKey);
         }
     }
-    
+
     _keyCache.set(saltB64, derived);
     return derived;
 }
@@ -87,31 +87,31 @@ async function getDerivedKeyForSaltAny(salt: Buffer): Promise<Buffer | null> {
             return key;
         }
     }
-    
+
     const keys = getEncryptionKeys();
     if (keys.length === 0) {
         return null;
     }
-    
+
     // Try each key in order (current first, then legacy)
     for (const keyEnv of keys) {
         try {
-            const derived = await pbkdf2Async(keyEnv as string, salt, PBKDF2_ITERATIONS, KEY_LENGTH, 'sha256');
-            
+            const derived = await pbkdf2Async(keyEnv, salt, PBKDF2_ITERATIONS, KEY_LENGTH, 'sha256');
+
             if (_keyCache.size >= MAX_KEY_CACHE_SIZE) {
                 const firstKey = _keyCache.keys().next().value;
                 if (firstKey) {
                     _keyCache.delete(firstKey);
                 }
             }
-            
+
             _keyCache.set(saltB64, derived);
             return derived;
         } catch {
             // Try next key
         }
     }
-    
+
     return null;
 }
 
@@ -131,16 +131,16 @@ export async function encrypt(data: string | object): Promise<string> {
     // Generate fresh salt for each encryption (critical for AES-GCM security)
     const salt = crypto.randomBytes(SALT_LENGTH);
     const iv = crypto.randomBytes(IV_LENGTH);
-    
+
     // Derive key for this specific salt (cached, async non-blocking)
     const derivedKey = await getDerivedKeyForSalt(salt);
-    
+
     const cipher = crypto.createCipheriv(ALGORITHM, derivedKey, iv);
-    
+
     const plaintext = typeof data === 'string' ? data : JSON.stringify(data);
     const ciphertext = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
     const authTag = cipher.getAuthTag();
-    
+
     // Format: version:salt:iv:authTag:ciphertext (all base64)
     return [
         CURRENT_VERSION.toString(),
@@ -158,11 +158,11 @@ export async function encrypt(data: string | object): Promise<string> {
  */
 export async function decrypt(encryptedData: string): Promise<string | object | unknown[]> {
     const parts = encryptedData.split(':');
-    
+
     // Legacy format (v0): salt:iv:authTag:ciphertext (4 parts)
     // Versioned format (v1+): version:salt:iv:authTag:ciphertext (5+ parts)
     let saltB64: string, ivB64: string, authTagB64: string, ciphertextB64: string;
-    
+
     if (parts.length === 4) {
         // Legacy v0 format (no version prefix)
         [saltB64, ivB64, authTagB64, ciphertextB64] = parts as [string, string, string, string];
@@ -180,24 +180,24 @@ export async function decrypt(encryptedData: string): Promise<string | object | 
     } else {
         throw new Error('Invalid encrypted data format');
     }
-    
+
     const salt = Buffer.from(saltB64, 'base64');
     const iv = Buffer.from(ivB64, 'base64');
     const authTag = Buffer.from(authTagB64, 'base64');
     const ciphertext = Buffer.from(ciphertextB64, 'base64');
-    
+
     // Derive key with stored salt (tries all available keys for rotation support, async)
     const derivedKey = await getDerivedKeyForSaltAny(salt);
     if (!derivedKey) {
         throw new Error('No valid encryption key available for decryption');
     }
-    
+
     const decipher = crypto.createDecipheriv(ALGORITHM, derivedKey, iv);
     decipher.setAuthTag(authTag);
-    
+
     const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
     const result = plaintext.toString('utf8');
-    
+
     // Try to parse as JSON (for arrays/objects that were stringified before encryption)
     try {
         return JSON.parse(result);
@@ -220,7 +220,7 @@ export function isEncrypted(value: string): boolean {
     }
     if (parts.length >= 5) {
         const versionStr = parts[0];
-        if (!versionStr) return false;
+        if (!versionStr) {return false;}
         const version = parseInt(versionStr, 10);
         return !isNaN(version) && parts.slice(1).every(p => p.length > 0);
     }
@@ -238,7 +238,7 @@ export async function encryptFields(obj: Record<string, unknown> | unknown[] | u
     if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
         return obj;
     }
-    
+
     const result = { ...obj as Record<string, unknown> };
     for (const field of fields) {
         if (result[field] !== undefined && result[field] !== null) {
@@ -259,7 +259,7 @@ export async function decryptFields(obj: Record<string, unknown> | unknown[] | u
     if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
         return obj;
     }
-    
+
     const result = { ...obj as Record<string, unknown> };
     for (const field of fields) {
         if (result[field] !== undefined && result[field] !== null) {
@@ -292,7 +292,7 @@ export function needsReEncryption(encryptedData: string): boolean {
     const parts = encryptedData.split(':');
     if (parts.length === 4) {return true;} // Legacy v0 format
     const versionStr = parts[0];
-    if (!versionStr) return false;
+    if (!versionStr) {return false;}
     const version = parseInt(versionStr, 10);
     return version < CURRENT_VERSION;
 }
