@@ -10,7 +10,7 @@ import {
     createMemberLeaveEmbed,
     createRoleChangeEmbed,
     createVoiceChangeEmbed
-} from '../../src/utils/logger.js';
+} from '../../src/utils/guildLogging.js';
 import { 
     createMockMessage, 
     createMockUser, 

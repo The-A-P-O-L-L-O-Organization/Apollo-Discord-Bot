@@ -1,0 +1,687 @@
+// Automod Utility
+// Core automod checking functions
+
+import { logger } from './logger.js';
+import { getGuildData } from './db.js';
+import { config } from '../config/config.js';
+import { getLockRedis } from './lock.js';
+import { TwoLevelLRUCache } from './lruCache.js';
+import { simhash, isSimilar } from './simhash.js';
+import type { Message, GuildMember, User } from 'discord.js';
+
+// In-memory spam tracking (fallback when Redis unavailable)
+// Uses O(1) LRU cache for efficient eviction
+const spamTracker = new TwoLevelLRUCache({
+    maxGuilds: 1000,
+    maxUsersPerGuild: 500,
+    maxTotalUsers: 50000,
+    onEvict: (_guildId: string, _userId: string) => {
+        // Optional: log eviction for monitoring
+    }
+});
+
+// Burst spam tracking: tracks similar messages in time windows
+// Key: `${guildId}:${userId}:${channelId}` -> {count: number, windowStart: number, hashes: bigint[]}
+interface BurstTrackerEntry {
+    hashes: bigint[];
+    windowStart: number;
+}
+
+const burstTracker = new Map<string, BurstTrackerEntry>();
+
+// Burst detection config
+const BURST_THRESHOLD = 6;
+const BURST_INTERVAL = 3000;
+const SIMILARITY_THRESHOLD = 8;
+
+interface ChannelOverride {
+    threshold?: number;
+    interval?: number;
+}
+
+interface BurstSpamResult {
+    isSpam: boolean;
+    confidence: number;
+    count: number;
+}
+
+/**
+ * Checks for burst spam using in-memory tracking with SimHash similarity
+ * @param {Message} message - The Discord message
+ * @param {number} threshold - Max similar messages in interval (default: 6)
+ * @param {number} intervalMs - Time interval in ms (default: 3000)
+ * @param {Record<string, ChannelOverride>} channelOverrides - Optional per-channel overrides {threshold, interval}
+ * @returns {Promise<BurstSpamResult>}
+ */
+export async function checkBurstSpam(
+    message: Message,
+    threshold = BURST_THRESHOLD,
+    intervalMs = BURST_INTERVAL,
+    channelOverrides: Record<string, ChannelOverride> = {}
+): Promise<BurstSpamResult> {
+    const guildId = message.guild.id;
+    const userId = message.author.id;
+    const channelId = message.channel.id;
+    const key = `${guildId}:${userId}:${channelId}`;
+    const now = Date.now();
+    
+    // Apply per-channel overrides
+    const override = channelOverrides[channelId];
+    if (override) {
+        threshold = override.threshold ?? threshold;
+        intervalMs = override.interval ?? intervalMs;
+    }
+    
+    // Get or create tracker (per channel)
+    let tracker = burstTracker.get(key);
+    if (!tracker) {
+        tracker = { hashes: [], windowStart: now };
+        burstTracker.set(key, tracker);
+    }
+    
+    // Compute SimHash for this message
+    const hash = simhash(message.content);
+    
+    // Filter old hashes outside the interval
+    tracker.hashes = tracker.hashes.filter(_h => {
+        return now - tracker.windowStart < intervalMs;
+    });
+    
+    // Update window start if needed
+    if (now - tracker.windowStart >= intervalMs) {
+        tracker.windowStart = now;
+        tracker.hashes = [];
+    }
+    
+    // Count similar messages in window
+    let similarCount = 0;
+    for (const existingHash of tracker.hashes) {
+        if (isSimilar(hash, existingHash, SIMILARITY_THRESHOLD)) {
+            similarCount++;
+        }
+    }
+    
+    // Add current hash (keep max 20)
+    tracker.hashes.push(hash);
+    if (tracker.hashes.length > 20) {
+        tracker.hashes.shift();
+    }
+    
+    const count = similarCount + 1; // +1 for current message
+    
+    return {
+        isSpam: count >= threshold,
+        confidence: Math.min(1.0, count / threshold),
+        count
+    };
+}
+
+/**
+ * Cleanup burst tracker - remove stale entries
+ * @param {number} maxAgeMs - Maximum age in ms before forced cleanup (default: 1 hour)
+ */
+export function cleanupBurstTracker(maxAgeMs = 3600000): void {
+    const now = Date.now();
+    for (const [key, tracker] of burstTracker.entries()) {
+        // Remove if window is old and no recent hashes
+        if (now - tracker.windowStart > BURST_INTERVAL * 10 && tracker.hashes.length === 0) {
+            burstTracker.delete(key);
+            continue;
+        }
+        // Proactive cleanup: remove trackers older than maxAgeMs regardless of content
+        if (now - tracker.windowStart > maxAgeMs) {
+            burstTracker.delete(key);
+        }
+    }
+}
+
+// Redis key prefix for spam tracking
+const SPAM_KEY_PREFIX = 'apollo:spam:';
+
+/**
+ * Gets Redis client for spam tracking
+ * @returns {Promise<import('ioredis').Redis | null>} Redis client or null if unavailable
+ */
+async function getSpamRedis(): Promise<import('ioredis').Redis | null> {
+    if (!config.queue.enabled) { return null; }
+    return getLockRedis();
+}
+
+/**
+ * Tracks a message in Redis-backed spam tracking (optimized with pipeline)
+ * @param {string} guildId - Guild ID
+ * @param {string} userId - User ID
+ * @param {number} timestamp - Message timestamp
+ * @param {number} intervalMs - Time interval in ms (for TTL calculation)
+ */
+export async function trackMessageRedis(
+    guildId: string,
+    userId: string,
+    timestamp: number,
+    intervalMs = 60000
+): Promise<void> {
+    const redis = await getSpamRedis();
+    if (!redis) { return; }
+
+    const key = `${SPAM_KEY_PREFIX}${guildId}:${userId}`;
+    
+    // Use Redis pipeline to combine zadd + expire in one round-trip
+    const pipeline = redis.pipeline();
+    pipeline.zadd(key, timestamp, `${timestamp}:${userId}`);
+    // TTL = interval + 60s buffer to ensure key survives the check window
+    const ttlSeconds = Math.ceil((intervalMs + 60000) / 1000);
+    pipeline.expire(key, ttlSeconds);
+    
+    await pipeline.exec();
+}
+
+/**
+ * Checks for spam using Redis (optimized with pipeline)
+ * @param {string} guildId - Guild ID
+ * @param {string} userId - User ID
+ * @param {number} threshold - Max messages in interval
+ * @param {number} intervalMs - Time interval in ms
+ * @param {number} now - Current timestamp
+ * @returns {Promise<boolean>} Whether spam was detected
+ */
+export async function checkSpamRedis(
+    guildId: string,
+    userId: string,
+    threshold: number,
+    intervalMs: number,
+    now = Date.now()
+): Promise<boolean> {
+    const redis = await getSpamRedis();
+    if (!redis) { return false; }
+
+    const key = `${SPAM_KEY_PREFIX}${guildId}:${userId}`;
+    const cutoff = now - intervalMs;
+    
+    // Use Redis pipeline to combine zremrangebyscore + zcount in one round-trip
+    const pipeline = redis.pipeline();
+    // Remove expired entries (exclusive boundary '(' to match in-memory behavior)
+    pipeline.zremrangebyscore(key, '-inf', '(' + cutoff);
+    // Count remaining entries within interval
+    pipeline.zcount(key, '(' + cutoff, '+inf');
+    
+    const results = await pipeline.exec();
+    if (!results) { return false; }
+    
+    // results[1] is zcount result: [error, count]
+    const count = results[1]?.[1] ?? 0;
+    
+    return count >= threshold;
+}
+
+interface AutomodConfig {
+    enabled: boolean;
+    bannedWords: string[];
+    filterInvites: boolean;
+    filterLinks: boolean;
+    maxMentions: number;
+    maxCapsPercent: number;
+    minCapsLength: number;
+    minAccountAge: number;
+    spamThreshold: number;
+    spamInterval: number;
+    spamChannelOverrides: Record<string, ChannelOverride>;
+    aiModeration: boolean;
+    nsfwFilter: boolean;
+    exemptChannels: string[];
+    exemptRoles: string[];
+}
+
+/**
+ * Gets automod configuration for a guild
+ * @param {string} guildId - The guild ID
+ * @returns {Promise<AutomodConfig>} Automod configuration
+ */
+export async function getAutomodConfig(guildId: string): Promise<AutomodConfig> {
+    const guildConfig = await getGuildData('automod', guildId);
+    return {
+        enabled: guildConfig.enabled ?? config.automod.enabled,
+        bannedWords: guildConfig.bannedWords || [],
+        filterInvites: guildConfig.filterInvites ?? config.automod.filterInvites,
+        filterLinks: guildConfig.filterLinks ?? config.automod.filterLinks,
+        maxMentions: guildConfig.maxMentions ?? config.automod.maxMentions,
+        maxCapsPercent: guildConfig.maxCapsPercent ?? config.automod.maxCapsPercent,
+        minCapsLength: guildConfig.minCapsLength ?? config.automod.minCapsLength,
+        minAccountAge: guildConfig.minAccountAge ?? config.automod.minAccountAge,
+        spamThreshold: guildConfig.spamThreshold ?? config.automod.spamThreshold,
+        spamInterval: guildConfig.spamInterval ?? config.automod.spamInterval,
+        spamChannelOverrides: guildConfig.spamChannelOverrides ?? config.automod.spamChannelOverrides,
+        aiModeration: guildConfig.aiModeration ?? config.automod.aiModeration,
+        nsfwFilter: guildConfig.nsfwFilter ?? config.automod.nsfwFilter,
+        exemptChannels: guildConfig.exemptChannels || [],
+        exemptRoles: guildConfig.exemptRoles || []
+    };
+}
+
+/**
+ * Checks if a member is exempt from automod
+ * @param {GuildMember} member - The guild member
+ * @param {AutomodConfig} cfg - Automod configuration
+ * @returns {boolean} Whether the member is exempt
+ */
+export function isExempt(member: GuildMember, cfg: AutomodConfig): boolean {
+    // Admins are exempt
+    if (member.permissions.has('Administrator')) { return true; }
+    
+    // Check exempt roles
+    if (cfg.exemptRoles.some(roleId => member.roles.cache.has(roleId))) {
+        return true;
+    }
+    
+    return false;
+}
+
+/**
+ * Checks if a channel is exempt from automod
+ * @param {string} channelId - The channel ID
+ * @param {AutomodConfig} cfg - Automod configuration
+ * @returns {boolean} Whether the channel is exempt
+ */
+export function isChannelExempt(channelId: string, cfg: AutomodConfig): boolean {
+    return cfg.exemptChannels.includes(channelId);
+}
+
+/**
+ * Normalizes message content for banned word matching.
+ * Converts leetspeak substitutions (e.g. @→a, 3→e, 0→o) and
+ * decomposes accented characters to their ASCII base equivalents.
+ * Also removes zero-width characters and common obfuscation techniques.
+ * @param {string} content - Raw message content
+ * @returns {string} Normalized content
+ */
+export function normalizeContent(content: string): string {
+    // Remove zero-width characters and other invisible obfuscation
+    const cleaned = content
+        .replace(/[\u200B-\u200D\uFEFF]/g, '') // Zero-width space, joiner, non-joiner, BOM
+        .replace(/[\u2060-\u206F]/g, '') // Word joiner, invisible operators
+        .replace(/[\u00AD]/g, '') // Soft hyphen
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // Decompose and remove diacritics
+
+    const leetMap: Record<string, string> = {
+        '4': 'a', '@': 'a', 'ª': 'a',
+        '8': 'b', 'ß': 'b', 'þ': 'b', 'β': 'b',
+        '©': 'c', '¢': 'c', '₵': 'c',
+        'ð': 'd', 'đ': 'd', 'Ð': 'd', 'Đ': 'd',
+        '3': 'e', '€': 'e',
+        'ƒ': 'f', '₣': 'f',
+        '9': 'g', '6': 'g',
+        '1': 'i', '!': 'i', '|': 'i',
+        '0': 'o', '¤': 'o', 'ø': 'o', 'Ø': 'o',
+        '¶': 'p',
+        '®': 'r',
+        '5': 's', '$': 's', '§': 's',
+        '7': 't', '†': 't', '+': 't',
+        'µ': 'u',
+        '√': 'v',
+        '×': 'x', 'ˣ': 'x',
+        '¥': 'y',
+        '2': 'z',
+        'ł': 'l', 'Ł': 'l',
+        'æ': 'a', 'Æ': 'a',
+        'œ': 'o', 'Œ': 'o'
+    };
+
+    return cleaned.split('').map(c => leetMap[c] || c).join('');
+}
+
+/**
+ * Checks message for banned words
+ * @param {string} content - Message content
+ * @param {string[]} bannedWords - List of banned words
+ * @returns {string|null} The matched word or null
+ */
+export function checkBannedWords(content: string, bannedWords: string[]): string | null {
+    if (!bannedWords.length) { return null; }
+    
+    const normalizedContent = normalizeContent(content).toLowerCase();
+    
+    for (const word of bannedWords) {
+        const normalizedWord = normalizeContent(word).toLowerCase();
+        // Use word boundary for exact matches
+        const regex = new RegExp(`\\b${escapeRegex(normalizedWord)}\\b`, 'i');
+        if (regex.test(normalizedContent)) {
+            return word;
+        }
+        
+        // Also check for the word with common separators inserted (but still respect word boundaries)
+        // Only do this for words longer than 2 characters to avoid false positives
+        // Use + instead of * to require at least one separator between letters
+        // This prevents false positives on hyphens, dots, underscores in legitimate text
+        if (normalizedWord.length > 2) {
+            const separatedPattern = normalizedWord.split('').join('[\\s\\W_]+');
+            const separatedRegex = new RegExp(`\\b${separatedPattern}\\b`, 'i');
+            if (separatedRegex.test(normalizedContent)) {
+                return word;
+            }
+        }
+    }
+    
+    return null;
+}
+
+/**
+ * Checks message for Discord invite links
+ * Handles obfuscated invites (spaces, zero-width chars, etc.)
+ * @param {string} content - Message content
+ * @returns {boolean} Whether invite was found
+ */
+export function checkInvites(content: string): boolean {
+    // Normalize content first to remove obfuscation
+    const normalized = normalizeContent(content);
+    
+    // Match discord.gg, discordapp.com/invite, discord.com/invite with various obfuscations
+    // For discord.gg: require /code format (most common)
+    // For full URLs: allow /code or space+code (alphanumeric, 4+ chars, mixed case/numbers)
+    const shortInviteRegex = /discord\.gg\/[a-zA-Z0-9]{4,}/i;
+    const fullInviteRegex = /(discordapp\.com\/invite|discord\.com\/invite)(?:\/|\s+)([a-zA-Z0-9]{4,})(?![a-zA-Z0-9])/i;
+    
+    return shortInviteRegex.test(normalized) || fullInviteRegex.test(normalized);
+}
+
+/**
+ * Checks message for external links
+ * Handles obfuscated URLs (hxxp, spaces, zero-width chars, etc.)
+ * @param {string} content - Message content
+ * @returns {boolean} Whether link was found
+ */
+export function checkLinks(content: string): boolean {
+    // Normalize content first to remove obfuscation
+    const normalized = normalizeContent(content);
+    
+    // Match http:// or https:// URLs (including hxxp obfuscation)
+    const linkRegex = /hxxps?:\/\/[^\s]+/i;
+    if (linkRegex.test(normalized)) { return true; }
+    
+    // Match standard URLs
+    const standardLinkRegex = /https?:\/\/[^\s]+/i;
+    return standardLinkRegex.test(normalized);
+}
+
+/**
+ * Checks message for mention spam
+ * @param {Message} message - The Discord message
+ * @param {number} maxMentions - Maximum allowed mentions
+ * @returns {boolean} Whether mention spam was detected
+ */
+export function checkMentionSpam(message: Message, maxMentions: number): boolean {
+    // Count user mentions, role mentions, and @everyone/@here
+    const mentionCount = 
+        message.mentions.users.size + 
+        message.mentions.roles.size +
+        (message.mentions.everyone ? 1 : 0);
+    
+    return mentionCount > maxMentions;
+}
+
+/**
+ * Checks message for caps spam
+ * @param {string} content - Message content
+ * @param {number} maxPercent - Maximum allowed caps percentage
+ * @param {number} minLength - Minimum message length to check
+ * @returns {boolean} Whether caps spam was detected
+ */
+export function checkCapsSpam(content: string, maxPercent: number, minLength = 10): boolean {
+    // Only check messages longer than minimum length
+    if (content.length < minLength) { return false; }
+    
+    // Remove non-alphabetic characters
+    const letters = content.replace(/[^a-zA-Z]/g, '');
+    if (letters.length < minLength) { return false; }
+    
+    // Count uppercase letters
+    const upperCount = (content.match(/[A-Z]/g) || []).length;
+    const percent = (upperCount / letters.length) * 100;
+    
+    return percent > maxPercent;
+}
+
+/**
+ * Checks for spam (rapid messages) - uses Redis when available, falls back to in-memory
+ * @param {Message} message - The Discord message
+ * @param {number} threshold - Max messages in interval
+ * @param {number} interval - Time interval in ms
+ * @param {boolean} useRedis - Whether to use Redis (respects config flag)
+ * @returns {Promise<boolean>} Whether spam was detected
+ */
+export async function checkSpam(
+    message: Message,
+    threshold: number,
+    interval: number,
+    useRedis = false
+): Promise<boolean> {
+    const guildId = message.guild.id;
+    const userId = message.author.id;
+    const now = Date.now();
+    
+    // Try Redis first (only if explicitly requested)
+    if (useRedis) {
+        const redis = await getSpamRedis();
+        if (redis) {
+            await trackMessageRedis(guildId, userId, now, interval);
+            return checkSpamRedis(guildId, userId, threshold, interval, now);
+        }
+    }
+    
+    // Fallback to in-memory
+    return checkSpamMemory(message, threshold, interval);
+}
+
+/**
+ * In-memory spam check (fallback)
+ * @param {Message} message - The Discord message
+ * @param {number} threshold - Max messages in interval
+ * @param {number} interval - Time interval in ms
+ * @returns {boolean} Whether spam was detected
+ */
+function checkSpamMemory(message: Message, threshold: number, interval: number): boolean {
+    const guildId = message.guild.id;
+    const userId = message.author.id;
+    const now = Date.now();
+    
+    // Get or create user tracker (LRU automatically handled by TwoLevelLRUCache)
+    let userTracker = spamTracker.get(guildId, userId);
+    if (!userTracker) {
+        userTracker = { messages: [], lastWarned: 0 };
+        spamTracker.set(guildId, userId, userTracker);
+    }
+    
+    // Remove old messages outside the interval FIRST
+    userTracker.messages = userTracker.messages.filter(ts => now - ts < interval);
+    
+    // Add current message timestamp
+    userTracker.messages.push(now);
+    
+    // Check if threshold exceeded (use > not >= to allow exactly threshold messages)
+    if (userTracker.messages.length > threshold) {
+        // Check if we recently warned (avoid spam of warnings)
+        if (now - userTracker.lastWarned < interval * 2) {
+            return false; // Don't warn again too quickly
+        }
+        
+        userTracker.lastWarned = now;
+        return true;
+    }
+    
+    return false;
+}
+
+/**
+ * Checks account age
+ * @param {User} user - The Discord user
+ * @param {number} minDays - Minimum account age in days
+ * @returns {boolean} Whether account is too new
+ */
+export function checkAccountAge(user: User, minDays: number): boolean {
+    if (minDays <= 0) { return false; }
+    
+    const accountAge = Date.now() - user.createdTimestamp;
+    const minAge = minDays * 24 * 60 * 60 * 1000;
+    
+    return accountAge < minAge;
+}
+
+/**
+ * Escapes special regex characters in a string
+ * @param {string} str - String to escape
+ * @returns {string} Escaped string
+ */
+function escapeRegex(str: string): string {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Cleans up old spam tracking data (call periodically)
+ */
+export async function cleanupSpamTracker(): Promise<void> {
+    
+    // Try to acquire distributed lock to avoid redundant cleanup across pods
+    const redis = await getSpamRedis();
+    let lockAcquired = false;
+    if (redis) {
+        const { acquireLock } = await import('./lock.js');
+        lockAcquired = await acquireLock(redis, 'cleanup:spam', config.podId, 10000);
+        if (!lockAcquired) {
+            return; // Another pod is doing cleanup
+        }
+    }
+    
+    try {
+        // TwoLevelLRUCache doesn't support direct iteration, so we clean up
+        // by checking each guild's users. Since we can't iterate the cache directly,
+        // we rely on the LRU eviction and the fact that checkSpamMemory filters
+        // old messages on each access. For explicit cleanup, we'd need to track
+        // guild IDs separately or add an iteration method to the cache.
+        // For now, the LRU eviction and per-access filtering handle most cleanup.
+        
+        // Clean up empty guilds in the LRU cache
+        spamTracker.cleanupEmptyGuilds();
+    } finally {
+        if (lockAcquired && redis) {
+            const { releaseLock } = await import('./lock.js');
+            await releaseLock(redis, 'cleanup:spam', config.podId);
+        }
+    }
+}
+
+// Clean up tracker every minute
+let spamTrackerCleanupInterval: NodeJS.Timeout | null = setInterval(cleanupSpamTracker, 60000);
+
+/**
+ * Stops the spam tracker cleanup interval.
+ * Call this function during graceful shutdown to prevent memory leaks.
+ */
+export function stopSpamTrackerCleanup(): void {
+    if (spamTrackerCleanupInterval) {
+        clearInterval(spamTrackerCleanupInterval);
+        spamTrackerCleanupInterval = null;
+        logger.info('[INFO] Spam tracker cleanup interval stopped');
+    }
+}
+
+// Known phishing domains (Discord nitro scams, etc.)
+const PHISHING_DOMAINS = [
+    'discord-nitro.com',
+    'discordnitro.com',
+    'discord-gift.com',
+    'discordgift.com',
+    'discord-app.com',
+    'discordapp.ru',
+    'discordapp.io',
+    'discordsteam.com',
+    'discord-free.com',
+    'free-discord.com',
+    'steamcommunity.ru',
+    'steampowered.ru',
+    'steam-free.com',
+    'free-steam.com'
+];
+
+// Suspicious patterns in URLs
+const SUSPICIOUS_PATTERNS = [
+    /nitro.*free/i,
+    /free.*nitro/i,
+    /discord.*gift/i,
+    /steam.*free/i,
+    /claim.*nitro/i,
+    /get.*nitro/i
+];
+
+interface PhishingMatch {
+    url: string;
+    reason: string;
+    domain: string;
+}
+
+/**
+ * Checks message for phishing links
+ * @param {string} content - Message content
+ * @returns {PhishingMatch | null} Match info or null
+ */
+export function checkPhishingLinks(content: string): PhishingMatch | null {
+    // Extract URLs from content
+    const urlRegex = /(https?:\/\/[^\s]+)/gi;
+    const urls = content.match(urlRegex);
+    
+    if (!urls) { return null; }
+    
+    for (const url of urls) {
+        try {
+            // Decode URL to handle encoded characters
+            const decodedUrl = decodeURIComponent(url);
+            const urlObj = new URL(decodedUrl);
+            const hostname = urlObj.hostname.toLowerCase();
+            
+            // Check against known phishing domains
+            for (const domain of PHISHING_DOMAINS) {
+                if (hostname === domain || hostname.endsWith('.' + domain)) {
+                    return {
+                        url: decodedUrl,
+                        reason: 'Known phishing domain',
+                        domain: hostname
+                    };
+                }
+            }
+            
+            // Check for suspicious patterns in the full URL
+            for (const pattern of SUSPICIOUS_PATTERNS) {
+                if (pattern.test(decodedUrl)) {
+                    return {
+                        url: decodedUrl,
+                        reason: 'Suspicious URL pattern',
+                        domain: hostname
+                    };
+                }
+            }
+            
+            // Check for Discord/Steam impersonation domains
+            // Use regex with word boundary to prevent bypass via subdomains like "notdiscord.com"
+            const isDiscordMention = /(?:^|[^a-z])discord(?:[^a-z]|$)/i.test(hostname);
+            const isSteamMention = /(?:^|[^a-z])steam(?:[^a-z]|$)/i.test(hostname);
+            
+            // Legitimate domain patterns - must match exactly or be a subdomain
+            const isLegitDiscord = /^([a-z0-9-]+\.)*discord\.com$/i.test(hostname) ||
+                                   /^([a-z0-9-]+\.)*discordapp\.com$/i.test(hostname) ||
+                                   /^([a-z0-9-]+\.)*discord\.gg$/i.test(hostname);
+            const isLegitSteam = /^([a-z0-9-]+\.)*steampowered\.com$/i.test(hostname) ||
+                                 /^([a-z0-9-]+\.)*steamcommunity\.com$/i.test(hostname);
+            
+            if ((isDiscordMention && !isLegitDiscord) || (isSteamMention && !isLegitSteam)) {
+                return {
+                    url: decodedUrl,
+                    reason: 'Impersonation domain',
+                    domain: hostname
+                };
+            }
+            
+        } catch {
+            // Invalid URL, skip
+            continue;
+        }
+    }
+    
+    return null;
+}

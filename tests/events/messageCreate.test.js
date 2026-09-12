@@ -40,7 +40,8 @@ vi.mock('../../src/utils/nsfwDetection.js', () => ({
 
 vi.mock('../../src/utils/raidDetection.js', () => ({
     checkRaidPattern: vi.fn().mockResolvedValue(false),
-    handleRaidDetected: vi.fn().mockResolvedValue(undefined)
+    handleRaidDetected: vi.fn().mockResolvedValue(undefined),
+    isRaidModeEnabled: vi.fn().mockResolvedValue(false)
 }));
 
 
@@ -171,7 +172,8 @@ describe('MessageCreate Event', () => {
             spamThreshold: 0,
             spamInterval: 5000,
             aiModeration: false,
-            nsfwFilter: false
+            nsfwFilter: false,
+            enabled: true
         };
         
         getAutomodConfig.mockReturnValue(automodConfig);

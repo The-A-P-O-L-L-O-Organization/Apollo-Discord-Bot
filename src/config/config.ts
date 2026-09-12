@@ -259,6 +259,7 @@ const config = {
 
     // Environment
     env: (getEnv('NODE_ENV') ?? 'development') as 'development' | 'production' | 'test',
+    podId: getEnv('POD_ID') ?? getEnv('HOSTNAME') ?? 'default',
     ENCRYPTION_KEY: getEnv('ENCRYPTION_KEY') ?? ''
 } satisfies ApolloConfig;
 

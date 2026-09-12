@@ -1,7 +1,8 @@
 // Guild logging utilities
 // Handles fetching guild log config and sending log events
 
-import type { EmbedBuilder } from 'discord.js';
+import { EmbedBuilder } from 'discord.js';
+import type { Message, GuildMember, VoiceState, Guild } from 'discord.js';
 
 /**
  * Gets logging configuration for a guild
@@ -85,4 +86,244 @@ export async function logEvent(guild: { id: string; channels: { fetch: (id: stri
         const { logger } = await import('./logger.js');
         logger.error({ err: error, msg: `[ERROR] Failed to send log to ${guild.id}` });
     }
+}
+
+/**
+ * Creates a message delete log embed
+ * @param message - The deleted message
+ * @returns The log embed
+ */
+export function createMessageDeleteEmbed(message: Message): EmbedBuilder {
+    const embed = new EmbedBuilder()
+        .setColor('#FF6B6B')
+        .setTitle('[Delete] Message Deleted')
+        .setDescription(message.content || '*No text content*')
+        .addFields(
+            { name: 'Author', value: `${message.author?.tag || 'Unknown'} (${message.author?.id || 'Unknown'})`, inline: true },
+            { name: 'Channel', value: `<#${message.channel.id}>`, inline: true },
+            { name: 'Message ID', value: message.id, inline: true }
+        )
+        .setTimestamp()
+        .setFooter({ text: 'Message Deleted' });
+    
+    // Add attachment info if any
+    if (message.attachments.size > 0) {
+        const attachmentList = Array.from(message.attachments.values()).map(a => a.url).join('\n');
+        embed.addFields({
+            name: `Attachments (${message.attachments.size})`,
+            value: attachmentList.substring(0, 1024),
+            inline: false
+        });
+    }
+    
+    // Add author thumbnail if available
+    if (message.author) {
+        embed.setThumbnail(message.author.displayAvatarURL());
+    }
+    
+    return embed;
+}
+
+/**
+ * Creates a message edit log embed
+ * @param oldMessage - The old message
+ * @param newMessage - The new message
+ * @returns The log embed
+ */
+export function createMessageEditEmbed(oldMessage: Message, newMessage: Message): EmbedBuilder {
+    const embed = new EmbedBuilder()
+        .setColor('#FFE66D')
+        .setTitle('[Edit] Message Edited')
+        .addFields(
+            { name: 'Author', value: `${newMessage.author?.tag || 'Unknown'} (${newMessage.author?.id || 'Unknown'})`, inline: true },
+            { name: 'Channel', value: `<#${newMessage.channel.id}>`, inline: true },
+            { name: 'Jump to Message', value: `[Click Here](${newMessage.url})`, inline: true },
+            { name: 'Before', value: (oldMessage.content || '*Empty*').substring(0, 1024), inline: false },
+            { name: 'After', value: (newMessage.content || '*Empty*').substring(0, 1024), inline: false }
+        )
+        .setTimestamp()
+        .setFooter({ text: `Message ID: ${newMessage.id}` });
+    
+    if (newMessage.author) {
+        embed.setThumbnail(newMessage.author.displayAvatarURL());
+    }
+    
+    return embed;
+}
+
+/**
+ * Creates a member join log embed
+ * @param member - The member who joined
+ * @returns The log embed
+ */
+export function createMemberJoinEmbed(member: GuildMember): EmbedBuilder {
+    const accountAge = Date.now() - member.user.createdTimestamp;
+    const daysOld = Math.floor(accountAge / (1000 * 60 * 60 * 24));
+    
+    const embed = new EmbedBuilder()
+        .setColor('#4ECDC4')
+        .setTitle('[Join] Member Joined')
+        .setDescription(`${member.user.tag} joined the server`)
+        .setThumbnail(member.user.displayAvatarURL())
+        .addFields(
+            { name: 'User', value: `<@${member.id}>`, inline: true },
+            { name: 'User ID', value: member.id, inline: true },
+            { name: 'Account Created', value: `<t:${Math.floor(member.user.createdTimestamp / 1000)}:R>`, inline: true },
+            { name: 'Account Age', value: `${daysOld} days`, inline: true },
+            { name: 'Member Count', value: `${member.guild.memberCount}`, inline: true }
+        )
+        .setTimestamp()
+        .setFooter({ text: 'Member Joined' });
+    
+    // Flag new accounts
+    if (daysOld < 7) {
+        embed.addFields({
+            name: '[!] New Account Warning',
+            value: 'This account is less than 7 days old.',
+            inline: false
+        });
+    }
+    
+    return embed;
+}
+
+/**
+ * Creates a member leave log embed
+ * @param member - The member who left
+ * @returns The log embed
+ */
+export function createMemberLeaveEmbed(member: GuildMember): EmbedBuilder {
+    const joinedAt = member.joinedTimestamp;
+    const timeInServer = joinedAt ? Date.now() - joinedAt : null;
+    const daysInServer = timeInServer ? Math.floor(timeInServer / (1000 * 60 * 60 * 24)) : 'Unknown';
+    
+    // Get roles (excluding @everyone)
+    const roles = Array.from(member.roles.cache.values())
+        .filter(r => r.id !== member.guild.id)
+        .map(r => r.name)
+        .join(', ') || 'None';
+    
+    const embed = new EmbedBuilder()
+        .setColor('#FF6B6B')
+        .setTitle('[Leave] Member Left')
+        .setDescription(`${member.user.tag} left the server`)
+        .setThumbnail(member.user.displayAvatarURL())
+        .addFields(
+            { name: 'User', value: `${member.user.tag}`, inline: true },
+            { name: 'User ID', value: member.id, inline: true },
+            { name: 'Time in Server', value: `${daysInServer} days`, inline: true },
+            { name: 'Joined', value: joinedAt ? `<t:${Math.floor(joinedAt / 1000)}:F>` : 'Unknown', inline: true },
+            { name: 'Member Count', value: `${member.guild.memberCount}`, inline: true },
+            { name: 'Roles', value: roles.substring(0, 1024), inline: false }
+        )
+        .setTimestamp()
+        .setFooter({ text: 'Member Left' });
+    
+    return embed;
+}
+
+/**
+ * Creates a role change log embed
+ * @param oldMember - The old member state
+ * @param newMember - The new member state
+ * @returns The log embed or null if no role changes
+ */
+export function createRoleChangeEmbed(oldMember: GuildMember, newMember: GuildMember): EmbedBuilder | null {
+    const oldRoles = oldMember.roles.cache;
+    const newRoles = newMember.roles.cache;
+    
+    const addedRoles = Array.from(newRoles.values()).filter(r => !oldRoles.has(r.id));
+    const removedRoles = Array.from(oldRoles.values()).filter(r => !newRoles.has(r.id));
+    
+    // No role changes
+    if (addedRoles.length === 0 && removedRoles.length === 0) {
+        return null;
+    }
+    
+    const embed = new EmbedBuilder()
+        .setColor('#9B59B6')
+        .setTitle('[Role] Role Update')
+        .setDescription(`Roles updated for ${newMember.user.tag}`)
+        .setThumbnail(newMember.user.displayAvatarURL())
+        .addFields(
+            { name: 'User', value: `<@${newMember.id}>`, inline: true },
+            { name: 'User ID', value: newMember.id, inline: true }
+        )
+        .setTimestamp()
+        .setFooter({ text: 'Role Update' });
+    
+    if (addedRoles.length > 0) {
+        embed.addFields({
+            name: '+ Roles Added',
+            value: addedRoles.map(r => r.name).join(', '),
+            inline: false
+        });
+    }
+    
+    if (removedRoles.length > 0) {
+        embed.addFields({
+            name: '- Roles Removed',
+            value: removedRoles.map(r => r.name).join(', '),
+            inline: false
+        });
+    }
+    
+    return embed;
+}
+
+/**
+ * Creates a voice state change log embed
+ * @param oldState - The old voice state
+ * @param newState - The new voice state
+ * @returns The log embed or null if not significant
+ */
+export function createVoiceChangeEmbed(oldState: VoiceState, newState: VoiceState): EmbedBuilder | null {
+    const member = newState.member || oldState.member;
+    if (!member) { return null; }
+    
+    let title: string;
+    let description: string;
+    let color: import('discord.js').ColorResolvable;
+    
+    if (!oldState.channel && newState.channel) {
+        // Joined voice channel
+        title = '[Voice] Voice Channel Joined';
+        description = `${member.user.tag} joined a voice channel`;
+        color = '#4ECDC4';
+    } else if (oldState.channel && !newState.channel) {
+        // Left voice channel
+        title = '[Voice] Voice Channel Left';
+        description = `${member.user.tag} left a voice channel`;
+        color = '#FF6B6B';
+    } else if (oldState.channel && newState.channel && oldState.channel.id !== newState.channel.id) {
+        // Moved voice channels
+        title = '[Voice] Voice Channel Moved';
+        description = `${member.user.tag} moved voice channels`;
+        color = '#FFE66D';
+    } else {
+        // Other state change (mute, deafen, etc.) - skip for now
+        return null;
+    }
+    
+    const embed = new EmbedBuilder()
+        .setColor(color)
+        .setTitle(title)
+        .setDescription(description)
+        .setThumbnail(member.user.displayAvatarURL())
+        .addFields(
+            { name: 'User', value: `<@${member.id}>`, inline: true },
+            { name: 'User ID', value: member.id, inline: true }
+        )
+        .setTimestamp()
+        .setFooter({ text: 'Voice Update' });
+    
+    if (oldState.channel) {
+        embed.addFields({ name: 'From', value: oldState.channel.name, inline: true });
+    }
+    
+    if (newState.channel) {
+        embed.addFields({ name: 'To', value: newState.channel.name, inline: true });
+    }
+    
+    return embed;
 }
