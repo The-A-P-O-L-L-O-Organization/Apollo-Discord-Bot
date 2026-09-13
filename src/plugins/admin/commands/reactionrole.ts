@@ -16,8 +16,8 @@ function parseEmoji(input: string): EmojiData | null {
     const customMatch = input.match(/^<(a?):(\w+):(\d+)>$/);
     if (customMatch) {
         const animated = customMatch[1] === 'a';
-        const name = customMatch[2];
-        const id = customMatch[3];
+        const name = customMatch[2]!;
+        const id = customMatch[3]!;
         return {
             identifier: `${name}:${id}`,
             display: input,
@@ -177,9 +177,9 @@ export default {
                 }
 
                 const textChannel = channel as { messages: { fetch: (id: string) => Promise<unknown> } };
-                let message;
+                let message: { react: (emoji: string) => Promise<void>; url: string };
                 try {
-                    message = await textChannel.messages.fetch(messageId!);
+                    message = await textChannel.messages.fetch(messageId!) as { react: (emoji: string) => Promise<void>; url: string };
                 } catch {
                     return interaction.reply({
                         content: `Could not find a message with ID \`${messageId}\` in ${channel}.`,
@@ -205,18 +205,17 @@ export default {
                 }
 
                 const reactionRoles = await getGuildData('reactionroles', guildId) as Record<string, unknown>;
-                if (!reactionRoles['roles']) {
-                    reactionRoles['roles'] = [];
-                }
+                const rolesArray = (reactionRoles['roles'] as Array<Record<string, unknown>>) ?? [];
+                reactionRoles['roles'] = rolesArray;
 
-                const existingIndex = (reactionRoles['roles'] as Array<Record<string, unknown>>).findIndex(
+                const existingIndex = rolesArray.findIndex(
                     (rr: Record<string, unknown>) => rr['messageId'] === messageId && rr['emoji'] === emoji.identifier
                 );
 
-                if (existingIndex !== -1) {
-                    reactionRoles.roles[existingIndex].roleId = role.id;
+                if (existingIndex !== -1 && existingIndex < rolesArray.length) {
+                    (rolesArray[existingIndex] as Record<string, unknown>)['roleId'] = role.id;
                 } else {
-                    reactionRoles.roles.push({
+                    rolesArray.push({
                         messageId: messageId!,
                         channelId: channel.id,
                         emoji: emoji.identifier,
@@ -245,16 +244,19 @@ export default {
                     });
                 }
 
-                const reactionRoles = await getGuildData('reactionroles', guildId);
-                if (!reactionRoles.roles || reactionRoles.roles.length === 0) {
+                const reactionRoles = await getGuildData('reactionroles', guildId) as Record<string, unknown>;
+                const rolesArray = (reactionRoles['roles'] as Array<Record<string, unknown>>) ?? [];
+                reactionRoles['roles'] = rolesArray;
+
+                if (!rolesArray || rolesArray.length === 0) {
                     return interaction.reply({
                         content: 'No reaction roles are configured in this server.',
                         flags: MessageFlags.Ephemeral
                     });
                 }
 
-                const index = reactionRoles.roles.findIndex(
-                    rr => rr.messageId === messageId && rr.emoji === emoji.identifier
+                const index = rolesArray.findIndex(
+                    (rr: Record<string, unknown>) => rr['messageId'] === messageId && rr['emoji'] === emoji.identifier
                 );
 
                 if (index === -1) {
@@ -264,11 +266,11 @@ export default {
                     });
                 }
 
-                const removed = reactionRoles.roles.splice(index, 1)[0];
+                const removed = rolesArray.splice(index, 1)[0];
                 await setGuildData('reactionroles', guildId, reactionRoles);
 
                 try {
-                    const fetchChannel = await interaction.guild!.channels.fetch(removed.channelId);
+                    const fetchChannel = await interaction.guild!.channels.fetch((removed as Record<string, unknown>)['channelId'] as string);
                     if (fetchChannel && fetchChannel.isTextBased()) {
                         const message = await fetchChannel.messages.fetch(messageId!);
                         await message.reactions.cache.get(emoji.identifier)?.users.remove(interaction.client.user!.id);
@@ -283,9 +285,10 @@ export default {
                 });
 
             } else if (subcommand === 'list') {
-                const reactionRoles = await getGuildData('reactionroles', guildId);
+                const reactionRoles = await getGuildData('reactionroles', guildId) as Record<string, unknown>;
+                const rolesArray = (reactionRoles['roles'] as Array<Record<string, unknown>>) ?? [];
 
-                if (!reactionRoles.roles || reactionRoles.roles.length === 0) {
+                if (!rolesArray || rolesArray.length === 0) {
                     return interaction.reply({
                         content: 'No reaction roles are configured in this server.',
                         flags: MessageFlags.Ephemeral
@@ -295,20 +298,20 @@ export default {
                 const embed = new EmbedBuilder()
                     .setColor('#3498DB')
                     .setTitle('Reaction Roles')
-                    .setDescription(`${reactionRoles.roles.length} reaction role(s) configured`)
+                    .setDescription(`${rolesArray.length} reaction role(s) configured`)
                     .setTimestamp();
 
                 const grouped: Record<string, { channelId: string; messageId: string; roles: ReactionRole[] }> = {};
-                for (const rr of reactionRoles.roles) {
-                    const key = `${rr.channelId}-${rr.messageId}`;
+                for (const rr of rolesArray) {
+                    const key = `${rr['channelId']}-${rr['messageId']}`;
                     if (!grouped[key]) {
                         grouped[key] = {
-                            channelId: rr.channelId,
-                            messageId: rr.messageId,
+                            channelId: rr['channelId'] as string,
+                            messageId: rr['messageId'] as string,
                             roles: []
                         };
                     }
-                    grouped[key].roles.push(rr);
+                    grouped[key].roles.push(rr as unknown as ReactionRole);
                 }
 
                 for (const [, group] of Object.entries(grouped)) {
@@ -328,15 +331,17 @@ export default {
             } else if (subcommand === 'clear') {
                 const messageId = interaction.options.getString('message_id');
 
-                const reactionRoles = await getGuildData('reactionroles', guildId);
-                if (!reactionRoles.roles || reactionRoles.roles.length === 0) {
+                const reactionRoles = await getGuildData('reactionroles', guildId) as Record<string, unknown>;
+                const rolesArray = (reactionRoles['roles'] as Array<Record<string, unknown>>) ?? [];
+
+                if (!rolesArray || rolesArray.length === 0) {
                     return interaction.reply({
                         content: 'No reaction roles are configured in this server.',
                         flags: MessageFlags.Ephemeral
                     });
                 }
 
-                const toRemove = reactionRoles.roles.filter(rr => rr.messageId === messageId);
+                const toRemove = rolesArray.filter((rr: Record<string, unknown>) => rr['messageId'] === messageId);
                 if (toRemove.length === 0) {
                     return interaction.reply({
                         content: 'No reaction roles found for that message.',
@@ -344,16 +349,16 @@ export default {
                     });
                 }
 
-                reactionRoles.roles = reactionRoles.roles.filter(rr => rr.messageId !== messageId);
+                reactionRoles['roles'] = rolesArray.filter((rr: Record<string, unknown>) => rr['messageId'] !== messageId);
                 await setGuildData('reactionroles', guildId, reactionRoles);
 
-                if (toRemove.length > 0) {
+                if (toRemove.length > 0 && toRemove[0]) {
                     try {
-                        const channel = await interaction.guild!.channels.fetch(toRemove[0].channelId);
+                        const channel = await interaction.guild!.channels.fetch((toRemove[0] as Record<string, unknown>)['channelId'] as string);
                         if (channel && channel.isTextBased()) {
                             const message = await channel.messages.fetch(messageId!);
                             for (const rr of toRemove) {
-                                await message.reactions.cache.get(rr.emoji)?.users.remove(interaction.client.user!.id);
+                                await message.reactions.cache.get(rr['emoji'] as string)?.users.remove(interaction.client.user!.id);
                             }
                         }
                     } catch {
@@ -368,7 +373,7 @@ export default {
             }
 
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unexpected error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

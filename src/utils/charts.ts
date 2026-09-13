@@ -70,7 +70,9 @@ export function createLineChart(data: DataPoint[], height = 5): string {
     for (let row = height - 1; row >= 0; row--) {
         let line = '';
         for (let i = 0; i < data.length; i++) {
-            const normalized = ((data[i].value - minValue) / range) * height;
+            const point = data[i];
+            if (!point) {continue;}
+            const normalized = ((point.value - minValue) / range) * height;
             const level = Math.round(normalized);
 
             if (level === row) {

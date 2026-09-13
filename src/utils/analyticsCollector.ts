@@ -392,7 +392,8 @@ async function cleanupOldAnalytics(client: Client): Promise<void> {
                 count: number;
             }>;
             for (const key in commands) {
-                if (commands[key].date < cutoffDateStr) {
+                const cmd = commands[key];
+                if (cmd && cmd.date < cutoffDateStr) {
                     delete commands[key];
                     totalDeleted++;
                 }
@@ -407,7 +408,8 @@ async function cleanupOldAnalytics(client: Client): Promise<void> {
                 count: number;
             }>;
             for (const key in messages) {
-                if (messages[key].hour < cutoffHourStr) {
+                const msg = messages[key];
+                if (msg && msg.hour < cutoffHourStr) {
                     delete messages[key];
                     totalDeleted++;
                 }
@@ -421,7 +423,8 @@ async function cleanupOldAnalytics(client: Client): Promise<void> {
                 count: number;
             }>;
             for (const key in violations) {
-                if (violations[key].date < cutoffDateStr) {
+                const viol = violations[key];
+                if (viol && viol.date < cutoffDateStr) {
                     delete violations[key];
                     totalDeleted++;
                 }
@@ -436,7 +439,8 @@ async function cleanupOldAnalytics(client: Client): Promise<void> {
                 count: number;
             }>;
             for (const key in modActions) {
-                if (modActions[key].date < cutoffDateStr) {
+                const action = modActions[key];
+                if (action && action.date < cutoffDateStr) {
                     delete modActions[key];
                     totalDeleted++;
                 }
@@ -519,6 +523,7 @@ export async function getCommandStats(guildId: string, days = 7): Promise<{
 
     for (const key in data) {
         const entry = data[key];
+        if (!entry) {continue;}
         if (entry.date >= cutoffDate) {
             // Count by command
             const cmdCount = commandCounts.get(entry.commandName) ?? 0;
@@ -565,6 +570,7 @@ export async function getMessageStats(guildId: string, days = 7): Promise<{
 
     for (const key in data) {
         const entry = data[key];
+        if (!entry) {continue;}
         if (entry.hour >= cutoffHour) {
             // Count by channel
             const chnCount = channelCounts.get(entry.channelId) ?? 0;
@@ -611,6 +617,7 @@ export async function getViolationStats(guildId: string, days = 30): Promise<{ t
 
     for (const key in data) {
         const entry = data[key];
+        if (!entry) {continue;}
         if (entry.date >= cutoffDate) {
             const count = typeCounts.get(entry.type) ?? 0;
             typeCounts.set(entry.type, count + entry.count);
@@ -645,6 +652,7 @@ export async function getModActionStats(guildId: string, days = 30): Promise<{
 
     for (const key in data) {
         const entry = data[key];
+        if (!entry) {continue;}
         if (entry.date >= cutoffDate) {
             // Count by moderator
             const modCount = moderatorCounts.get(entry.moderatorId) ?? 0;
@@ -673,20 +681,23 @@ export async function getModActionStats(guildId: string, days = 30): Promise<{
  * @returns {Array} Member growth data
  */
 export async function getMemberGrowthStats(guildId: string, days = 30): Promise<Record<string, unknown>[]> {
-    const data = await getGuildData('analytics-members', guildId);
+    const data = await getGuildData('analytics-members', guildId) as Record<string, Record<string, unknown>>;
     const cutoffDate = getDateString(Date.now() - (days * 24 * 60 * 60 * 1000));
 
     const growth: Record<string, unknown>[] = [];
 
     for (const key in data) {
         // Extract the date from the key: the part before the first colon
-        const entryDate = key.split(':')[0];
+        const entryDate = key.split(':')[0] ?? '';
         if (entryDate >= cutoffDate) {
-            growth.push(data[key]);
+            const entry = data[key];
+            if (entry) {
+                growth.push(entry);
+            }
         }
     }
 
-    return growth.sort((a, b) => a.date.localeCompare(b.date));
+    return growth.sort((a, b) => String(a['date'] ?? '').localeCompare(String(b['date'] ?? '')));
 }
 
 /**

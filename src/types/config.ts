@@ -2,6 +2,7 @@
 // Mirrors src/config/config.js structure with explicit interfaces
 
 import type { ClientOptions, GatewayDispatchEvents } from 'discord.js';
+import type { DefaultJobOptions, JobSerializer } from './queue.js';
 
 export interface DiscordConfig {
     token: string;
@@ -54,9 +55,10 @@ export interface QueueConfig {
     enabled: boolean;
     redis: QueueRedisConfig;
     prefix: string;
-    shard?: {
-        queuePrefixBase: string;
-    };
+    shard?: ShardConfig;
+    name?: string;
+    defaultJobOptions?: DefaultJobOptions;
+    serializer?: JobSerializer;
 }
 
 export interface InterlinkConfig {
@@ -72,6 +74,8 @@ export interface InterlinkConfig {
 
 export interface ShardConfig {
     queuePrefixBase: string;
+    socketPathBase: string;
+    redisKeyPrefixBase: string;
 }
 
 export interface OperatorConfig {

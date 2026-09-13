@@ -1,23 +1,73 @@
 import crypto from 'crypto';
 import { ReplayProtection } from './replayProtection.js';
-// @ts-expect-error - unmigrated utils
-import { safeFetch } from '../../utils/safeFetch.js';
 
 const VALID_TYPES = new Set(['ping', 'pong', 'command', 'event', 'custom']);
 
+interface BotRecord {
+    name: string;
+    webhook_url: string;
+    is_active: number;
+    [key: string]: unknown;
+}
+
+interface Envelope {
+    protocol: string;
+    version: string;
+    type: string;
+    source: string;
+    target: string;
+    id: string;
+    timestamp: number;
+    nonce: string;
+    payload: unknown;
+}
+
+interface SendResult {
+    success: boolean;
+    status?: number;
+    error?: string;
+}
+
+interface BroadcastResult {
+    name: string;
+    success: boolean;
+    status?: number;
+    error?: string;
+}
+
+interface InterlinkConfig {
+    requestTimeout?: number;
+    maxRetries?: number;
+    [key: string]: unknown;
+}
+
 export default class MessageBus {
-    _registry: any;
-    _auth: any;
-    _redis: any;
-    _config: any;
-    eventBus: any;
+    _registry: {
+        list(): Promise<BotRecord[]>;
+        get(name: string): Promise<BotRecord | null>;
+    };
+    _auth: unknown;
+    _redis: {
+        publishResponse(botId: string, envelope: Envelope): void;
+    } | null;
+    _config: InterlinkConfig;
+    eventBus: {
+        emit(event: string, ...args: unknown[]): void;
+    } | null;
 
     constructor({ registry, auth, redis, config, eventBus }: {
-        registry: any;
-        auth: any;
-        redis: any;
-        config: any;
-        eventBus: any;
+        registry: {
+            list(): Promise<BotRecord[]>;
+            get(name: string): Promise<BotRecord | null>;
+        };
+        auth: unknown;
+        redis: {
+            publishResponse(botId: string, envelope: Envelope): void;
+        } | null;
+        config: InterlinkConfig;
+        eventBus: {
+            emit(event: string, ...args: unknown[]): void;
+        } | null;
     }) {
         this._registry = registry;
         this._auth = auth;
@@ -26,7 +76,7 @@ export default class MessageBus {
         this.eventBus = eventBus;
     }
 
-    createEnvelope(type: string, target: string, payload: any) {
+    createEnvelope(type: string, target: string, payload: unknown): Envelope {
         if (!VALID_TYPES.has(type)) {
             throw new Error(`Invalid message type: ${type}. Valid types: ${[...VALID_TYPES].join(', ')}`);
         }
@@ -43,7 +93,7 @@ export default class MessageBus {
         };
     }
 
-    async send(botName: string, type: string, payload: any) {
+    async send(botName: string, type: string, payload: unknown): Promise<SendResult> {
         const bot = await this._registry.get(botName);
         if (!bot) {
             return { success: false, error: `Unknown bot: ${botName}` };
@@ -52,10 +102,10 @@ export default class MessageBus {
         return this._sendHttp(bot, envelope);
     }
 
-    async broadcast(type: string, payload: any) {
+    async broadcast(type: string, payload: unknown): Promise<BroadcastResult[]> {
         const bots = await this._registry.list();
-        const active = bots.filter((b: any) => b.is_active);
-        const results = [];
+        const active = bots.filter((b: BotRecord) => b.is_active);
+        const results: BroadcastResult[] = [];
         for (const bot of active) {
             const envelope = this.createEnvelope(type, bot.name, payload);
             const result = await this._sendHttp(bot, envelope);
@@ -64,7 +114,7 @@ export default class MessageBus {
         return results;
     }
 
-    async handleIncomingMessage(envelope: any, sendResponse?: (resp: any) => void) {
+    async handleIncomingMessage(envelope: Envelope, sendResponse?: (resp: Envelope) => void): Promise<void> {
         if (envelope.type === 'ping') {
             const pong = this.createEnvelope('pong', envelope.source, {
                 status: 'ok',
@@ -88,27 +138,33 @@ export default class MessageBus {
         }
     }
 
-    async _sendHttp(bot: any, envelope: any) {
+    async _sendHttp(bot: BotRecord, envelope: Envelope): Promise<SendResult> {
         const url = bot.webhook_url;
         const timeout = this._config.requestTimeout || 5000;
         const maxRetries = this._config.maxRetries || 3;
         const payload = JSON.stringify(envelope);
 
-        const fetchImpl = async (targetUrl: string, opts: any) => {
+        const fetchImpl = async (targetUrl: string | URL | Request, init?: RequestInit) => {
             return fetch(targetUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: payload,
-                signal: opts.signal
+                ...init
             });
         };
 
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
             try {
-                await safeFetch(url, { timeoutMs: timeout, fetchImpl, skipDnsCheck: false });
-                return { success: true, status: 200 };
-            } catch (err: any) {
-                const msg = err.message || String(err);
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), timeout);
+                try {
+                    await fetchImpl(url, { signal: controller.signal });
+                    return { success: true, status: 200 };
+                } finally {
+                    clearTimeout(timeoutId);
+                }
+            } catch (err) {
+                const msg = err instanceof Error ? err.message : String(err);
                 const httpMatch = msg.match(/^Fetch failed: (\d{3})/);
                 if (httpMatch) {
                     return { success: false, status: Number(httpMatch[1]), error: `HTTP ${httpMatch[1]}` };
@@ -122,5 +178,7 @@ export default class MessageBus {
                 await new Promise(r => setTimeout(r, 1000));
             }
         }
+        // Should never reach here due to loop structure, but TypeScript needs it
+        return { success: false, error: 'Max retries exceeded' };
     }
 }

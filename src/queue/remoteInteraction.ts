@@ -64,76 +64,79 @@ export default class RemoteInteraction {
         this._replied = false;
         this._deferred = true;
 
-        this.id = data.id as string;
-        this.applicationId = data.applicationId as string;
-        this.token = data.interactionToken as string;
-        this.commandName = data.commandName as string;
-        this.commandId = data.commandId as string;
-        this.guildId = data.guildId as string | null;
-        this.channelId = data.channelId as string;
-        this.createdTimestamp = data.createdTimestamp as number;
-        this.memberPermissions = (data.memberPermissions as string[]) || [];
+        this.id = data['id'] as string;
+        this.applicationId = data['applicationId'] as string;
+        this.token = data['interactionToken'] as string;
+        this.commandName = data['commandName'] as string;
+        this.commandId = data['commandId'] as string;
+        this.guildId = data['guildId'] as string | null;
+        this.channelId = data['channelId'] as string;
+        this.createdTimestamp = data['createdTimestamp'] as number;
+        this.memberPermissions = (data['memberPermissions'] as string[]) || [];
 
-        this.options = new RemoteOptions(data.options, data.resolved);
+        this.options = new RemoteOptions(
+            (data['options'] as { name: string; type: number; value: unknown; focused?: boolean; options?: unknown[] }[]) || [],
+            data['resolved'] as Record<string, unknown> | null
+        );
 
-        const api = new DiscordAPI(rest, data.applicationId as string);
+        const api = new DiscordAPI(rest, data['applicationId'] as string);
 
         this.user = {
-            id: data.userId as string,
-            tag: data.userTag as string || `${data.username as string}#${data.userDiscriminator as string || '0'}`,
-            username: data.username as string,
-            discriminator: data.userDiscriminator as string || '0',
-            avatar: data.userAvatar as string | null,
+            id: data['userId'] as string,
+            tag: data['userTag'] as string || `${data['username'] as string}#${data['userDiscriminator'] as string || '0'}`,
+            username: data['username'] as string,
+            discriminator: data['userDiscriminator'] as string || '0',
+            avatar: data['userAvatar'] as string | null,
             displayAvatarURL: (_opts = {}) => {
-                if (!data.userAvatar) {
-                    return `https://cdn.discordapp.com/embed/avatars/${parseInt(data.userDiscriminator as string || '0') % 5}.png`;
+                if (!data['userAvatar']) {
+                    return `https://cdn.discordapp.com/embed/avatars/${parseInt(data['userDiscriminator'] as string || '0') % 5}.png`;
                 }
-                const ext = _opts.dynamic && (data.userAvatar as string).startsWith('a_') ? 'gif' : (_opts.format || 'png');
-                return `https://cdn.discordapp.com/avatars/${data.userId}/${data.userAvatar}.${ext}?size=${_opts.size || 512}`;
+                const ext = _opts.dynamic && (data['userAvatar'] as string).startsWith('a_') ? 'gif' : (_opts.format || 'png');
+                return `https://cdn.discordapp.com/avatars/${data['userId']}/${data['userAvatar']}.${ext}?size=${_opts.size || 512}`;
             },
-            toString: () => `<@${data.userId}>`
+            toString: () => `<@${data['userId']}>`
         };
 
         this.member = {
-            id: data.userId as string,
+            id: data['userId'] as string,
             permissions: {
                 has: (perm: string) => this.memberPermissions.includes(perm),
                 toArray: () => [...this.memberPermissions]
             },
             roles: {
-                cache: (data.memberRoles as string[] || []).reduce((m, id) => { m.set(id, { id }); return m; }, new Collection())
+                cache: new Collection<string, { id: string }>((data['memberRoles'] as string[] || []).map(id => [id, { id }]))
             }
         };
 
-        this.channel = data.channelId ? new RemoteChannel(data.channelId as string, data.channelName as string, api) : null;
-        this.guild = data.guildId ? new RemoteGuild(data.guildId as string, data.guildName as string, api) : null;
+        this.channel = data['channelId'] ? new RemoteChannel(data['channelId'] as string, data['channelName'] as string, api) : null;
+        this.guild = data['guildId'] ? new RemoteGuild(data['guildId'] as string, data['guildName'] as string, api) : null;
 
         this.client = {
             user: {
-                id: config?.CLIENT_ID as string | undefined,
+                id: (config!)['CLIENT_ID'] as string | undefined,
                 displayAvatarURL: (_opts = {}) => 'https://cdn.discordapp.com/embed/avatars/0.png'
             },
             ws: { ping: 0 },
             stats: { commandsRan: 0, startTime: Date.now() },
             commands: commands || new Collection(),
             config: config || {},
-            manager: config?.manager ? this._createManagerProxy(config.manager as Record<string, unknown>) : null,
+            manager: (config!)['manager'] ? this._createManagerProxy((config!)['manager'] as Record<string, unknown>) : null,
             rest
         };
     }
 
     _createManagerProxy(managerInfo: Record<string, unknown>) {
         return {
-            listPlugins: () => managerInfo.plugins || [],
+            listPlugins: () => managerInfo['plugins'] || [],
             getPlugin: (id: string) => {
-                const p = (managerInfo.plugins as { id: string }[] || []).find(pl => pl.id === id);
+                const p = (managerInfo['plugins'] as { id: string; enabled: boolean; loaded: boolean }[] || []).find(pl => pl.id === id);
                 return p ? { _enabled: p.enabled, _loaded: p.loaded } : null;
             },
             isEnabled: (id: string) => {
-                const p = (managerInfo.plugins as { id: string }[] || []).find(pl => pl.id === id);
+                const p = (managerInfo['plugins'] as { id: string; enabled: boolean }[] || []).find(pl => pl.id === id);
                 return p ? p.enabled : false;
             },
-            scanPlugins: () => managerInfo.scanned || [],
+            scanPlugins: () => managerInfo['scanned'] || [],
             enablePlugin: async () => { throw new Error('Plugin management not available in worker mode'); },
             disablePlugin: async () => { throw new Error('Plugin management not available in worker mode'); },
             loadPlugin: async () => { throw new Error('Plugin management not available in worker mode'); },

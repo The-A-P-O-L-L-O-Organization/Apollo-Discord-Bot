@@ -223,21 +223,25 @@ async function importCommandModule(commandName: string, pluginId: string | null)
     ].filter(Boolean);
 
     for (const baseDir of baseDirs) {
-        const cmdPath = path.join(baseDir, 'commands', `${commandName}.js`);
-        if (existsSync(cmdPath)) {
-            try {
-                const url = pathToFileURL(cmdPath);
-                // Remove cache-busting in production
-                if (process.env['NODE_ENV'] === 'development') {
-                    url.searchParams.set('t', Date.now().toString());
+        // Check both .ts and .js files
+        const extensions = ['.ts', '.js'];
+        for (const ext of extensions) {
+            const cmdPath = path.join(baseDir, 'commands', `${commandName}${ext}`);
+            if (existsSync(cmdPath)) {
+                try {
+                    const url = pathToFileURL(cmdPath);
+                    // Remove cache-busting in production
+                    if (process.env['NODE_ENV'] === 'development') {
+                        url.searchParams.set('t', Date.now().toString());
+                    }
+                    const mod = await import(url.href);
+                    if (mod?.default?.execute) {
+                        commandModuleCache.set(cacheKey, mod.default);
+                        return mod.default;
+                    }
+                } catch (err) {
+                    logger.error({ err: err as Error, msg: `[Worker] Failed to import ${cmdPath}` });
                 }
-                const mod = await import(url.href);
-                if (mod?.default?.execute) {
-                    commandModuleCache.set(cacheKey, mod.default);
-                    return mod.default;
-                }
-            } catch (err) {
-                logger.error({ err: err as Error, msg: `[Worker] Failed to import ${cmdPath}` });
             }
         }
     }
@@ -247,19 +251,22 @@ async function importCommandModule(commandName: string, pluginId: string | null)
         const { readdirSync } = await import('fs');
         const entries = readdirSync(srcPlugins);
         for (const entry of entries) {
-            const cmdPath = path.join(srcPlugins, entry, 'commands', `${commandName}.js`);
-            if (existsSync(cmdPath)) {
-                try {
-                    const url = pathToFileURL(cmdPath);
-                    if (process.env['NODE_ENV'] === 'development') {
-                        url.searchParams.set('t', Date.now().toString());
-                    }
-                    const mod = await import(url.href);
-                    if (mod?.default?.execute) {
-                        commandModuleCache.set(cacheKey, mod.default);
-                        return mod.default;
-                    }
-                } catch {}
+            const extensions = ['.ts', '.js'];
+            for (const ext of extensions) {
+                const cmdPath = path.join(srcPlugins, entry, 'commands', `${commandName}${ext}`);
+                if (existsSync(cmdPath)) {
+                    try {
+                        const url = pathToFileURL(cmdPath);
+                        if (process.env['NODE_ENV'] === 'development') {
+                            url.searchParams.set('t', Date.now().toString());
+                        }
+                        const mod = await import(url.href);
+                        if (mod?.default?.execute) {
+                            commandModuleCache.set(cacheKey, mod.default);
+                            return mod.default;
+                        }
+                    } catch {}
+                }
             }
         }
     } catch {}

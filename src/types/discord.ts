@@ -147,6 +147,7 @@ export interface DiscordClient extends Client {
 export type {
     ApolloConfig,
     ApolloClientExtensions,
+    ApolloClient,
     PluginManager,
     PluginInstance,
     PluginCommand,
@@ -164,6 +165,7 @@ export type {
     CommandData,
     CommandOption,
     CommandChoice,
+    CommandModule,
     RPCHandler
 } from './shared.js';
 

@@ -1,39 +1,75 @@
 import crypto from 'crypto';
 import { generateApiKey } from './auth.js';
+import type { Knex } from 'knex';
+
+interface BotRecord {
+    id: string;
+    name: string;
+    description: string;
+    webhook_url: string;
+    supports_redis: number;
+    api_key_hash: string;
+    api_key_prefix: string;
+    scopes: string;
+    is_active: number;
+    created_at: string;
+    updated_at: string;
+    last_seen_at: string | null;
+}
+
+interface CreateBotData {
+    name: string;
+    webhookUrl: string;
+    description?: string;
+    supportsRedis?: boolean;
+}
+
+interface CreatedBot {
+    id: string;
+    name: string;
+    webhook_url: string;
+    description: string;
+    supports_redis: boolean;
+    api_key_prefix: string;
+    api_key_hash: string;
+    rawKey: string;
+    scopes: string;
+}
+
+interface RotatedKey {
+    rawKey: string;
+    hash: string;
+    prefix: string;
+}
 
 export default class BotRegistry {
-    private _db: any;
+    private _db: Knex;
 
-    constructor(db: any) {
+    constructor(db: Knex) {
         this._db = db;
     }
 
-    async list() {
+    async list(): Promise<BotRecord[]> {
         return this._db('interlink_bots')
             .select('*')
-            .orderBy('created_at', 'asc');
+            .orderBy('created_at', 'asc') as Promise<BotRecord[]>;
     }
 
-    async get(name: string) {
+    async get(name: string): Promise<BotRecord | null> {
         const row = await this._db('interlink_bots')
             .where({ name })
             .first();
         return row ?? null;
     }
 
-    async getById(id: string) {
+    async getById(id: string): Promise<BotRecord | null> {
         const row = await this._db('interlink_bots')
             .where({ id })
             .first();
         return row ?? null;
     }
 
-    async create({ name, webhookUrl, description = '', supportsRedis = false }: {
-        name: string;
-        webhookUrl: string;
-        description?: string;
-        supportsRedis?: boolean;
-    }) {
+    async create({ name, webhookUrl, description = '', supportsRedis = false }: CreateBotData): Promise<CreatedBot> {
         const id = crypto.randomUUID();
         const { rawKey, hash, prefix } = generateApiKey();
         await this._db('interlink_bots').insert({
@@ -59,18 +95,18 @@ export default class BotRegistry {
         };
     }
 
-    async remove(name: string) {
+    async remove(name: string): Promise<number> {
         return this._db('interlink_bots').where({ name }).del();
     }
 
-    async findByApiKeyPrefix(prefix: string) {
+    async findByApiKeyPrefix(prefix: string): Promise<BotRecord | null> {
         const row = await this._db('interlink_bots')
             .where({ api_key_prefix: prefix })
             .first();
         return row ?? null;
     }
 
-    async rotateKey(name: string) {
+    async rotateKey(name: string): Promise<RotatedKey> {
         const { rawKey, hash, prefix } = generateApiKey();
         await this._db('interlink_bots')
             .where({ name })
@@ -82,7 +118,7 @@ export default class BotRegistry {
         return { rawKey, hash, prefix };
     }
 
-    async updateLastSeen(name: string) {
+    async updateLastSeen(name: string): Promise<number> {
         return this._db('interlink_bots')
             .where({ name })
             .update({ last_seen_at: new Date().toISOString() });

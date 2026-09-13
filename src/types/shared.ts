@@ -1,7 +1,7 @@
 // Shared types to avoid duplication across type modules
 // This module has NO dependencies on other local type modules to avoid circular imports
 
-import type { Client, Interaction, AutocompleteInteraction, CommandInteraction, ButtonInteraction, SelectMenuInteraction, ContextMenuCommandInteraction } from 'discord.js';
+import type { Client, Interaction, AutocompleteInteraction, CommandInteraction, ButtonInteraction, SelectMenuInteraction, ContextMenuCommandInteraction, Collection, GatewayIntentBits, Partials } from 'discord.js';
 
 // ============================================
 // Discord.js common types (re-exported for convenience)
@@ -310,12 +310,11 @@ export interface PluginContext {
 // Service Interfaces (for ApolloClientExtensions)
 // ============================================
 export interface PluginManager {
-    loadPlugin: (name: string, path: string) => Promise<void>;
+    loadPlugin: (name: string, path: string) => Promise<BasePlugin | PluginInstance>;
     enablePlugin: (name: string) => Promise<void>;
     disablePlugin: (name: string) => Promise<void>;
     unloadPlugin: (name: string) => Promise<void>;
     getPlugin: (name: string) => PluginInstance | undefined;
-    getAllPlugins: () => Map<string, PluginInstance>;
     reloadPlugin: (name: string) => Promise<void>;
 }
 
@@ -325,11 +324,11 @@ export interface PluginInstance {
     description: string;
     enabled: boolean;
     capabilities: string[];
-    commands: Map<string, PluginCommand>;
-    events: Map<string, PluginEvent>;
-    cliCommands: Map<string, CLICommand>;
+    commands: Map<string, unknown>;
+    events: Map<string, unknown>;
+    cliCommands: Map<string, unknown>;
     rpcNamespace?: string;
-    rpcHandlers?: Map<string, RPCHandler>;
+    rpcHandlers?: Map<string, unknown>;
 }
 
 export interface AnalyticsInstance {
@@ -412,6 +411,7 @@ export interface ApolloConfig {
     deleteMessages: boolean;
     warnOnDetection: boolean;
     env: 'development' | 'production' | 'test';
+    podId: string;
     activity: { name: string; type: string };
     welcome: { channelName: string; message: string };
     moderation: { defaultReason: string; muteRoleName: string; muteDuration: number; maxMessagesPerPurge: number; purgeCooldown: number; logModerationActions: boolean; moderationLogChannel: string };
@@ -425,9 +425,9 @@ export interface DiscordConfig {
     clientId: string;
     clientSecret: string | undefined;
     shardCount: number | undefined;
-    gateway: unknown;
+    gateway: import('discord.js').ClientOptions['ws'] | undefined;
     intents: number | undefined;
-    presence: unknown;
+    presence: import('discord.js').ClientOptions['presence'] | undefined;
 }
 
 export interface DatabaseConfig {
@@ -454,13 +454,6 @@ export interface QueueRedisConfig extends RedisConfig {
     prefix: string | undefined;
 }
 
-export interface QueueConfig {
-    enabled: boolean;
-    redis: QueueRedisConfig;
-    prefix: string;
-    shard?: { queuePrefixBase: string };
-}
-
 export interface InterlinkConfig {
     enabled: boolean;
     host: string;
@@ -471,6 +464,8 @@ export interface InterlinkConfig {
 
 export interface ShardConfig {
     queuePrefixBase: string;
+    socketPathBase: string;
+    redisKeyPrefixBase: string;
 }
 
 export interface OperatorConfig {
@@ -541,11 +536,13 @@ export interface LoggingConfig {
     pretty: boolean;
     destination: 'stdout' | 'file' | 'both';
     file?: { path: string; maxSize: string; maxFiles: number };
+    defaultEvents: Record<string, boolean>;
+    availableEvents: string[];
 }
 
-export interface RemindersConfig { enabled: boolean; maxRemindersPerUser: number; defaultTimezone: string; }
+export interface RemindersConfig { enabled: boolean; maxRemindersPerUser: number; defaultTimezone: string; maxDuration: number; }
 
-export interface PollsConfig { enabled: boolean; maxOptions: number; maxDurationHours: number; defaultDurationHours: number; }
+export interface PollsConfig { enabled: boolean; maxOptions: number; maxDurationHours: number; defaultDurationHours: number; maxDuration: number; }
 
 export interface IntegrationsConfig {
     youtube?: { apiKey: string };
@@ -569,6 +566,16 @@ export interface ApolloClientExtensions {
     health: HealthCheckInstance;
 }
 
+export interface ApolloClient extends Client<true> {
+    commands: Collection<string, unknown>;
+    config: ApolloConfig;
+    manager: PluginManager;
+    bus: EventBus;
+    stats: { commandsRan: number; messagesProcessed: number; startTime: number };
+    socketServer?: unknown;
+    apollo: ApolloClientExtensions;
+}
+
 // ============================================
 // Forward declarations for external types
 // ============================================
@@ -589,11 +596,13 @@ export interface QueueManager {
 }
 
 export interface QueueConfig {
-    name: string;
-    prefix: string;
+    enabled: boolean;
     redis: QueueRedisConfig;
-    defaultJobOptions: DefaultJobOptions;
-    serializer: JobSerializer;
+    prefix: string;
+    shard?: ShardConfig;
+    name?: string;
+    defaultJobOptions?: DefaultJobOptions;
+    serializer?: JobSerializer;
 }
 
 export interface RedisConnectionConfig {
