@@ -1,7 +1,5 @@
-import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, ChatInputCommandInteraction, MessageFlags } from 'discord.js';
-// @ts-expect-error - JS file not yet migrated
+import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, ChatInputCommandInteraction, MessageFlags, type TextBasedChannel } from 'discord.js';
 import { setGuildData, getGuildData } from '../../../utils/db.js';
-// @ts-expect-error - JS file not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
@@ -44,7 +42,7 @@ export default {
                 if (subcommand === 'set') {
                     const channel = interaction.options.getChannel('channel');
 
-                    if (!channel || !channel.isTextBased()) {
+                    if (!channel || !('isTextBased' in channel) || !channel.isTextBased()) {
                         return interaction.reply({
                             content: 'Invalid channel.',
                             flags: MessageFlags.Ephemeral
@@ -81,9 +79,9 @@ export default {
                     });
 
                 } else if (subcommand === 'remove') {
-                    const existingConfig = await getGuildData('logging', guildId);
+                    const existingConfig = await getGuildData('logging', guildId) as Record<string, unknown> | null;
 
-                    if (!existingConfig.channelId) {
+                    if (!existingConfig || !existingConfig['channelId']) {
                         return interaction.reply({
                             content: 'No logging channel is currently set.',
                             flags: MessageFlags.Ephemeral
@@ -103,9 +101,9 @@ export default {
                     });
 
                 } else if (subcommand === 'view') {
-                    const config = await getGuildData('logging', guildId);
+                    const config = await getGuildData('logging', guildId) as Record<string, unknown> | null;
 
-                    if (!config.channelId) {
+                    if (!config || !config['channelId']) {
                         return interaction.reply({
                             content: 'No logging channel is currently set.\n\nUse `/setlogchannel set` to configure one.',
                             flags: MessageFlags.Ephemeral
@@ -113,7 +111,7 @@ export default {
                     }
 
                     try {
-                        const channel = await interaction.guild!.channels.fetch(config.channelId);
+                        const channel = await interaction.guild!.channels.fetch(config['channelId'] as string);
                         if (channel) {
                             return interaction.reply({
                                 content: `Current logging channel: ${channel}\n\nUse \`/logging status\` to see which events are being logged.`,
@@ -137,7 +135,7 @@ export default {
             }
 
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unexpected error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

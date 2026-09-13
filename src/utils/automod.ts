@@ -43,6 +43,7 @@ interface BurstSpamResult {
     isSpam: boolean;
     confidence: number;
     count: number;
+    reason?: string;
 }
 
 /**
@@ -59,6 +60,9 @@ export async function checkBurstSpam(
     intervalMs = BURST_INTERVAL,
     channelOverrides: Record<string, ChannelOverride> = {}
 ): Promise<BurstSpamResult> {
+    if (!message.guild) {
+        return { isSpam: false, confidence: 0, count: 0, reason: 'DM channel' };
+    }
     const guildId = message.guild.id;
     const userId = message.author.id;
     const channelId = message.channel.id;
@@ -208,7 +212,7 @@ export async function checkSpamRedis(
     if (!results) { return false; }
 
     // results[1] is zcount result: [error, count]
-    const count = results[1]?.[1] ?? 0;
+    const count = (results[1]?.[1] as number) ?? 0;
 
     return count >= threshold;
 }
@@ -237,23 +241,24 @@ interface AutomodConfig {
  * @returns {Promise<AutomodConfig>} Automod configuration
  */
 export async function getAutomodConfig(guildId: string): Promise<AutomodConfig> {
-    const guildConfig = await getGuildData('automod', guildId);
+    const guildConfig = await getGuildData('automod', guildId) as Record<string, unknown> | null;
+    const automodConfig = (guildConfig ?? {});
     return {
-        enabled: guildConfig.enabled ?? config.automod.enabled,
-        bannedWords: guildConfig.bannedWords || [],
-        filterInvites: guildConfig.filterInvites ?? config.automod.filterInvites,
-        filterLinks: guildConfig.filterLinks ?? config.automod.filterLinks,
-        maxMentions: guildConfig.maxMentions ?? config.automod.maxMentions,
-        maxCapsPercent: guildConfig.maxCapsPercent ?? config.automod.maxCapsPercent,
-        minCapsLength: guildConfig.minCapsLength ?? config.automod.minCapsLength,
-        minAccountAge: guildConfig.minAccountAge ?? config.automod.minAccountAge,
-        spamThreshold: guildConfig.spamThreshold ?? config.automod.spamThreshold,
-        spamInterval: guildConfig.spamInterval ?? config.automod.spamInterval,
-        spamChannelOverrides: guildConfig.spamChannelOverrides ?? config.automod.spamChannelOverrides,
-        aiModeration: guildConfig.aiModeration ?? config.automod.aiModeration,
-        nsfwFilter: guildConfig.nsfwFilter ?? config.automod.nsfwFilter,
-        exemptChannels: guildConfig.exemptChannels || [],
-        exemptRoles: guildConfig.exemptRoles || []
+        enabled: (automodConfig['enabled'] as boolean) ?? config.automod.enabled,
+        bannedWords: (automodConfig['bannedWords'] as string[]) || [],
+        filterInvites: (automodConfig['filterInvites'] as boolean) ?? config.automod.filterInvites,
+        filterLinks: (automodConfig['filterLinks'] as boolean) ?? config.automod.filterLinks,
+        maxMentions: (automodConfig['maxMentions'] as number) ?? config.automod.maxMentions,
+        maxCapsPercent: (automodConfig['maxCapsPercent'] as number) ?? config.automod.maxCapsPercent,
+        minCapsLength: (automodConfig['minCapsLength'] as number) ?? config.automod.minCapsLength,
+        minAccountAge: (automodConfig['minAccountAge'] as number) ?? config.automod.minAccountAge,
+        spamThreshold: (automodConfig['spamThreshold'] as number) ?? config.automod.spamThreshold,
+        spamInterval: (automodConfig['spamInterval'] as number) ?? config.automod.spamInterval,
+        spamChannelOverrides: (automodConfig['spamChannelOverrides'] as Record<string, ChannelOverride>) ?? config.automod.spamChannelOverrides,
+        aiModeration: (automodConfig['aiModeration'] as boolean) ?? config.automod.aiModeration,
+        nsfwFilter: (automodConfig['nsfwFilter'] as boolean) ?? config.automod.nsfwFilter,
+        exemptChannels: (automodConfig['exemptChannels'] as string[]) || [],
+        exemptRoles: (automodConfig['exemptRoles'] as string[]) || []
     };
 }
 
@@ -453,6 +458,7 @@ export async function checkSpam(
     interval: number,
     useRedis = false
 ): Promise<boolean> {
+    if (!message.guild) { return false; }
     const guildId = message.guild.id;
     const userId = message.author.id;
     const now = Date.now();
@@ -478,19 +484,21 @@ export async function checkSpam(
  * @returns {boolean} Whether spam was detected
  */
 function checkSpamMemory(message: Message, threshold: number, interval: number): boolean {
+    if (!message.guild) { return false; }
     const guildId = message.guild.id;
     const userId = message.author.id;
     const now = Date.now();
 
     // Get or create user tracker (LRU automatically handled by TwoLevelLRUCache)
-    let userTracker = spamTracker.get(guildId, userId);
+    interface UserTracker { messages: number[]; lastWarned: number; }
+    let userTracker = spamTracker.get(guildId, userId) as UserTracker | undefined;
     if (!userTracker) {
         userTracker = { messages: [], lastWarned: 0 };
         spamTracker.set(guildId, userId, userTracker);
     }
 
     // Remove old messages outside the interval FIRST
-    userTracker.messages = userTracker.messages.filter(ts => now - ts < interval);
+    userTracker.messages = userTracker.messages.filter((ts: number) => now - ts < interval);
 
     // Add current message timestamp
     userTracker.messages.push(now);

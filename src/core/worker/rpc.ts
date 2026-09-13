@@ -1,4 +1,14 @@
 import { encode, decode } from 'msgpackr';
+import type { RPCRequest, RPCResponse, RPCMessage } from './rpc-schemas.js';
+import {
+    createRequest as createRequestZod,
+    createResponse as createResponseZod,
+    isRequest as isRequestZod,
+    isResponse as isResponseZod,
+    validateRequest,
+    validateResponse,
+    validateMessage,
+} from './rpc-schemas.js';
 
 export const MAX_PAYLOAD_BYTES = 1024 * 1024;
 
@@ -9,37 +19,25 @@ export function nextCorrelationId(): string {
     return `rpc-${Date.now()}-${correlationCounter}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export interface RPCRequest {
-    kind: 'request';
-    pluginId: string;
-    method: string;
-    correlationId: string;
-    payload: unknown;
-}
-
-export interface RPCResponse {
-    kind: 'response';
-    correlationId: string;
-    result: unknown;
-}
-
-export type RPCMessage = RPCRequest | RPCResponse;
+export type { RPCRequest, RPCResponse, RPCMessage };
 
 export function createRequest(pluginId: string, method: string, payload: unknown): RPCRequest {
-    return { kind: 'request', pluginId, method, correlationId: nextCorrelationId(), payload };
+    return createRequestZod(pluginId, method, payload);
 }
 
 export function createResponse(correlationId: string, result: unknown): RPCResponse {
-    return { kind: 'response', correlationId, result };
+    return createResponseZod(correlationId, result);
 }
 
 export function isRequest(msg: unknown): msg is RPCRequest {
-    return !!(msg && typeof msg === 'object' && 'kind' in msg && msg.kind === 'request');
+    return isRequestZod(msg);
 }
 
 export function isResponse(msg: unknown): msg is RPCResponse {
-    return !!(msg && typeof msg === 'object' && 'kind' in msg && msg.kind === 'response');
+    return isResponseZod(msg);
 }
+
+export { validateRequest, validateResponse, validateMessage };
 
 export function isOversize(msg: unknown): boolean {
     return Buffer.byteLength(encode(msg as object)) > MAX_PAYLOAD_BYTES;
@@ -60,6 +58,9 @@ export default {
     createResponse,
     isRequest,
     isResponse,
+    validateRequest,
+    validateResponse,
+    validateMessage,
     isOversize,
     serialize,
     deserialize

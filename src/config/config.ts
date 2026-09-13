@@ -234,8 +234,21 @@ const config = {
             lazyConnect: undefined
         },
         prefix: getEnv('QUEUE_PREFIX') ?? 'apollo',
+        name: getEnv('QUEUE_PREFIX') ?? 'apollo',
+        defaultJobOptions: {
+            attempts: 3,
+            backoff: { type: 'exponential' as const, delay: 1000 },
+            removeOnComplete: { age: 3600, count: 100 },
+            removeOnFail: { age: 86400, count: 50 }
+        },
+        serializer: {
+            serialize: () => Buffer.from(''),
+            deserialize: () => ({})
+        },
         shard: {
-            queuePrefixBase: 'apollo'
+            queuePrefixBase: getEnv('QUEUE_PREFIX') ?? 'apollo',
+            socketPathBase: '/tmp/apollo.sock',
+            redisKeyPrefixBase: 'apollo'
         }
     },
 
@@ -260,7 +273,9 @@ const config = {
 
     // Sharding Configuration
     shard: {
-        queuePrefixBase: 'apollo'
+        queuePrefixBase: getEnv('QUEUE_PREFIX') ?? 'apollo',
+        socketPathBase: '/tmp/apollo.sock',
+        redisKeyPrefixBase: 'apollo'
     },
 
     // NSFW Detection Settings

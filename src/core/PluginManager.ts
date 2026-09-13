@@ -10,6 +10,7 @@ import { commandModuleCache } from '../queue/jobs/processCommand.js';
 import type { Client, REST } from 'discord.js';
 import type { EventBusImpl } from '../core/EventBus.js';
 import type { Plugin as PluginBase } from '../core/Plugin.js';
+import type { ApolloConfig } from '../types/config.js';
 
 const ALL_PLUGIN_CAPABILITIES = [
     'events:ready',
@@ -31,21 +32,6 @@ interface PluginInfo {
     worker?: { granted: string[] };
 }
 
-export interface TypedClient extends Client {
-    config: {
-        CLIENT_ID: string;
-        GUILD_ID?: string;
-        plugins: {
-            enabled: string[];
-            directory: string;
-            optionalDirectory: string;
-            registryFile?: string;
-        };
-    };
-    rest: REST;
-    commands?: Map<string, unknown>;
-}
-
 export interface PluginConstructor {
     id: string;
     dependencies: string[];
@@ -55,16 +41,22 @@ export interface PluginConstructor {
     new (_client: TypedClient, _manager: PluginManager): PluginBase;
 }
 
+export interface TypedClient extends Client {
+    config: ApolloConfig;
+    rest: REST;
+    commands?: Map<string, unknown>;
+}
+
 export default class PluginManager {
     client: TypedClient;
     bus: EventBusImpl;
     plugins: Map<string, PluginBase>;
     _pluginRegistry: Map<string, PluginConstructor>;
     installedPlugins: Map<string, PluginInfo>;
-    config: any;
-    workerHost: any;
+    config: ApolloConfig | null;
+    workerHost: WorkerHost;
     _capabilityIndex: Map<string, Set<string>>;
-    _socketHandlers?: Map<string, (...args: any[]) => Promise<any>>;
+    _socketHandlers?: Map<string, (...args: unknown[]) => Promise<unknown>>;
 
     constructor(client: TypedClient, bus: EventBusImpl) {
         this.client = client;
@@ -77,23 +69,26 @@ export default class PluginManager {
         this._capabilityIndex = new Map();
     }
 
-    async loadAll(config: any): Promise<void> {
+    async loadAll(config: ApolloConfig): Promise<void> {
         const verify = await verifyPluginManifest();
         if (!verify.ok) {
             throw new Error('Plugin integrity verification failed. Run `pnpm manifest` and commit the updated plugin-manifest.json.');
         }
         this.config = config;
-        const { enabled, directory } = config.plugins;
+        const enabled = config.plugins.enabled;
+        const paths = config.plugins.paths as { core: string; installed: string };
+        const directory: string = paths.core;
+        const installedDir: string = paths.installed;
+        const enabledArray: string[] = Array.isArray(enabled) ? enabled : [enabled];
         this._rebuildInstalledPlugins();
-        const allIds = [...new Set([
-            ...enabled,
-            [...this.installedPlugins.keys()].filter(id => !enabled.includes(id))
-        ])];
+        const installedKeys = [...this.installedPlugins.keys()];
+        const additionalIds = installedKeys.filter(id => !enabledArray.includes(id));
+        const allIds: string[] = [...enabledArray, ...additionalIds];
 
         // Load all plugins in parallel (respecting dependencies)
         const loadPromises = allIds.map(id => {
-            const baseDir = this.installedPlugins.has(id) ? this.config?.plugins?.optionalDirectory : directory;
-            return this.loadPlugin(id, baseDir || directory);
+            const baseDir = this.installedPlugins.has(id) ? installedDir : directory;
+            return this.loadPlugin(id, baseDir);
         });
         await Promise.all(loadPromises);
 
@@ -169,12 +164,12 @@ export default class PluginManager {
     _rebuildInstalledPlugins(): void {
         const optionalDir = path.join(
             process.cwd(),
-            this.config?.plugins?.optionalDirectory || './data/plugins'
+            this.config?.plugins?.paths?.installed || './data/plugins'
         );
         if (!existsSync(optionalDir)) { return; }
         const entries = readdirSync(optionalDir);
         for (const entry of entries) {
-            if (!this.installedPlugins.has(entry) && existsSync(path.join(optionalDir, entry, 'plugin.js'))) {
+            if (!this.installedPlugins.has(entry) && (existsSync(path.join(optionalDir, entry, 'plugin.ts')) || existsSync(path.join(optionalDir, entry, 'plugin.js')))) {
                 this.installedPlugins.set(entry, {
                     origin: 'installed',
                     dir: path.join(optionalDir, entry)
@@ -216,7 +211,8 @@ export default class PluginManager {
     async _syncDiscordCommands(changedPluginId: string | null = null): Promise<void> {
         try {
             const rest = this.client.rest;
-            const { CLIENT_ID } = this.client.config;
+            const clientConfig = this.client.config as { discord: { clientId: string }; guildId?: string };
+            const CLIENT_ID = clientConfig.discord.clientId;
             if (!CLIENT_ID) { return; }
 
             if (changedPluginId) {
@@ -239,10 +235,10 @@ export default class PluginManager {
                     };
                 });
 
-                if (this.client.config.GUILD_ID) {
+                if (clientConfig.guildId) {
                     // Guild-specific update (instant)
                     await rest.put(
-                        Routes.applicationGuildCommands(CLIENT_ID, this.client.config.GUILD_ID),
+                        Routes.applicationGuildCommands(CLIENT_ID, clientConfig.guildId),
                         { body }
                     );
                 } else {
@@ -285,17 +281,24 @@ export default class PluginManager {
         let pluginDir = path.join(process.cwd(), baseDir, id);
         if (!PluginClass) {
             pluginDir = path.join(process.cwd(), baseDir, id);
-            let pluginPath = path.join(pluginDir, 'plugin.js');
+            let pluginPath = path.join(pluginDir, 'plugin.ts');
+            if (!existsSync(pluginPath)) {
+                pluginPath = path.join(pluginDir, 'plugin.js');
+            }
             if (!existsSync(pluginPath)) {
                 const optionalDir = path.join(
                     process.cwd(),
-                    this.config?.plugins?.optionalDirectory || './data/plugins',
+                    this.config?.plugins?.paths?.installed || './data/plugins',
                     id
                 );
-                const optionalPath = path.join(optionalDir, 'plugin.js');
+                const optionalPath = path.join(optionalDir, 'plugin.ts');
+                const optionalPathJs = path.join(optionalDir, 'plugin.js');
                 if (existsSync(optionalPath)) {
                     pluginDir = optionalDir;
                     pluginPath = optionalPath;
+                } else if (existsSync(optionalPathJs)) {
+                    pluginDir = optionalDir;
+                    pluginPath = optionalPathJs;
                 } else {
                     throw new Error(`Plugin ${id} not found at ${pluginPath}`);
                 }
@@ -327,7 +330,7 @@ export default class PluginManager {
         (plugin as any)._loaded = true;
         this.plugins.set(id, plugin);
 
-        const optionalDir = this.client.config.plugins?.optionalDirectory || './data/plugins';
+        const optionalDir = (this.client.config.plugins as { optionalDirectory?: string })?.optionalDirectory || './data/plugins';
         const pluginDirValue = (plugin as any)._dir;
         const isOptional = pluginDirValue?.startsWith(path.join(process.cwd(), optionalDir));
         this.installedPlugins.set(id, {
@@ -404,9 +407,23 @@ export default class PluginManager {
             }
         }
         const installed = this.installedPlugins.get(id);
-        const baseDir = installed?.origin === 'installed'
-            ? (this.config?.plugins?.optionalDirectory || './data/plugins')
-            : (this.config?.plugins?.directory || './src/plugins');
+        let baseDir = installed?.origin === 'installed'
+            ? (this.config?.plugins?.paths?.installed || './data/plugins')
+            : (this.config?.plugins?.paths?.core || './src/plugins');
+        // Check both .ts and .js for reload
+        const tsPath = path.join(process.cwd(), baseDir, id, 'plugin.ts');
+        const jsPath = path.join(process.cwd(), baseDir, id, 'plugin.js');
+        if (!existsSync(tsPath) && !existsSync(jsPath)) {
+            // Try the other directory
+            const otherBaseDir = installed?.origin === 'installed'
+                ? (this.config?.plugins?.paths?.core || './src/plugins')
+                : (this.config?.plugins?.paths?.installed || './data/plugins');
+            const otherTsPath = path.join(process.cwd(), otherBaseDir, id, 'plugin.ts');
+            const otherJsPath = path.join(process.cwd(), otherBaseDir, id, 'plugin.js');
+            if (existsSync(otherTsPath) || existsSync(otherJsPath)) {
+                baseDir = otherBaseDir;
+            }
+        }
         await this.loadPlugin(id, baseDir);
         await this.enablePlugin(id);
         await this._syncDiscordCommands(id);
@@ -417,8 +434,9 @@ export default class PluginManager {
 
         // @ts-ignore - JS file not yet migrated
         const { default: PluginRegistry } = await import('./PluginRegistry.js');
+        const pluginsConfig = this.client.config.plugins as { registryFile?: string; paths?: { installed?: string }; enabled: string[] };
         const registry = new PluginRegistry(
-            this.client.config.plugins.registryFile || './data/plugins/registry.json'
+            pluginsConfig.registryFile || './data/plugins/registry.json'
         );
 
         const entry = registry.get(id);
@@ -429,7 +447,7 @@ export default class PluginManager {
 
         const destDir = path.join(
             process.cwd(),
-            this.client.config.plugins.optionalDirectory || './data/plugins',
+            pluginsConfig.paths?.installed || './data/plugins',
             id
         );
 
@@ -485,7 +503,7 @@ export default class PluginManager {
 
         const optionalDir = path.join(
             process.cwd(),
-            this.client.config.plugins.optionalDirectory || './data/plugins'
+            (this.client.config.plugins as { optionalDirectory?: string }).optionalDirectory || './data/plugins'
         );
         const pluginDir = path.join(optionalDir, id);
 
@@ -505,7 +523,7 @@ export default class PluginManager {
         logger.info({ msg: `[PluginManager] Successfully uninstalled plugin ${id}` });
     }
 
-    getPlugin(id: string): PluginBase | null { return this.plugins.get(id) || null; }
+    getPlugin(id: string): PluginBase | undefined { return this.plugins.get(id); }
 
     isEnabled(id: string): boolean {
         const p = this.plugins.get(id);
@@ -525,7 +543,7 @@ export default class PluginManager {
         const absDir = path.join(process.cwd(), baseDir);
         if (!existsSync(absDir)) { return []; }
         return readdirSync(absDir).filter(name => {
-            return existsSync(path.join(absDir, name, 'plugin.js'));
+            return existsSync(path.join(absDir, name, 'plugin.ts')) || existsSync(path.join(absDir, name, 'plugin.js'));
         });
     }
 

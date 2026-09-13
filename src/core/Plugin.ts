@@ -1,6 +1,8 @@
 import type { Client } from 'discord.js';
 import { logger } from '../utils/logger.js';
 import type { CommandModule, EventHandlerModule } from '../types/plugin.js';
+import type { BasePlugin, PluginCapability, PluginInstance, PluginCommand, PluginEvent, CLICommand } from '../types/shared.js';
+import type { EventBusImpl } from './EventBus.js';
 
 export type PluginDependencies = Record<string, string>;
 
@@ -15,25 +17,49 @@ export interface TypedClient extends Client {
     commands?: Map<string, CommandModule>;
 }
 
-export abstract class Plugin<C extends CommandModule = CommandModule, _E extends EventHandlerModule = EventHandlerModule> {
+// Forward reference to avoid circular dependency
+interface PluginManagerRef {
+    bus: EventBusImpl;
+}
+
+export abstract class Plugin<C extends CommandModule = CommandModule, _E extends EventHandlerModule = EventHandlerModule> implements BasePlugin, PluginInstance {
     public client: TypedClient;
-    public manager: any; // PluginManager - JS file not migrated yet
-    public bus: any; // EventBusImpl - TS file exists but types not exported
+    public manager: PluginManagerRef;
+    public bus: EventBusImpl;
     public commands = new Map<string, C>();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    public eventHandlers: any[] = [];
+    public eventHandlers: { name: string; handler: (...args: unknown[]) => void; once: boolean }[] = [];
     public schedulers: NodeJS.Timeout[] = [];
     protected _loaded = false;
     protected _enabled = false;
     protected _dir: string | null = null;
 
-    constructor(client: TypedClient, manager: any) {
+    // BasePlugin/PluginInstance interface implementation
+    public readonly name: string;
+    public readonly version: string;
+    public readonly description: string;
+    public readonly capabilities: PluginCapability[];
+
+    // PluginInstance required properties
+    public enabled = false;
+    public events = new Map<string, PluginEvent>();
+    public cliCommands = new Map<string, CLICommand>();
+    public rpcNamespace?: string;
+    public rpcHandlers?: Map<string, PluginCommand>;
+
+    constructor(client: TypedClient, manager: PluginManagerRef) {
         if (this.constructor === Plugin) {
             throw new Error('Plugin is abstract; create a subclass that defines static id');
         }
         this.client = client;
         this.manager = manager;
         this.bus = manager.bus;
+
+        // Initialize readonly properties from static getters
+        const PluginClass = this.constructor as typeof Plugin;
+        this.name = PluginClass.id;
+        this.version = PluginClass.version;
+        this.description = PluginClass.description || '';
+        this.capabilities = PluginClass.capabilities || [];
     }
 
     // Use proper static getter with type assertion
@@ -44,6 +70,8 @@ export abstract class Plugin<C extends CommandModule = CommandModule, _E extends
 
     static get dependencies(): string[] { return []; }
     static get version(): string { return '1.0.0'; }
+    static get description(): string { return ''; }
+    static get capabilities(): PluginCapability[] { return []; }
     static get requiredIntents(): number[] { return []; }
     static get requiredPartials(): string[] { return []; }
 
@@ -64,9 +92,9 @@ export abstract class Plugin<C extends CommandModule = CommandModule, _E extends
 
         const cmdDir = path.join(this._dir, 'commands');
         let files: string[];
-        try { files = readdirSync(cmdDir).filter(f => f.endsWith('.js')); } catch { return; }
+        try { files = readdirSync(cmdDir).filter(f => f.endsWith('.ts') || f.endsWith('.js')); } catch { return; }
 
-        const pluginId = (this.constructor as any).id;
+        const pluginId = (this.constructor as typeof Plugin).id;
         for (const file of files) {
             try {
                 const filePath = path.join(cmdDir, file);
@@ -100,7 +128,7 @@ export abstract class Plugin<C extends CommandModule = CommandModule, _E extends
 
         const evtDir = path.join(this._dir, 'events');
         let files: string[];
-        try { files = readdirSync(evtDir).filter(f => f.endsWith('.js')); } catch { return; }
+        try { files = readdirSync(evtDir).filter(f => f.endsWith('.ts') || f.endsWith('.js')); } catch { return; }
 
         for (const file of files) {
             try {
