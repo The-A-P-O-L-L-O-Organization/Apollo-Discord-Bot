@@ -16,7 +16,7 @@ describe('Leader election', () => {
     const result = await tryAcquireLock(mockRedis, 'apollo:gateway:leader', 'pod-a', 10000);
     expect(result).toBe(true);
     expect(mockRedis.set).toHaveBeenCalledWith(
-      'apollo:gateway:leader', 'pod-a', 'NX', 'PX', 10000
+      'apollo:gateway:leader', 'pod-a', 'PX', 10000, 'NX'
     );
   });
 
@@ -57,7 +57,7 @@ describe('Leader election', () => {
     const stop = await startHeartbeat(mockRedis, 'apollo:gateway:leader', 'pod-a', 6000);
 
     vi.advanceTimersByTime(2000);
-    expect(mockRedis.set).toHaveBeenCalledWith('apollo:gateway:leader', 'pod-a', 'XX', 'PX', 6000);
+    expect(mockRedis.set).toHaveBeenCalledWith('apollo:gateway:leader', 'pod-a', 'PX', 6000, 'XX');
 
     stopHeartbeat();
     vi.advanceTimersByTime(2000);

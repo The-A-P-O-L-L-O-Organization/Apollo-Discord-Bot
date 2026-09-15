@@ -2,14 +2,12 @@
     "extends": "./tsconfig.json",
     "compilerOptions": {
         "noEmit": false,
+        "rootDir": "./src",
         "declaration": true,
-        "declarationMap": true,
-        "noEmit": false
+        "declarationMap": true
     },
     "include": [
-        "src/**/*",
-        "bin/**/*",
-        "scripts/**/*"
+        "src/**/*"
     ],
     "exclude": [
         "tests/**",

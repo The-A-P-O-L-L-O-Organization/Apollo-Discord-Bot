@@ -1,28 +1,40 @@
-// Deploy Commands Script
-// Registers slash commands with Discord for immediate use in a specific guild
 import 'dotenv/config';
 import { REST } from '@discordjs/rest';
 import { Routes } from 'discord.js';
 import { config } from '../src/config/config.js';
-import { readdirSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { readdirSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { logger } from '../src/utils/logger.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Exit codes
 const EXIT_CODES = {
     SUCCESS: 0,
     CONFIG_ERROR: 1,
     VALIDATION_ERROR: 2,
     DEPLOYMENT_ERROR: 3
-};
+} as const;
 
-// CLI argument parsing
-function parseArgs() {
+interface DeployOptions {
+    guild: string | null;
+    global: boolean;
+    dryRun: boolean;
+    clear: boolean;
+    json: boolean;
+    help: boolean;
+}
+
+interface CommandData {
+    name: string;
+    description?: string;
+    type?: number;
+    options?: unknown[];
+}
+
+function parseArgs(): DeployOptions {
     const args = process.argv.slice(2);
-    const options = {
+    const options: DeployOptions = {
         guild: null,
         global: false,
         dryRun: false,
@@ -32,10 +44,10 @@ function parseArgs() {
     };
 
     for (let i = 0; i < args.length; i++) {
-        const arg = args[i];
+        const arg = args[i]!;
         switch (arg) {
         case '--guild':
-            options.guild = args[++i];
+            options.guild = args[++i] ?? null;
             break;
         case '--global':
             options.global = true;
@@ -62,7 +74,7 @@ function parseArgs() {
     return options;
 }
 
-function printHelp() {
+function printHelp(): void {
     logger.info('Discord Bot - Command Deployment');
     logger.info('===================================\n');
     logger.info('Usage: node scripts/deploy-commands.js [options]\n');
@@ -84,28 +96,25 @@ function printHelp() {
     logger.info('  3  Deployment error');
 }
 
-// Command validation
-function validateCommands(commands) {
-    const warnings = [];
-    const seenNames = new Set();
+function validateCommands(commands: CommandData[]): string[] {
+    const warnings: string[] = [];
+    const seenNames = new Set<string>();
 
     for (const cmd of commands) {
-        // Check for missing description
         if (!cmd.description || cmd.description.trim() === '') {
             warnings.push(`Command "/${cmd.name}" has no description`);
         }
 
-        // Check for duplicate names
         if (seenNames.has(cmd.name)) {
             warnings.push(`Duplicate command name: "${cmd.name}"`);
         }
         seenNames.add(cmd.name);
 
-        // Validate option types if present
         if (cmd.options) {
             for (const opt of cmd.options) {
-                if (opt.type !== undefined && ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].includes(opt.type)) {
-                    warnings.push(`Command "/${cmd.name}" option "${opt.name}" has invalid type: ${opt.type}`);
+                const type = (opt as { type?: unknown }).type;
+                if (type !== undefined && ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].includes(type as number)) {
+                    warnings.push(`Command "/${cmd.name}" option "${(opt as { name?: string }).name}" has invalid type: ${String(type)}`);
                 }
             }
         }
@@ -114,29 +123,38 @@ function validateCommands(commands) {
     return warnings;
 }
 
-// Load commands from plugins
-async function loadCommands() {
-    const commands = [];
+interface RawCommandModule {
+    default?: {
+        data?: { toJSON: () => CommandData };
+        name?: string;
+        description?: string;
+        type?: number;
+        options?: unknown[];
+    };
+}
+
+async function loadCommands(): Promise<CommandData[]> {
+    const commands: CommandData[] = [];
     const pluginsDir = join(__dirname, '..', 'src', 'plugins');
 
     try {
         const pluginDirs = readdirSync(pluginsDir, { withFileTypes: true })
-            .filter(d => d.isDirectory())
-            .map(d => d.name);
+            .filter((d) => d.isDirectory())
+            .map((d) => d.name);
 
         for (const plugin of pluginDirs) {
             const commandsPath = join(pluginsDir, plugin, 'commands');
             try {
                 const commandFiles = readdirSync(commandsPath).filter(
-                    file => file.endsWith('.js')
+                    (file) => file.endsWith('.js') || file.endsWith('.ts')
                 );
 
                 for (const file of commandFiles) {
                     const filePath = join(commandsPath, file);
-                    const command = await import(`file://${filePath}`);
+                    const command = await import(pathToFileURL(filePath).href) as RawCommandModule;
 
                     if (command.default) {
-                        let commandData;
+                        let commandData: CommandData | undefined;
                         if (command.default.data) {
                             commandData = command.default.data.toJSON();
                         } else if (command.default.name) {
@@ -159,33 +177,28 @@ async function loadCommands() {
         }
 
     } catch (error) {
-        logger.error('[ERROR] Error loading commands:', error);
+        logger.error({ err: error as Error }, '[ERROR] Error loading commands');
         process.exit(EXIT_CODES.CONFIG_ERROR);
     }
 
     return commands;
 }
 
-// Deploy or clear commands
-async function deployCommands(commands, options) {
-    // Check if token is set
-    if (config.DISCORD_TOKEN === 'your-token-here' || !config.DISCORD_TOKEN) {
+async function deployCommands(commands: CommandData[], options: DeployOptions): Promise<CommandData[]> {
+    if (config.discord.token === 'your-token-here' || !config.discord.token) {
         logger.error('[ERROR] Please set your Discord bot token in .env file first!');
         logger.error('[HINT] Copy .env.example to .env and add your token');
         process.exit(EXIT_CODES.CONFIG_ERROR);
     }
 
-    // Check if CLIENT_ID is set
-    if (!config.CLIENT_ID || config.CLIENT_ID === 'your-bot-id') {
+    if (!config.discord.clientId || config.discord.clientId === 'your-bot-id') {
         logger.error('[ERROR] CLIENT_ID is not configured. Please set it in your .env file.');
         process.exit(EXIT_CODES.CONFIG_ERROR);
     }
 
-    // Create REST API instance
-    const rest = new REST({ version: '10' }).setToken(config.DISCORD_TOKEN);
+    const rest = new REST({ version: '10' }).setToken(config.discord.token);
 
-    // Determine deployment target
-    const guildId = options.guild || (options.global ? null : config.GUILD_ID);
+    const guildId = options.guild ?? (options.global ? null : process.env['GUILD_ID'] ?? null);
     const isGlobal = options.global || !guildId;
 
     try {
@@ -193,17 +206,17 @@ async function deployCommands(commands, options) {
             if (isGlobal) {
                 logger.info('[INFO] Clearing all global commands...');
                 await rest.put(
-                    Routes.applicationCommands(config.CLIENT_ID),
+                    Routes.applicationCommands(config.discord.clientId),
                     { body: [] }
                 );
                 logger.info('[SUCCESS] All global commands cleared!');
             } else {
-                logger.info(`[INFO] Clearing all commands for guild ${guildId}...`);
+                logger.info(`[INFO] Clearing all commands for guild ${String(guildId)}...`);
                 await rest.put(
-                    Routes.applicationGuildCommands(config.CLIENT_ID, guildId),
+                    Routes.applicationGuildCommands(config.discord.clientId, guildId!),
                     { body: [] }
                 );
-                logger.info(`[SUCCESS] All commands cleared for guild ${guildId}!`);
+                logger.info(`[SUCCESS] All commands cleared for guild ${String(guildId)}!`);
             }
             return [];
         }
@@ -212,18 +225,18 @@ async function deployCommands(commands, options) {
             if (isGlobal) {
                 logger.info('[INFO] Deploying globally (production mode)...');
                 await rest.put(
-                    Routes.applicationCommands(config.CLIENT_ID),
+                    Routes.applicationCommands(config.discord.clientId),
                     { body: commands }
                 );
                 logger.info('[SUCCESS] Commands deployed globally successfully!');
                 logger.info('[INFO] Global commands may take up to 1 hour to appear in all servers');
             } else {
-                logger.info(`[INFO] Deploying to guild ${guildId} (development mode)...`);
+                logger.info(`[INFO] Deploying to guild ${String(guildId)} (development mode)...`);
                 await rest.put(
-                    Routes.applicationGuildCommands(config.CLIENT_ID, guildId),
+                    Routes.applicationGuildCommands(config.discord.clientId, guildId!),
                     { body: commands }
                 );
-                logger.info(`[SUCCESS] Commands deployed to guild ${guildId} successfully!`);
+                logger.info(`[SUCCESS] Commands deployed to guild ${String(guildId)} successfully!`);
                 logger.info('[INFO] Commands will appear instantly in the specified server');
             }
         }
@@ -231,13 +244,12 @@ async function deployCommands(commands, options) {
         return commands;
 
     } catch (error) {
-        logger.error('[ERROR] Error deploying commands:', error);
+        logger.error({ err: error as Error }, '[ERROR] Error deploying commands');
         process.exit(EXIT_CODES.DEPLOYMENT_ERROR);
     }
 }
 
-// Main execution
-async function main() {
+async function main(): Promise<void> {
     const options = parseArgs();
 
     if (options.help) {
@@ -245,18 +257,17 @@ async function main() {
         process.exit(EXIT_CODES.SUCCESS);
     }
 
-    // For --clear --dry-run, we don't need to load commands
     if (options.clear && options.dryRun) {
         if (!options.json) {
             logger.info('Discord Bot - Command Deployment');
             logger.info('===================================\n');
         }
-        const guildId = options.guild || (options.global ? null : config.GUILD_ID);
+        const guildId = options.guild ?? (options.global ? null : process.env['GUILD_ID'] ?? null);
         const isGlobal = options.global || !guildId;
         if (isGlobal) {
             logger.info('[DRY-RUN] Would clear all global commands');
         } else {
-            logger.info(`[DRY-RUN] Would clear all commands for guild ${guildId}`);
+            logger.info(`[DRY-RUN] Would clear all commands for guild ${String(guildId)}`);
         }
         process.exit(EXIT_CODES.SUCCESS);
     }
@@ -268,14 +279,13 @@ async function main() {
 
     const commands = await loadCommands();
 
-    // Validate commands
     const warnings = validateCommands(commands);
     if (warnings.length > 0) {
         for (const warning of warnings) {
             logger.warn(`[WARN] ${warning}`);
         }
         if (!options.dryRun && !options.json) {
-            logger.info(''); // spacing
+            logger.info('');
         }
     }
 
@@ -306,4 +316,4 @@ async function main() {
     process.exit(EXIT_CODES.SUCCESS);
 }
 
-main();
+void main();

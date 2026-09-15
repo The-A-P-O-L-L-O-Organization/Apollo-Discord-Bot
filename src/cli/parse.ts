@@ -1,19 +1,23 @@
-export function parseArgs(argv) {
-    const path = [];
-    const flags = Object.create(null);
+export interface ParsedArgv {
+    path: string[];
+    flags: Record<string, string | boolean>;
+}
+
+export function parseArgs(argv: string[]): ParsedArgv {
+    const path: string[] = [];
+    const flags: Record<string, string | boolean> = Object.create(null);
     let i = 0;
 
     while (i < argv.length) {
-        const arg = argv[i];
+        const arg = argv[i]!;
 
         if (arg === '--') {
-            // Everything after -- is positional
             path.push(...argv.slice(i + 1));
             break;
         }
 
         if (arg === '--help') {
-            flags.help = true;
+            flags['help'] = true;
             i++;
             continue;
         }
