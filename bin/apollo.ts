@@ -4,7 +4,7 @@ import { discoverCommands } from '../src/cli/discover.js';
 import { run } from '../src/cli/index.js';
 import { logger } from '../src/utils/logger.js';
 
-async function main() {
+async function main(): Promise<void> {
     const argv = process.argv.slice(2);
     const commandMap = await discoverCommands();
     const output = await run(argv, commandMap);
@@ -12,7 +12,7 @@ async function main() {
     process.exit(0);
 }
 
-main().catch(err => {
-    logger.error(`\x1b[31m[FATAL]\x1b[0m ${err.message}`);
+main().catch((err: unknown) => {
+    logger.error(`\x1b[31m[FATAL]\x1b[0m ${(err as Error).message}`);
     process.exit(1);
 });

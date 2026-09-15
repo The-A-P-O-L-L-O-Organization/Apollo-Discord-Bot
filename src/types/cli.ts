@@ -432,3 +432,37 @@ export interface CLIApplication {
     registerCommand: (command: CLICommand) => void;
     unregisterCommand: (name: string) => void;
 }
+
+export interface CommandSpecOption {
+    name: string;
+    description?: string;
+    required?: boolean;
+    choices?: string[];
+}
+
+export interface CommandSpec {
+    name: string;
+    description: string;
+    needsSocket?: boolean;
+    options?: CommandSpecOption[];
+    subcommands?: CommandSpec[];
+    execute?: (args: CliArgs) => Promise<unknown>;
+}
+
+export type CliArgs = Record<string, unknown> & {
+    guild?: string;
+    help?: boolean;
+};
+
+export interface PluginCLI {
+    name?: string;
+    description?: string;
+    commands: CommandSpec[];
+}
+
+export type CommandMap = Record<string, PluginCLI>;
+
+export interface ResolvedCommand {
+    plugin: string;
+    command: CommandSpec;
+}

@@ -1,24 +1,35 @@
-import net from 'net';
-import fs from 'fs';
+import net from 'node:net';
+import fs from 'node:fs';
 import { join } from 'node:path';
+import type PluginManager from '../core/PluginManager.js';
 
-const DEFAULT_SOCKET_PATH = process.env.APOLLO_SOCKET_PATH || join(process.cwd(), 'data', 'apollo.sock');
-const SOCKET_TOKEN = process.env.APOLLO_SOCKET_TOKEN;
+export const DEFAULT_SOCKET_PATH = process.env['APOLLO_SOCKET_PATH'] ?? join(process.cwd(), 'data', 'apollo.sock');
+const SOCKET_TOKEN = process.env['APOLLO_SOCKET_TOKEN'];
 
-class SocketServer {
-    constructor(pluginManager, socketPath = DEFAULT_SOCKET_PATH) {
+interface SocketMessage {
+    id?: string;
+    token?: string;
+    command?: string;
+    args?: Record<string, unknown>;
+}
+
+export class SocketServer {
+    private pluginManager: PluginManager;
+    private socketPath: string;
+    private server: net.Server | null = null;
+
+    constructor(pluginManager: PluginManager, socketPath: string = DEFAULT_SOCKET_PATH) {
         this.pluginManager = pluginManager;
         this.socketPath = socketPath;
         this.server = null;
     }
 
-    async start() {
+    async start(): Promise<void> {
         try { await fs.promises.unlink(this.socketPath); } catch {
             // Ignore if file doesn't exist
         }
         this.server = net.createServer((socket) => {
-            // Verify peer credentials (SO_PEERCRED) - require root or same user
-            const creds = socket.getPeerCredential?.();
+            const creds = (socket as net.Socket & { getPeerCredential?: () => { uid: number } }).getPeerCredential?.();
             if (creds) {
                 const currentUid = process.getuid?.();
                 if (currentUid !== undefined && creds.uid !== 0 && creds.uid !== currentUid) {
@@ -27,26 +38,26 @@ class SocketServer {
                     return;
                 }
             }
-            
+
             let buffer = '';
-            socket.on('data', (data) => {
+            socket.on('data', (data: Buffer) => {
                 buffer += data.toString();
                 const parts = buffer.split('\n');
-                buffer = parts.pop();
+                buffer = parts.pop() ?? '';
                 for (const part of parts) {
-                    if (!part.trim()) {continue;}
+                    if (!part.trim()) { continue; }
                     try {
-                        const msg = JSON.parse(part);
+                        const msg = JSON.parse(part) as SocketMessage;
                         this._handleMessage(socket, msg);
                     } catch {
                         socket.write(JSON.stringify({ error: 'Invalid JSON' }) + '\n');
                     }
                 }
             });
-            socket.on('error', () => {});
+            socket.on('error', () => { /* client disconnects are routine */ });
         });
         return new Promise((resolve) => {
-            this.server.listen(this.socketPath, () => {
+            this.server!.listen(this.socketPath, () => {
                 try { fs.chmodSync(this.socketPath, 0o600); } catch {
                     // Ignore chmod failures (e.g. on Windows)
                 }
@@ -55,7 +66,7 @@ class SocketServer {
         });
     }
 
-    _handleMessage(socket, msg) {
+    private _handleMessage(socket: net.Socket, msg: SocketMessage): void {
         if (SOCKET_TOKEN) {
             if (msg.token !== SOCKET_TOKEN) {
                 socket.write(JSON.stringify({ id: msg.id, error: 'Unauthorized' }) + '\n');
@@ -63,22 +74,22 @@ class SocketServer {
             }
         }
         const { command, args, id } = msg;
-        const handler = this.pluginManager.getSocketHandler(command);
+        const handler = this.pluginManager.getSocketHandler(command ?? '');
         if (!handler) {
-            socket.write(JSON.stringify({ id, error: `Unknown command: ${command}` }) + '\n');
+            socket.write(JSON.stringify({ id, error: `Unknown command: ${String(command)}` }) + '\n');
             return;
         }
-        Promise.resolve().then(async() => {
+        Promise.resolve().then(async () => {
             try {
                 const result = await handler(this.pluginManager.client, args);
                 socket.write(JSON.stringify({ id, result }) + '\n');
             } catch (e) {
-                socket.write(JSON.stringify({ id, error: e.message }) + '\n');
+                socket.write(JSON.stringify({ id, error: (e as Error).message }) + '\n');
             }
         });
     }
 
-    async stop() {
+    async stop(): Promise<void> {
         if (this.server) {
             this.server.close();
             this.server = null;
@@ -88,5 +99,3 @@ class SocketServer {
         }
     }
 }
-
-export { SocketServer, DEFAULT_SOCKET_PATH };
