@@ -1,5 +1,6 @@
 // Voice Move Command - Move a user to a different voice channel
-import { ChatInputCommandInteraction, PermissionFlagsBits, ChannelType, MessageFlags, type VoiceBasedChannel } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { PermissionFlagsBits, ChannelType, MessageFlags, type VoiceBasedChannel } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { createModCase } from './case.ts';
@@ -23,7 +24,7 @@ export default {
     async execute(interaction: ChatInputCommandInteraction) {
         try {
             const user = interaction.options.getUser('user');
-            const targetChannel = interaction.options.getChannel('channel') as VoiceBasedChannel | null;
+            const targetChannel = interaction.options.getChannel('channel');
             const reason = interaction.options.getString('reason') || 'No reason provided';
 
             if (!user) {
@@ -108,7 +109,7 @@ export default {
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
 
-            const hierarchy = canModerate(interaction.guild!, interaction.member!, member);
+            const hierarchy = canModerate(interaction.guild!, interaction.member, member);
             if (!hierarchy.ok) {
                 const errorEmbed = {
                     color: 0xFF0000,

@@ -1,4 +1,5 @@
-import { ChatInputCommandInteraction, User } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { User } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 // @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
@@ -27,7 +28,7 @@ export default {
             const fullUser = await interaction.client.users.fetch(user.id);
 
             // Check if user has a banner
-if (!fullUser.banner) {
+            if (!fullUser.banner) {
                 const noBannerEmbed = {
                     color: 0xFF0000,
                     title: '[INFO] No Banner',
@@ -41,12 +42,12 @@ if (!fullUser.banner) {
                     ],
                     timestamp: new Date().toISOString()
                 };
-                
+
                 await interaction.reply({ embeds: [noBannerEmbed] });
                 return;
             }
 
-const bannerURL = fullUser.bannerURL({ extension: 'png', size: 4096 });
+            const bannerURL = fullUser.bannerURL({ extension: 'png', size: 4096 });
             if (!bannerURL) {
                 const noBannerEmbed = {
                     color: 0xFF0000,
@@ -64,9 +65,9 @@ const bannerURL = fullUser.bannerURL({ extension: 'png', size: 4096 });
                 await interaction.reply({ embeds: [noBannerEmbed] });
                 return;
             }
-            
+
             const format = bannerURL.includes('.gif') ? 'GIF' : 'PNG';
-            
+
             // Create banner embed
             const bannerEmbed = {
                 color: 0x3498DB,

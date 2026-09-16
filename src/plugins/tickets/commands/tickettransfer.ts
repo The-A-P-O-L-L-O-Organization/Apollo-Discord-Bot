@@ -1,4 +1,5 @@
-import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags, ChatInputCommandInteraction } from 'discord.js';
+import type { ChatInputCommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
 // @ts-expect-error - discordErrors not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
@@ -32,8 +33,8 @@ export default {
             const transferUser = interaction.options.getUser('user')!;
             const note = interaction.options.getString('note') || 'No note provided';
 
-            const ticketConfig = await getGuildData('tickets', guildId) as Record<string, unknown>;
-            const openTickets = (ticketConfig['openTickets'] as Array<Record<string, unknown>>) || [];
+            const ticketConfig = await getGuildData('tickets', guildId);
+            const openTickets = (ticketConfig['openTickets'] as Record<string, unknown>[]) || [];
             const ticket = openTickets.find(t => t['channelId'] === channelId);
 
             if (!ticket) {
@@ -46,7 +47,7 @@ export default {
             const member = interaction.member;
             const isAssigned = ticket['assignedTo'] && (ticket['assignedTo'] as string[]).includes(interaction.user.id);
             const isClaimed = ticket['claimedBy'] === interaction.user.id;
-            const hasSupport = ticketConfig['supportRoleId'] && member.roles.cache.has(ticketConfig['supportRoleId'] as string);
+            const hasSupport = ticketConfig['supportRoleId'] && member.roles.cache.has(ticketConfig['supportRoleId']);
             const isAdmin = member.permissions.has(PermissionFlagsBits.Administrator);
 
             if (!isAssigned && !isClaimed && !hasSupport && !isAdmin) {
@@ -67,7 +68,7 @@ export default {
             const oldClaimed = ticket['claimedBy'];
 
             await updateGuildData('tickets', guildId, (data: Record<string, unknown>) => {
-                const openTicketsLocal = (data['openTickets'] as Array<Record<string, unknown>>) || [];
+                const openTicketsLocal = (data['openTickets'] as Record<string, unknown>[]) || [];
                 const t = openTicketsLocal.find(x => x['channelId'] === channelId);
                 if (t) {
                     t['assignedTo'] = [transferUser.id];
@@ -102,9 +103,9 @@ export default {
                 )
                 .setTimestamp();
 
-            await interaction.reply({ 
+            await interaction.reply({
                 content: `${transferUser}`,
-                embeds: [embed] 
+                embeds: [embed]
             });
 
             try {
@@ -127,7 +128,7 @@ export default {
 
             for (const oldAssigneeId of oldAssignees) {
                 if (oldAssigneeId === transferUser.id) { continue; }
-                
+
                 try {
                     const oldAssignee = await interaction.client.users.fetch(oldAssigneeId);
                     const dmEmbed = new EmbedBuilder()

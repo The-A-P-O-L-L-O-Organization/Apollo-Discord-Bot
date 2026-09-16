@@ -8,21 +8,21 @@ export default {
         try {
             const guild = ban.guild;
             const user = ban.user;
-            
+
             if (!guild || !user) {
                 console.log('[WARNING] guildBanAdd: Missing guild or user');
                 return;
             }
-            
+
             let executor = null;
             let reason = ban.reason || 'No reason provided';
-            
+
             try {
                 const auditLogs = await guild.fetchAuditLogs({
                     type: 22,
                     limit: 1
                 });
-                
+
                 const banLog = auditLogs.entries.first();
                 if (banLog && banLog.target.id === user.id) {
                     executor = banLog.executor;
@@ -31,7 +31,7 @@ export default {
             } catch {
                 console.log('[INFO] Could not fetch audit log for ban');
             }
-            
+
             const embed = {
                 color: 0xFF0000,
                 title: '[MODERATION] Member Banned',
@@ -58,11 +58,11 @@ export default {
                 },
                 timestamp: new Date().toISOString()
             };
-            
+
             await logEvent(guild, 'ban', embed);
-            
+
             console.log(`[MODERATION] User ${user.tag} was banned from ${guild.name}`);
-            
+
         } catch (error) {
             console.error('[ERROR] guildBanAdd event error:', error);
         }

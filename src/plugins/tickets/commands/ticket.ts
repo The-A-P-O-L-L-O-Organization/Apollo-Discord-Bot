@@ -1,4 +1,5 @@
-import { EmbedBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction } from 'discord.js';
+import type { ChatInputCommandInteraction } from 'discord.js';
+import { EmbedBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { getGuildData, updateGuildData, generateId } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
 import { getPriorityColor, getPriorityEmoji } from '../../../utils/slaTracker.js';

@@ -67,7 +67,7 @@ function ipv4ToInt(ip: string): number {
 export function isPrivateIp(ip: string): boolean {
     if (ip.includes(':')) {
         const lower = ip.toLowerCase();
-        const mapped = lower.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+        const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(lower);
         if (mapped !== null) {
             const inner = mapped[1];
             if (typeof inner === 'string') { return isPrivateIp(inner); }

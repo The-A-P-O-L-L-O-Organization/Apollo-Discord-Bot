@@ -1,5 +1,6 @@
 // Lockdown Command - Lock a channel to prevent @everyone from sending messages
-import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { MessageFlags } from 'discord.js';
 import { PermissionsBitField } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { setGuildData, getGuildData } from '../../../utils/db.js';
@@ -51,7 +52,7 @@ export default {
             const currentPermissions = channel!.permissionOverwrites.cache.get(everyoneRole.id);
 
             // Check if channel is already locked
-            const lockdownData = (await getGuildData('channel-lockdowns', interaction.guild!.id)) as Record<string, unknown>;
+            const lockdownData = (await getGuildData('channel-lockdowns', interaction.guild!.id));
             if (lockdownData[channel!.id]) {
                 const errorEmbed = {
                     color: 0xFF0000,
@@ -134,7 +135,7 @@ export default {
                 };
                 await channel!.send({ embeds: [lockNotice] });
             } catch (err) {
-                logger.info({ msg: `[WARNING] Could not send lock notice to channel:`, err: (err as Error).message });
+                logger.info({ msg: '[WARNING] Could not send lock notice to channel:', err: (err as Error).message });
             }
 
             // Send mod log

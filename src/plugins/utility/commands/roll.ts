@@ -1,4 +1,5 @@
-import { ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 // @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
@@ -31,7 +32,7 @@ export default {
                 return;
             }
 
-            const diceMatch = diceStr.toLowerCase().match(/^(\d+)d(\d+)$/);
+            const diceMatch = /^(\d+)d(\d+)$/.exec(diceStr.toLowerCase());
 
             if (!diceMatch) {
                 await interaction.reply({

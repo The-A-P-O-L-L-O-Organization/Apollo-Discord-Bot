@@ -3,7 +3,8 @@ import { config } from '../../../config/config.js';
 import { requireOwner } from '../../../utils/accessControl.js';
 // @ts-expect-error - JS file not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
-import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { MessageFlags } from 'discord.js';
 
 function formatDuration(ms: number): string {
     const totalSeconds = Math.floor(ms / 1000);
@@ -12,9 +13,9 @@ function formatDuration(ms: number): string {
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
     const parts: string[] = [];
-    if (days > 0) parts.push(days + 'd');
-    if (hours > 0) parts.push(hours + 'h');
-    if (minutes > 0) parts.push(minutes + 'm');
+    if (days > 0) {parts.push(days + 'd');}
+    if (hours > 0) {parts.push(hours + 'h');}
+    if (minutes > 0) {parts.push(minutes + 'm');}
     parts.push(seconds + 's');
     return parts.join(' ');
 }
@@ -45,7 +46,7 @@ export default {
                 { name: 'Queue', value: config.queue.enabled ? 'Enabled (' + config.queue.prefix + ')' : 'Disabled', inline: true },
                 { name: 'Plugins', value: plugins.length + ' loaded (' + plugins.filter(p => p.enabled).length + ' enabled)', inline: true },
                 { name: 'Uptime', value: formatDuration(uptime), inline: true },
-                { name: 'Commands Run', value: String(interaction.client.stats.commandsRan), inline: true },
+                { name: 'Commands Run', value: String(interaction.client.stats.commandsRan), inline: true }
             ];
 
             if (config.queue.enabled) {
@@ -55,7 +56,7 @@ export default {
                         host: config.queue.redis.host,
                         port: config.queue.redis.port,
                         password: config.queue.redis.password || undefined,
-                        maxRetriesPerRequest: null,
+                        maxRetriesPerRequest: null
                     });
                     const leader = await redis.get('apollo:gateway:leader');
                     await redis.quit();

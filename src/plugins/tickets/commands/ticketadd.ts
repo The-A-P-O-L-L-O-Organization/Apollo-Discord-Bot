@@ -1,4 +1,5 @@
-import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ChatInputCommandInteraction } from 'discord.js';
+import type { ChatInputCommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
@@ -40,7 +41,7 @@ export default {
 
             const member = interaction.member;
             const isTicketOwner = ticket.userId === interaction.user.id;
-            const isAssigned = ticket.assignedTo && ticket.assignedTo.includes(interaction.user.id);
+            const isAssigned = ticket.assignedTo?.includes(interaction.user.id);
             const hasSupport = ticketConfig.supportRoleId && member.roles.cache.has(ticketConfig.supportRoleId);
             const isAdmin = member.permissions.has(PermissionFlagsBits.Administrator);
 

@@ -28,7 +28,7 @@ export function extractKeyPrefix(rawKey: string): string {
 export function createAuthMiddleware(registry: any) {
     return async (req: any, res: any, next: any) => {
         const header = req.headers.authorization;
-        if (!header || !header.startsWith('Bearer ')) {
+        if (!header?.startsWith('Bearer ')) {
             return res.status(401).json({ error: 'Missing or invalid Authorization header' });
         }
         const rawKey = header.slice(7).trim();

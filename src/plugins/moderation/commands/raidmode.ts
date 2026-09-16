@@ -1,5 +1,6 @@
 // Raidmode Command - Enable or disable raid mode (locks all channels)
-import { ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { PermissionsBitField } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { enableRaidMode, disableRaidMode, isRaidModeEnabled } from '../../../utils/raidDetection.js';

@@ -1,6 +1,7 @@
 // @ts-expect-error - JS file not yet migrated
 import { logger } from '../../../utils/logger.js';
-import { PermissionsBitField, ChatInputCommandInteraction, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { PermissionsBitField, MessageFlags } from 'discord.js';
 // @ts-expect-error - JS file not yet migrated
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 // @ts-expect-error - JS file not yet migrated
@@ -91,7 +92,7 @@ export default {
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
 
-            const hierarchy = canModerate(interaction.guild!, interaction.member!, member);
+            const hierarchy = canModerate(interaction.guild!, interaction.member, member);
             if (!hierarchy.ok) {
                 const errorEmbed = {
                     color: 0xFF0000,
@@ -106,7 +107,7 @@ export default {
             let durationText = '1 hour';
 
             if (duration) {
-                const match = duration.match(/^(\d+)([mhdw])$/);
+                const match = /^(\d+)([mhdw])$/.exec(duration);
                 if (!match) {
                     const errorEmbed = {
                         color: 0xFF0000,
@@ -121,22 +122,22 @@ export default {
                 const unit = match[2]!;
 
                 switch (unit) {
-                    case 'm':
-                        durationMs = value * 60000;
-                        durationText = `${value} minute(s)`;
-                        break;
-                    case 'h':
-                        durationMs = value * 3600000;
-                        durationText = `${value} hour(s)`;
-                        break;
-                    case 'd':
-                        durationMs = value * 86400000;
-                        durationText = `${value} day(s)`;
-                        break;
-                    case 'w':
-                        durationMs = value * 604800000;
-                        durationText = `${value} week(s)`;
-                        break;
+                case 'm':
+                    durationMs = value * 60000;
+                    durationText = `${value} minute(s)`;
+                    break;
+                case 'h':
+                    durationMs = value * 3600000;
+                    durationText = `${value} hour(s)`;
+                    break;
+                case 'd':
+                    durationMs = value * 86400000;
+                    durationText = `${value} day(s)`;
+                    break;
+                case 'w':
+                    durationMs = value * 604800000;
+                    durationText = `${value} week(s)`;
+                    break;
                 }
             }
 

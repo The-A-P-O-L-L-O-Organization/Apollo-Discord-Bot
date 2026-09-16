@@ -2,7 +2,8 @@
 // Measures bot latency and response time
 import { logger } from '../../../utils/logger.js';
 
-import { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { EmbedBuilder } from 'discord.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {

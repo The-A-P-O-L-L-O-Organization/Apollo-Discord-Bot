@@ -1,6 +1,7 @@
 // @ts-expect-error - JS file not yet migrated
 import { logger } from '../../../utils/logger.js';
-import { PermissionsBitField, ChatInputCommandInteraction, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { PermissionsBitField, MessageFlags } from 'discord.js';
 // @ts-expect-error - JS file not yet migrated
 import { sendModLog } from '../../../utils/modLog.js';
 // @ts-expect-error - JS file not yet migrated

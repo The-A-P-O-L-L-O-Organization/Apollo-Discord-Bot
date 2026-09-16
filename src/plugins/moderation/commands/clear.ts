@@ -1,6 +1,7 @@
 // @ts-expect-error - JS file not yet migrated
 import { logger } from '../../../utils/logger.js';
-import { PermissionsBitField, ChatInputCommandInteraction, MessageFlags, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, Message } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { PermissionsBitField, MessageFlags, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, Message } from 'discord.js';
 // @ts-expect-error - JS file not yet migrated
 import { sendModLog } from '../../../utils/modLog.js';
 // @ts-expect-error - JS file not yet migrated
@@ -14,14 +15,14 @@ interface ClearCommand {
     category: string;
     defaultMemberPermissions: bigint;
     dmPermission: boolean;
-    options: Array<{
+    options: {
         name: string;
         description: string;
         type: number;
         required?: boolean;
         min_value?: number;
         max_value?: number;
-    }>;
+    }[];
     execute(interaction: ChatInputCommandInteraction): Promise<void>;
     deleteMessages(interaction: ChatInputCommandInteraction, channel: any, amount: number): Promise<void>;
     handleDeleteAll(interaction: ChatInputCommandInteraction, channel: any): Promise<void>;
@@ -57,7 +58,7 @@ const clearCommand: ClearCommand = {
             const amount = interaction.options.getInteger('amount');
             const deleteAll = interaction.options.getBoolean('all');
 
-            if (!channel || !channel.isTextBased()) {
+            if (!channel?.isTextBased()) {
                 return interaction.reply({
                     embeds: [{
                         color: 0xFF0000,

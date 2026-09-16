@@ -215,7 +215,7 @@ function parseFeedXml(xml: string): RssFeedResult {
     const items: ParsedFeedItem[] = [];
     let feedTitle = '';
 
-    const titleMatch = xml.match(/<title[^>]*>([^<]+)<\/title>/);
+    const titleMatch = /<title[^>]*>([^<]+)<\/title>/.exec(xml);
     if (titleMatch?.[1]) { feedTitle = titleMatch[1]; }
 
     const isAtom = xml.includes('<feed ');
@@ -226,10 +226,10 @@ function parseFeedXml(xml: string): RssFeedResult {
         while ((entryMatch = entryRegex.exec(xml)) !== null) {
             const entry = entryMatch[1];
             if (!entry) {continue;}
-            const title = entry.match(/<title[^>]*>([^<]+)<\/title>/)?.[1] || '';
-            const link = entry.match(/<link[^>]+href="([^"]+)"/)?.[1] || '';
-            const guid = entry.match(/<id[^>]*>([^<]+)<\/id>/)?.[1] || '';
-            const pubDate = entry.match(/<published[^>]*>([^<]+)<\/published>/)?.[1] || '';
+            const title = (/<title[^>]*>([^<]+)<\/title>/.exec(entry))?.[1] || '';
+            const link = (/<link[^>]+href="([^"]+)"/.exec(entry))?.[1] || '';
+            const guid = (/<id[^>]*>([^<]+)<\/id>/.exec(entry))?.[1] || '';
+            const pubDate = (/<published[^>]*>([^<]+)<\/published>/.exec(entry))?.[1] || '';
             items.push({ title, link, guid, pubDate });
         }
     } else {
@@ -238,10 +238,10 @@ function parseFeedXml(xml: string): RssFeedResult {
         while ((itemMatch = itemRegex.exec(xml)) !== null) {
             const entry = itemMatch[1];
             if (!entry) {continue;}
-            const title = entry.match(/<title[^>]*>([^<]+)<\/title>/)?.[1] || '';
-            const link = entry.match(/<link[^>]*>([^<]+)<\/link>/)?.[1] || '';
-            const guid = entry.match(/<guid[^>]*>([^<]+)<\/guid>/)?.[1] || '';
-            const pubDate = entry.match(/<pubDate[^>]*>([^<]+)<\/pubDate>/)?.[1] || '';
+            const title = (/<title[^>]*>([^<]+)<\/title>/.exec(entry))?.[1] || '';
+            const link = (/<link[^>]*>([^<]+)<\/link>/.exec(entry))?.[1] || '';
+            const guid = (/<guid[^>]*>([^<]+)<\/guid>/.exec(entry))?.[1] || '';
+            const pubDate = (/<pubDate[^>]*>([^<]+)<\/pubDate>/.exec(entry))?.[1] || '';
             items.push({ title, link, guid, pubDate });
         }
     }

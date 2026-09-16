@@ -12,7 +12,7 @@ export default {
         try {
             logger.info(`[SUCCESS] Bot joined new server: ${guild.name} (${guild.id})`);
             logger.info(`[INFO] Server has ${guild.memberCount} members`);
-            
+
             // Initialize default automod settings
             const automodDefaults = {
                 enabled: config.automod.enabled,
@@ -27,36 +27,36 @@ export default {
                 exemptChannels: [],
                 exemptRoles: []
             };
-            
+
             await setGuildData('automod', guild.id, automodDefaults);
             logger.info('[SUCCESS] Initialized automod settings');
-            
+
             // Initialize default logging settings
             const loggingDefaults = {
                 channelId: null,
                 events: { ...config.logging.defaultEvents }
             };
-            
+
             await setGuildData('logging', guild.id, loggingDefaults);
             logger.info('[SUCCESS] Initialized logging settings');
-            
+
             // Initialize warning system settings
             const warningDefaults = {
                 thresholds: { ...config.warnings.thresholds },
                 muteDuration: config.warnings.muteDuration
             };
-            
+
             await setGuildData('warnings-config', guild.id, warningDefaults);
             logger.info('[SUCCESS] Initialized warning settings');
-            
+
             // Initialize empty blacklist
             await setGuildData('blacklist', guild.id, { entries: {} });
             logger.info('[SUCCESS] Initialized blacklist');
-            
+
             // Initialize empty reaction roles
             await setGuildData('reactionroles', guild.id, { roles: [] });
             logger.info('[SUCCESS] Initialized reaction roles');
-            
+
             // Initialize empty ticket system
             await setGuildData('tickets', guild.id, {
                 categoryId: null,
@@ -67,21 +67,21 @@ export default {
                 totalTickets: 0
             });
             logger.info('[SUCCESS] Initialized ticket system');
-            
+
             // Initialize empty polls storage
             await setGuildData('polls', guild.id, { active: [] });
             logger.info('[SUCCESS] Initialized polls');
-            
+
             logger.info(`[SUCCESS] Completed initialization for ${guild.name}`);
-            
+
             // Try to send a welcome message to the system channel or first available text channel
             try {
-                const welcomeChannel = guild.systemChannel || 
-                                      guild.channels.cache.find((ch: any) => 
-                                          ch.isTextBased() && 
+                const welcomeChannel = guild.systemChannel ||
+                                      guild.channels.cache.find((ch: any) =>
+                                          ch.isTextBased() &&
                                           ch.permissionsFor(guild.members.me).has('SendMessages')
                                       );
-                
+
                 if (welcomeChannel) {
                     const embed = {
                         color: 0x3498DB,
@@ -112,14 +112,14 @@ export default {
                             text: `Now serving ${client.guilds.cache.size} servers!`
                         }
                     };
-                    
+
                     await welcomeChannel.send({ embeds: [embed] });
                     logger.info('[SUCCESS] Sent welcome message to server');
                 }
             } catch (welcomeError) {
                 logger.info('[WARNING] Could not send welcome message:', (welcomeError as Error).message);
             }
-            
+
         } catch (error) {
             logger.error('[ERROR] guildCreate event error:', error);
         }

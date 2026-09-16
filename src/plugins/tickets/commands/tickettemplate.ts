@@ -1,4 +1,5 @@
-import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags, ChatInputCommandInteraction } from 'discord.js';
+import type { ChatInputCommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { getGuildData, updateGuildData, generateId } from '../../../utils/db.js';
 // @ts-expect-error - discordErrors not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
@@ -96,7 +97,7 @@ export default {
                 const response = interaction.options.getString('response')!;
                 const questionsStr = interaction.options.getString('questions');
 
-                const templates = await getGuildData('ticket-templates', guildId) as Record<string, unknown>;
+                const templates = await getGuildData('ticket-templates', guildId);
                 const list = (templates['list'] as TemplateData[]) || [];
 
                 if (list.find(t => t.name.toLowerCase() === name.toLowerCase())) {
@@ -141,7 +142,7 @@ export default {
             } else if (subcommand === 'delete') {
                 const name = interaction.options.getString('name')!;
 
-                const templates = await getGuildData('ticket-templates', guildId) as Record<string, unknown>;
+                const templates = await getGuildData('ticket-templates', guildId);
                 const list = (templates['list'] as TemplateData[]) || [];
 
                 const templateIndex = list.findIndex(t => t.name.toLowerCase() === name.toLowerCase());
@@ -166,9 +167,9 @@ export default {
                 });
 
             } else if (subcommand === 'list') {
-                const templates = await getGuildData('ticket-templates', guildId) as Record<string, unknown>;
+                const templates = await getGuildData('ticket-templates', guildId);
                 const list = (templates['list'] as TemplateData[]) || [];
-                
+
                 if (list.length === 0) {
                     return interaction.reply({
                         content: 'No templates have been created yet. Use `/tickettemplate create` to create one.',
@@ -195,7 +196,7 @@ export default {
             } else if (subcommand === 'view') {
                 const name = interaction.options.getString('name')!;
 
-                const templates = await getGuildData('ticket-templates', guildId) as Record<string, unknown>;
+                const templates = await getGuildData('ticket-templates', guildId);
                 const list = (templates['list'] as TemplateData[]) || [];
 
                 const template = list.find(t => t.name.toLowerCase() === name.toLowerCase());
@@ -219,7 +220,7 @@ export default {
                     .setTimestamp();
 
                 return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
-        }
+            }
         } catch (error) {
             const errorMessage = handleDiscordError(error);
             if (interaction.replied || interaction.deferred) {

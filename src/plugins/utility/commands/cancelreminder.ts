@@ -1,4 +1,5 @@
-import { ChatInputCommandInteraction, MessageFlags, SlashCommandBuilder } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { MessageFlags, SlashCommandBuilder } from 'discord.js';
 // @ts-expect-error reminderScheduler.js not yet migrated
 import { cancelReminder, getUserReminders } from '../../../utils/reminderScheduler.js';
 // @ts-expect-error discordErrors.js not yet migrated

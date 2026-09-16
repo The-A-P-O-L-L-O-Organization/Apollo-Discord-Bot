@@ -1,4 +1,5 @@
-import { MessageContextMenuCommandInteraction, MessageFlags, ApplicationCommandType, ContextMenuCommandBuilder } from 'discord.js';
+import type { MessageContextMenuCommandInteraction} from 'discord.js';
+import { MessageFlags, ApplicationCommandType, ContextMenuCommandBuilder } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 // @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';

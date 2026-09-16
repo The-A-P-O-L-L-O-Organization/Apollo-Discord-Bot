@@ -7,19 +7,19 @@ export default {
     async execute(messages: any, channel: any, client: any) {
         try {
             if (!channel.guild) { return; }
-            
+
             const guild = channel.guild;
             const messageCount = messages.size;
-            
+
             let executor = null;
             let reason = 'Unknown';
-            
+
             try {
                 const auditLogs = await guild.fetchAuditLogs({
                     type: 73,
                     limit: 1
                 });
-                
+
                 const bulkDeleteLog = auditLogs.entries.first();
                 if (bulkDeleteLog && Date.now() - bulkDeleteLog.createdTimestamp < 5000) {
                     executor = bulkDeleteLog.executor;
@@ -28,15 +28,15 @@ export default {
             } catch {
                 // Ignore audit log errors
             }
-            
-            const oldestMessage = messages.reduce((oldest: any, msg: any) => 
+
+            const oldestMessage = messages.reduce((oldest: any, msg: any) =>
                 !oldest || msg.createdTimestamp < oldest.createdTimestamp ? msg : oldest
             , null);
-            
-            const newestMessage = messages.reduce((newest: any, msg: any) => 
+
+            const newestMessage = messages.reduce((newest: any, msg: any) =>
                 !newest || msg.createdTimestamp > newest.createdTimestamp ? msg : newest
             , null);
-            
+
             const embed = {
                 color: 0xFFA500,
                 title: '[MODERATION] Bulk Message Deletion',
@@ -65,7 +65,7 @@ export default {
                 ],
                 timestamp: new Date().toISOString()
             };
-            
+
             if (oldestMessage && newestMessage) {
                 const timeRange = `<t:${Math.floor(oldestMessage.createdTimestamp / 1000)}:f> - <t:${Math.floor(newestMessage.createdTimestamp / 1000)}:f>`;
                 embed.fields.push({
@@ -74,9 +74,9 @@ export default {
                     inline: false
                 });
             }
-            
+
             await logEvent(guild, 'messageDeleteBulk', embed);
-            
+
         } catch (error) {
             console.error('[ERROR] messageDeleteBulk event error:', error);
         }

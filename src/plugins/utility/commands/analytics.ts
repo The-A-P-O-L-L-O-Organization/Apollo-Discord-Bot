@@ -1,4 +1,5 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits, AttachmentBuilder, MessageFlags, User, Channel } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits, AttachmentBuilder, MessageFlags, User, Channel } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { getCommandStats, getMessageStats, getViolationStats, getModActionStats, getMemberGrowthStats } from '../../../utils/analyticsCollector.js';
 import { createBarChart, createSparkline, formatDuration, formatNumber } from '../../../utils/charts.js';
@@ -257,7 +258,7 @@ async function handleCommandStats(interaction: ChatInputCommandInteraction): Pro
     const days = interaction.options.getInteger('days') ?? 7;
     const guildId = interaction.guild!.id;
 
-    const stats = await getCommandStats(guildId, days) as CommandStats;
+    const stats = await getCommandStats(guildId, days);
 
     const embed = new EmbedBuilder()
         .setColor('#9B59B6')
@@ -329,7 +330,7 @@ async function handleActivityStats(interaction: ChatInputCommandInteraction): Pr
     const days = interaction.options.getInteger('days') ?? 7;
     const guildId = interaction.guild!.id;
 
-    const stats = await getMessageStats(guildId, days) as MessageStats;
+    const stats = await getMessageStats(guildId, days);
 
     const embed = new EmbedBuilder()
         .setColor('#2ECC71')
@@ -416,7 +417,7 @@ async function handleModerationStats(interaction: ChatInputCommandInteraction): 
     const days = interaction.options.getInteger('days') ?? 30;
     const guildId = interaction.guild!.id;
 
-    const modStats = await getModActionStats(guildId, days) as ModActionStats;
+    const modStats = await getModActionStats(guildId, days);
     const violations = await getViolationStats(guildId, days) as ViolationStats[];
     const ticketData = await getGuildData('tickets', guildId);
 
@@ -548,8 +549,8 @@ async function handleUserStats(interaction: ChatInputCommandInteraction): Promis
     const days = interaction.options.getInteger('days') ?? 30;
     const guildId = interaction.guild!.id;
 
-    const commandStats = await getCommandStats(guildId, days) as CommandStats;
-    const messageStats = await getMessageStats(guildId, days) as MessageStats;
+    const commandStats = await getCommandStats(guildId, days);
+    const messageStats = await getMessageStats(guildId, days);
 
     // Find user's command count
     const userCommands = commandStats.byUser.find(u => u.userId === user.id);
@@ -622,7 +623,7 @@ async function handleExport(interaction: ChatInputCommandInteraction): Promise<v
         const result = await exportAnalytics(guildId, format, {
             types: ['commands', 'messages', 'violations', 'modactions', 'members'],
             days
-        }) as ExportResult;
+        });
 
         // Read the file
         const fileData = readFileSync(result.filepath);

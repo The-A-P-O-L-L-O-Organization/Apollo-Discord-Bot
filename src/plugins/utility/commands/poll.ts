@@ -1,4 +1,5 @@
-import { ChatInputCommandInteraction, EmbedBuilder, MessageFlags, PermissionFlagsBits } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { EmbedBuilder, MessageFlags, PermissionFlagsBits } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { config } from '../../../config/config.js';
 import { appendToGuildArray, generateId } from '../../../utils/db.js';
@@ -8,7 +9,7 @@ const POLL_EMOJIS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
 
 function parseTimeString(timeString: string): number | null {
     const regex = /^(\d+)(m|h|d|w)$/i;
-    const match = timeString.trim().match(regex);
+    const match = regex.exec(timeString.trim());
 
     if (!match) { return null; }
 

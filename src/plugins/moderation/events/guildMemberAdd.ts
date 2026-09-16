@@ -19,7 +19,7 @@ export default {
         // --- Raid Detection ---
         if (!member.user.bot) {
             let isRaid = false;
-            
+
             // Try Redis-backed raid detection if enabled
             if (config.automod.useRedisRaidDetection) {
                 const redis = await getLockRedis();
@@ -36,7 +36,7 @@ export default {
                 // Use in-memory detection
                 isRaid = checkRaidPattern(guild.id, member);
             }
-            
+
             if (isRaid) {
                 await handleRaidDetected(guild, member);
             }
@@ -110,7 +110,7 @@ export default {
         if (!member.user.bot) {
             const autoRoleConfig = await getGuildData('autorole', guild.id);
 
-            if (autoRoleConfig && autoRoleConfig.enabled && autoRoleConfig.roleId) {
+            if (autoRoleConfig?.enabled && autoRoleConfig.roleId) {
                 const role = guild.roles.cache.get(autoRoleConfig.roleId);
 
                 if (role) {
@@ -125,10 +125,10 @@ export default {
 
             const rolePersistenceConfig = await getGuildData('role-persistence', guild.id);
 
-            if (rolePersistenceConfig && rolePersistenceConfig.enabled && rolePersistenceConfig.savedRoles) {
+            if (rolePersistenceConfig?.enabled && rolePersistenceConfig.savedRoles) {
                 const savedData = rolePersistenceConfig.savedRoles[member.id];
 
-                if (savedData && savedData.roles && savedData.roles.length > 0) {
+                if (savedData?.roles && savedData.roles.length > 0) {
                     const validRoles = savedData.roles
                         .filter(roleId => guild.roles.cache.has(roleId))
                         .map(roleId => guild.roles.cache.get(roleId));

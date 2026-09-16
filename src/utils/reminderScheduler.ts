@@ -256,7 +256,7 @@ export function getReminderSchedulerStats(): PerformanceStats & { averageCheckTi
  * @returns Milliseconds or null if invalid
  */
 export function parseTimeString(timeStr: string): number | null {
-    const match = timeStr.match(/^(\d+)([smhdw])$/i);
+    const match = /^(\d+)([smhdw])$/i.exec(timeStr);
     if (!match) {return null;}
 
     const value = parseInt(match[1]);

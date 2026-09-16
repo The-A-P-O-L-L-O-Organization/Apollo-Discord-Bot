@@ -76,7 +76,7 @@ export default class PluginManager {
         }
         this.config = config;
         const enabled = config.plugins.enabled;
-        const paths = config.plugins.paths as { core: string; installed: string };
+        const paths = config.plugins.paths;
         const directory: string = paths.core;
         const installedDir: string = paths.installed;
         const enabledArray: string[] = Array.isArray(enabled) ? enabled : [enabled];

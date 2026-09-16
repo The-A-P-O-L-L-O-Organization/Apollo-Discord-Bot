@@ -7,7 +7,7 @@
  * @returns {number|null} Duration in milliseconds or null if invalid
  */
 export function parseDuration(str: string): number | null {
-    const match = str.match(/^(\d+)([smhd])$/i);
+    const match = /^(\d+)([smhd])$/i.exec(str);
     if (!match?.[1] || !match[2]) {
         return null;
     }

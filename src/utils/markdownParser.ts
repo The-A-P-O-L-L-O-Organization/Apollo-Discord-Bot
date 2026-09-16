@@ -38,8 +38,8 @@ export function parseMarkdownToEmbed(content: string, filename: string, existing
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i] ?? '';
-        const h1Match = line.match(/^# (.+)/);
-        const h2Match = line.match(/^#{2,3} (.+)/);
+        const h1Match = /^# (.+)/.exec(line);
+        const h2Match = /^#{2,3} (.+)/.exec(line);
 
         if (h1Match && !parsedTitle) {
             parsedTitle = h1Match[1]?.trim();

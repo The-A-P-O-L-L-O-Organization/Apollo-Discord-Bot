@@ -2,22 +2,22 @@ interface CLICommand {
     name: string;
     description: string;
     needsSocket?: boolean;
-    options: Array<{
+    options: {
         name: string;
         description: string;
         required?: boolean;
-    }>;
-    subcommands?: Array<{
+    }[];
+    subcommands?: {
         name: string;
         description: string;
         needsSocket?: boolean;
-        options: Array<{
+        options: {
             name: string;
             description: string;
             required?: boolean;
-        }>;
+        }[];
         execute?: (args: Record<string, unknown>) => Promise<unknown>;
-    }>;
+    }[];
 }
 
 const commands: CLICommand[] = [

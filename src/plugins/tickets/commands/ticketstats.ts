@@ -1,4 +1,5 @@
-import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags, ChatInputCommandInteraction } from 'discord.js';
+import type { ChatInputCommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { getGuildData } from '../../../utils/db.js';
 // @ts-expect-error - slaTracker not yet migrated
 import { calculateSLAMetrics, formatTime } from '../../../utils/slaTracker.js';
@@ -40,7 +41,7 @@ export default {
             await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
             const guildId = interaction.guild!.id;
-            const ticketConfig = await getGuildData('tickets', guildId) as Record<string, unknown>;
+            const ticketConfig = await getGuildData('tickets', guildId);
             const openTickets = (ticketConfig['openTickets'] as TicketData[]) || [];
             const closedTickets = (ticketConfig['closedTickets'] as TicketData[]) || [];
             const totalTickets = (ticketConfig['totalTickets'] as number) || 0;
@@ -67,7 +68,7 @@ export default {
             if (openTickets.length > 0) {
                 const unassigned = openTickets.filter(t => !t.assignedTo || t.assignedTo.length === 0).length;
                 const awaitingResponse = openTickets.filter(t => !t.firstResponseAt).length;
-                
+
                 const priorityCounts = {
                     urgent: openTickets.filter(t => t.priority === 'urgent').length,
                     high: openTickets.filter(t => t.priority === 'high').length,
@@ -188,7 +189,7 @@ export default {
                 .sort((a, b) => (b.closedAt ?? 0) - (a.closedAt ?? 0))
                 .slice(0, 1)[0];
 
-            if (recentClosed && recentClosed.closedAt) {
+            if (recentClosed?.closedAt) {
                 embed.addFields({
                     name: 'Last Closed Ticket',
                     value: `Ticket #${recentClosed.ticketNumber} closed <t:${Math.floor(recentClosed.closedAt / 1000)}:R>`,

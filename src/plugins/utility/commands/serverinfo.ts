@@ -1,4 +1,5 @@
-import { ChatInputCommandInteraction, EmbedBuilder, ChannelType, SlashCommandBuilder } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { EmbedBuilder, ChannelType, SlashCommandBuilder } from 'discord.js';
 // @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 

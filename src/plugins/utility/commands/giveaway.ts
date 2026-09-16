@@ -1,4 +1,5 @@
-import { ChatInputCommandInteraction, PermissionsBitField, EmbedBuilder, MessageFlags, Message } from 'discord.js';
+import type { ChatInputCommandInteraction, Message } from 'discord.js';
+import { PermissionsBitField, EmbedBuilder, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
 // @ts-expect-error discordErrors.js not yet migrated
@@ -80,11 +81,11 @@ export default {
             ]
         }
     ],
-    
+
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
             const subcommand = interaction.options.getSubcommand();
-            
+
             if (subcommand === 'create') {
                 await handleCreate(interaction);
             } else if (subcommand === 'end') {
@@ -107,7 +108,7 @@ async function handleCreate(interaction: ChatInputCommandInteraction): Promise<v
     const prize = interaction.options.getString('prize', true);
     const durationStr = interaction.options.getString('duration', true);
     const winners = interaction.options.getInteger('winners') ?? 1;
-    
+
     // Parse duration
     const durationMs = parseDuration(durationStr);
     if (!durationMs) {
@@ -122,9 +123,9 @@ async function handleCreate(interaction: ChatInputCommandInteraction): Promise<v
         });
         return;
     }
-    
+
     const endTime = Date.now() + durationMs;
-    
+
     // Create giveaway message
     const giveawayEmbed = new EmbedBuilder()
         .setColor(0x9B59B6)
@@ -137,15 +138,15 @@ async function handleCreate(interaction: ChatInputCommandInteraction): Promise<v
         )
         .setFooter({ text: 'Click the button to enter!' })
         .setTimestamp();
-    
+
     const message = await interaction.reply({
         embeds: [giveawayEmbed],
         fetchReply: true
-    }) as Message;
-    
+    });
+
     // Add reaction
     await message.react('[SUCCESS]');
-    
+
     // Store giveaway data
     const giveawayData: GiveawayData = {
         messageId: message.id,
@@ -159,13 +160,13 @@ async function handleCreate(interaction: ChatInputCommandInteraction): Promise<v
         participants: [],
         createdAt: Date.now()
     };
-    
+
     await updateGuildData('giveaways', interaction.guild!.id, (data: Record<string, unknown>) => {
         if (!data['active']) { data['active'] = []; }
         (data['active'] as GiveawayData[]).push(giveawayData);
         return data;
     });
-    
+
     const successEmbed = {
         color: 0x00FF00,
         title: '[SUCCESS] Giveaway Created',
@@ -184,16 +185,16 @@ async function handleCreate(interaction: ChatInputCommandInteraction): Promise<v
         ],
         timestamp: new Date().toISOString()
     };
-    
+
     await interaction.followUp({ embeds: [successEmbed], flags: MessageFlags.Ephemeral });
 }
 
 async function handleEnd(interaction: ChatInputCommandInteraction): Promise<void> {
     const messageId = interaction.options.getString('message_id', true);
-    
+
     const giveawayData = await getGuildData('giveaways', interaction.guild!.id) as GiveawayStore | undefined;
     const giveaway = giveawayData?.active?.find((g: GiveawayData) => g.messageId === messageId);
-    
+
     if (!giveaway) {
         await interaction.reply({
             embeds: [{
@@ -206,7 +207,7 @@ async function handleEnd(interaction: ChatInputCommandInteraction): Promise<void
         });
         return;
     }
-    
+
     // End the giveaway (simplified - would need full implementation)
     const successEmbed = {
         color: 0x00FF00,
@@ -214,35 +215,35 @@ async function handleEnd(interaction: ChatInputCommandInteraction): Promise<void
         description: 'Giveaway ended! Use reroll to pick new winners.',
         timestamp: new Date().toISOString()
     };
-    
+
     await interaction.reply({ embeds: [successEmbed], flags: MessageFlags.Ephemeral });
 }
 
 async function handleReroll(interaction: ChatInputCommandInteraction): Promise<void> {
     const messageId = interaction.options.getString('message_id', true);
-    
+
     const successEmbed = {
         color: 0x00FF00,
         title: '[SUCCESS] Giveaway Rerolled',
         description: 'New winner(s) have been selected!',
         timestamp: new Date().toISOString()
     };
-    
+
     await interaction.reply({ embeds: [successEmbed], flags: MessageFlags.Ephemeral });
 }
 
 function parseDuration(str: string): number | null {
-    const match = str.match(/^(\d+)([mhd])$/i);
+    const match = /^(\d+)([mhd])$/i.exec(str);
     if (!match) { return null; }
-    
+
     const value = parseInt(match[1]!);
     const unit = match[2]!.toLowerCase();
-    
+
     const multipliers: Record<string, number> = {
         m: 60 * 1000,
         h: 60 * 60 * 1000,
         d: 24 * 60 * 60 * 1000
     };
-    
+
     return value * (multipliers[unit] ?? 0);
 }

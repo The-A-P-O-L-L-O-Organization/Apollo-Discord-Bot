@@ -110,7 +110,7 @@ export class WorkerHost {
             NODE_ENV: process.env['NODE_ENV'] ?? ''
         };
 
-        const child = this._fork!(childEntry, [], {
+        const child = this._fork(childEntry, [], {
             env,
             stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
             // @ts-ignore - resourceLimits is valid for fork in Node.js
@@ -154,7 +154,7 @@ export class WorkerHost {
             return;
         }
 
-        const delay = this._backoff!(prev.count - 1);
+        const delay = this._backoff(prev.count - 1);
         this._log?.(`[WORKER] ${pluginId} crashed (${prev.count}/${MAX_CONSECUTIVE_CRASHES}); restarting in ${delay}ms`);
         if (this.onScheduleRestart) {
             this.onScheduleRestart(pluginId, delay);

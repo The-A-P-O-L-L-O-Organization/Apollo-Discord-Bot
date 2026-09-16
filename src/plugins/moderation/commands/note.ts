@@ -1,5 +1,6 @@
 // Note Command - Manage internal moderator notes on users
-import { ChatInputCommandInteraction, PermissionFlagsBits, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { getUserData, setUserData, appendToUserArray } from '../../../utils/db.js';
 import { generateId } from '../../../utils/db.js';

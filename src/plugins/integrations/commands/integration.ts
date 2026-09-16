@@ -24,22 +24,22 @@ export default {
                         { name: 'Twitch', value: 'twitch' },
                         { name: 'YouTube', value: 'youtube' },
                         { name: 'GitHub', value: 'github' },
-                        { name: 'RSS', value: 'rss' },
-                    ],
+                        { name: 'RSS', value: 'rss' }
+                    ]
                 },
                 {
                     name: 'target',
                     description: 'Streamer name, channel ID, repo (owner/repo), or feed URL',
                     type: 3,
-                    required: true,
+                    required: true
                 },
                 {
                     name: 'channel',
                     description: 'Channel to post notifications',
                     type: 7,
-                    required: true,
-                },
-            ],
+                    required: true
+                }
+            ]
         },
         {
             name: 'remove',
@@ -50,15 +50,15 @@ export default {
                     name: 'id',
                     description: 'Subscription ID (use /integration list)',
                     type: 4,
-                    required: true,
-                },
-            ],
+                    required: true
+                }
+            ]
         },
         {
             name: 'list',
             description: 'List all integration subscriptions in this server',
-            type: 1,
-        },
+            type: 1
+        }
     ],
 
     async execute(interaction: any): Promise<void> {
@@ -66,12 +66,12 @@ export default {
             const subcommand = interaction.options.getSubcommand();
 
             switch (subcommand) {
-                case 'add':
-                    return handleAdd(interaction);
-                case 'remove':
-                    return handleRemove(interaction);
-                case 'list':
-                    return handleList(interaction);
+            case 'add':
+                return handleAdd(interaction);
+            case 'remove':
+                return handleRemove(interaction);
+            case 'list':
+                return handleList(interaction);
             }
 
         } catch (error) {
@@ -94,7 +94,7 @@ async function handleAdd(interaction: any): Promise<void> {
         return interaction.reply({ content: 'Please select a text channel.', flags: MessageFlags.Ephemeral });
     }
 
-    const data = (await getData('integrations') as Record<string, unknown>) || { nextId: 1, subscriptions: [] };
+    const data = (await getData('integrations')) || { nextId: 1, subscriptions: [] };
 
     const id = (data['nextId'] as number)++;
     (data['subscriptions'] as any[]).push({
@@ -105,7 +105,7 @@ async function handleAdd(interaction: any): Promise<void> {
         target_id: target,
         config: {},
         last_checked: null,
-        created_at: new Date().toISOString(),
+        created_at: new Date().toISOString()
     });
 
     await setData('integrations', data);
@@ -114,13 +114,13 @@ async function handleAdd(interaction: any): Promise<void> {
 
     await interaction.reply({
         content: `[OK] Added **${typeNames[type as keyof typeof typeNames] || type}** subscription for \`${target}\` → ${channel}. ID: \`${id}\``,
-        flags: MessageFlags.Ephemeral,
+        flags: MessageFlags.Ephemeral
     });
 }
 
 async function handleRemove(interaction: any): Promise<void> {
     const id = interaction.options.getInteger('id');
-    const data = (await getData('integrations') as Record<string, unknown>) || { nextId: 1, subscriptions: [] };
+    const data = (await getData('integrations')) || { nextId: 1, subscriptions: [] };
 
     const idx = (data['subscriptions'] as any[]).findIndex(
         s => s.id === id && s.guild_id === interaction.guildId
@@ -137,7 +137,7 @@ async function handleRemove(interaction: any): Promise<void> {
 }
 
 async function handleList(interaction: any): Promise<void> {
-    const data = (await getData('integrations') as Record<string, unknown>) || { nextId: 1, subscriptions: [] };
+    const data = (await getData('integrations')) || { nextId: 1, subscriptions: [] };
 
     const guildSubs = (data['subscriptions'] as any[]).filter(s => s.guild_id === interaction.guildId);
 
@@ -154,8 +154,8 @@ async function handleList(interaction: any): Promise<void> {
             color: 0x5865F2,
             title: 'Integration Subscriptions',
             description: lines.join('\n'),
-            footer: { text: `${guildSubs.length} subscription(s)` },
+            footer: { text: `${guildSubs.length} subscription(s)` }
         }],
-        flags: MessageFlags.Ephemeral,
+        flags: MessageFlags.Ephemeral
     });
 }

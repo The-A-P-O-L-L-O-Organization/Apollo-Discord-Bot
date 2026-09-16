@@ -4,21 +4,21 @@ interface CLICommand {
     name: string;
     description: string;
     needsSocket?: boolean;
-    options: Array<{
+    options: {
         name: string;
         description: string;
         required?: boolean;
-    }>;
-    subcommands?: Array<{
+    }[];
+    subcommands?: {
         name: string;
         description: string;
-        options: Array<{
+        options: {
             name: string;
             description: string;
             required?: boolean;
-        }>;
+        }[];
         execute: (args: Record<string, unknown>) => Promise<unknown>;
-    }>;
+    }[];
 }
 
 const commands: CLICommand[] = [
@@ -44,7 +44,7 @@ const commands: CLICommand[] = [
                 execute: async (args) => {
                     const data = await getGuildData('tags', args['guild'] as string);
                     const tag = (data || {})[(args['name'] as string).toLowerCase()] as Record<string, unknown> | undefined;
-                    if (!tag) return { success: false, message: `Tag "${args['name']}" not found` };
+                    if (!tag) {return { success: false, message: `Tag "${args['name']}" not found` };}
                     return { name: tag['name'], content: tag['content'], createdBy: tag['createdByTag'] };
                 }
             },
@@ -58,7 +58,7 @@ const commands: CLICommand[] = [
                 execute: async (args) => {
                     const data = await getGuildData('tags', args['guild'] as string) || {};
                     const name = (args['name'] as string).toLowerCase();
-                    if (data[name]) return { success: false, message: `Tag "${name}" already exists` };
+                    if (data[name]) {return { success: false, message: `Tag "${name}" already exists` };}
                     data[name] = {
                         name,
                         content: args['content'] as string,
@@ -78,7 +78,7 @@ const commands: CLICommand[] = [
                 execute: async (args) => {
                     const data = await getGuildData('tags', args['guild'] as string) || {};
                     const name = (args['name'] as string).toLowerCase();
-                    if (!data[name]) return { success: false, message: `Tag "${name}" not found` };
+                    if (!data[name]) {return { success: false, message: `Tag "${name}" not found` };}
                     delete data[name];
                     await setGuildData('tags', args['guild'] as string, data);
                     return { success: true, message: `Tag "${name}" deleted` };

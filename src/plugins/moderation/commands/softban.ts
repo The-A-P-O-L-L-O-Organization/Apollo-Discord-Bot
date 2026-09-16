@@ -1,6 +1,7 @@
 // @ts-expect-error - JS file not yet migrated
 import { logger } from '../../../utils/logger.js';
-import { PermissionsBitField, ChatInputCommandInteraction, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { PermissionsBitField, MessageFlags } from 'discord.js';
 // @ts-expect-error - JS file not yet migrated
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 // @ts-expect-error - JS file not yet migrated
@@ -102,7 +103,7 @@ export default {
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
 
-            const hierarchy = canModerate(interaction.guild!, interaction.member!, member);
+            const hierarchy = canModerate(interaction.guild!, interaction.member, member);
             if (!hierarchy.ok) {
                 const errorEmbed = {
                     color: 0xFF0000,

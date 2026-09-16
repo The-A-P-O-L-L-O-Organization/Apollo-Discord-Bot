@@ -27,27 +27,27 @@ export default class ModerationPlugin extends Plugin {
     _registerSocketHandlers(): void {
         this.manager.registerSocketHandler('moderation.ban', async (client: any, args: any) => {
             const guild = client.guilds.cache.get(args.guild);
-            if (!guild) throw new Error(`Guild ${args.guild} not found`);
+            if (!guild) {throw new Error(`Guild ${args.guild} not found`);}
             await guild.members.ban(args.user, { reason: args.reason });
             return { success: true, message: `Banned user ${args.user}` };
         });
 
         this.manager.registerSocketHandler('moderation.kick', async (client: any, args: any) => {
             const guild = client.guilds.cache.get(args.guild);
-            if (!guild) throw new Error(`Guild ${args.guild} not found`);
+            if (!guild) {throw new Error(`Guild ${args.guild} not found`);}
             const member = await guild.members.fetch(args.user).catch(() => null);
-            if (!member) throw new Error(`User ${args.user} not found in guild`);
+            if (!member) {throw new Error(`User ${args.user} not found in guild`);}
             await member.kick(args.reason);
             return { success: true, message: `Kicked user ${args.user}` };
         });
 
         this.manager.registerSocketHandler('moderation.mute', async (client: any, args: any) => {
             const guild = client.guilds.cache.get(args.guild);
-            if (!guild) throw new Error(`Guild ${args.guild} not found`);
+            if (!guild) {throw new Error(`Guild ${args.guild} not found`);}
             const member = await guild.members.fetch(args.user).catch(() => null);
-            if (!member) throw new Error(`User ${args.user} not found in guild`);
+            if (!member) {throw new Error(`User ${args.user} not found in guild`);}
             const muteRole = guild.roles.cache.find((r: any) => r.name === 'Muted');
-            if (!muteRole) throw new Error('Muted role not found');
+            if (!muteRole) {throw new Error('Muted role not found');}
             await member.roles.add(muteRole);
             return { success: true, message: `Muted user ${args.user}` };
         });
@@ -58,7 +58,7 @@ export default class ModerationPlugin extends Plugin {
 
         this.manager.registerSocketHandler('moderation.clear', async (client: any, args: any) => {
             const guild = client.guilds.cache.get(args.guild);
-            if (!guild) throw new Error(`Guild ${args.guild} not found`);
+            if (!guild) {throw new Error(`Guild ${args.guild} not found`);}
             return { success: true, message: `Cleared ${args.count} messages` };
         });
 

@@ -1,4 +1,5 @@
-import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { config } from '../../../config/config.js';
 // @ts-expect-error reminderScheduler.js not yet migrated
