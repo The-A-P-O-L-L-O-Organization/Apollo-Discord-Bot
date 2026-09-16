@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { createRequest, createResponse, isRequest, isResponse, isOversize, type RPCRequest, type RPCResponse, type RPCMessage } from './rpc.js';
+import { createRequest, createResponse, isRequest, isResponse, isOversize, type RPCMessage } from './rpc.js';
 import { logger } from '../../utils/logger.js';
 
 export interface ChildHost {

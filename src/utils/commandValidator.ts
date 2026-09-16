@@ -2,17 +2,6 @@
 // Validates plugin command modules at load time
 
 import { z } from 'zod';
-import type {
-    PluginCommand,
-    PluginEvent,
-    CLICommand,
-    PluginContext,
-    CommandData,
-    CommandOption,
-    CommandChoice,
-    CLICommandOption,
-    ParsedArgs
-} from '../types/plugin.js';
 
 // Zod schemas for command module validation
 export const CommandDataSchema = z.object({
