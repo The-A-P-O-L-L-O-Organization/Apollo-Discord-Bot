@@ -1,7 +1,5 @@
 // RPC (Remote Procedure Call) types for inter-process communication
 
-import type { Client } from 'discord.js';
-
 export interface RPCMessage {
     id: string;
     namespace: string;

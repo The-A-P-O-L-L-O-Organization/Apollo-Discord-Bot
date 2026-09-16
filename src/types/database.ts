@@ -1,7 +1,6 @@
 // Database types (Knex integration)
 
 import type { Knex } from 'knex';
-import type { Database as BetterSQLite3Database } from 'better-sqlite3';
 
 export interface DatabaseConfig {
     type: 'sqlite' | 'postgres';
@@ -138,9 +137,9 @@ export interface GetAllDataOptions {
 
 export interface DatabaseAdapter {
     getGuildData: <T>(options: GetDataOptions & { guildId: string }) => Promise<T | undefined>;
-    setGuildData: <T>(options: SetDataOptions & { guildId: string }) => Promise<void>;
+    setGuildData: (options: SetDataOptions & { guildId: string }) => Promise<void>;
     getUserData: <T>(options: GetDataOptions & { userId: string }) => Promise<T | undefined>;
-    setUserData: <T>(options: SetDataOptions & { userId: string }) => Promise<void>;
+    setUserData: (options: SetDataOptions & { userId: string }) => Promise<void>;
     getAllGuildData: <T>(key: string) => Promise<Map<string, T>>;
     getAllUserData: <T>(key: string) => Promise<Map<string, T>>;
     deleteGuildData: (guildId: string, key: string) => Promise<void>;
