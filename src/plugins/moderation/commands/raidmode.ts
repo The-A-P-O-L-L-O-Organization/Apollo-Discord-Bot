@@ -31,7 +31,7 @@ export default {
             const action = interaction.options.getString('action');
 
             if (action === 'status') {
-                const isEnabled = isRaidModeEnabled(interaction.guild!.id);
+                const isEnabled = await isRaidModeEnabled(interaction.guild!.id);
 
                 const embed = new EmbedBuilder()
                     .setColor(isEnabled ? '#FF0000' : '#00FF00')

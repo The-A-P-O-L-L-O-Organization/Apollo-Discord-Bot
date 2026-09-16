@@ -155,7 +155,7 @@ const clearCommand: ClearCommand = {
             filter: i => i.user.id === interaction.user.id
         });
 
-        collector.on('collect', async (buttonInteraction) => {
+        collector.on('collect', (buttonInteraction) => { void (async () => {
             if (buttonInteraction.customId === 'confirm_delete_all') {
                 collector.stop();
                 await buttonInteraction.deferUpdate();
@@ -227,9 +227,9 @@ const clearCommand: ClearCommand = {
                     components: []
                 });
             }
-        });
+        })(); });
 
-        collector.on('end', async (_collected, reason) => {
+        collector.on('end', (_collected, reason) => { void (async () => {
             if (reason === 'time') {
                 const timeoutEmbed = new EmbedBuilder()
                     .setColor(0x808080)
@@ -245,7 +245,7 @@ const clearCommand: ClearCommand = {
                     // Message may have been deleted
                 }
             }
-        });
+        })(); });
     }
 };
 

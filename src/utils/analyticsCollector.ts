@@ -248,11 +248,11 @@ export async function flushAnalyticsCache(): Promise<void> {
                 for (const [userId, count] of users) {
                     const key = `${date}:${commandName}:${userId}`;
                     data[key] ??= {
-                            date,
-                            commandName,
-                            userId,
-                            count: 0
-                        };
+                        date,
+                        commandName,
+                        userId,
+                        count: 0
+                    };
                     data[key].count += count;
                     recordsProcessed++;
                 }
@@ -275,11 +275,11 @@ export async function flushAnalyticsCache(): Promise<void> {
                 for (const [userId, count] of users) {
                     const key = `${hour}:${channelId}:${userId}`;
                     data[key] ??= {
-                            hour,
-                            channelId,
-                            userId,
-                            count: 0
-                        };
+                        hour,
+                        channelId,
+                        userId,
+                        count: 0
+                    };
                     data[key].count += count;
                     recordsProcessed++;
                 }
@@ -300,10 +300,10 @@ export async function flushAnalyticsCache(): Promise<void> {
             for (const [type, count] of violations) {
                 const key = `${date}:${type}`;
                 data[key] ??= {
-                        date,
-                        type,
-                        count: 0
-                    };
+                    date,
+                    type,
+                    count: 0
+                };
                 data[key].count += count;
                 recordsProcessed++;
             }
@@ -325,11 +325,11 @@ export async function flushAnalyticsCache(): Promise<void> {
                 for (const [action, count] of actions) {
                     const key = `${date}:${moderatorId}:${action}`;
                     data[key] ??= {
-                            date,
-                            moderatorId,
-                            action,
-                            count: 0
-                        };
+                        date,
+                        moderatorId,
+                        action,
+                        count: 0
+                    };
                     data[key].count += count;
                     recordsProcessed++;
                 }

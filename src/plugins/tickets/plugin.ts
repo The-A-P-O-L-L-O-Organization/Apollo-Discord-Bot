@@ -24,27 +24,28 @@ export default class TicketsPlugin extends Plugin {
         startSlaMonitor(this.client);
     }
 
-    override async onDisable(): Promise<void> {
+    override onDisable(): Promise<void> {
         this._unloadCommands();
         this._unloadEvents();
         this._stopSchedulers();
+        return Promise.resolve();
     }
 
     _registerSocketHandlers(): void {
-        this.manager.registerSocketHandler('tickets.create', async (client: any, args: any) => {
-            return { success: true, message: `Ticket created for user ${args.user}` };
+        this.manager.registerSocketHandler('tickets.create', (client: any, args: any) => {
+            return Promise.resolve({ success: true, message: `Ticket created for user ${args.user}` });
         });
 
-        this.manager.registerSocketHandler('tickets.close', async (client: any, args: any) => {
-            return { success: true, message: `Ticket ${args.id} closed` };
+        this.manager.registerSocketHandler('tickets.close', (client: any, args: any) => {
+            return Promise.resolve({ success: true, message: `Ticket ${args.id} closed` });
         });
 
-        this.manager.registerSocketHandler('tickets.add', async (client: any, args: any) => {
-            return { success: true, message: `User ${args.user} added to ticket ${args.id}` };
+        this.manager.registerSocketHandler('tickets.add', (client: any, args: any) => {
+            return Promise.resolve({ success: true, message: `User ${args.user} added to ticket ${args.id}` });
         });
 
-        this.manager.registerSocketHandler('tickets.remove', async (client: any, args: any) => {
-            return { success: true, message: `User ${args.user} removed from ticket ${args.id}` };
+        this.manager.registerSocketHandler('tickets.remove', (client: any, args: any) => {
+            return Promise.resolve({ success: true, message: `User ${args.user} removed from ticket ${args.id}` });
         });
     }
 }

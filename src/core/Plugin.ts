@@ -75,10 +75,10 @@ export abstract class Plugin<C extends CommandModule = CommandModule, _E extends
     static get requiredIntents(): number[] { return []; }
     static get requiredPartials(): string[] { return []; }
 
-    async onLoad(): Promise<void> {}
-    async onUnload(): Promise<void> {}
-    async onEnable(): Promise<void> {}
-    async onDisable(): Promise<void> {}
+    onLoad(): Promise<void> { return Promise.resolve(); }
+    onUnload(): Promise<void> { return Promise.resolve(); }
+    onEnable(): Promise<void> { return Promise.resolve(); }
+    onDisable(): Promise<void> { return Promise.resolve(); }
 
     setDirectory(dir: string): void {
         this._dir = dir;

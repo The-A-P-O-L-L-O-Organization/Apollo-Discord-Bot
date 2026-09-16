@@ -30,16 +30,14 @@ const commands: CLICommand[] = [
                 name: 'info',
                 description: 'Show bot process info',
                 options: [],
-                execute: async () => {
-                    return {
-                        uptime: process.uptime(),
-                        memory: process.memoryUsage().rss,
-                        heapUsed: process.memoryUsage().heapUsed,
-                        nodeVersion: process.version,
-                        platform: process.platform,
-                        pid: process.pid
-                    };
-                }
+                execute: () => Promise.resolve({
+                    uptime: process.uptime(),
+                    memory: process.memoryUsage().rss,
+                    heapUsed: process.memoryUsage().heapUsed,
+                    nodeVersion: process.version,
+                    platform: process.platform,
+                    pid: process.pid
+                })
             }
         ]
     },

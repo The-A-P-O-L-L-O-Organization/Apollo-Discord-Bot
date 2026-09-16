@@ -53,7 +53,7 @@ export async function getGuildData(store: string, guildId: string): Promise<Reco
     if (USE_PG) { return (await getAdapter()).getGuildData(store, guildId); }
     const isTest = process.env['NODE_ENV'] === 'test' || process.env['VITEST'] === 'true';
     if (isTest && config.database.type === 'sqlite') {
-        const db = await getDb();
+        const db = getDb();
         const row = await db('guild_store')
             .select('data')
             .where({ store, guild_id: guildId })
@@ -70,7 +70,7 @@ export async function setGuildData(store: string, guildId: string, data: Record<
     if (USE_PG) { return (await getAdapter()).setGuildData(store, guildId, data); }
     const isTest = process.env['NODE_ENV'] === 'test' || process.env['VITEST'] === 'true';
     if (isTest && config.database.type === 'sqlite') {
-        const db = await getDb();
+        const db = getDb();
         await db.raw(
             'INSERT INTO guild_store (store, guild_id, data) VALUES (?, ?, ?) ON CONFLICT(store, guild_id) DO UPDATE SET data = excluded.data',
             [store, guildId, JSON.stringify(data)]
@@ -201,7 +201,7 @@ export async function writeToSubDir(subdir: string, filename: string, data: unkn
     writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
 }
 
-export async function close(): Promise<void> {
+export function close(): Promise<void> {
     if (!USE_PG && _sqliteDb) {
         // Perform final WAL checkpoint before closing
         try {
@@ -212,6 +212,7 @@ export async function close(): Promise<void> {
         (_sqliteDb.db as { close: () => void }).close();
         _sqliteDb = null;
     }
+    return Promise.resolve();
 }
 
 // Periodic WAL checkpoint for SQLite (call from main process)

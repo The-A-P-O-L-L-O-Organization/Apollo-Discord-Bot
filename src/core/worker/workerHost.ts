@@ -87,7 +87,7 @@ export class WorkerHost {
         return granted;
     }
 
-    async startPlugin({ pluginId, dir, capabilities, manifest }: {
+    startPlugin({ pluginId, dir, capabilities, manifest }: {
         pluginId: string;
         dir: string;
         capabilities: string[];
@@ -126,7 +126,7 @@ export class WorkerHost {
         this._workers.set(pluginId, workerInfo);
         this._log?.(`[WORKER] Spawned worker for ${pluginId} (memory: ${maxOldGenerationSizeMb}MB old, ${maxYoungGenerationSizeMb}MB young, stack: ${stackSizeMb}MB)`);
         logSecurityEvent({ event: 'plugin.started', pluginId, grantedCapabilities: granted });
-        return workerInfo;
+        return Promise.resolve(workerInfo);
     }
 
     handleWorkerError(pluginId: string, error: Error): void {

@@ -26,8 +26,9 @@ export default class AutomodPlugin extends Plugin {
         await this._loadEvents();
     }
 
-    override async onDisable() {
+    override onDisable(): Promise<void> {
         this._unloadCommands();
         this._unloadEvents();
+        return Promise.resolve();
     }
 }

@@ -300,12 +300,12 @@ async function handleCloseTicket(interaction: ButtonInteraction): Promise<void> 
     } catch {
     }
 
-    setTimeout(async () => {
+    setTimeout(() => { void (async () => {
         try {
             const channel = await interaction.client.channels.fetch(channelId);
             await channel?.delete(`Ticket closed by ${interaction.user.tag}`);
         } catch (error) {
             logger.error({ err: error, msg: '[ERROR] Failed to delete ticket channel:' });
         }
-    }, 3000);
+    })(); }, 3000);
 }

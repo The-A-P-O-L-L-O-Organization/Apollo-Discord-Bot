@@ -199,7 +199,7 @@ export default {
                     time: 300000
                 });
 
-                collector.on('collect', async (i) => {
+                collector.on('collect', (i) => { void (async () => {
                     if (i.user.id !== interaction.user.id) {
                         return i.reply({
                             content: 'These buttons are not for you!',
@@ -221,10 +221,10 @@ export default {
                         embeds: [generateEmbed(currentPage)],
                         components: [generateButtons(currentPage)]
                     });
-                });
+                })(); });
 
                 collector.on('end', () => {
-                    message.edit({ components: [] }).catch(() => {});
+                    message.edit({ components: [] }).catch(() => undefined);
                 });
             }
         } catch (error) {

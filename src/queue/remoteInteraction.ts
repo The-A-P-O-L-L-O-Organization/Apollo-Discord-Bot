@@ -137,12 +137,12 @@ export default class RemoteInteraction {
                 return p ? p.enabled : false;
             },
             scanPlugins: () => managerInfo['scanned'] ?? [],
-            enablePlugin: async () => { throw new Error('Plugin management not available in worker mode'); },
-            disablePlugin: async () => { throw new Error('Plugin management not available in worker mode'); },
-            loadPlugin: async () => { throw new Error('Plugin management not available in worker mode'); },
-            reloadPlugin: async () => { throw new Error('Plugin management not available in worker mode'); },
-            installPlugin: async () => { throw new Error('Plugin management not available in worker mode'); },
-            uninstallPlugin: async () => { throw new Error('Plugin management not available in worker mode'); }
+            enablePlugin: () => { throw new Error('Plugin management not available in worker mode'); },
+            disablePlugin: () => { throw new Error('Plugin management not available in worker mode'); },
+            loadPlugin: () => { throw new Error('Plugin management not available in worker mode'); },
+            reloadPlugin: () => { throw new Error('Plugin management not available in worker mode'); },
+            installPlugin: () => { throw new Error('Plugin management not available in worker mode'); },
+            uninstallPlugin: () => { throw new Error('Plugin management not available in worker mode'); }
         };
     }
 
@@ -175,9 +175,10 @@ export default class RemoteInteraction {
         }
     }
 
-    async deferReply(_opts: Record<string, unknown>): Promise<void> {
-        if (this._deferred) { return; }
+    deferReply(_opts: Record<string, unknown>): Promise<void> {
+        if (this._deferred) { return Promise.resolve(); }
         this._deferred = true;
+        return Promise.resolve();
     }
 
     async followUp(options: Record<string, unknown>): Promise<void> {

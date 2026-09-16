@@ -44,7 +44,7 @@ export function initIntegrationPoller(discordClient: Client, cfg: { integrations
 
     for (const p of pollers) {
         if (p.interval <= 0) { continue; }
-        const id = setInterval(async () => {
+        const id = setInterval(() => { void (async () => {
             const redis = await getLockRedis();
             if (redis) {
                 await withLock(redis, `poller:${p.type}`, 'integrations', async () => {
@@ -53,16 +53,16 @@ export function initIntegrationPoller(discordClient: Client, cfg: { integrations
             } else {
                 await p.check();
             }
-        }, p.interval);
+        })(); }, p.interval);
         intervals.push(id);
     }
 
-    startupTimeout ??= setTimeout(async () => {
+    startupTimeout ??= setTimeout(() => { void (async () => {
         startupTimeout = null;
         await loadKnownItems();
         await pollYoutubeSubscriptions();
         await pollRssSubscriptions();
-    }, 5000);
+    })(); }, 5000);
 }
 
 export function stopIntegrationPoller(): void {
@@ -114,12 +114,12 @@ async function pollTwitchSubscriptions(): Promise<void> {
         const subs = (await getSubs()).filter((s: Subscription) => s.type === 'twitch');
         for (const sub of subs) {
             const streamData = await checkTwitchStream(sub.target_id, integrationConfig);
-            if (streamData && streamData.live) {
+            if (streamData?.live) {
                 const channel = client.channels.cache.get(sub.channel_id);
                 if (channel?.isTextBased()) {
                     const notification = formatTwitchNotification(sub.target_id, streamData);
                     if (notification) {
-                        (channel as TextChannel).send(notification).catch(() => {});
+                        (channel as TextChannel).send(notification).catch(() => undefined);
                     }
                 }
                 await updateSub(sub.id, { last_checked: new Date().toISOString() });
@@ -150,7 +150,7 @@ async function pollYoutubeSubscriptions(): Promise<void> {
                     if (channel?.isTextBased()) {
                         const notification = formatYoutubeNotification(sub.target_id, video);
                         if (notification) {
-                            (channel as TextChannel).send(notification).catch(() => {});
+                            (channel as TextChannel).send(notification).catch(() => undefined);
                         }
                     }
                     seen.add(video.videoId);
@@ -188,7 +188,7 @@ async function pollRssSubscriptions(): Promise<void> {
                     if (channel?.isTextBased()) {
                         const notification = formatRssNotification(feed.feedTitle, item);
                         if (notification) {
-                            (channel as TextChannel).send(notification).catch(() => {});
+                            (channel as TextChannel).send(notification).catch(() => undefined);
                         }
                     }
                     seen.add(key);

@@ -60,7 +60,7 @@ export async function initReminderScheduler(discordClient: Client): Promise<void
     // Load reminders from database on startup
     await loadRemindersFromDatabase();
 
-    schedulerInterval = setInterval(async () => {
+    schedulerInterval = setInterval(() => { void (async () => {
         const redis = await getLockRedis();
         if (redis) {
             // TTL = interval (30s) to ensure no gap between lock expiration and next acquisition
@@ -68,7 +68,7 @@ export async function initReminderScheduler(discordClient: Client): Promise<void
         } else {
             await checkReminders();
         }
-    }, config.reminders.checkInterval);
+    })(); }, config.reminders.checkInterval);
 
     logger.info({ msg: `[INFO] Reminder scheduler started (checking every ${config.reminders.checkInterval / 1000}s)` });
 
@@ -168,7 +168,7 @@ async function sendReminder(reminder: Reminder): Promise<void> {
         if (reminder.channelId) {
             try {
                 const channel = await client.channels.fetch(reminder.channelId);
-                if (channel && channel.isTextBased()) {
+                if (channel?.isTextBased()) {
                     await channel.send({
                         content: `<@${reminder.userId}>`,
                         embeds: [embed]

@@ -19,9 +19,10 @@ export default class ModerationPlugin extends Plugin {
         this._registerSocketHandlers();
     }
 
-    override async onDisable(): Promise<void> {
+    override onDisable(): Promise<void> {
         this._unloadCommands();
         this._unloadEvents();
+        return Promise.resolve();
     }
 
     _registerSocketHandlers(): void {
@@ -52,22 +53,22 @@ export default class ModerationPlugin extends Plugin {
             return { success: true, message: `Muted user ${args.user}` };
         });
 
-        this.manager.registerSocketHandler('moderation.warn', async (_client: any, args: any) => {
-            return { success: true, message: `Warned user ${args.user}: ${args.reason}` };
+        this.manager.registerSocketHandler('moderation.warn', (_client: any, args: any) => {
+            return Promise.resolve({ success: true, message: `Warned user ${args.user}: ${args.reason}` });
         });
 
-        this.manager.registerSocketHandler('moderation.clear', async (client: any, args: any) => {
+        this.manager.registerSocketHandler('moderation.clear', (client: any, args: any) => {
             const guild = client.guilds.cache.get(args.guild);
             if (!guild) {throw new Error(`Guild ${args.guild} not found`);}
-            return { success: true, message: `Cleared ${args.count} messages` };
+            return Promise.resolve({ success: true, message: `Cleared ${args.count} messages` });
         });
 
-        this.manager.registerSocketHandler('moderation.slowmode', async (_client: any, args: any) => {
-            return { success: true, message: `Slowmode set to ${args.seconds}s` };
+        this.manager.registerSocketHandler('moderation.slowmode', (_client: any, args: any) => {
+            return Promise.resolve({ success: true, message: `Slowmode set to ${args.seconds}s` });
         });
 
-        this.manager.registerSocketHandler('moderation.lockdown', async (_client: any, args: any) => {
-            return { success: true, message: `Channel ${args.action ?? 'lockdown'} completed` };
+        this.manager.registerSocketHandler('moderation.lockdown', (_client: any, args: any) => {
+            return Promise.resolve({ success: true, message: `Channel ${args.action ?? 'lockdown'} completed` });
         });
     }
 }

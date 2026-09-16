@@ -272,7 +272,7 @@ export default {
 
                 try {
                     const fetchChannel = await interaction.guild!.channels.fetch((removed!)['channelId'] as string);
-                    if (fetchChannel && fetchChannel.isTextBased()) {
+                    if (fetchChannel?.isTextBased()) {
                         const message = await fetchChannel.messages.fetch(messageId!);
                         await message.reactions.cache.get(emoji.identifier)?.users.remove(interaction.client.user.id);
                     }
@@ -354,7 +354,7 @@ export default {
                 if (toRemove.length > 0 && toRemove[0]) {
                     try {
                         const channel = await interaction.guild!.channels.fetch((toRemove[0])['channelId'] as string);
-                        if (channel && channel.isTextBased()) {
+                        if (channel?.isTextBased()) {
                             const message = await channel.messages.fetch(messageId!);
                             for (const rr of toRemove) {
                                 await message.reactions.cache.get(rr['emoji'] as string)?.users.remove(interaction.client.user.id);

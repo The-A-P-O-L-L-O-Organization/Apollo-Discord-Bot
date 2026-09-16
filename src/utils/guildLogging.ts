@@ -2,7 +2,7 @@
 // Handles fetching guild log config and sending log events
 
 import { EmbedBuilder } from 'discord.js';
-import type { Message, GuildMember, VoiceState } from 'discord.js';
+import type { Message, GuildMember, VoiceState, ColorResolvable } from 'discord.js';
 
 /**
  * Gets logging configuration for a guild
@@ -56,7 +56,7 @@ export async function getLogChannel(guild: { id: string; channels: { fetch: (id:
 
     try {
         const channel = await guild.channels.fetch(cfg.channelId);
-        if (channel && channel.isTextBased()) {
+        if (channel?.isTextBased()) {
             return channel;
         }
     } catch (error) {
@@ -283,7 +283,7 @@ export function createVoiceChangeEmbed(oldState: VoiceState, newState: VoiceStat
 
     let title: string;
     let description: string;
-    let color: import('discord.js').ColorResolvable;
+    let color: ColorResolvable;
 
     if (!oldState.channel && newState.channel) {
         // Joined voice channel

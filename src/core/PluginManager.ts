@@ -490,7 +490,7 @@ export default class PluginManager {
     async uninstallPlugin(id: string): Promise<void> {
         if (this.plugins.has(id)) {
             const info = this.installedPlugins.get(id);
-            if (!info || info.origin !== 'installed') {
+            if (info?.origin !== 'installed') {
                 throw new Error(`Plugin ${id} is a built-in plugin and cannot be uninstalled`);
             }
             await this.disablePlugin(id);

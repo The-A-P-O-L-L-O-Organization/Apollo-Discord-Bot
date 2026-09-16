@@ -40,20 +40,21 @@ export default class UtilityPlugin extends Plugin {
         }
     }
 
-    override async onDisable() {
+    override onDisable(): Promise<void> {
         this._unloadCommands();
         this._unloadEvents();
         this._stopSchedulers();
         stopReminderScheduler();
         stopPollScheduler();
         stopAnalyticsCollector();
+        return Promise.resolve();
     }
 
     _registerSocketHandlers() {
-        this.manager.registerSocketHandler('utility.serverinfo', async (_client: any, args: any) => {
+        this.manager.registerSocketHandler('utility.serverinfo', (_client: any, args: any) => {
             const guild = _client.guilds.cache.get(args.guild);
             if (!guild) { throw new Error(`Guild ${args.guild} not found`); }
-            return {
+            return Promise.resolve({
                 name: guild.name,
                 id: guild.id,
                 memberCount: guild.memberCount,
@@ -61,7 +62,7 @@ export default class UtilityPlugin extends Plugin {
                 createdAt: guild.createdAt?.toISOString(),
                 channels: guild.channels.cache.size,
                 roles: guild.roles.cache.size
-            };
+            });
         });
 
         this.manager.registerSocketHandler('utility.userinfo', async (_client: any, args: any) => {
@@ -79,8 +80,8 @@ export default class UtilityPlugin extends Plugin {
             };
         });
 
-        this.manager.registerSocketHandler('utility.ping', async (_client: any, _args: any) => {
-            return { ping: _client.ws.ping, websocket: 'connected' };
+        this.manager.registerSocketHandler('utility.ping', (_client: any, _args: any) => {
+            return Promise.resolve({ ping: _client.ws.ping, websocket: 'connected' });
         });
 
         this.manager.registerSocketHandler('utility.embed', async (_client: any, args: any) => {

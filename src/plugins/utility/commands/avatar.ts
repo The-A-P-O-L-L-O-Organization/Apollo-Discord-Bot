@@ -36,7 +36,7 @@ export default {
 
             if (serverAvatar && interaction.guild) {
                 member = await interaction.guild.members.fetch(user.id);
-                if (member && member.avatar) {
+                if (member?.avatar) {
                     avatarURL = member.avatarURL({ extension: 'png', size: 4096 });
                     avatarType = 'Server Avatar';
                 }

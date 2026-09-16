@@ -73,7 +73,7 @@ export async function initPollScheduler(discordClient: Client): Promise<void> {
     // Load polls from database on startup
     await loadPollsFromDatabase();
 
-    schedulerInterval = setInterval(async () => {
+    schedulerInterval = setInterval(() => { void (async () => {
         const redis = await getLockRedis();
         if (redis) {
             // TTL = interval (30s) to ensure no gap between lock expiration and next acquisition
@@ -81,7 +81,7 @@ export async function initPollScheduler(discordClient: Client): Promise<void> {
         } else {
             await checkPolls();
         }
-    }, 30000);
+    })(); }, 30000);
 
     logger.info({ msg: '[INFO] Poll scheduler started (checking every 30s)' });
 

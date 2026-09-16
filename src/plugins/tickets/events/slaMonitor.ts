@@ -183,7 +183,7 @@ async function handleSlaBreach(guild: Guild, ticket: Record<string, unknown>, sl
     }
 
     // Also send to ticket channel if it exists
-    if (ticketChannel && ticketChannel.type === ChannelType.GuildText) {
+    if (ticketChannel?.type === ChannelType.GuildText) {
         try {
             const channelAlertEmbed = new EmbedBuilder()
                 .setColor(getPriorityColor(priority))

@@ -30,14 +30,14 @@ interface TempbansData {
 export function initTempbanScheduler(discordClient: Client): void {
     client = discordClient;
 
-    schedulerInterval = setInterval(async () => {
+    schedulerInterval = setInterval(() => { void (async () => {
         const redis = await getLockRedis();
         if (redis) {
             await withLock(redis, 'scheduler:tempbans', config.podId ?? 'default', checkTempbans, 25000);
         } else {
             await checkTempbans();
         }
-    }, 30000);
+    })(); }, 30000);
 
     logger.info({ msg: '[INFO] Tempban scheduler started (checking every 30s)' });
 

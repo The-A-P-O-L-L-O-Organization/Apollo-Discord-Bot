@@ -18,7 +18,7 @@ export default {
         try {
             const operator = config.operator;
 
-            if (!operator || operator.agreed !== true || !operator.contact || operator.contact.trim().length === 0) {
+            if (operator?.agreed !== true || !operator.contact || operator.contact.trim().length === 0) {
                 const errorEmbed = new EmbedBuilder()
                     .setColor(0xFF0000)
                     .setTitle('Operator Contact Not Configured')

@@ -134,7 +134,7 @@ export const BUILTIN_COMMANDS = [
             { name: 'worker', short: 'w', description: 'Start in worker mode', type: 'boolean' },
             { name: 'shard', short: 's', description: 'Shard ID to start', type: 'int' }
         ],
-        action: async () => ({ success: true })
+        action: () => ({ success: true })
     },
     {
         name: 'stop',
@@ -143,7 +143,7 @@ export const BUILTIN_COMMANDS = [
             { name: 'force', short: 'f', description: 'Force stop without graceful shutdown', type: 'boolean' },
             { name: 'timeout', short: 't', description: 'Shutdown timeout in seconds', type: 'int', default: 30 }
         ],
-        action: async () => ({ success: true })
+        action: () => ({ success: true })
     },
     {
         name: 'restart',
@@ -152,7 +152,7 @@ export const BUILTIN_COMMANDS = [
             { name: 'gateway', short: 'g', description: 'Restart in gateway mode', type: 'boolean' },
             { name: 'worker', short: 'w', description: 'Restart in worker mode', type: 'boolean' }
         ],
-        action: async () => ({ success: true })
+        action: () => ({ success: true })
     },
     {
         name: 'status',
@@ -161,7 +161,7 @@ export const BUILTIN_COMMANDS = [
             { name: 'json', short: 'j', description: 'Output as JSON', type: 'boolean' },
             { name: 'watch', short: 'w', description: 'Watch for changes', type: 'boolean' }
         ],
-        action: async () => ({ success: true })
+        action: () => ({ success: true })
     },
     {
         name: 'plugin',
@@ -174,31 +174,31 @@ export const BUILTIN_COMMANDS = [
                     { name: 'enabled', short: 'e', description: 'Show only enabled plugins', type: 'boolean' },
                     { name: 'disabled', short: 'd', description: 'Show only disabled plugins', type: 'boolean' }
                 ],
-                action: async () => ({ success: true })
+                action: () => ({ success: true })
             },
             {
                 name: 'enable',
                 description: 'Enable a plugin',
                 arguments: [{ name: 'name', description: 'Plugin name', type: 'string', required: true }],
-                action: async () => ({ success: true })
+                action: () => ({ success: true })
             },
             {
                 name: 'disable',
                 description: 'Disable a plugin',
                 arguments: [{ name: 'name', description: 'Plugin name', type: 'string', required: true }],
-                action: async () => ({ success: true })
+                action: () => ({ success: true })
             },
             {
                 name: 'reload',
                 description: 'Reload a plugin',
                 arguments: [{ name: 'name', description: 'Plugin name', type: 'string', required: true }],
-                action: async () => ({ success: true })
+                action: () => ({ success: true })
             },
             {
                 name: 'info',
                 description: 'Show plugin info',
                 arguments: [{ name: 'name', description: 'Plugin name', type: 'string', required: true }],
-                action: async () => ({ success: true })
+                action: () => ({ success: true })
             },
             {
                 name: 'install',
@@ -207,16 +207,16 @@ export const BUILTIN_COMMANDS = [
                 options: [
                     { name: 'version', short: 'v', description: 'Specific version to install', type: 'string' }
                 ],
-                action: async () => ({ success: true })
+                action: () => ({ success: true })
             },
             {
                 name: 'uninstall',
                 description: 'Uninstall a plugin',
                 arguments: [{ name: 'name', description: 'Plugin name', type: 'string', required: true }],
-                action: async () => ({ success: true })
+                action: () => ({ success: true })
             }
         ],
-        action: async () => ({ success: true })
+        action: () => ({ success: true })
     },
     {
         name: 'config',
@@ -226,7 +226,7 @@ export const BUILTIN_COMMANDS = [
                 name: 'get',
                 description: 'Get a config value',
                 arguments: [{ name: 'key', description: 'Config key (dot notation)', type: 'string', required: true }],
-                action: async () => ({ success: true })
+                action: () => ({ success: true })
             },
             {
                 name: 'set',
@@ -235,7 +235,7 @@ export const BUILTIN_COMMANDS = [
                     { name: 'key', description: 'Config key (dot notation)', type: 'string', required: true },
                     { name: 'value', description: 'Value to set', type: 'string', required: true }
                 ],
-                action: async () => ({ success: true })
+                action: () => ({ success: true })
             },
             {
                 name: 'list',
@@ -243,15 +243,15 @@ export const BUILTIN_COMMANDS = [
                 options: [
                     { name: 'section', short: 's', description: 'Filter by section', type: 'string' }
                 ],
-                action: async () => ({ success: true })
+                action: () => ({ success: true })
             },
             {
                 name: 'validate',
                 description: 'Validate configuration',
-                action: async () => ({ success: true })
+                action: () => ({ success: true })
             }
         ],
-        action: async () => ({ success: true })
+        action: () => ({ success: true })
     },
     {
         name: 'queue',
@@ -260,13 +260,13 @@ export const BUILTIN_COMMANDS = [
             {
                 name: 'list',
                 description: 'List all queues',
-                action: async () => ({ success: true })
+                action: () => ({ success: true })
             },
             {
                 name: 'stats',
                 description: 'Show queue statistics',
                 arguments: [{ name: 'name', description: 'Queue name', type: 'string', required: true }],
-                action: async () => ({ success: true })
+                action: () => ({ success: true })
             },
             {
                 name: 'clean',
@@ -277,7 +277,7 @@ export const BUILTIN_COMMANDS = [
                     { name: 'type', short: 't', description: 'Job type to clean', type: 'string', choices: ['completed', 'failed', 'all'] }
                 ],
                 arguments: [{ name: 'name', description: 'Queue name', type: 'string', required: true }],
-                action: async () => ({ success: true })
+                action: () => ({ success: true })
             },
             {
                 name: 'retry',
@@ -286,22 +286,22 @@ export const BUILTIN_COMMANDS = [
                     { name: 'job-id', description: 'Specific job ID to retry', type: 'string' }
                 ],
                 arguments: [{ name: 'name', description: 'Queue name', type: 'string', required: true }],
-                action: async () => ({ success: true })
+                action: () => ({ success: true })
             },
             {
                 name: 'pause',
                 description: 'Pause a queue',
                 arguments: [{ name: 'name', description: 'Queue name', type: 'string', required: true }],
-                action: async () => ({ success: true })
+                action: () => ({ success: true })
             },
             {
                 name: 'resume',
                 description: 'Resume a paused queue',
                 arguments: [{ name: 'name', description: 'Queue name', type: 'string', required: true }],
-                action: async () => ({ success: true })
+                action: () => ({ success: true })
             }
         ],
-        action: async () => ({ success: true })
+        action: () => ({ success: true })
     },
     {
         name: 'health',
@@ -310,7 +310,7 @@ export const BUILTIN_COMMANDS = [
             { name: 'json', short: 'j', description: 'Output as JSON', type: 'boolean' },
             { name: 'verbose', short: 'v', description: 'Verbose output', type: 'boolean' }
         ],
-        action: async () => ({ success: true })
+        action: () => ({ success: true })
     },
     {
         name: 'logs',
@@ -320,7 +320,7 @@ export const BUILTIN_COMMANDS = [
             { name: 'level', short: 'l', description: 'Log level filter', type: 'string', choices: ['trace', 'debug', 'info', 'warn', 'error', 'fatal'] },
             { name: 'follow', short: 'f', description: 'Follow log output', type: 'boolean' }
         ],
-        action: async () => ({ success: true })
+        action: () => ({ success: true })
     },
     {
         name: 'backup',
@@ -333,12 +333,12 @@ export const BUILTIN_COMMANDS = [
                     { name: 'type', short: 't', description: 'Backup type', type: 'string', choices: ['full', 'incremental'], default: 'full' },
                     { name: 'destination', short: 'd', description: 'Backup destination path', type: 'string' }
                 ],
-                action: async () => ({ success: true })
+                action: () => ({ success: true })
             },
             {
                 name: 'list',
                 description: 'List available backups',
-                action: async () => ({ success: true })
+                action: () => ({ success: true })
             },
             {
                 name: 'restore',
@@ -347,10 +347,10 @@ export const BUILTIN_COMMANDS = [
                     { name: 'force', description: 'Force restore without confirmation', type: 'boolean' }
                 ],
                 arguments: [{ name: 'file', description: 'Backup file path', type: 'string', required: true }],
-                action: async () => ({ success: true })
+                action: () => ({ success: true })
             }
         ],
-        action: async () => ({ success: true })
+        action: () => ({ success: true })
     },
     {
         name: 'interlink',
@@ -362,7 +362,7 @@ export const BUILTIN_COMMANDS = [
                 options: [
                     { name: 'bot', description: 'Filter by bot ID', type: 'string' }
                 ],
-                action: async () => ({ success: true })
+                action: () => ({ success: true })
             },
             {
                 name: 'call',
@@ -375,10 +375,10 @@ export const BUILTIN_COMMANDS = [
                     { name: 'service', description: 'Service name', type: 'string', required: true },
                     { name: 'method', description: 'Method name', type: 'string', required: true }
                 ],
-                action: async () => ({ success: true })
+                action: () => ({ success: true })
             }
         ],
-        action: async () => ({ success: true })
+        action: () => ({ success: true })
     },
     {
         name: 'manifest',
@@ -390,16 +390,16 @@ export const BUILTIN_COMMANDS = [
                 options: [
                     { name: 'output', short: 'o', description: 'Output file path', type: 'string' }
                 ],
-                action: async () => ({ success: true })
+                action: () => ({ success: true })
             },
             {
                 name: 'verify',
                 description: 'Verify plugin manifest integrity',
                 arguments: [{ name: 'plugin', description: 'Plugin name or path', type: 'string', required: true }],
-                action: async () => ({ success: true })
+                action: () => ({ success: true })
             }
         ],
-        action: async () => ({ success: true })
+        action: () => ({ success: true })
     },
     {
         name: 'version',
@@ -407,13 +407,13 @@ export const BUILTIN_COMMANDS = [
         options: [
             { name: 'json', short: 'j', description: 'Output as JSON', type: 'boolean' }
         ],
-        action: async () => ({ success: true })
+        action: () => ({ success: true })
     },
     {
         name: 'help',
         description: 'Show help',
         arguments: [{ name: 'command', description: 'Command to show help for', type: 'string' }],
-        action: async () => ({ success: true })
+        action: () => ({ success: true })
     }
 ] as const;
 
