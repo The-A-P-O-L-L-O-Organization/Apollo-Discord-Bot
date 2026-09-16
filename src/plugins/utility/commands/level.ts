@@ -2,7 +2,6 @@ import type { ChatInputCommandInteraction} from 'discord.js';
 import { EmbedBuilder } from 'discord.js';
 import { getUserData } from '../../../utils/db.js';
 import { calculateXPForLevel } from '../../../utils/xp.js';
-// @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 interface LevelData {

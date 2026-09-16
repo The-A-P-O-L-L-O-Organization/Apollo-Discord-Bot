@@ -1,9 +1,7 @@
 import type { ChatInputCommandInteraction } from 'discord.js';
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
 import { getGuildData } from '../../../utils/db.js';
-// @ts-expect-error - slaTracker not yet migrated
 import { getPriorityEmoji, formatTime, hasBreachedSLA } from '../../../utils/slaTracker.js';
-// @ts-expect-error - discordErrors not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
@@ -62,7 +60,7 @@ export default {
             const categoryFilter = interaction.options.getString('category');
 
             const ticketConfig = await getGuildData('tickets', guildId);
-            let tickets = ticketConfig.openTickets ?? [];
+            let tickets = ticketConfig['openTickets'] ?? [];
 
             if (tickets.length === 0) {
                 return interaction.editReply({
@@ -77,7 +75,7 @@ export default {
                     t.assignedTo?.includes(interaction.user.id) ?? t.claimedBy === interaction.user.id
                 );
             } else if (filter === 'breached') {
-                const slaThresholds = ticketConfig.slaThresholds;
+                const slaThresholds = ticketConfig['slaThresholds'];
                 tickets = tickets.filter(t => hasBreachedSLA(t, slaThresholds));
             }
 
@@ -141,7 +139,7 @@ export default {
                         const waitingTime = Date.now() - ticket.createdAt;
                         value.push(`Waiting: ${formatTime(waitingTime)}`);
 
-                        if (hasBreachedSLA(ticket, ticketConfig.slaThresholds)) {
+                        if (hasBreachedSLA(ticket, ticketConfig['slaThresholds'])) {
                             value.push('**SLA BREACHED**');
                         }
                     }

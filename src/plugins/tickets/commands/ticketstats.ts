@@ -1,9 +1,7 @@
 import type { ChatInputCommandInteraction } from 'discord.js';
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { getGuildData } from '../../../utils/db.js';
-// @ts-expect-error - slaTracker not yet migrated
 import { calculateSLAMetrics, formatTime } from '../../../utils/slaTracker.js';
-// @ts-expect-error - discordErrors not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 interface TicketData {

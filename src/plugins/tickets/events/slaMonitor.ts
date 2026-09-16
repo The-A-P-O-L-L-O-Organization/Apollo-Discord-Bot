@@ -3,9 +3,7 @@
 import { logger } from '../../../utils/logger.js';
 import type { TextChannel, Guild } from 'discord.js';
 import { EmbedBuilder, ChannelType } from 'discord.js';
-// @ts-expect-error - slaTracker not yet migrated
 import { hasBreachedSLA, DEFAULT_SLA_THRESHOLDS, formatTime, getPriorityColor, getPriorityEmoji } from '../../../utils/slaTracker.js';
-// @ts-expect-error - modLog not yet migrated
 import { sendModLog } from '../../../utils/modLog.js';
 import { config } from '../../../config/config.js';
 import { getGuildData, getAllGuildIds } from '../../../utils/db.js';

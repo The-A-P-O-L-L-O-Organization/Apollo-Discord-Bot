@@ -29,7 +29,7 @@ export default {
 
             const ticketConfig = await getGuildData('tickets', guildId);
 
-            const ticketIndex = ticketConfig.openTickets?.findIndex(t => t.channelId === channelId);
+            const ticketIndex = ticketConfig['openTickets']?.findIndex(t => t.channelId === channelId);
 
             if (ticketIndex === -1 || ticketIndex === undefined) {
                 await interaction.reply({
@@ -39,11 +39,11 @@ export default {
                 return;
             }
 
-            const ticket = ticketConfig.openTickets[ticketIndex];
+            const ticket = ticketConfig['openTickets'][ticketIndex];
 
             const member = interaction.member;
             const isTicketOwner = ticket.userId === interaction.user.id;
-            const hasSupport = ticketConfig.supportRoleId && member.roles.cache.has(ticketConfig.supportRoleId);
+            const hasSupport = ticketConfig['supportRoleId'] && member.roles.cache.has(ticketConfig['supportRoleId']);
             const isAdmin = member.permissions.has(PermissionFlagsBits.Administrator);
 
             if (!isTicketOwner && !hasSupport && !isAdmin) {
@@ -134,10 +134,10 @@ export default {
             const { htmlFile, textFile } = await saveTranscripts(transcript);
 
             await updateGuildData('tickets', guildId, (data) => {
-                data.openTickets.splice(ticketIndex, 1);
+                data['openTickets'].splice(ticketIndex, 1);
 
-                data.closedTickets ??= [];
-                data.closedTickets.push({
+                data['closedTickets'] ??= [];
+                data['closedTickets'].push({
                     ticketNumber: ticket.ticketNumber,
                     userId: ticket.userId,
                     closedBy: interaction.user.id,
@@ -149,8 +149,8 @@ export default {
                     transcriptTextFile: textFile
                 });
 
-                if (data.closedTickets.length > 100) {
-                    data.closedTickets = data.closedTickets.slice(-100);
+                if (data['closedTickets'].length > 100) {
+                    data['closedTickets'] = data['closedTickets'].slice(-100);
                 }
 
                 return data;

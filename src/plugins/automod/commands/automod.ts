@@ -249,27 +249,27 @@ export default {
 async function getAutomodConfig(guildId: string): Promise<AutomodConfig> {
     const guildConfig = await getGuildData('automod', guildId);
     return {
-        enabled: guildConfig.enabled ?? config.automod.enabled,
-        bannedWords: guildConfig.bannedWords ?? [],
-        filterInvites: guildConfig.filterInvites ?? config.automod.filterInvites,
-        filterLinks: guildConfig.filterLinks ?? config.automod.filterLinks,
-        filterPhishingLinks: guildConfig.filterPhishingLinks ?? config.automod.filterPhishingLinks,
-        raidDetection: guildConfig.raidDetection ?? config.automod.raidDetection,
-        maxMentions: guildConfig.maxMentions ?? config.automod.maxMentions,
-        maxCapsPercent: guildConfig.maxCapsPercent ?? config.automod.maxCapsPercent,
-        minAccountAge: guildConfig.minAccountAge ?? config.automod.minAccountAge,
-        spamThreshold: guildConfig.spamThreshold ?? config.automod.spamThreshold,
-        spamInterval: guildConfig.spamInterval ?? config.automod.spamInterval,
-        aiModeration: guildConfig.aiModeration ?? config.automod.aiModeration,
-        nsfwFilter: guildConfig.nsfwFilter ?? config.automod.nsfwFilter,
-        exemptChannels: guildConfig.exemptChannels ?? [],
-        exemptRoles: guildConfig.exemptRoles ?? []
+        enabled: guildConfig['enabled'] ?? config.automod.enabled,
+        bannedWords: guildConfig['bannedWords'] ?? [],
+        filterInvites: guildConfig['filterInvites'] ?? config.automod.filterInvites,
+        filterLinks: guildConfig['filterLinks'] ?? config.automod.filterLinks,
+        filterPhishingLinks: guildConfig['filterPhishingLinks'] ?? config.automod.filterPhishingLinks,
+        raidDetection: guildConfig['raidDetection'] ?? config.automod.raidDetection,
+        maxMentions: guildConfig['maxMentions'] ?? config.automod.maxMentions,
+        maxCapsPercent: guildConfig['maxCapsPercent'] ?? config.automod.maxCapsPercent,
+        minAccountAge: guildConfig['minAccountAge'] ?? config.automod.minAccountAge,
+        spamThreshold: guildConfig['spamThreshold'] ?? config.automod.spamThreshold,
+        spamInterval: guildConfig['spamInterval'] ?? config.automod.spamInterval,
+        aiModeration: guildConfig['aiModeration'] ?? config.automod.aiModeration,
+        nsfwFilter: guildConfig['nsfwFilter'] ?? config.automod.nsfwFilter,
+        exemptChannels: guildConfig['exemptChannels'] ?? [],
+        exemptRoles: guildConfig['exemptRoles'] ?? []
     };
 }
 
 async function handleEnable(interaction: ChatInputCommandInteraction) {
     const cfg = await getGuildData('automod', interaction.guild!.id);
-    cfg.enabled = true;
+    cfg['enabled'] = true;
     await setGuildData('automod', interaction.guild!.id, cfg);
 
     const embed = new EmbedBuilder()
@@ -290,7 +290,7 @@ async function handleEnable(interaction: ChatInputCommandInteraction) {
 
 async function handleDisable(interaction: ChatInputCommandInteraction) {
     const cfg = await getGuildData('automod', interaction.guild!.id);
-    cfg.enabled = false;
+    cfg['enabled'] = false;
     await setGuildData('automod', interaction.guild!.id, cfg);
 
     const embed = new EmbedBuilder()
@@ -335,9 +335,9 @@ async function handleAddWord(interaction: ChatInputCommandInteraction) {
     const word = interaction.options.getString('word', true).toLowerCase();
     const guildConfig = await getGuildData('automod', interaction.guild!.id);
 
-    guildConfig.bannedWords ??= [];
+    guildConfig['bannedWords'] ??= [];
 
-    if (guildConfig.bannedWords.includes(word)) {
+    if (guildConfig['bannedWords'].includes(word)) {
         return interaction.reply({
             embeds: [{
                 color: 0xFFFF00,
@@ -349,14 +349,14 @@ async function handleAddWord(interaction: ChatInputCommandInteraction) {
         });
     }
 
-    guildConfig.bannedWords.push(word);
+    guildConfig['bannedWords'].push(word);
     await setGuildData('automod', interaction.guild!.id, guildConfig);
 
     const embed = new EmbedBuilder()
         .setColor('#00FF00')
         .setTitle('Word Added')
         .setDescription(`Added \`${word}\` to the banned words list.`)
-        .addFields({ name: 'Total Banned Words', value: `${guildConfig.bannedWords.length}` })
+        .addFields({ name: 'Total Banned Words', value: `${guildConfig['bannedWords'].length}` })
         .setTimestamp();
 
     await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
@@ -367,7 +367,7 @@ async function handleRemoveWord(interaction: ChatInputCommandInteraction) {
     const word = interaction.options.getString('word', true).toLowerCase();
     const guildConfig = await getGuildData('automod', interaction.guild!.id);
 
-    if (!guildConfig.bannedWords?.includes(word)) {
+    if (!guildConfig['bannedWords']?.includes(word)) {
         return interaction.reply({
             embeds: [{
                 color: 0xFF0000,
@@ -379,14 +379,14 @@ async function handleRemoveWord(interaction: ChatInputCommandInteraction) {
         });
     }
 
-    guildConfig.bannedWords = guildConfig.bannedWords.filter(w => w !== word);
+    guildConfig['bannedWords'] = guildConfig['bannedWords'].filter(w => w !== word);
     await setGuildData('automod', interaction.guild!.id, guildConfig);
 
     const embed = new EmbedBuilder()
         .setColor('#00FF00')
         .setTitle('Word Removed')
         .setDescription(`Removed \`${word}\` from the banned words list.`)
-        .addFields({ name: 'Total Banned Words', value: `${guildConfig.bannedWords.length}` })
+        .addFields({ name: 'Total Banned Words', value: `${guildConfig['bannedWords'].length}` })
         .setTimestamp();
 
     await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
@@ -500,10 +500,10 @@ async function handleExemptChannel(interaction: ChatInputCommandInteraction) {
     const action = interaction.options.getString('action', true);
 
     const guildConfig = await getGuildData('automod', interaction.guild!.id);
-    guildConfig.exemptChannels ??= [];
+    guildConfig['exemptChannels'] ??= [];
 
     if (action === 'add') {
-        if (guildConfig.exemptChannels.includes(channel.id)) {
+        if (guildConfig['exemptChannels'].includes(channel.id)) {
             return interaction.reply({
                 embeds: [{
                     color: 0xFFFF00,
@@ -515,7 +515,7 @@ async function handleExemptChannel(interaction: ChatInputCommandInteraction) {
             });
         }
 
-        guildConfig.exemptChannels.push(channel.id);
+        guildConfig['exemptChannels'].push(channel.id);
         await setGuildData('automod', interaction.guild!.id, guildConfig);
 
         await interaction.reply({
@@ -527,7 +527,7 @@ async function handleExemptChannel(interaction: ChatInputCommandInteraction) {
             }]
         });
     } else {
-        if (!guildConfig.exemptChannels.includes(channel.id)) {
+        if (!guildConfig['exemptChannels'].includes(channel.id)) {
             return interaction.reply({
                 embeds: [{
                     color: 0xFFFF00,
@@ -539,7 +539,7 @@ async function handleExemptChannel(interaction: ChatInputCommandInteraction) {
             });
         }
 
-        guildConfig.exemptChannels = guildConfig.exemptChannels.filter(id => id !== channel.id);
+        guildConfig['exemptChannels'] = guildConfig['exemptChannels'].filter(id => id !== channel.id);
         await setGuildData('automod', interaction.guild!.id, guildConfig);
 
         await interaction.reply({
@@ -558,10 +558,10 @@ async function handleExemptRole(interaction: ChatInputCommandInteraction) {
     const action = interaction.options.getString('action', true);
 
     const guildConfig = await getGuildData('automod', interaction.guild!.id);
-    guildConfig.exemptRoles ??= [];
+    guildConfig['exemptRoles'] ??= [];
 
     if (action === 'add') {
-        if (guildConfig.exemptRoles.includes(role.id)) {
+        if (guildConfig['exemptRoles'].includes(role.id)) {
             return interaction.reply({
                 embeds: [{
                     color: 0xFFFF00,
@@ -573,7 +573,7 @@ async function handleExemptRole(interaction: ChatInputCommandInteraction) {
             });
         }
 
-        guildConfig.exemptRoles.push(role.id);
+        guildConfig['exemptRoles'].push(role.id);
         await setGuildData('automod', interaction.guild!.id, guildConfig);
 
         await interaction.reply({
@@ -585,7 +585,7 @@ async function handleExemptRole(interaction: ChatInputCommandInteraction) {
             }]
         });
     } else {
-        if (!guildConfig.exemptRoles.includes(role.id)) {
+        if (!guildConfig['exemptRoles'].includes(role.id)) {
             return interaction.reply({
                 embeds: [{
                     color: 0xFFFF00,
@@ -597,7 +597,7 @@ async function handleExemptRole(interaction: ChatInputCommandInteraction) {
             });
         }
 
-        guildConfig.exemptRoles = guildConfig.exemptRoles.filter(id => id !== role.id);
+        guildConfig['exemptRoles'] = guildConfig['exemptRoles'].filter(id => id !== role.id);
         await setGuildData('automod', interaction.guild!.id, guildConfig);
 
         await interaction.reply({

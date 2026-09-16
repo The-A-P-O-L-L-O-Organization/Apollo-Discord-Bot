@@ -11,7 +11,7 @@ describe('Plugin management command', () => {
 
   beforeEach(() => {
     accessControl.clearOwnerIdsCache();
-    delete process.env.OWNER_IDS;
+    delete process.env['OWNER_IDS'];
   });
 
   it('should have correct name', () => {
@@ -34,7 +34,7 @@ describe('Plugin management command', () => {
   });
 
   it('should restrict to bot owners', async () => {
-    process.env.OWNER_IDS = 'owner123';
+    process.env['OWNER_IDS'] = 'owner123';
     const interaction = {
       user: { id: 'notowner' },
       reply: vi.fn(),
@@ -64,7 +64,7 @@ describe('Plugin management command', () => {
     }
 
     it('should refuse install without explicit confirmation', async () => {
-      process.env.OWNER_IDS = 'owner';
+      process.env['OWNER_IDS'] = 'owner';
       const interaction = makeInteraction(false);
       await pluginCommand.execute(interaction);
       expect(interaction.client.manager.installPlugin).not.toHaveBeenCalled();
@@ -73,7 +73,7 @@ describe('Plugin management command', () => {
     });
 
     it('should install with confirmation', async () => {
-      process.env.OWNER_IDS = 'owner';
+      process.env['OWNER_IDS'] = 'owner';
       const interaction = makeInteraction(true);
       await pluginCommand.execute(interaction);
       expect(interaction.client.manager.installPlugin).toHaveBeenCalledWith('some-plugin');
@@ -81,7 +81,7 @@ describe('Plugin management command', () => {
   });
 
   it('should deny when OWNER_IDS is unset', async () => {
-    delete process.env.OWNER_IDS;
+    delete process.env['OWNER_IDS'];
     const installPlugin = vi.fn().mockResolvedValue({});
     const interaction = {
       user: { id: 'randomuser' },

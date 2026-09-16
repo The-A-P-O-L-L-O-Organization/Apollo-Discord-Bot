@@ -1,7 +1,5 @@
 import { config } from '../../../config/config.js';
-// @ts-expect-error - JS file not yet migrated
 import { requireOwner } from '../../../utils/accessControl.js';
-// @ts-expect-error - JS file not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { MessageFlags } from 'discord.js';
@@ -37,7 +35,7 @@ export default {
 
             const uptime = Date.now() - interaction.client.stats.startTime;
             const plugins = interaction.client.manager.listPlugins();
-            const runMode = process.env.RUN_MODE ?? 'gateway';
+            const runMode = process.env['RUN_MODE'] ?? 'gateway';
 
             const fields = [
                 { name: 'Run Mode', value: runMode, inline: true },

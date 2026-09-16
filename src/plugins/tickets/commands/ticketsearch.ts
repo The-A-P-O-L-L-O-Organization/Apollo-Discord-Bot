@@ -1,9 +1,7 @@
 import type { ChatInputCommandInteraction } from 'discord.js';
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
 import { getGuildData } from '../../../utils/db.js';
-// @ts-expect-error - slaTracker not yet migrated
 import { formatTime, getPriorityEmoji } from '../../../utils/slaTracker.js';
-// @ts-expect-error - discordErrors not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
@@ -92,8 +90,8 @@ export default {
             const subcommand = interaction.options.getSubcommand();
             const ticketConfig = await getGuildData('tickets', guildId);
             const allTickets = [
-                ...(ticketConfig.openTickets ?? []),
-                ...(ticketConfig.closedTickets ?? [])
+                ...(ticketConfig['openTickets'] ?? []),
+                ...(ticketConfig['closedTickets'] ?? [])
             ];
 
             let results: any[] = [];

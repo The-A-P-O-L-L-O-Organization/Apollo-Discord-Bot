@@ -52,15 +52,15 @@ interface RaidState {
  * @returns Raid thresholds
  */
 function getRaidThresholds(guildConfig: Record<string, any>): RaidThresholds {
-    if (!guildConfig.raidThresholds) {
+    if (!guildConfig['raidThresholds']) {
         return DEFAULT_RAID_THRESHOLDS;
     }
     return {
-        joinCount: guildConfig.raidThresholds.joinCount ?? DEFAULT_RAID_THRESHOLDS.joinCount,
-        timeWindow: guildConfig.raidThresholds.timeWindow ?? DEFAULT_RAID_THRESHOLDS.timeWindow,
-        newAccountAge: guildConfig.raidThresholds.newAccountAge ?? DEFAULT_RAID_THRESHOLDS.newAccountAge,
-        similarNameThreshold: guildConfig.raidThresholds.similarNameThreshold ?? DEFAULT_RAID_THRESHOLDS.similarNameThreshold,
-        alertCooldown: guildConfig.raidThresholds.alertCooldown ?? DEFAULT_RAID_THRESHOLDS.alertCooldown
+        joinCount: guildConfig['raidThresholds'].joinCount ?? DEFAULT_RAID_THRESHOLDS.joinCount,
+        timeWindow: guildConfig['raidThresholds'].timeWindow ?? DEFAULT_RAID_THRESHOLDS.timeWindow,
+        newAccountAge: guildConfig['raidThresholds'].newAccountAge ?? DEFAULT_RAID_THRESHOLDS.newAccountAge,
+        similarNameThreshold: guildConfig['raidThresholds'].similarNameThreshold ?? DEFAULT_RAID_THRESHOLDS.similarNameThreshold,
+        alertCooldown: guildConfig['raidThresholds'].alertCooldown ?? DEFAULT_RAID_THRESHOLDS.alertCooldown
     };
 }
 

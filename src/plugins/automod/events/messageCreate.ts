@@ -110,8 +110,8 @@ async function handleViolation(message: Message, type: string, reason: string, c
 
     // Check for auto-punishment thresholds
     const guildSettings = await getGuildData('warnings-config', guildId);
-    const thresholds = guildSettings?.thresholds ?? config.warnings.thresholds;
-    const muteDuration = guildSettings?.muteDuration ?? config.warnings.muteDuration;
+    const thresholds = guildSettings?.['thresholds'] ?? config.warnings.thresholds;
+    const muteDuration = guildSettings?.['muteDuration'] ?? config.warnings.muteDuration;
 
     let autoPunishment = null;
     const member = message.member;

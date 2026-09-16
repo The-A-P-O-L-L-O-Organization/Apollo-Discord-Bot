@@ -1,4 +1,3 @@
-// @ts-expect-error - JS file not yet migrated
 import { createLogger } from '../../../utils/logger.js';
 
 const logger = createLogger({ component: 'admin:guildDelete' });

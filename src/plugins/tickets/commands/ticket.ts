@@ -57,7 +57,7 @@ export default {
 
             const ticketConfig = await getGuildData('tickets', guildId);
 
-            const existingTicket = ticketConfig.openTickets?.find(t => t.userId === userId);
+            const existingTicket = ticketConfig['openTickets']?.find(t => t.userId === userId);
             if (existingTicket) {
                 await interaction.reply({
                     content: `You already have an open ticket: <#${existingTicket.channelId}>`,
@@ -75,15 +75,15 @@ export default {
             }
 
             let parent = null;
-            if (ticketConfig.categoryId) {
+            if (ticketConfig['categoryId']) {
                 try {
-                    parent = await interaction.guild!.channels.fetch(ticketConfig.categoryId);
+                    parent = await interaction.guild!.channels.fetch(ticketConfig['categoryId']);
                 } catch {
                     // ignore
                 }
             }
 
-            const ticketNumber = (ticketConfig.totalTickets ?? 0) + 1;
+            const ticketNumber = (ticketConfig['totalTickets'] ?? 0) + 1;
             const sanitizedUsername = interaction.user.username.substring(0, 20);
             const channelName = `${config.tickets.channelPrefix}${ticketNumber}-${sanitizedUsername}`.toLowerCase().replace(/[^a-z0-9-]/g, '');
 
@@ -112,9 +112,9 @@ export default {
                 }
             ];
 
-            if (ticketConfig.supportRoleId) {
+            if (ticketConfig['supportRoleId']) {
                 permissionOverwrites.push({
-                    id: ticketConfig.supportRoleId,
+                    id: ticketConfig['supportRoleId'],
                     allow: [
                         PermissionFlagsBits.ViewChannel,
                         PermissionFlagsBits.SendMessages,
@@ -171,15 +171,15 @@ export default {
                 );
 
             await ticketChannel.send({
-                content: `${interaction.user} ${ticketConfig.supportRoleId ? `<@&${ticketConfig.supportRoleId}>` : ''}`,
+                content: `${interaction.user} ${ticketConfig['supportRoleId'] ? `<@&${ticketConfig['supportRoleId']}>` : ''}`,
                 embeds: [embed],
                 components: [row]
             });
 
             const ticketId = generateId();
             await updateGuildData('tickets', guildId, (data) => {
-                data.openTickets ??= [];
-                data.openTickets.push({
+                data['openTickets'] ??= [];
+                data['openTickets'].push({
                     id: ticketId,
                     ticketNumber,
                     channelId: ticketChannel.id,
@@ -195,7 +195,7 @@ export default {
                     tags: [category, priority],
                     createdAt: Date.now()
                 });
-                data.totalTickets = ticketNumber;
+                data['totalTickets'] = ticketNumber;
                 return data;
             });
 

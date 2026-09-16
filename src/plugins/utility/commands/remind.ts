@@ -1,9 +1,7 @@
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { MessageFlags } from 'discord.js';
 import { config } from '../../../config/config.js';
-// @ts-expect-error reminderScheduler.js not yet migrated
 import { addReminder, parseTimeString } from '../../../utils/reminderScheduler.js';
-// @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {

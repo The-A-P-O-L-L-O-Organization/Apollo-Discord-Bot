@@ -1,10 +1,7 @@
-// @ts-expect-error - JS file not yet migrated
 import { logger } from '../../../utils/logger.js';
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { PermissionsBitField, MessageFlags } from 'discord.js';
-// @ts-expect-error - JS file not yet migrated
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
-// @ts-expect-error - JS file not yet migrated
 
 interface CaseData {
     caseId: number;
@@ -213,7 +210,7 @@ async function handleViewCase(interaction: ChatInputCommandInteraction) {
 
     // Create case embed
     const caseEmbed = {
-        color: actionColors[caseInfo.type.toLowerCase()] ?? actionColors.default,
+        color: actionColors[caseInfo.type.toLowerCase()] ?? actionColors['default'],
         title: `[CASE] Case #${caseInfo.caseId} - ${caseInfo.type.toUpperCase()}`,
         fields: [
             {
@@ -344,7 +341,7 @@ async function handleEditCase(interaction: ChatInputCommandInteraction) {
         return data;
     });
 
-    if (result.error === 'not_found') {
+    if (result['error'] === 'not_found') {
         const errorEmbed = {
             color: 0xFF0000,
             title: '[ERROR] Case Not Found',
@@ -354,7 +351,7 @@ async function handleEditCase(interaction: ChatInputCommandInteraction) {
         return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
     }
 
-    if (result.error === 'deleted') {
+    if (result['error'] === 'deleted') {
         const errorEmbed = {
             color: 0xFF0000,
             title: '[ERROR] Case Deleted',
@@ -422,7 +419,7 @@ async function handleDeleteCase(interaction: ChatInputCommandInteraction) {
         return data;
     });
 
-    if (result.error === 'not_found') {
+    if (result['error'] === 'not_found') {
         const errorEmbed = {
             color: 0xFF0000,
             title: '[ERROR] Case Not Found',
@@ -432,7 +429,7 @@ async function handleDeleteCase(interaction: ChatInputCommandInteraction) {
         return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
     }
 
-    if (result.error === 'already_deleted') {
+    if (result['error'] === 'already_deleted') {
         const errorEmbed = {
             color: 0xFF0000,
             title: '[ERROR] Already Deleted',
@@ -552,5 +549,5 @@ export async function createModCase(guildId: string, caseInfo: {
         return current;
     });
 
-    return data.nextCaseId - 1;
+    return data['nextCaseId'] - 1;
 }

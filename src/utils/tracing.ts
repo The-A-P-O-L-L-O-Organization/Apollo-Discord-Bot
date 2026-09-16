@@ -155,7 +155,7 @@ export function createTraceContext(options: { traceId?: string; parentSpanId?: s
  */
 export function traceMiddleware(): (req: unknown, res: unknown, next: () => void) => void {
     return (req: Record<string, unknown>, res: Record<string, unknown>, next: () => void): void => {
-        const headers = (req.headers as Record<string, string>) ?? {};
+        const headers = (req['headers'] as Record<string, string>) ?? {};
         const traceId = headers['x-trace-id'] ?? headers['traceparent']?.split('-')[1];
         const parentSpanId = headers['x-parent-span-id'];
 
@@ -163,18 +163,18 @@ export function traceMiddleware(): (req: unknown, res: unknown, next: () => void
 
         // Add request info to span
         ctx.attributes = {
-            'http.method': req.method,
-            'http.url': req.url,
-            'http.route': req.route?.path ?? req.path,
+            'http.method': req['method'],
+            'http.url': req['url'],
+            'http.route': req['route']?.path ?? req['path'],
             'http.user_agent': headers['user-agent']
         };
 
         // Run handler with trace context
         traceContext.run(ctx, () => {
             // Add trace headers to response
-            if (res.setHeader) {
-                res.setHeader('x-trace-id', ctx.traceId);
-                res.setHeader('x-span-id', ctx.spanId);
+            if (res['setHeader']) {
+                res['setHeader']('x-trace-id', ctx.traceId);
+                res['setHeader']('x-span-id', ctx.spanId);
             }
             next();
         });
@@ -194,17 +194,17 @@ export function traceInteraction<T extends Record<string, unknown>>(
     return async (interaction: T): Promise<unknown> => {
         // Extract trace context from interaction if available
         // Expected customId format: "traceId:parentSpanId" (set when creating traced components)
-        const customId = interaction.customId as string | undefined;
+        const customId = interaction['customId'] as string | undefined;
         const traceId = customId?.split(':')[0];
         const parentSpanId = customId?.split(':')[1];
 
         const ctx = createTraceContext({ traceId, parentSpanId });
         ctx.attributes = {
-            'discord.interaction.type': interaction.type,
-            'discord.interaction.command': interaction.commandName,
-            'discord.guild.id': interaction.guildId,
-            'discord.channel.id': interaction.channelId,
-            'discord.user.id': interaction.user?.id
+            'discord.interaction.type': interaction['type'],
+            'discord.interaction.command': interaction['commandName'],
+            'discord.guild.id': interaction['guildId'],
+            'discord.channel.id': interaction['channelId'],
+            'discord.user.id': interaction['user']?.id
         };
 
         return traceContext.run(ctx, () => handler(interaction));
@@ -221,8 +221,8 @@ export function traceJob<T extends { data?: Record<string, unknown>; name: strin
 ): (job: T) => Promise<unknown> {
     return async (job: T): Promise<unknown> => {
         // Extract trace context from job data
-        const traceId = job.data?.traceId as string | undefined;
-        const parentSpanId = job.data?.spanId as string | undefined;
+        const traceId = job.data?.['traceId'] as string | undefined;
+        const parentSpanId = job.data?.['spanId'] as string | undefined;
 
         const ctx = createTraceContext({ traceId, parentSpanId });
         ctx.attributes = {

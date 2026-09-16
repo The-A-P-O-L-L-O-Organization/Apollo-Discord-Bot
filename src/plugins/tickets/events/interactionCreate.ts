@@ -2,7 +2,6 @@ import type { ButtonInteraction, GuildTextBasedChannel } from 'discord.js';
 import { EmbedBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { getGuildData, updateGuildData, generateId, writeToSubDir } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
-// @ts-expect-error - logger not yet migrated
 import { logger } from '../../../utils/logger.js';
 import { MessageFlags } from 'discord.js';
 

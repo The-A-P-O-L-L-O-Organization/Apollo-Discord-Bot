@@ -50,10 +50,10 @@ export default {
 
             const restorePermissions: Record<string, boolean> = {};
             if (lockInfo.originalPermissions.SendMessages !== null) {
-                restorePermissions.SendMessages = lockInfo.originalPermissions.SendMessages;
+                restorePermissions['SendMessages'] = lockInfo.originalPermissions.SendMessages;
             }
             if (lockInfo.originalPermissions.AddReactions !== null) {
-                restorePermissions.AddReactions = lockInfo.originalPermissions.AddReactions;
+                restorePermissions['AddReactions'] = lockInfo.originalPermissions.AddReactions;
             }
 
             if (Object.keys(restorePermissions).length === 0) {

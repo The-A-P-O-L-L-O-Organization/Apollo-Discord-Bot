@@ -1,8 +1,5 @@
-// @ts-expect-error - JS file not yet migrated
 import { logger } from '../../../utils/logger.js';
-// @ts-expect-error - JS file not yet migrated
 import { setGuildData } from '../../../utils/db.js';
-// @ts-expect-error - JS file not yet migrated
 import { config } from '../../../config/config.js';
 
 export default {

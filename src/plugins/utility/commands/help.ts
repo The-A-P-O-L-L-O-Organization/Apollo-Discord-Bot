@@ -4,7 +4,6 @@ import { logger } from '../../../utils/logger.js';
 
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { EmbedBuilder, PermissionsBitField } from 'discord.js';
-// @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 // Map permission flags to human-readable names

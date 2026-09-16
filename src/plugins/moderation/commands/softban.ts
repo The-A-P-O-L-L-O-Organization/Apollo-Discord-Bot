@@ -1,17 +1,10 @@
-// @ts-expect-error - JS file not yet migrated
 import { logger } from '../../../utils/logger.js';
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { PermissionsBitField, MessageFlags } from 'discord.js';
-// @ts-expect-error - JS file not yet migrated
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
-// @ts-expect-error - JS file not yet migrated
 import { createModCase } from './case.js';
-// @ts-expect-error - JS file not yet migrated
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
-// @ts-expect-error - JS file not yet migrated
 import { canModerate } from '../../../utils/moderation.js';
-// @ts-expect-error - JS file not yet migrated
-// @ts-expect-error - JS file not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {

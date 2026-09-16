@@ -29,7 +29,7 @@ export default {
 
             const ticketConfig = await getGuildData('tickets', guildId);
 
-            const ticket = ticketConfig.openTickets?.find(t => t.channelId === channelId);
+            const ticket = ticketConfig['openTickets']?.find(t => t.channelId === channelId);
 
             if (!ticket) {
                 await interaction.reply({
@@ -42,7 +42,7 @@ export default {
             const member = interaction.member;
             const isTicketOwner = ticket.userId === interaction.user.id;
             const isAssigned = ticket.assignedTo?.includes(interaction.user.id);
-            const hasSupport = ticketConfig.supportRoleId && member.roles.cache.has(ticketConfig.supportRoleId);
+            const hasSupport = ticketConfig['supportRoleId'] && member.roles.cache.has(ticketConfig['supportRoleId']);
             const isAdmin = member.permissions.has(PermissionFlagsBits.Administrator);
 
             if (!isTicketOwner && !isAssigned && !hasSupport && !isAdmin) {
@@ -64,7 +64,7 @@ export default {
             }
 
             await updateGuildData('tickets', guildId, (data) => {
-                const t = data.openTickets?.find(x => x.channelId === channelId);
+                const t = data['openTickets']?.find(x => x.channelId === channelId);
                 if (t) {
                     t.participants ??= [t.userId];
                     t.participants.push(addUser.id);

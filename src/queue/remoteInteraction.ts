@@ -224,13 +224,13 @@ export default class RemoteInteraction {
 
 function buildMessageBody(options: Record<string, unknown>): Record<string, unknown> {
     const body: Record<string, unknown> = {};
-    if (options.content) { body.content = options.content; }
-    if (options.embeds) { body.embeds = options.embeds; }
-    if (options.components) { body.components = options.components; }
-    if (options.files) { body.files = options.files; }
-    if (options.allowedMentions) { body.allowed_mentions = options.allowedMentions; }
-    if (options.tts) { body.tts = true; }
-    if (options.flags) { body.flags = options.flags; }
+    if (options['content']) { body['content'] = options['content']; }
+    if (options['embeds']) { body['embeds'] = options['embeds']; }
+    if (options['components']) { body['components'] = options['components']; }
+    if (options['files']) { body['files'] = options['files']; }
+    if (options['allowedMentions']) { body['allowed_mentions'] = options['allowedMentions']; }
+    if (options['tts']) { body['tts'] = true; }
+    if (options['flags']) { body['flags'] = options['flags']; }
     return body;
 }
 
@@ -252,23 +252,23 @@ class RemoteOptions {
     getChannel(name: string): Record<string, unknown> | null {
         const opt = this._find(name);
         if (!opt?.value) { return null; }
-        return this._resolved?.channels?.[opt.value as string] ?? { id: opt.value, name: opt.value };
+        return this._resolved?.['channels']?.[opt.value as string] ?? { id: opt.value, name: opt.value };
     }
     getRole(name: string): Record<string, unknown> | null {
         const opt = this._find(name);
         if (!opt?.value) { return null; }
-        return this._resolved?.roles?.[opt.value as string] ?? { id: opt.value, name: opt.value };
+        return this._resolved?.['roles']?.[opt.value as string] ?? { id: opt.value, name: opt.value };
     }
     getUser(name: string): Record<string, unknown> | null {
         const opt = this._find(name);
         if (!opt?.value) { return null; }
-        return this._resolved?.users?.[opt.value as string] ?? { id: opt.value, username: opt.value };
+        return this._resolved?.['users']?.[opt.value as string] ?? { id: opt.value, username: opt.value };
     }
     getMember(name: string): Record<string, unknown> | null {
         const opt = this._find(name);
         if (!opt?.value) { return null; }
-        const resolvedUser = this._resolved?.users?.[opt.value as string];
-        const resolvedMember = this._resolved?.members?.[opt.value as string];
+        const resolvedUser = this._resolved?.['users']?.[opt.value as string];
+        const resolvedMember = this._resolved?.['members']?.[opt.value as string];
         if (resolvedUser) {
             return { ...resolvedUser as Record<string, unknown>, ...resolvedMember as Record<string, unknown>, roles: { cache: new Collection() } };
         }
@@ -373,12 +373,12 @@ class RemoteGuildChannels {
         try {
             const data = await this._api.rest.post(Routes.guildChannels(this._guildId), {
                 body: {
-                    name: options.name,
-                    type: options.type,
-                    topic: options.topic,
-                    permission_overwrites: options.permissionOverwrites,
-                    parent: options.parent,
-                    rate_limit_per_user: options.rateLimitPerUser
+                    name: options['name'],
+                    type: options['type'],
+                    topic: options['topic'],
+                    permission_overwrites: options['permissionOverwrites'],
+                    parent: options['parent'],
+                    rate_limit_per_user: options['rateLimitPerUser']
                 }
             });
             return new RemoteChannel(data.id, data.name, this._api);
@@ -422,7 +422,7 @@ class RemoteGuildBans {
     async create(userId: string, options: Record<string, unknown> = {}): Promise<void> {
         try {
             await this._api.rest.put(Routes.guildBan(this._guildId, userId), {
-                body: { delete_message_seconds: options.deleteMessageSeconds, reason: options.reason }
+                body: { delete_message_seconds: options['deleteMessageSeconds'], reason: options['reason'] }
             });
         } catch (err) {
             logger.error({ err: err as Error, msg: '[RemoteGuildBans] create failed' });
@@ -478,7 +478,7 @@ class RemoteChannel {
     async createInvite(options: Record<string, unknown> = {}): Promise<{ code: string; url: string }> {
         try {
             const invite = await this._api.rest.post(Routes.channelInvites(this.id), {
-                body: { max_age: options.maxAge ?? 86400, max_uses: options.maxUses ?? 0, temporary: options.temporary ?? false }
+                body: { max_age: options['maxAge'] ?? 86400, max_uses: options['maxUses'] ?? 0, temporary: options['temporary'] ?? false }
             });
             return { code: invite.code, url: `https://discord.gg/${invite.code}` };
         } catch (err) {
@@ -526,10 +526,10 @@ class RemotePermissionOverwrites {
 
     async edit(id: string, options: Record<string, unknown>): Promise<void> {
         try {
-            const allow = typeof options.allow === 'bigint' ? options.allow.toString() : (options.allow ?? '0');
-            const deny = typeof options.deny === 'bigint' ? options.deny.toString() : (options.deny ?? '0');
+            const allow = typeof options['allow'] === 'bigint' ? options['allow'].toString() : (options['allow'] ?? '0');
+            const deny = typeof options['deny'] === 'bigint' ? options['deny'].toString() : (options['deny'] ?? '0');
             await this._api.rest.put(Routes.channelPermission(this._channelId, id), {
-                body: { type: options.type ?? 1, allow, deny }
+                body: { type: options['type'] ?? 1, allow, deny }
             });
         } catch (err) {
             logger.error({ err: err as Error, msg: '[RemotePermissionOverwrites] edit failed' });

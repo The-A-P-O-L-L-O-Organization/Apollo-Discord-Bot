@@ -1,8 +1,6 @@
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { EmbedBuilder, MessageFlags, SlashCommandBuilder } from 'discord.js';
-// @ts-expect-error reminderScheduler.js not yet migrated
 import { getUserReminders } from '../../../utils/reminderScheduler.js';
-// @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {

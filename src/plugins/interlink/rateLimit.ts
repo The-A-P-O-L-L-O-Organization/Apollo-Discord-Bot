@@ -2,9 +2,7 @@
 // Redis-backed sliding window rate limiter for cross-pod synchronization
 import { logger } from '../../utils/logger.js';
 import { config } from '../../config/config.js';
-// @ts-expect-error - unmigrated utils
 import { getLockRedis } from '../../utils/lock.js';
-// @ts-expect-error - unmigrated utils
 import { LRUCache } from '../../utils/lruCache.js';
 
 const RATE_LIMIT_PREFIX = 'apollo:ratelimit:';

@@ -6,7 +6,6 @@ import { createBarChart, createSparkline, formatDuration, formatNumber } from '.
 import { exportAnalytics, cleanupExport, getAnalyticsSummary } from '../../../utils/exportAnalytics.js';
 import { getGuildData, getUserData } from '../../../utils/db.js';
 import { readFileSync } from 'fs';
-// @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 interface MemberGrowthData {
@@ -471,7 +470,7 @@ async function handleModerationStats(interaction: ChatInputCommandInteraction): 
 
     // Ticket statistics
     if (ticketData) {
-        const closedTickets = ticketData.closedTickets ?? [];
+        const closedTickets = ticketData['closedTickets'] ?? [];
         const recentClosed = closedTickets.filter((t: { closedAt: number; createdAt: number }) => {
             const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000);
             return t.closedAt >= cutoff;
@@ -487,7 +486,7 @@ async function handleModerationStats(interaction: ChatInputCommandInteraction): 
                 value: [
                     `**Tickets Closed:** ${recentClosed.length}`,
                     `**Avg Resolution Time:** ${formatDuration(avgResolution)}`,
-                    `**Currently Open:** ${ticketData.openTickets?.length ?? 0}`
+                    `**Currently Open:** ${ticketData['openTickets']?.length ?? 0}`
                 ].join('\n'),
                 inline: true
             });

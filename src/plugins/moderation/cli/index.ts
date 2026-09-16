@@ -62,7 +62,7 @@ const moderationCLI: CLICommand = {
             ],
             execute: async (args) => {
                 const data = await getGuildData('moderation', args.guild);
-                const cases = (data?.cases) ?? [];
+                const cases = (data?.['cases']) ?? [];
                 const c = cases.find(x => x.id === args.id);
                 if (!c) {return { success: false, message: `Case "${args.id}" not found` };}
                 return c;

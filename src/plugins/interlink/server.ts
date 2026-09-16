@@ -4,7 +4,6 @@ import compression from 'compression';
 import helmet from 'helmet';
 import createRoutes from './routes.js';
 import RateLimiter from './rateLimit.js';
-// @ts-expect-error - unmigrated utils
 import { register } from '../../utils/metrics.js';
 import { config } from '../../config/config.js';
 

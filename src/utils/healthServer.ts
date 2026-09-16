@@ -14,7 +14,7 @@ let isReady = false;
 let startupTime = Date.now();
 
 // Health check authentication token (optional)
-const HEALTH_AUTH_TOKEN = process.env.HEALTH_AUTH_TOKEN ?? config.health?.authToken ?? null;
+const HEALTH_AUTH_TOKEN = process.env['HEALTH_AUTH_TOKEN'] ?? config.health?.authToken ?? null;
 
 /**
  * Checks if request is authenticated
@@ -156,8 +156,8 @@ export async function performReadinessCheck(client: Client): Promise<ReadinessCh
  * @returns {Promise<Server>} HTTP server instance
  */
 export async function startHealthServer(client: Client): Promise<Server> {
-    const port = process.env.HEALTH_PORT ? parseInt(process.env.HEALTH_PORT, 10) : 9090;
-    const host = process.env.HEALTH_HOST ?? '0.0.0.0';
+    const port = process.env['HEALTH_PORT'] ? parseInt(process.env['HEALTH_PORT'], 10) : 9090;
+    const host = process.env['HEALTH_HOST'] ?? '0.0.0.0';
 
     if (healthServer) {
         logger.info('[HEALTH] Health server already running');

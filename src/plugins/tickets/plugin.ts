@@ -1,5 +1,4 @@
 import Plugin from '../../core/Plugin.js';
-// @ts-expect-error - slaMonitor not yet migrated
 import { startSlaMonitor } from './events/slaMonitor.js';
 import { createLogger } from '../../utils/logger.js';
 

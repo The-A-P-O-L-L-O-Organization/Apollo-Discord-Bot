@@ -1,6 +1,5 @@
 // Integration Poller
 // Periodically polls Twitch, YouTube, and RSS feeds for new content
-// @ts-expect-error - lock.js not yet migrated
 import { withLock, getLockRedis } from './lock.js';
 import { checkTwitchStream, checkYoutubeUploads, checkRssFeed } from './integrationClients.js';
 import { formatTwitchNotification, formatYoutubeNotification, formatRssNotification } from './integrationFormatters.js';
