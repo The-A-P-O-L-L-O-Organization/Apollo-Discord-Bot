@@ -76,7 +76,7 @@ export default {
 
             // Try to send a welcome message to the system channel or first available text channel
             try {
-                const welcomeChannel = guild.systemChannel ||
+                const welcomeChannel = guild.systemChannel ??
                                       guild.channels.cache.find((ch: any) =>
                                           ch.isTextBased() &&
                                           ch.permissionsFor(guild.members.me).has('SendMessages')

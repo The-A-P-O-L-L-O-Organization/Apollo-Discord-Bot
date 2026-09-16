@@ -24,7 +24,7 @@ function getNextThreshold(currentCount: number, thresholds: Record<string, numbe
         { action: 'ban', count: thresholds.ban }
     ].filter(t => t.count).sort((a, b) => a.count - b.count);
 
-    return sorted.find(t => t.count > currentCount) || null;
+    return sorted.find(t => t.count > currentCount) ?? null;
 }
 
 export default {
@@ -125,7 +125,7 @@ export default {
 
             await appendToUserArray('warnings', interaction.guild!.id, user.id, warning);
 
-            const userWarnings = await getUserData('warnings', interaction.guild!.id, user.id) || [];
+            const userWarnings = await getUserData('warnings', interaction.guild!.id, user.id) ?? [];
             const activeWarnings = userWarnings.filter((w: any) => w.active !== false);
             const warningCount = activeWarnings.length;
 
@@ -139,8 +139,8 @@ export default {
             });
 
             const guildSettings = await getGuildData('warnings-config', interaction.guild!.id);
-            const thresholds = guildSettings.thresholds || config.warnings.thresholds;
-            const muteDuration = guildSettings.muteDuration || config.warnings.muteDuration;
+            const thresholds = guildSettings.thresholds ?? config.warnings.thresholds;
+            const muteDuration = guildSettings.muteDuration ?? config.warnings.muteDuration;
 
             let dmSent = false;
             if (config.warnings.dmOnWarn) {
@@ -248,7 +248,7 @@ export default {
                     'Warning Count': `${warningCount}`,
                     'Warning ID': warning.id,
                     'Case ID': `#${caseId}`,
-                    'Auto-Punishment': autoPunishment || 'None'
+                    'Auto-Punishment': autoPunishment ?? 'None'
                 }
             });
 

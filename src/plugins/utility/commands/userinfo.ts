@@ -21,7 +21,7 @@ export default {
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
             const targetUser = interaction.options.getUser('user') ?? interaction.user;
-            const member = interaction.guild!.members.cache.get(targetUser.id) ||
+            const member = interaction.guild!.members.cache.get(targetUser.id) ??
                 await interaction.guild!.members.fetch(targetUser.id);
 
             if (!member) {

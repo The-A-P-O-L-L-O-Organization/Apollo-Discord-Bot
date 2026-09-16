@@ -77,7 +77,7 @@ export default {
                 const translationServiceGlobal = global.translationService;
                 if (error instanceof Error && error.message.includes('Unsupported language')) {
                     const langs = translationServiceGlobal?.getAvailableLanguagesString?.();
-                    errorMessage = `Language not supported. Available: ${langs || 'see translation service docs'}`;
+                    errorMessage = `Language not supported. Available: ${langs ?? 'see translation service docs'}`;
                 } else if (error instanceof Error && error.message.includes('Too many')) {
                     errorMessage = 'Too many translation requests. Please wait a moment.';
                 }

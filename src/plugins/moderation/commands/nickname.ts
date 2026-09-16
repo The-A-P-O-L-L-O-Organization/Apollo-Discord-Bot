@@ -39,7 +39,7 @@ export default {
             // Get options
             const user = interaction.options.getUser('user');
             const nickname = interaction.options.getString('nickname');
-            const reason = interaction.options.getString('reason') || 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? 'No reason provided';
 
             // Check if user exists
             if (!user) {
@@ -92,14 +92,14 @@ export default {
             }
 
             // Store old nickname
-            const oldNickname = member.nickname || member.user.username;
+            const oldNickname = member.nickname ?? member.user.username;
 
             // Change nickname
             await member.setNickname(nickname ?? null,
                 `Nickname change by ${interaction.user.tag}: ${reason}`);
 
             // Format new nickname
-            const newNickname = nickname || user.username;
+            const newNickname = nickname ?? user.username;
             const action = nickname ? 'changed' : 'reset';
 
             // Create success embed

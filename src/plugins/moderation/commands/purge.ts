@@ -40,7 +40,7 @@ export default {
         try {
             const amount = interaction.options.getInteger('amount') ?? 0;
             const targetUser = interaction.options.getUser('user');
-            const reason = interaction.options.getString('reason') || 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? 'No reason provided';
 
             if (!amount || amount < 1 || amount > 100) {
                 const errorEmbed = {
@@ -132,7 +132,7 @@ export default {
 
             await sendModLog(interaction.guild!, {
                 action: 'purge',
-                target: targetUser || interaction.user,
+                target: targetUser ?? interaction.user,
                 moderator: interaction.user,
                 reason: reason,
                 extra: {

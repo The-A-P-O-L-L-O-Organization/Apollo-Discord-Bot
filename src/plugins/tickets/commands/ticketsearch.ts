@@ -92,8 +92,8 @@ export default {
             const subcommand = interaction.options.getSubcommand();
             const ticketConfig = await getGuildData('tickets', guildId);
             const allTickets = [
-                ...(ticketConfig.openTickets || []),
-                ...(ticketConfig.closedTickets || [])
+                ...(ticketConfig.openTickets ?? []),
+                ...(ticketConfig.closedTickets ?? [])
             ];
 
             let results: any[] = [];
@@ -107,7 +107,7 @@ export default {
             } else if (subcommand === 'assigned') {
                 const staff = interaction.options.getUser('staff')!;
                 results = allTickets.filter(t =>
-                    t.assignedTo?.includes(staff.id) || t.claimedBy === staff.id
+                    t.assignedTo?.includes(staff.id) ?? t.claimedBy === staff.id
                 );
             } else if (subcommand === 'priority') {
                 const priority = interaction.options.getString('priority')!;
@@ -142,13 +142,13 @@ export default {
 
                 pageResults.forEach(ticket => {
                     const status = ticket.closedAt ? 'Closed' : 'Open';
-                    const priority = ticket.priority || 'medium';
+                    const priority = ticket.priority ?? 'medium';
                     const emoji = getPriorityEmoji(priority);
 
                     const value = [
                         `Status: ${status}`,
                         `Priority: ${emoji} ${priority}`,
-                        `Category: ${ticket.category || 'general'}`,
+                        `Category: ${ticket.category ?? 'general'}`,
                         `Created: <t:${Math.floor(ticket.createdAt / 1000)}:R>`
                     ];
 

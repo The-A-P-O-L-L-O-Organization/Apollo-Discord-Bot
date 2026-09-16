@@ -160,7 +160,7 @@ async function handleAdd(interaction: ChatInputCommandInteraction): Promise<void
         }
 
         const guildData = (await getGuildData('blacklist', interaction.guild!.id)) as BlacklistData;
-        const entries = guildData.entries || {};
+        const entries = guildData.entries ?? {};
 
         // Check if already blacklisted
         if (entries[user.id]) {
@@ -178,7 +178,7 @@ async function handleAdd(interaction: ChatInputCommandInteraction): Promise<void
 
         // Add to blacklist
         await updateGuildData('blacklist', interaction.guild!.id, (data: BlacklistData) => {
-            if (!data.entries) {data.entries = {};}
+            data.entries ??= {};
             data.entries[user.id] = {
                 userId: user.id,
                 userTag: user.tag,
@@ -228,7 +228,7 @@ async function handleRemove(interaction: ChatInputCommandInteraction): Promise<v
         const user = interaction.options.getUser('user', true);
 
         const guildData = (await getGuildData('blacklist', interaction.guild!.id)) as BlacklistData;
-        const entries = guildData.entries || {};
+        const entries = guildData.entries ?? {};
 
         if (!entries[user.id]) {
             await interaction.reply({
@@ -279,7 +279,7 @@ async function handleRemove(interaction: ChatInputCommandInteraction): Promise<v
 async function handleView(interaction: ChatInputCommandInteraction): Promise<void> {
     try {
         const guildData = (await getGuildData('blacklist', interaction.guild!.id)) as BlacklistData;
-        const entries = guildData.entries || {};
+        const entries = guildData.entries ?? {};
         const list = Object.values(entries);
 
         if (list.length === 0) {
@@ -342,8 +342,8 @@ async function handleGlobal(interaction: ChatInputCommandInteraction): Promise<v
         const user = interaction.options.getUser('user');
         const reason = interaction.options.getString('reason');
 
-        const globalData = (await getData('global_blacklist')) as BlacklistData | undefined || { entries: {} };
-        const entries = globalData.entries || {};
+        const globalData = (await getData('global_blacklist')) as BlacklistData | undefined ?? { entries: {} };
+        const entries = globalData.entries ?? {};
 
         if (action === 'add') {
             if (!user || !reason) {
@@ -386,7 +386,7 @@ async function handleGlobal(interaction: ChatInputCommandInteraction): Promise<v
             }
 
             await updateGuildData('global_blacklist', '__global__', (data: BlacklistData) => {
-                if (!data.entries) {data.entries = {};}
+                data.entries ??= {};
                 data.entries[user.id] = {
                     userId: user.id,
                     userTag: user.tag,

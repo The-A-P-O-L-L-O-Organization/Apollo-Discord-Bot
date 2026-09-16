@@ -47,7 +47,7 @@ export default {
         try {
             const user = interaction.options.getUser('user');
             const durationStr = interaction.options.getString('duration') ?? '';
-            const reason = interaction.options.getString('reason') || 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? 'No reason provided';
             const deleteDays = interaction.options.getInteger('delete-days') ?? 0;
 
             if (!user) {

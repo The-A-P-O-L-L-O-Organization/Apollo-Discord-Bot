@@ -141,12 +141,12 @@ export default {
                                     : '';
                                 return '**' + p.id + '** v' + p.version +
                                     ' — ' + (p.enabled ? '[ENABLED]' : '[DISABLED]') + workerStatus;
-                            }).join('\n') || 'None',
+                            }).join('\n') ?? 'None',
                             inline: false
                         },
                         {
                             name: 'Available on Disk',
-                            value: discovered.filter((d: string) => !plugins.find((p: any) => p.id === d)).join(', ') || 'All loaded',
+                            value: discovered.filter((d: string) => !plugins.find((p: any) => p.id === d)).join(', ') ?? 'All loaded',
                             inline: false
                         }
                     ],
@@ -320,7 +320,7 @@ export default {
                         color: 0x00BFFF,
                         title: 'Plugin Search: "' + query + '"',
                         description: results.length
-                            ? results.map((r: any) => '**' + r.id + '** v' + r.version + ' — ' + (r.name || r.id)).join('\n')
+                            ? results.map((r: any) => '**' + r.id + '** v' + r.version + ' — ' + (r.name ?? r.id)).join('\n')
                             : 'No plugins found.',
                         fields: results.length ? [{
                             name: 'Install',

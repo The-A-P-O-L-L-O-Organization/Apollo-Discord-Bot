@@ -20,7 +20,7 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
-            const user = interaction.options.getUser('user') || interaction.user;
+            const user = interaction.options.getUser('user') ?? interaction.user;
 
             // Fetch full user to get banner
             const fullUser = await interaction.client.users.fetch(user.id);

@@ -23,7 +23,7 @@ export default {
                 const bulkDeleteLog = auditLogs.entries.first();
                 if (bulkDeleteLog && Date.now() - bulkDeleteLog.createdTimestamp < 5000) {
                     executor = bulkDeleteLog.executor;
-                    reason = bulkDeleteLog.reason || 'No reason provided';
+                    reason = bulkDeleteLog.reason ?? 'No reason provided';
                 }
             } catch {
                 // Ignore audit log errors

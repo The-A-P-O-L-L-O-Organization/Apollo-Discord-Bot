@@ -78,7 +78,7 @@ async function handleAdd(interaction: ChatInputCommandInteraction) {
     const user = interaction.options.getUser('user');
     const role = interaction.options.getRole('role');
     const durationStr = interaction.options.getString('duration') ?? '';
-    const reason = interaction.options.getString('reason') || 'No reason provided';
+    const reason = interaction.options.getString('reason') ?? 'No reason provided';
 
     const durationMs = parseDuration(durationStr);
     if (!durationMs) {

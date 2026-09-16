@@ -15,7 +15,7 @@ export default {
             }
 
             let executor = null;
-            let reason = ban.reason || 'No reason provided';
+            let reason = ban.reason ?? 'No reason provided';
 
             try {
                 const auditLogs = await guild.fetchAuditLogs({
@@ -26,7 +26,7 @@ export default {
                 const banLog = auditLogs.entries.first();
                 if (banLog && banLog.target.id === user.id) {
                     executor = banLog.executor;
-                    reason = banLog.reason || reason;
+                    reason = banLog.reason ?? reason;
                 }
             } catch {
                 console.log('[INFO] Could not fetch audit log for ban');

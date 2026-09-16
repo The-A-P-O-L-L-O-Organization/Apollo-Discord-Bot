@@ -45,7 +45,7 @@ export default {
         // --- Blacklist check ---
         if (!member.user.bot) {
             const globalData = (await getData('global_blacklist')) || { entries: {} };
-            const globalEntries = globalData.entries || {};
+            const globalEntries = globalData.entries ?? {};
             let entry = globalEntries[member.id];
             let isGlobal = false;
 
@@ -53,7 +53,7 @@ export default {
                 isGlobal = true;
             } else {
                 const guildData = await getGuildData('blacklist', guild.id);
-                const entries = guildData.entries || {};
+                const entries = guildData.entries ?? {};
                 entry = entries[member.id];
             }
 

@@ -140,8 +140,8 @@ export default class MessageBus {
 
     async _sendHttp(bot: BotRecord, envelope: Envelope): Promise<SendResult> {
         const url = bot.webhook_url;
-        const timeout = this._config.requestTimeout || 5000;
-        const maxRetries = this._config.maxRetries || 3;
+        const timeout = this._config.requestTimeout ?? 5000;
+        const maxRetries = this._config.maxRetries ?? 3;
         const payload = JSON.stringify(envelope);
 
         const fetchImpl = async (targetUrl: string | URL | Request, init?: RequestInit) => {

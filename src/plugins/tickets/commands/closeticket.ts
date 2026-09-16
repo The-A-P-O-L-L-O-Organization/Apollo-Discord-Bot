@@ -25,7 +25,7 @@ export default {
         try {
             const guildId = interaction.guild!.id;
             const channelId = interaction.channel!.id;
-            const reason = interaction.options.getString('reason') || 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? 'No reason provided';
 
             const ticketConfig = await getGuildData('tickets', guildId);
 
@@ -98,7 +98,7 @@ export default {
                 channelName: interaction.channel!.name,
                 createdBy: {
                     id: ticket.userId,
-                    tag: ticketCreator?.tag || 'Unknown'
+                    tag: ticketCreator?.tag ?? 'Unknown'
                 },
                 closedBy: {
                     id: interaction.user.id,
@@ -109,8 +109,8 @@ export default {
                 createdAt: ticket.createdAt,
                 closedAt: Date.now(),
                 messageCount: allMessages.length,
-                priority: ticket.priority || 'medium',
-                category: ticket.category || 'general',
+                priority: ticket.priority ?? 'medium',
+                category: ticket.category ?? 'general',
                 messages: allMessages.map(msg => ({
                     id: msg.id,
                     author: {
@@ -136,9 +136,7 @@ export default {
             await updateGuildData('tickets', guildId, (data) => {
                 data.openTickets.splice(ticketIndex, 1);
 
-                if (!data.closedTickets) {
-                    data.closedTickets = [];
-                }
+                data.closedTickets ??= [];
                 data.closedTickets.push({
                     ticketNumber: ticket.ticketNumber,
                     userId: ticket.userId,

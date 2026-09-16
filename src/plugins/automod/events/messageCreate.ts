@@ -85,7 +85,7 @@ async function handleViolation(message: Message, type: string, reason: string, c
     await appendToUserArray('warnings', guildId, userId, warning);
 
     // Get warning count
-    const userWarnings = await import('../../../utils/db.js').then(m => m.getUserData('warnings', guildId, userId)) || [];
+    const userWarnings = await import('../../../utils/db.js').then(m => m.getUserData('warnings', guildId, userId)) ?? [];
     const activeWarnings = userWarnings.filter((w: { active: boolean }) => w.active !== false);
     const warningCount = activeWarnings.length;
 
@@ -110,8 +110,8 @@ async function handleViolation(message: Message, type: string, reason: string, c
 
     // Check for auto-punishment thresholds
     const guildSettings = await getGuildData('warnings-config', guildId);
-    const thresholds = guildSettings?.thresholds || config.warnings.thresholds;
-    const muteDuration = guildSettings?.muteDuration || config.warnings.muteDuration;
+    const thresholds = guildSettings?.thresholds ?? config.warnings.thresholds;
+    const muteDuration = guildSettings?.muteDuration ?? config.warnings.muteDuration;
 
     let autoPunishment = null;
     const member = message.member;
@@ -285,7 +285,7 @@ export default {
                                 channelId: message.channel.id,
                                 messageId: message.id,
                                 userId,
-                                threshold: automodConfig.nsfwThreshold || 0.5
+                                threshold: automodConfig.nsfwThreshold ?? 0.5
                             });
                         }
                     }
@@ -304,7 +304,7 @@ export default {
 
         // Handle violations
         for (const violation of violations) {
-            await handleViolation(message, violation.type, violation.details || violation.type, client, true);
+            await handleViolation(message, violation.type, violation.details ?? violation.type, client, true);
         }
     }
 };

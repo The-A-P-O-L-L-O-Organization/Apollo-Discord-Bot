@@ -254,7 +254,7 @@ async function handleCreate(interaction: ChatInputCommandInteraction): Promise<v
     };
 
     await setGuildData('tags', interaction.guild!.id, {
-        ...(tags || {}),
+        ...(tags ?? {}),
         [name]: tagData
     });
 

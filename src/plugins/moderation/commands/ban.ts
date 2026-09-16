@@ -48,8 +48,8 @@ export default {
         try {
             // Get the user to ban
             const user = interaction.options.getUser('user');
-            const reason = interaction.options.getString('reason') || 'No reason provided';
-            const deleteDays = interaction.options.getInteger('delete-days') || 0;
+            const reason = interaction.options.getString('reason') ?? 'No reason provided';
+            const deleteDays = interaction.options.getInteger('delete-days') ?? 0;
 
             // Check if user exists
             if (!user) {

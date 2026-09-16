@@ -213,7 +213,7 @@ async function handleViewCase(interaction: ChatInputCommandInteraction) {
 
     // Create case embed
     const caseEmbed = {
-        color: actionColors[caseInfo.type.toLowerCase()] || actionColors.default,
+        color: actionColors[caseInfo.type.toLowerCase()] ?? actionColors.default,
         title: `[CASE] Case #${caseInfo.caseId} - ${caseInfo.type.toUpperCase()}`,
         fields: [
             {
@@ -474,7 +474,7 @@ async function handleDeleteCase(interaction: ChatInputCommandInteraction) {
 }
 
 async function handleListCases(interaction: ChatInputCommandInteraction) {
-    const limit = interaction.options.getInteger('limit') || 10;
+    const limit = interaction.options.getInteger('limit') ?? 10;
 
     // Get case data
     const caseData = await getGuildData('mod-cases', interaction.guild!.id) as GuildCaseData;
@@ -544,7 +544,7 @@ export async function createModCase(guildId: string, caseInfo: {
             moderatorId: caseInfo.moderatorId,
             moderatorTag: caseInfo.moderatorTag,
             reason: caseInfo.reason,
-            duration: caseInfo.duration || null,
+            duration: caseInfo.duration ?? null,
             timestamp: Date.now(),
             active: true
         });

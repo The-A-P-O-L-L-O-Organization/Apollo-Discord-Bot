@@ -41,7 +41,7 @@ export default {
         try {
             const userIdsStr = interaction.options.getString('user-ids');
             const durationStr = interaction.options.getString('duration');
-            const reason = interaction.options.getString('reason') || 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? 'No reason provided';
 
             if (!userIdsStr) {
                 const errorEmbed = {

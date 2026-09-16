@@ -101,7 +101,7 @@ export async function handleReportSubmission(
 
         // Save report to database
         await updateGuildData('reports', interaction.guild.id, (data: any) => {
-            if (!data.reports) { data.reports = []; }
+            data.reports ??= [];
             data.reports.push(reportData);
             return data;
         });

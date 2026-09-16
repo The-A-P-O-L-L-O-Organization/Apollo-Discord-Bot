@@ -11,12 +11,10 @@ let _ownerIds: string[] | null = null;
  * @returns {string[]} Array of owner user IDs
  */
 export function getOwnerIds(): string[] {
-    if (_ownerIds === null) {
-        _ownerIds = (process.env['OWNER_IDS'] ?? '')
-            .split(',')
-            .map(id => id.trim())
-            .filter(Boolean);
-    }
+    _ownerIds ??= (process.env['OWNER_IDS'] ?? '')
+        .split(',')
+        .map(id => id.trim())
+        .filter(Boolean);
     return _ownerIds;
 }
 
@@ -165,7 +163,7 @@ export async function requirePermission(interaction: Interaction, permission: Pe
     const member = interaction.member as GuildMember;
     if (!hasPermission(member, permission)) {
         const permName = Object.entries(PermissionsBitField.Flags)
-            .find(([, v]) => v === permission)?.[0] || 'the required permission';
+            .find(([, v]) => v === permission)?.[0] ?? 'the required permission';
         return {
             embeds: [createPermissionDeniedEmbed(permName)],
             ephemeral

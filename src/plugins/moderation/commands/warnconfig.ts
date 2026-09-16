@@ -52,8 +52,8 @@ function formatDuration(ms: number): string {
 
 async function handleView(interaction: ChatInputCommandInteraction): Promise<void> {
     const guildConfig = (await getGuildData('warnings-config', interaction.guild!.id)) as WarningConfig | null;
-    const thresholds = guildConfig?.thresholds || config.warnings.thresholds;
-    const muteDuration = guildConfig?.muteDuration || config.warnings.muteDuration;
+    const thresholds = guildConfig?.thresholds ?? config.warnings.thresholds;
+    const muteDuration = guildConfig?.muteDuration ?? config.warnings.muteDuration;
 
     const embed = new EmbedBuilder()
         .setColor('#0099FF')
@@ -96,11 +96,9 @@ async function handleSet(interaction: ChatInputCommandInteraction): Promise<void
     const action = interaction.options.getString('action', true);
     const warnings = interaction.options.getInteger('warnings', true);
 
-    const guildConfig = (await getGuildData('warnings-config', interaction.guild!.id)) as WarningConfig | null || {};
+    const guildConfig = (await getGuildData('warnings-config', interaction.guild!.id)) as WarningConfig | null ?? {};
 
-    if (!guildConfig.thresholds) {
-        guildConfig.thresholds = { ...config.warnings.thresholds };
-    }
+    guildConfig.thresholds ??= { ...config.warnings.thresholds };
 
     guildConfig.thresholds[action as keyof WarningThresholds] = warnings === 0 ? null : warnings;
 
@@ -177,7 +175,7 @@ async function handleSetMuteDuration(interaction: ChatInputCommandInteraction): 
         return;
     }
 
-    const guildConfig = (await getGuildData('warnings-config', interaction.guild!.id)) as WarningConfig | null || {};
+    const guildConfig = (await getGuildData('warnings-config', interaction.guild!.id)) as WarningConfig | null ?? {};
     guildConfig.muteDuration = ms;
 
     await setGuildData('warnings-config', interaction.guild!.id, guildConfig);

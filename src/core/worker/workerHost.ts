@@ -96,7 +96,7 @@ export class WorkerHost {
         const granted = this.getGrantedCapabilities(manifest, capabilities);
         const childEntry = new URL('./workerChild.js', import.meta.url).pathname;
 
-        const resourceLimits = manifest.resourceLimits || {};
+        const resourceLimits = manifest.resourceLimits ?? {};
         const maxOldGenerationSizeMb = resourceLimits.maxOldGenerationSizeMb ?? 256;
         const maxYoungGenerationSizeMb = resourceLimits.maxYoungGenerationSizeMb ?? 64;
         const stackSizeMb = resourceLimits.stackSizeMb ?? 8;
@@ -135,7 +135,7 @@ export class WorkerHost {
     }
 
     recordCrash(pluginId: string, code: number | null, signal: string | null): void {
-        const prev = this._crashes.get(pluginId) || { count: 0, lastCrashAt: 0, healthySince: null };
+        const prev = this._crashes.get(pluginId) ?? { count: 0, lastCrashAt: 0, healthySince: null };
         prev.count += 1;
         prev.lastCrashAt = this._now();
         this._crashes.set(pluginId, prev);
@@ -170,7 +170,7 @@ export class WorkerHost {
     }
 
     getConsecutiveCrashes(pluginId: string): number {
-        return (this._crashes.get(pluginId) || { count: 0 }).count;
+        return (this._crashes.get(pluginId) ?? { count: 0 }).count;
     }
 
     isDisabled(pluginId: string): boolean {

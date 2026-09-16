@@ -72,8 +72,8 @@ interface AnalyticsSummary {
  * @returns {Promise<ExportResult>} Export result with file path
  */
 export async function exportAnalytics(guildId: string, format = 'csv', options: ExportOptions = {}): Promise<ExportResult> {
-    const types = options.types || ['commands', 'messages', 'violations', 'modactions', 'members'];
-    const days = options.days || 30;
+    const types = options.types ?? ['commands', 'messages', 'violations', 'modactions', 'members'];
+    const days = options.days ?? 30;
 
     const cutoffDate = getDateString(Date.now() - (days * 24 * 60 * 60 * 1000));
 

@@ -105,7 +105,7 @@ async function handleCreateTicket(interaction: ButtonInteraction): Promise<void>
         ticketChannel = await interaction.guild!.channels.create({
             name: channelName,
             type: ChannelType.GuildText,
-            parent: parent?.id || null,
+            parent: parent?.id ?? null,
             permissionOverwrites,
             topic: `Ticket #${ticketNumber} | Created by ${interaction.user.tag}`
         });
@@ -229,7 +229,7 @@ async function handleCloseTicket(interaction: ButtonInteraction): Promise<void> 
         channelName: interaction.channel!.name,
         createdBy: {
             id: ticket['userId'],
-            tag: ticketCreator?.tag || 'Unknown'
+            tag: ticketCreator?.tag ?? 'Unknown'
         },
         closedBy: {
             id: interaction.user.id,

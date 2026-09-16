@@ -49,7 +49,7 @@ export default {
         try {
             const user = interaction.options.getUser('user');
             const warningId = interaction.options.getString('warning-id');
-            const reason = interaction.options.getString('reason') || 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? 'No reason provided';
 
             // Check if user exists
             if (!user) {
@@ -174,7 +174,7 @@ export default {
                     name: 'Cleared Warning Details',
                     value: [
                         `**Original Reason:** ${clearedWarning.reason}`,
-                        `**Issued By:** ${clearedWarning.moderatorTag || 'Unknown'}`,
+                        `**Issued By:** ${clearedWarning.moderatorTag ?? 'Unknown'}`,
                         `**Issued:** <t:${Math.floor(clearedWarning.timestamp / 1000)}:R>`
                     ].join('\n'),
                     inline: false
@@ -201,7 +201,7 @@ export default {
                 reason: reason,
                 extra: {
                     'Warnings Cleared': `${clearedCount}`,
-                    'Warning ID': warningId || 'All active',
+                    'Warning ID': warningId ?? 'All active',
                     'Remaining': `${remainingActive}`
                 }
             });

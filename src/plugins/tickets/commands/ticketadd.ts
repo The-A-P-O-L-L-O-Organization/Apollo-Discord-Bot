@@ -53,7 +53,7 @@ export default {
                 return;
             }
 
-            if (!ticket.participants) { ticket.participants = [ticket.userId]; }
+            ticket.participants ??= [ticket.userId];
 
             if (ticket.participants.includes(addUser.id)) {
                 await interaction.reply({
@@ -66,7 +66,7 @@ export default {
             await updateGuildData('tickets', guildId, (data) => {
                 const t = data.openTickets?.find(x => x.channelId === channelId);
                 if (t) {
-                    if (!t.participants) { t.participants = [t.userId]; }
+                    t.participants ??= [t.userId];
                     t.participants.push(addUser.id);
                 }
                 return data;

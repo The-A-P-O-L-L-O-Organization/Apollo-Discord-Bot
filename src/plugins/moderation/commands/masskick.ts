@@ -38,7 +38,7 @@ export default {
     async execute(interaction: ChatInputCommandInteraction) {
         try {
             const userIdsStr = interaction.options.getString('user-ids');
-            const reason = interaction.options.getString('reason') || 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? 'No reason provided';
 
             if (!userIdsStr) {
                 const errorEmbed = {

@@ -146,7 +146,7 @@ export default {
                 const messageId = interaction.options.getString('message_id');
                 const emojiInput = interaction.options.getString('emoji');
                 const role = interaction.options.getRole('role');
-                const channel = interaction.options.getChannel('channel') || interaction.channel;
+                const channel = interaction.options.getChannel('channel') ?? interaction.channel;
 
                 if (!role) {
                     return interaction.reply({
@@ -305,13 +305,11 @@ export default {
                 const grouped: Record<string, { channelId: string; messageId: string; roles: ReactionRole[] }> = {};
                 for (const rr of rolesArray) {
                     const key = `${rr['channelId']}-${rr['messageId']}`;
-                    if (!grouped[key]) {
-                        grouped[key] = {
-                            channelId: rr['channelId'] as string,
-                            messageId: rr['messageId'] as string,
-                            roles: []
-                        };
-                    }
+                    grouped[key] ??= {
+                        channelId: rr['channelId'] as string,
+                        messageId: rr['messageId'] as string,
+                        roles: []
+                    };
                     grouped[key].roles.push(rr as unknown as ReactionRole);
                 }
 

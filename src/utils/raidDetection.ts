@@ -274,7 +274,7 @@ export async function handleRaidDetected(guild: Guild, member: GuildMember): Pro
         }).filter(Boolean) as {userId: string; username: string; timestamp: number; accountAge: number}[];
 
         const lastAlertKey = `${RAID_KEY_PREFIX}${guild.id}:lastalert`;
-        const lastAlert = parseInt(await redis.get(lastAlertKey) || '0', 10);
+        const lastAlert = parseInt(await redis.get(lastAlertKey) ?? '0', 10);
 
         if (now - lastAlert < DEFAULT_RAID_THRESHOLDS.alertCooldown) {
             return; // Don't spam alerts
@@ -391,7 +391,7 @@ export async function enableRaidMode(guild: Guild): Promise<{success: boolean; r
     await setRaidModeRedis(guild.id, true);
 
     // Also update in-memory state for consistency
-    const state = raidState.get(guild.id) || { joins: [], raidMode: false, lastAlert: 0 };
+    const state = raidState.get(guild.id) ?? { joins: [], raidMode: false, lastAlert: 0 };
     state.raidMode = true;
     raidState.set(guild.id, state);
 

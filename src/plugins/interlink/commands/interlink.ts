@@ -181,8 +181,8 @@ export default {
     async _register(interaction: any) {
         const name = interaction.options.getString('name', true).trim();
         const webhookUrl = interaction.options.getString('webhook-url', true).trim();
-        const description = interaction.options.getString('description')?.trim() || '';
-        const supportsRedis = interaction.options.getBoolean('redis') || false;
+        const description = interaction.options.getString('description')?.trim() ?? '';
+        const supportsRedis = interaction.options.getBoolean('redis') ?? false;
 
         if (!webhookUrl.startsWith('http://') && !webhookUrl.startsWith('https://')) {
             return interaction.editReply({
@@ -365,7 +365,7 @@ export default {
         }
 
         const ownerIds = getOwnerIds();
-        const userId = interaction.options.getString('user-id') || ownerIds[0] || '';
+        const userId = interaction.options.getString('user-id') ?? ownerIds[0] ?? '';
 
         if (!userId) {
             return interaction.editReply({

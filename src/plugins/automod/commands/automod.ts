@@ -250,7 +250,7 @@ async function getAutomodConfig(guildId: string): Promise<AutomodConfig> {
     const guildConfig = await getGuildData('automod', guildId);
     return {
         enabled: guildConfig.enabled ?? config.automod.enabled,
-        bannedWords: guildConfig.bannedWords || [],
+        bannedWords: guildConfig.bannedWords ?? [],
         filterInvites: guildConfig.filterInvites ?? config.automod.filterInvites,
         filterLinks: guildConfig.filterLinks ?? config.automod.filterLinks,
         filterPhishingLinks: guildConfig.filterPhishingLinks ?? config.automod.filterPhishingLinks,
@@ -262,8 +262,8 @@ async function getAutomodConfig(guildId: string): Promise<AutomodConfig> {
         spamInterval: guildConfig.spamInterval ?? config.automod.spamInterval,
         aiModeration: guildConfig.aiModeration ?? config.automod.aiModeration,
         nsfwFilter: guildConfig.nsfwFilter ?? config.automod.nsfwFilter,
-        exemptChannels: guildConfig.exemptChannels || [],
-        exemptRoles: guildConfig.exemptRoles || []
+        exemptChannels: guildConfig.exemptChannels ?? [],
+        exemptRoles: guildConfig.exemptRoles ?? []
     };
 }
 
@@ -335,9 +335,7 @@ async function handleAddWord(interaction: ChatInputCommandInteraction) {
     const word = interaction.options.getString('word', true).toLowerCase();
     const guildConfig = await getGuildData('automod', interaction.guild!.id);
 
-    if (!guildConfig.bannedWords) {
-        guildConfig.bannedWords = [];
-    }
+    guildConfig.bannedWords ??= [];
 
     if (guildConfig.bannedWords.includes(word)) {
         return interaction.reply({
@@ -502,9 +500,7 @@ async function handleExemptChannel(interaction: ChatInputCommandInteraction) {
     const action = interaction.options.getString('action', true);
 
     const guildConfig = await getGuildData('automod', interaction.guild!.id);
-    if (!guildConfig.exemptChannels) {
-        guildConfig.exemptChannels = [];
-    }
+    guildConfig.exemptChannels ??= [];
 
     if (action === 'add') {
         if (guildConfig.exemptChannels.includes(channel.id)) {
@@ -562,9 +558,7 @@ async function handleExemptRole(interaction: ChatInputCommandInteraction) {
     const action = interaction.options.getString('action', true);
 
     const guildConfig = await getGuildData('automod', interaction.guild!.id);
-    if (!guildConfig.exemptRoles) {
-        guildConfig.exemptRoles = [];
-    }
+    guildConfig.exemptRoles ??= [];
 
     if (action === 'add') {
         if (guildConfig.exemptRoles.includes(role.id)) {
@@ -620,9 +614,9 @@ async function handleExemptRole(interaction: ChatInputCommandInteraction) {
 async function handleScan(interaction: ChatInputCommandInteraction) {
     try {
         const channel = interaction.options.getChannel('channel', true);
-        const limit = interaction.options.getInteger('limit') || 100;
+        const limit = interaction.options.getInteger('limit') ?? 100;
         const user = interaction.options.getUser('user');
-        const deleteEnabled = interaction.options.getBoolean('delete') || false;
+        const deleteEnabled = interaction.options.getBoolean('delete') ?? false;
 
         // Check if NSFW filter is enabled for this guild
         const cfg = await getAutomodConfig(interaction.guild!.id);

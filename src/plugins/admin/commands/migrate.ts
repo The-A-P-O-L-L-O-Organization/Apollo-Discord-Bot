@@ -42,10 +42,10 @@ export default {
                 const db = getDb();
                 const [completed, pending] = await db.migrate.list();
                 const completedNames = completed && completed.length > 0
-                    ? completed.map((m: { name?: string; file?: string }) => '`' + (m.name || m.file || m) + '`').join('\n')
+                    ? completed.map((m: { name?: string; file?: string }) => '`' + (m.name ?? m.file ?? m) + '`').join('\n')
                     : 'None';
                 const pendingFiles = pending && pending.length > 0
-                    ? pending.map((m: { file?: string }) => '`' + (m.file || m) + '`').join('\n')
+                    ? pending.map((m: { file?: string }) => '`' + (m.file ?? m) + '`').join('\n')
                     : 'None';
 
                 return safeReply(interaction, `Migration Status (${config.database.type}):\n\nCompleted:\n${completedNames}\n\nPending:\n${pendingFiles}`);

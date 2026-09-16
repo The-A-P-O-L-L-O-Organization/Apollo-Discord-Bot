@@ -124,7 +124,7 @@ export default class PluginManager {
             if (visited.has(id)) { return levels.get(id)!; }
             visited.add(id);
 
-            const deps = graph.get(id) || [];
+            const deps = graph.get(id) ?? [];
             if (deps.length === 0) {
                 levels.set(id, 0);
                 return 0;
@@ -153,7 +153,7 @@ export default class PluginManager {
         // Enable level by level (parallel within level)
         const maxLevel = Math.max(...levels.values());
         for (let level = 0; level <= maxLevel; level++) {
-            const idsAtLevel = levelGroups.get(level) || [];
+            const idsAtLevel = levelGroups.get(level) ?? [];
             if (idsAtLevel.length === 0) { continue; }
 
             // Enable all plugins at this level in parallel
@@ -164,7 +164,7 @@ export default class PluginManager {
     _rebuildInstalledPlugins(): void {
         const optionalDir = path.join(
             process.cwd(),
-            this.config?.plugins?.paths?.installed || './data/plugins'
+            this.config?.plugins?.paths?.installed ?? './data/plugins'
         );
         if (!existsSync(optionalDir)) { return; }
         const entries = readdirSync(optionalDir);
@@ -188,7 +188,7 @@ export default class PluginManager {
             if (visited.has(id)) { return; }
             visited.add(id);
             path.add(id);
-            for (const dep of graph.get(id) || []) {
+            for (const dep of graph.get(id) ?? []) {
                 if (idSet.has(dep)) { visit(dep, graph, path); }
             }
             path.delete(id);
@@ -228,9 +228,9 @@ export default class PluginManager {
                     const isContextMenu = cmd.type === 2 || cmd.type === 3;
                     return {
                         name: cmd.name,
-                        description: isContextMenu ? undefined : (cmd.description || 'No description'),
-                        type: cmd.type || 1,
-                        options: cmd.options || [],
+                        description: isContextMenu ? undefined : (cmd.description ?? 'No description'),
+                        type: cmd.type ?? 1,
+                        options: cmd.options ?? [],
                         dm_permission: cmd.dmPermission
                     };
                 });
@@ -250,7 +250,7 @@ export default class PluginManager {
                 }
             } else {
                 // Full sync (startup only)
-                const body = [...(this.client.commands?.values() || [])].map((cmd: unknown) => {
+                const body = [...(this.client.commands?.values() ?? [])].map((cmd: unknown) => {
                     const command = cmd as { data?: { toJSON: () => unknown }; name: string; type?: number; description?: string; options?: unknown[]; dmPermission?: boolean };
                     if (command.data && typeof command.data.toJSON === 'function') {
                         return command.data.toJSON();
@@ -258,9 +258,9 @@ export default class PluginManager {
                     const isContextMenu = command.type === 2 || command.type === 3;
                     return {
                         name: command.name,
-                        description: isContextMenu ? undefined : (command.description || 'No description'),
-                        type: command.type || 1,
-                        options: command.options || [],
+                        description: isContextMenu ? undefined : (command.description ?? 'No description'),
+                        type: command.type ?? 1,
+                        options: command.options ?? [],
                         dm_permission: command.dmPermission
                     };
                 });
@@ -288,7 +288,7 @@ export default class PluginManager {
             if (!existsSync(pluginPath)) {
                 const optionalDir = path.join(
                     process.cwd(),
-                    this.config?.plugins?.paths?.installed || './data/plugins',
+                    this.config?.plugins?.paths?.installed ?? './data/plugins',
                     id
                 );
                 const optionalPath = path.join(optionalDir, 'plugin.ts');
@@ -330,7 +330,7 @@ export default class PluginManager {
         (plugin as any)._loaded = true;
         this.plugins.set(id, plugin);
 
-        const optionalDir = (this.client.config.plugins as { optionalDirectory?: string })?.optionalDirectory || './data/plugins';
+        const optionalDir = (this.client.config.plugins as { optionalDirectory?: string })?.optionalDirectory ?? './data/plugins';
         const pluginDirValue = (plugin as any)._dir;
         const isOptional = pluginDirValue?.startsWith(path.join(process.cwd(), optionalDir));
         this.installedPlugins.set(id, {
@@ -408,16 +408,16 @@ export default class PluginManager {
         }
         const installed = this.installedPlugins.get(id);
         let baseDir = installed?.origin === 'installed'
-            ? (this.config?.plugins?.paths?.installed || './data/plugins')
-            : (this.config?.plugins?.paths?.core || './src/plugins');
+            ? (this.config?.plugins?.paths?.installed ?? './data/plugins')
+            : (this.config?.plugins?.paths?.core ?? './src/plugins');
         // Check both .ts and .js for reload
         const tsPath = path.join(process.cwd(), baseDir, id, 'plugin.ts');
         const jsPath = path.join(process.cwd(), baseDir, id, 'plugin.js');
         if (!existsSync(tsPath) && !existsSync(jsPath)) {
             // Try the other directory
             const otherBaseDir = installed?.origin === 'installed'
-                ? (this.config?.plugins?.paths?.core || './src/plugins')
-                : (this.config?.plugins?.paths?.installed || './data/plugins');
+                ? (this.config?.plugins?.paths?.core ?? './src/plugins')
+                : (this.config?.plugins?.paths?.installed ?? './data/plugins');
             const otherTsPath = path.join(process.cwd(), otherBaseDir, id, 'plugin.ts');
             const otherJsPath = path.join(process.cwd(), otherBaseDir, id, 'plugin.js');
             if (existsSync(otherTsPath) || existsSync(otherJsPath)) {
@@ -436,7 +436,7 @@ export default class PluginManager {
         const { default: PluginRegistry } = await import('./PluginRegistry.js');
         const pluginsConfig = this.client.config.plugins as { registryFile?: string; paths?: { installed?: string }; enabled: string[] };
         const registry = new PluginRegistry(
-            pluginsConfig.registryFile || './data/plugins/registry.json'
+            pluginsConfig.registryFile ?? './data/plugins/registry.json'
         );
 
         const entry = registry.get(id);
@@ -447,7 +447,7 @@ export default class PluginManager {
 
         const destDir = path.join(
             process.cwd(),
-            pluginsConfig.paths?.installed || './data/plugins',
+            pluginsConfig.paths?.installed ?? './data/plugins',
             id
         );
 
@@ -476,9 +476,7 @@ export default class PluginManager {
     }
 
     async loadInstalledPlugin(pluginId: string, dir: string, manifest?: any): Promise<any> {
-        if (!manifest) {
-            manifest = await parsePluginManifest({ dir });
-        }
+        manifest ??= await parsePluginManifest({ dir });
         const worker = await this.workerHost.startPlugin({
             pluginId,
             dir,
@@ -503,7 +501,7 @@ export default class PluginManager {
 
         const optionalDir = path.join(
             process.cwd(),
-            (this.client.config.plugins as { optionalDirectory?: string }).optionalDirectory || './data/plugins'
+            (this.client.config.plugins as { optionalDirectory?: string }).optionalDirectory ?? './data/plugins'
         );
         const pluginDir = path.join(optionalDir, id);
 
@@ -548,12 +546,12 @@ export default class PluginManager {
     }
 
     registerSocketHandler(namespace: string, handler: (...args: any[]) => Promise<any>): void {
-        if (!this._socketHandlers) { this._socketHandlers = new Map(); }
+        this._socketHandlers ??= new Map();
         this._socketHandlers.set(namespace, handler);
     }
 
     getSocketHandler(namespace: string): ((...args: any[]) => Promise<any>) | null {
         if (!this._socketHandlers) { return null; }
-        return this._socketHandlers.get(namespace) || null;
+        return this._socketHandlers.get(namespace) ?? null;
     }
 }

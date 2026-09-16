@@ -91,8 +91,8 @@ export default class RemoteInteraction {
                 if (!data['userAvatar']) {
                     return `https://cdn.discordapp.com/embed/avatars/${parseInt(data['userDiscriminator'] as string || '0') % 5}.png`;
                 }
-                const ext = _opts.dynamic && (data['userAvatar'] as string).startsWith('a_') ? 'gif' : (_opts.format || 'png');
-                return `https://cdn.discordapp.com/avatars/${data['userId']}/${data['userAvatar']}.${ext}?size=${_opts.size || 512}`;
+                const ext = _opts.dynamic && (data['userAvatar'] as string).startsWith('a_') ? 'gif' : (_opts.format ?? 'png');
+                return `https://cdn.discordapp.com/avatars/${data['userId']}/${data['userAvatar']}.${ext}?size=${_opts.size ?? 512}`;
             },
             toString: () => `<@${data['userId']}>`
         };
@@ -118,8 +118,8 @@ export default class RemoteInteraction {
             },
             ws: { ping: 0 },
             stats: { commandsRan: 0, startTime: Date.now() },
-            commands: commands || new Collection(),
-            config: config || {},
+            commands: commands ?? new Collection(),
+            config: config ?? {},
             manager: (config!)['manager'] ? this._createManagerProxy((config!)['manager'] as Record<string, unknown>) : null,
             rest
         };
@@ -127,7 +127,7 @@ export default class RemoteInteraction {
 
     _createManagerProxy(managerInfo: Record<string, unknown>) {
         return {
-            listPlugins: () => managerInfo['plugins'] || [],
+            listPlugins: () => managerInfo['plugins'] ?? [],
             getPlugin: (id: string) => {
                 const p = (managerInfo['plugins'] as { id: string; enabled: boolean; loaded: boolean }[] || []).find(pl => pl.id === id);
                 return p ? { _enabled: p.enabled, _loaded: p.loaded } : null;
@@ -136,7 +136,7 @@ export default class RemoteInteraction {
                 const p = (managerInfo['plugins'] as { id: string; enabled: boolean }[] || []).find(pl => pl.id === id);
                 return p ? p.enabled : false;
             },
-            scanPlugins: () => managerInfo['scanned'] || [],
+            scanPlugins: () => managerInfo['scanned'] ?? [],
             enablePlugin: async () => { throw new Error('Plugin management not available in worker mode'); },
             disablePlugin: async () => { throw new Error('Plugin management not available in worker mode'); },
             loadPlugin: async () => { throw new Error('Plugin management not available in worker mode'); },
@@ -251,17 +251,17 @@ class RemoteOptions {
     getChannel(name: string): Record<string, unknown> | null {
         const opt = this._find(name);
         if (!opt?.value) { return null; }
-        return this._resolved?.channels?.[opt.value as string] || { id: opt.value, name: opt.value };
+        return this._resolved?.channels?.[opt.value as string] ?? { id: opt.value, name: opt.value };
     }
     getRole(name: string): Record<string, unknown> | null {
         const opt = this._find(name);
         if (!opt?.value) { return null; }
-        return this._resolved?.roles?.[opt.value as string] || { id: opt.value, name: opt.value };
+        return this._resolved?.roles?.[opt.value as string] ?? { id: opt.value, name: opt.value };
     }
     getUser(name: string): Record<string, unknown> | null {
         const opt = this._find(name);
         if (!opt?.value) { return null; }
-        return this._resolved?.users?.[opt.value as string] || { id: opt.value, username: opt.value };
+        return this._resolved?.users?.[opt.value as string] ?? { id: opt.value, username: opt.value };
     }
     getMember(name: string): Record<string, unknown> | null {
         const opt = this._find(name);
@@ -276,11 +276,11 @@ class RemoteOptions {
     getMessage(name: string): unknown { const opt = this._find(name); return opt?.value ?? null; }
     getSubcommand(): string | null {
         const sub = this._data.find(o => o.type === 1 || o.type === 2);
-        return sub?.name || null;
+        return sub?.name ?? null;
     }
     getSubcommandGroup(): string | null {
         const group = this._data.find(o => o.type === 2);
-        return group?.name || null;
+        return group?.name ?? null;
     }
     getFocused(): { name: string; value: unknown; type: number } | null {
         const focused = this._data.find(o => o.focused);
@@ -337,9 +337,9 @@ class RemoteGuildMembers {
         try {
             const data = await this._api.rest.get(Routes.guildMember(this._guildId, userId));
             return {
-                id: data.user?.id || userId,
-                user: { id: data.user?.id || userId, tag: `${data.user?.username || 'Unknown'}#${data.user?.discriminator || '0'}`, username: data.user?.username || 'Unknown' },
-                roles: { cache: new Collection((data.roles || []).map((r: string) => [r, { id: r }])) },
+                id: data.user?.id ?? userId,
+                user: { id: data.user?.id ?? userId, tag: `${data.user?.username ?? 'Unknown'}#${data.user?.discriminator ?? '0'}`, username: data.user?.username ?? 'Unknown' },
+                roles: { cache: new Collection((data.roles ?? []).map((r: string) => [r, { id: r }])) },
                 permissions: { has: () => false }
             };
         } catch {
@@ -477,7 +477,7 @@ class RemoteChannel {
     async createInvite(options: Record<string, unknown> = {}): Promise<{ code: string; url: string }> {
         try {
             const invite = await this._api.rest.post(Routes.channelInvites(this.id), {
-                body: { max_age: options.maxAge || 86400, max_uses: options.maxUses || 0, temporary: options.temporary || false }
+                body: { max_age: options.maxAge ?? 86400, max_uses: options.maxUses ?? 0, temporary: options.temporary ?? false }
             });
             return { code: invite.code, url: `https://discord.gg/${invite.code}` };
         } catch (err) {
@@ -525,10 +525,10 @@ class RemotePermissionOverwrites {
 
     async edit(id: string, options: Record<string, unknown>): Promise<void> {
         try {
-            const allow = typeof options.allow === 'bigint' ? options.allow.toString() : (options.allow || '0');
-            const deny = typeof options.deny === 'bigint' ? options.deny.toString() : (options.deny || '0');
+            const allow = typeof options.allow === 'bigint' ? options.allow.toString() : (options.allow ?? '0');
+            const deny = typeof options.deny === 'bigint' ? options.deny.toString() : (options.deny ?? '0');
             await this._api.rest.put(Routes.channelPermission(this._channelId, id), {
-                body: { type: options.type || 1, allow, deny }
+                body: { type: options.type ?? 1, allow, deny }
             });
         } catch (err) {
             logger.error({ err: err as Error, msg: '[RemotePermissionOverwrites] edit failed' });

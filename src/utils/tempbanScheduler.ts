@@ -64,7 +64,7 @@ async function checkTempbans(): Promise<void> {
 
     try {
         const data = getData('tempbans') as TempbansData | null;
-        const tempbans = data?.tempbans || [];
+        const tempbans = data?.tempbans ?? [];
         const now = Date.now();
 
         // Find expired tempbans
@@ -174,9 +174,7 @@ async function processTempbanExpiry(tempban: TempbanData): Promise<void> {
  */
 export async function addTempban(tempbanData: TempbanData): Promise<void> {
     const data = getData('tempbans') as TempbansData | null;
-    if (!data?.tempbans) {
-        data.tempbans = [];
-    }
+    data.tempbans ??= [];
 
     data.tempbans.push(tempbanData);
     await setData('tempbans', data);
@@ -215,6 +213,6 @@ export async function removeTempban(guildId: string, userId: string): Promise<bo
  */
 export function getTempban(guildId: string, userId: string): TempbanData | null {
     const data = getData('tempbans') as TempbansData | null;
-    const tempbans = data?.tempbans || [];
+    const tempbans = data?.tempbans ?? [];
     return tempbans.find(t => t.guildId === guildId && t.userId === userId) ?? null;
 }

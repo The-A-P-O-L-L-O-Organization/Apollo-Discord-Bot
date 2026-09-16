@@ -51,9 +51,9 @@ export default {
         try {
             const guildId = interaction.guild!.id;
             const userId = interaction.user.id;
-            const reason = interaction.options.getString('reason') || 'No reason provided';
-            const category = interaction.options.getString('category') || 'general';
-            const priority = interaction.options.getString('priority') || 'medium';
+            const reason = interaction.options.getString('reason') ?? 'No reason provided';
+            const category = interaction.options.getString('category') ?? 'general';
+            const priority = interaction.options.getString('priority') ?? 'medium';
 
             const ticketConfig = await getGuildData('tickets', guildId);
 
@@ -83,7 +83,7 @@ export default {
                 }
             }
 
-            const ticketNumber = (ticketConfig.totalTickets || 0) + 1;
+            const ticketNumber = (ticketConfig.totalTickets ?? 0) + 1;
             const sanitizedUsername = interaction.user.username.substring(0, 20);
             const channelName = `${config.tickets.channelPrefix}${ticketNumber}-${sanitizedUsername}`.toLowerCase().replace(/[^a-z0-9-]/g, '');
 
@@ -129,7 +129,7 @@ export default {
                 ticketChannel = await interaction.guild!.channels.create({
                     name: channelName,
                     type: ChannelType.GuildText,
-                    parent: parent?.id || null,
+                    parent: parent?.id ?? null,
                     permissionOverwrites,
                     topic: `${getPriorityEmoji(priority)} Ticket #${ticketNumber} | ${category} | ${priority} priority | Created by ${interaction.user.tag}`
                 });
@@ -178,9 +178,7 @@ export default {
 
             const ticketId = generateId();
             await updateGuildData('tickets', guildId, (data) => {
-                if (!data.openTickets) {
-                    data.openTickets = [];
-                }
+                data.openTickets ??= [];
                 data.openTickets.push({
                     id: ticketId,
                     ticketNumber,

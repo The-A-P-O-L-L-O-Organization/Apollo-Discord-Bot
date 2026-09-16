@@ -16,7 +16,7 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
-            const diceStr = interaction.options.getString('dice') || '1d6';
+            const diceStr = interaction.options.getString('dice') ?? '1d6';
 
             if (diceStr.length > 10) {
                 await interaction.reply({

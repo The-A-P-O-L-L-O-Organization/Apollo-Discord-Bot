@@ -67,7 +67,7 @@ export default class ModerationPlugin extends Plugin {
         });
 
         this.manager.registerSocketHandler('moderation.lockdown', async (_client: any, args: any) => {
-            return { success: true, message: `Channel ${args.action || 'lockdown'} completed` };
+            return { success: true, message: `Channel ${args.action ?? 'lockdown'} completed` };
         });
     }
 }

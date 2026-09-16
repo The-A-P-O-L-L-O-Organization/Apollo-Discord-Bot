@@ -30,9 +30,7 @@ export const commandModuleCache = new Map<string, { execute: (_interaction: unkn
 const nonceStore = new Map<string, number>(); // In-memory fallback for dev; replace with Redis SET in production
 
 function getRest(): REST {
-    if (!rest) {
-        rest = new REST({ version: '10' }).setToken(config.discord.token);
-    }
+    rest ??= new REST({ version: '10' }).setToken(config.discord.token);
     return rest;
 }
 

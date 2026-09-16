@@ -126,9 +126,9 @@ export default {
             const strikeCount = activeStrikes.length;
 
             const guildSettings = (await getGuildData('strike-config', interaction.guild!.id)) as StrikeConfig;
-            const threshold = guildSettings.banThreshold || 3;
+            const threshold = guildSettings.banThreshold ?? 3;
             const autoKick = guildSettings.autoKick ?? true;
-            const kickThreshold = guildSettings.kickThreshold || 2;
+            const kickThreshold = guildSettings.kickThreshold ?? 2;
 
             let dmSent = false;
             try {
@@ -210,7 +210,7 @@ export default {
                 extra: {
                     'Strike Count': `${strikeCount}/${threshold}`,
                     'Strike ID': strike.id,
-                    'Auto-Punishment': autoPunishment || 'None'
+                    'Auto-Punishment': autoPunishment ?? 'None'
                 }
             });
 

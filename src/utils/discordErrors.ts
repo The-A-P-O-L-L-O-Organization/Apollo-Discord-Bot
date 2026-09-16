@@ -159,7 +159,7 @@ export function handleDiscordError(error: unknown, options: { silent?: boolean }
     }
 
     // Generic fallback
-    return `Discord API error (${code}): ${discordError.message || 'Unknown error'}`;
+    return `Discord API error (${code}): ${discordError.message ?? 'Unknown error'}`;
 }
 
 /**
@@ -175,7 +175,7 @@ function extractValidationErrors(errors: Record<string, unknown>): string {
             for (const fieldError of fieldErrors) {
                 if (fieldError && typeof fieldError === 'object' && '_errors' in fieldError && Array.isArray((fieldError as Record<string, unknown>)['_errors'])) {
                     for (const err of (fieldError as { _errors: { message?: string; code?: string }[] })._errors) {
-                        messages.push(`${field}: ${err.message || err.code}`);
+                        messages.push(`${field}: ${err.message ?? err.code}`);
                     }
                 }
             }

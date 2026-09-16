@@ -14,8 +14,8 @@ export default function createRoutes({ registry, messageBus, redis, config }: {
 
     const replayProtection = new ReplayProtection({
         redis,
-        windowMs: config.interlink?.replayWindowMs || 5 * 60 * 1000,
-        nonceTtlMs: config.interlink?.nonceTtlMs || 10 * 60 * 1000
+        windowMs: config.interlink?.replayWindowMs ?? 5 * 60 * 1000,
+        nonceTtlMs: config.interlink?.nonceTtlMs ?? 10 * 60 * 1000
     });
     const replayMiddleware = createReplayProtectionMiddleware(replayProtection);
 

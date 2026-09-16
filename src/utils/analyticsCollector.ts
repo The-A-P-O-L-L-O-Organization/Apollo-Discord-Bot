@@ -186,14 +186,14 @@ export async function trackMemberChange(guildId: string, isJoin: boolean, totalM
     }>;
 
     const key = `${today}:${Date.now()}`;
-    if (!data[key]) {
-        data[key] = {
-            date: today,
-            joinCount: isJoin ? 1 : 0,
-            leaveCount: isJoin ? 0 : 1,
-            totalMembers: totalMembers
-        };
-    } else {
+    const isNew = !data[key];
+    data[key] ??= {
+        date: today,
+        joinCount: isJoin ? 1 : 0,
+        leaveCount: isJoin ? 0 : 1,
+        totalMembers: totalMembers
+    };
+    if (!isNew) {
         if (isJoin) {
             data[key].joinCount++;
         } else {
@@ -247,14 +247,12 @@ export async function flushAnalyticsCache(): Promise<void> {
             for (const [commandName, users] of guildCommands) {
                 for (const [userId, count] of users) {
                     const key = `${date}:${commandName}:${userId}`;
-                    if (!data[key]) {
-                        data[key] = {
+                    data[key] ??= {
                             date,
                             commandName,
                             userId,
                             count: 0
                         };
-                    }
                     data[key].count += count;
                     recordsProcessed++;
                 }
@@ -276,14 +274,12 @@ export async function flushAnalyticsCache(): Promise<void> {
             for (const [channelId, users] of guildMessages) {
                 for (const [userId, count] of users) {
                     const key = `${hour}:${channelId}:${userId}`;
-                    if (!data[key]) {
-                        data[key] = {
+                    data[key] ??= {
                             hour,
                             channelId,
                             userId,
                             count: 0
                         };
-                    }
                     data[key].count += count;
                     recordsProcessed++;
                 }
@@ -303,13 +299,11 @@ export async function flushAnalyticsCache(): Promise<void> {
 
             for (const [type, count] of violations) {
                 const key = `${date}:${type}`;
-                if (!data[key]) {
-                    data[key] = {
+                data[key] ??= {
                         date,
                         type,
                         count: 0
                     };
-                }
                 data[key].count += count;
                 recordsProcessed++;
             }
@@ -330,14 +324,12 @@ export async function flushAnalyticsCache(): Promise<void> {
             for (const [moderatorId, actions] of guildModActions) {
                 for (const [action, count] of actions) {
                     const key = `${date}:${moderatorId}:${action}`;
-                    if (!data[key]) {
-                        data[key] = {
+                    data[key] ??= {
                             date,
                             moderatorId,
                             action,
                             count: 0
                         };
-                    }
                     data[key].count += count;
                     recordsProcessed++;
                 }

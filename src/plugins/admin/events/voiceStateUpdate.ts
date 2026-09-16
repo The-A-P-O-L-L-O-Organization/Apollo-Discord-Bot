@@ -5,14 +5,14 @@ export default {
     name: 'voiceStateUpdate',
     once: false,
     async execute(oldState: any, newState: any, _client: any) {
-        const member = newState.member || oldState.member;
+        const member = newState.member ?? oldState.member;
 
         if (member?.user?.bot) { return; }
 
         const embed = createVoiceChangeEmbed(oldState, newState);
 
         if (embed) {
-            const guild = newState.guild || oldState.guild;
+            const guild = newState.guild ?? oldState.guild;
             await logEvent(guild, 'voiceChanges', embed);
         }
     }
