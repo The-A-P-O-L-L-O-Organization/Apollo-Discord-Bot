@@ -64,14 +64,14 @@ export const CommandChoiceSchema = z.object({
 
 export const PluginCommandSchema = z.object({
     data: CommandDataSchema,
-    execute: z.function().args(z.unknown(), z.object({})).returns(z.promise(z.void())),
-    autocomplete: z.function().args(z.unknown(), z.object({})).returns(z.promise(z.void())).optional()
+    execute: z.function({ input: [z.unknown(), z.object({})], output: z.promise(z.void()) }),
+    autocomplete: z.function({ input: [z.unknown(), z.object({})], output: z.promise(z.void()) }).optional()
 });
 
 export const PluginEventSchema = z.object({
     name: z.string().min(1),
     once: z.boolean(),
-    execute: z.function().args(z.array(z.unknown())).returns(z.promise(z.void()))
+    execute: z.function({ input: [z.array(z.unknown())], output: z.promise(z.void()) })
 });
 
 export const CLICommandOptionSchema = z.object({
@@ -87,7 +87,7 @@ export const CLICommandSchema = z.object({
     name: z.string().min(1).regex(/^[a-zA-Z][a-zA-Z0-9-]*$/),
     description: z.string().min(1),
     options: z.array(CLICommandOptionSchema),
-    execute: z.function().args(z.object({}), z.object({})).returns(z.promise(z.void()))
+    execute: z.function({ input: [z.object({}), z.object({})], output: z.promise(z.void()) })
 });
 
 export const PluginManifestSchema = z.object({
@@ -101,8 +101,8 @@ export const PluginManifestSchema = z.object({
         'commands', 'events', 'cli', 'rpc', 'database', 'queue',
         'schedule', 'interlink', 'web', 'voice'
     ])),
-    dependencies: z.record(z.string()).optional(),
-    peerDependencies: z.record(z.string()).optional()
+    dependencies: z.record(z.string(), z.string()).optional(),
+    peerDependencies: z.record(z.string(), z.string()).optional()
 });
 
 // Discord.js event names for validation (subset of Events enum)
@@ -159,7 +159,7 @@ export class CommandModuleValidator {
         } else {
             const dataResult = CommandDataSchema.safeParse(mod['data']);
             if (!dataResult.success) {
-                this.errors.push(`${moduleName}: Invalid command data - ${dataResult.error.errors.map(e => e.message).join(', ')}`);
+                this.errors.push(`${moduleName}: Invalid command data - ${dataResult.error.issues.map(e => e.message).join(', ')}`);
             } else {
                 this.validateCommandData(dataResult.data, moduleName);
             }
@@ -286,7 +286,7 @@ export class CommandModuleValidator {
 
         const result = CLICommandSchema.safeParse(mod);
         if (!result.success) {
-            this.errors.push(`${moduleName}: Invalid CLI command - ${result.error.errors.map(e => e.message).join(', ')}`);
+            this.errors.push(`${moduleName}: Invalid CLI command - ${result.error.issues.map(e => e.message).join(', ')}`);
         } else {
             // Check option names are unique
             const optionNames = new Set<string>();
@@ -315,7 +315,7 @@ export class CommandModuleValidator {
 
         const result = PluginManifestSchema.safeParse(module);
         if (!result.success) {
-            this.errors.push(`${moduleName}: Invalid plugin manifest - ${result.error.errors.map(e => e.message).join(', ')}`);
+            this.errors.push(`${moduleName}: Invalid plugin manifest - ${result.error.issues.map(e => e.message).join(', ')}`);
         }
 
         return this.getResult();

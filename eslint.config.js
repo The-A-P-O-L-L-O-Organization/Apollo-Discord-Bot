@@ -1,6 +1,6 @@
 import js from '@eslint/js';
 import typescriptEslint from 'typescript-eslint';
-import vitestPlugin from 'eslint-plugin-vitest';
+import vitestPlugin from '@vitest/eslint-plugin';
 
 export default [
     { ignores: ['dist/**', 'data/**', 'node_modules/**', 'tests/mocks/**', 'src/handlers/**', 'eslint.config.js', 'vitest.config.ts', '*.md', 'tests/**', 'bin/**', 'scripts/**'] },

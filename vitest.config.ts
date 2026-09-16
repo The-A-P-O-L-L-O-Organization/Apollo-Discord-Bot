@@ -29,11 +29,8 @@ export default defineConfig({
         teardownTimeout: 10000,
         isolate: true,
         pool: 'forks',
-        poolOptions: {
-            forks: {
-                singleFork: true
-            }
-        }
+        maxWorkers: 1,
+        fileParallelism: false
     },
     resolve: {
         alias: {

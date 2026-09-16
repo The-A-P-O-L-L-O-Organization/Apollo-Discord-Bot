@@ -152,6 +152,9 @@ describe('downloadPluginArchive', () => {
             timeoutMs: 100,
             skipDnsCheck: true,
             fetchImpl: async(url, { signal }) => new Promise((_, reject) => {
+                if (!signal) {
+                    throw new Error('expected abort signal');
+                }
                 signal.addEventListener('abort', () => reject(signal.reason));
             })
         })).rejects.toThrow();
