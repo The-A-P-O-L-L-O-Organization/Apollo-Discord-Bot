@@ -39,7 +39,7 @@ export interface VerifyPluginManifestResult {
     errors?: string[];
 }
 
-export async function verifyPluginManifest({
+export function verifyPluginManifest({
     pluginsRoot = join(process.cwd(), 'src'),
     manifestPath = join(process.cwd(), 'plugin-manifest.json'),
     manifestData = null,
@@ -47,11 +47,11 @@ export async function verifyPluginManifest({
 }: VerifyPluginManifestOptions = {}): Promise<VerifyPluginManifestResult> {
     if (allowUnverified) {
         logSecurityEvent({ event: 'manifest.verification_skipped', reason: 'ALLOW_UNVERIFIED_PLUGINS is set' });
-        return { ok: true, skipped: true, checked: 0 };
+        return Promise.resolve({ ok: true, skipped: true, checked: 0 });
     }
 
     if (!manifestData && !existsSync(manifestPath)) {
-        return { ok: false, errors: [`Manifest file not found: ${manifestPath}`] };
+        return Promise.resolve({ ok: false, errors: [`Manifest file not found: ${manifestPath}`] });
     }
 
     const expected: Record<string, string> = manifestData ?? JSON.parse(readFileSync(manifestPath, 'utf8'));
@@ -82,10 +82,10 @@ export async function verifyPluginManifest({
         for (const err of errors) {
             logger.error('  -', err);
         }
-        return { ok: false, errors };
+        return Promise.resolve({ ok: false, errors });
     }
 
-    return { ok: true, checked: Object.keys(expected).length };
+    return Promise.resolve({ ok: true, checked: Object.keys(expected).length });
 }
 
 export function verifyPluginFile(pluginPath: string, expectedHash: string): boolean {

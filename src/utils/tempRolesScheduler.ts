@@ -23,14 +23,14 @@ export function initTempRolesScheduler(client: Client): void {
         return;
     }
 
-    checkInterval = setInterval(async () => {
+    checkInterval = setInterval(() => { void (async () => {
         const redis = await getLockRedis();
         if (redis) {
             await withLock(redis, 'scheduler:temproles', config.podId ?? 'default', () => checkExpiredTempRoles(client), 55000);
         } else {
             await checkExpiredTempRoles(client);
         }
-    }, CHECK_DELAY);
+    })(); }, CHECK_DELAY);
 
     logger.info({ msg: '[SUCCESS] Temporary roles scheduler started' });
 }

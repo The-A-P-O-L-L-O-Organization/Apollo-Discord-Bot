@@ -114,7 +114,7 @@ export default class MessageBus {
         return results;
     }
 
-    async handleIncomingMessage(envelope: Envelope, sendResponse?: (resp: Envelope) => void): Promise<void> {
+    handleIncomingMessage(envelope: Envelope, sendResponse?: (resp: Envelope) => void): Promise<void> {
         if (envelope.type === 'ping') {
             const pong = this.createEnvelope('pong', envelope.source, {
                 status: 'ok',
@@ -126,7 +126,7 @@ export default class MessageBus {
             if (this.eventBus) {
                 this.eventBus.emit('interlink:message:ping', envelope);
             }
-            return;
+            return Promise.resolve();
         }
 
         if (this.eventBus) {
@@ -136,6 +136,7 @@ export default class MessageBus {
         if (this._redis && envelope.target === 'apollo') {
             this._redis.publishResponse(envelope.source, envelope);
         }
+        return Promise.resolve();
     }
 
     async _sendHttp(bot: BotRecord, envelope: Envelope): Promise<SendResult> {

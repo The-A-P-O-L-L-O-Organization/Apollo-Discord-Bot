@@ -124,7 +124,7 @@ export default {
                 max: 1
             });
 
-            collector.on('collect', async (i) => {
+            collector.on('collect', (i) => { void (async () => {
                 if (i.customId === 'cancel_masskick') {
                     await i.update({ content: 'Mass kick cancelled.', embeds: [], components: [] });
                     return;
@@ -227,11 +227,11 @@ export default {
 
                     logger.info({ msg: `[MODERATION] Mass kick by ${interaction.user.tag}: ${results.success.length} success, ${results.failed.length} failed. Reason: ${reason}` });
                 }
-            });
+            })(); });
 
             collector.on('end', (collected) => {
                 if (collected.size === 0) {
-                    interaction.editReply({ content: 'Mass kick timed out (30s).', embeds: [], components: [] }).catch(() => {});
+                    interaction.editReply({ content: 'Mass kick timed out (30s).', embeds: [], components: [] }).catch(() => undefined);
                 }
             });
         } catch (error) {

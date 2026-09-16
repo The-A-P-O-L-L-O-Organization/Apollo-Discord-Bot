@@ -66,7 +66,7 @@ async function handleViolation(message: Message, type: string, reason: string, c
 
     // Delete the message if requested
     if (deleteMessage && message.deletable) {
-        await message.delete().catch(() => {});
+        await message.delete().catch(() => undefined);
     }
 
     // Create warning
@@ -127,7 +127,7 @@ async function handleViolation(message: Message, type: string, reason: string, c
         }
     } else if (thresholds.kick && warningCount >= thresholds.kick) {
         try {
-            if (member && member.kickable) {
+            if (member?.kickable) {
                 await member.kick(`[AUTOMOD] Auto-kick: Reached ${warningCount} warnings`);
                 autoPunishment = 'kicked';
             }
@@ -136,7 +136,7 @@ async function handleViolation(message: Message, type: string, reason: string, c
         }
     } else if (thresholds.mute && warningCount >= thresholds.mute) {
         try {
-            if (member && member.moderatable) {
+            if (member?.moderatable) {
                 await member.timeout(muteDuration, `[AUTOMOD] Auto-mute: Reached ${warningCount} warnings`);
                 autoPunishment = 'muted';
             }
@@ -177,7 +177,7 @@ export default {
         if (!automodConfig.enabled) {return;}
 
         // Check exemptions
-        if (await isExempt(message.member) || await isChannelExempt(message.channel.id)) {
+        if (isExempt(message.member) || isChannelExempt(message.channel.id)) {
             return;
         }
 
@@ -197,7 +197,7 @@ export default {
         // Check account age for new members (only on first message)
         const member = message.member;
         if (member && automodConfig.minAccountAge > 0) {
-            const isTooNew = await checkAccountAge(message.author, automodConfig.minAccountAge);
+            const isTooNew = checkAccountAge(message.author, automodConfig.minAccountAge);
             if (isTooNew) {
                 await handleViolation(message, 'new_account', `Account is less than ${automodConfig.minAccountAge} days old`, client, false);
                 return;

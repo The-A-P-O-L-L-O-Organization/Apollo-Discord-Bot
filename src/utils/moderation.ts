@@ -47,7 +47,7 @@ export function canModerate(
         return { ok: false, reason: 'You cannot moderate yourself.' };
     }
 
-    if (guild && guild.ownerId && target.id === guild.ownerId) {
+    if (guild?.ownerId && target.id === guild.ownerId) {
         return { ok: false, reason: 'You cannot moderate the server owner.' };
     }
 

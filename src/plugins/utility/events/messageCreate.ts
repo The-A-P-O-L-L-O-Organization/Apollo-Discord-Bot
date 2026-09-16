@@ -31,7 +31,7 @@ export default {
                     .setTimestamp();
 
                 // @ts-expect-error - channel.send exists on text-based channels
-                await message.channel.send({ embeds: [embed] }).catch(() => {});
+                await message.channel.send({ embeds: [embed] }).catch(() => undefined);
             }
 
         } catch (error) {

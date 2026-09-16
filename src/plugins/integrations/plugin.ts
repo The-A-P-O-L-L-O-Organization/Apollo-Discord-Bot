@@ -34,19 +34,20 @@ export default class IntegrationsPlugin extends Plugin {
         }
     }
 
-    override async onDisable(): Promise<void> {
+    override onDisable(): Promise<void> {
         this._unloadCommands();
         stopIntegrationPoller();
         stopWebhookServer();
+        return Promise.resolve();
     }
 
     _registerSocketHandlers(): void {
-        this.manager.registerSocketHandler('integrations.add', async (_client: any, args: any) => {
-            return { success: true, message: `Integration added (type: ${args.type})` };
+        this.manager.registerSocketHandler('integrations.add', (_client: any, args: any) => {
+            return Promise.resolve({ success: true, message: `Integration added (type: ${args.type})` });
         });
 
-        this.manager.registerSocketHandler('integrations.remove', async (_client: any, args: any) => {
-            return { success: true, message: `Integration ${args.id} removed` };
+        this.manager.registerSocketHandler('integrations.remove', (_client: any, args: any) => {
+            return Promise.resolve({ success: true, message: `Integration ${args.id} removed` });
         });
     }
 }

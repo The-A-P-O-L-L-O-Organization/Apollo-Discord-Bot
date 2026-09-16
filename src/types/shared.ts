@@ -1,7 +1,7 @@
 // Shared types to avoid duplication across type modules
 // This module has NO dependencies on other local type modules to avoid circular imports
 
-import type { Client, Interaction, AutocompleteInteraction, CommandInteraction, ButtonInteraction, SelectMenuInteraction, ContextMenuCommandInteraction, Collection } from 'discord.js';
+import type { Client, Interaction, AutocompleteInteraction, ChatInputCommandInteraction, CommandInteraction, ButtonInteraction, SelectMenuInteraction, ContextMenuCommandInteraction, Collection, SlashCommandBuilder, RESTPostAPIChatInputApplicationCommandsJSONBody, ClientOptions } from 'discord.js';
 
 // ============================================
 // Discord.js common types (re-exported for convenience)
@@ -192,13 +192,13 @@ export interface CommandModule {
     name: string;
     description?: string;
     pluginId: string;
-    data?: import('discord.js').SlashCommandBuilder | import('discord.js').RESTPostAPIChatInputApplicationCommandsJSONBody;
+    data?: SlashCommandBuilder | RESTPostAPIChatInputApplicationCommandsJSONBody;
     type?: number;
     options?: unknown[];
     dmPermission?: boolean;
     canQueue?: boolean;
-    execute: (interaction: import('discord.js').ChatInputCommandInteraction) => Promise<void>;
-    autocomplete?: (interaction: import('discord.js').AutocompleteInteraction) => Promise<void>;
+    execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
+    autocomplete?: (interaction: AutocompleteInteraction) => Promise<void>;
 }
 
 // Event handler module type for dynamic loading
@@ -425,9 +425,9 @@ export interface DiscordConfig {
     clientId: string;
     clientSecret: string | undefined;
     shardCount: number | undefined;
-    gateway: import('discord.js').ClientOptions['ws'] | undefined;
+    gateway: ClientOptions['ws'] | undefined;
     intents: number | undefined;
-    presence: import('discord.js').ClientOptions['presence'] | undefined;
+    presence: ClientOptions['presence'] | undefined;
 }
 
 export interface DatabaseConfig {

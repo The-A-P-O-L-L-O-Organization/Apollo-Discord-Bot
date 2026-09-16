@@ -29,7 +29,7 @@ export async function startWebhookServer(port: number, secret: string, discordCl
 
     const http = await import('http');
 
-    server = http.createServer(async (req: IncomingMessage, res: ServerResponse) => {
+    server = http.createServer((req: IncomingMessage, res: ServerResponse) => { void (async () => {
         if (req.method !== 'POST' || req.url !== '/webhooks/github') {
             res.writeHead(404);
             res.end();
@@ -89,7 +89,7 @@ export async function startWebhookServer(port: number, secret: string, discordCl
                     for (const sub of githubSubs) {
                         const channel = discordClient.channels.cache.get(sub['channel_id'] as string);
                         if (channel?.isTextBased()) {
-                            (channel as TextChannel).send(notification).catch(() => {});
+                            (channel as TextChannel).send(notification).catch(() => undefined);
                         }
                     }
                 } catch {
@@ -100,7 +100,7 @@ export async function startWebhookServer(port: number, secret: string, discordCl
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
-    });
+    })(); });
 
     server.listen(port, () => {
         logger.info(`[Integrations] GitHub webhook server listening on port ${port}`);
@@ -124,23 +124,23 @@ export function verifyGithubSignature(body: string, signature: string, secret: s
     }
 }
 
-export async function handleGithubEvent(eventType: string | undefined, body: Record<string, unknown>): Promise<NotificationPayload | null> {
-    if (eventType === 'ping') { return null; }
+export function handleGithubEvent(eventType: string | undefined, body: Record<string, unknown>): Promise<NotificationPayload | null> {
+    if (eventType === 'ping') { return Promise.resolve(null); }
 
     const repo = (body['repository'] as Record<string, unknown> | undefined)?.['full_name'] as string || 'unknown';
     const sender = (body['sender'] as Record<string, unknown> | undefined)?.['login'] as string || 'unknown';
 
     switch (eventType) {
     case 'push':
-        return formatGithubPushNotification(repo, sender, body['ref'] as string, (body['commits'] as GithubCommit[]) || []);
+        return Promise.resolve(formatGithubPushNotification(repo, sender, body['ref'] as string, (body['commits'] as GithubCommit[]) || []));
     case 'pull_request':
-        if (!body['pull_request']) { return null; }
-        return formatGithubPrNotification(repo, sender, body['pull_request'] as GithubPR);
+        if (!body['pull_request']) { return Promise.resolve(null); }
+        return Promise.resolve(formatGithubPrNotification(repo, sender, body['pull_request'] as GithubPR));
     case 'issues':
-        if (!body['issue']) { return null; }
-        return formatGithubIssueNotification(repo, sender, body['issue'] as GithubIssue);
+        if (!body['issue']) { return Promise.resolve(null); }
+        return Promise.resolve(formatGithubIssueNotification(repo, sender, body['issue'] as GithubIssue));
     default:
-        return null;
+        return Promise.resolve(null);
     }
 }
 

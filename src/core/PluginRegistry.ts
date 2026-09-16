@@ -71,8 +71,8 @@ export default class PluginRegistry {
         const lower = query.toLowerCase();
         return this._plugins.filter(p =>
             p.id.toLowerCase().includes(lower) ||
-            (p.name && p.name.toLowerCase().includes(lower)) ||
-            (p.description && p.description.toLowerCase().includes(lower))
+            (p.name?.toLowerCase().includes(lower)) ||
+            (p.description?.toLowerCase().includes(lower))
         );
     }
 

@@ -177,14 +177,14 @@ export default {
                 logger.error({ msg: '[ERROR] Failed to DM ticket creator', err: error });
             }
 
-            setTimeout(async () => {
+            setTimeout(() => { void (async () => {
                 try {
                     const channel = await interaction.client.channels.fetch(channelId);
                     await channel.delete(`Ticket closed by ${interaction.user.tag}: ${reason}`);
                 } catch (error) {
                     logger.error({ msg: '[ERROR] Failed to delete ticket channel', err: error });
                 }
-            }, 3000);
+            })(); }, 3000);
 
         } catch (error) {
             const errorMessage = handleDiscordError(error);

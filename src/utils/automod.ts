@@ -8,6 +8,7 @@ import { getLockRedis } from './lock.js';
 import { TwoLevelLRUCache } from './lruCache.js';
 import { simhash, isSimilar } from './simhash.js';
 import type { Message, GuildMember, User } from 'discord.js';
+import type { Redis } from 'ioredis';
 
 // In-memory spam tracking (fallback when Redis unavailable)
 // Uses O(1) LRU cache for efficient eviction
@@ -54,14 +55,14 @@ interface BurstSpamResult {
  * @param {Record<string, ChannelOverride>} channelOverrides - Optional per-channel overrides {threshold, interval}
  * @returns {Promise<BurstSpamResult>}
  */
-export async function checkBurstSpam(
+export function checkBurstSpam(
     message: Message,
     threshold = BURST_THRESHOLD,
     intervalMs = BURST_INTERVAL,
     channelOverrides: Record<string, ChannelOverride> = {}
 ): Promise<BurstSpamResult> {
     if (!message.guild) {
-        return { isSpam: false, confidence: 0, count: 0, reason: 'DM channel' };
+        return Promise.resolve({ isSpam: false, confidence: 0, count: 0, reason: 'DM channel' });
     }
     const guildId = message.guild.id;
     const userId = message.author.id;
@@ -113,11 +114,11 @@ export async function checkBurstSpam(
 
     const count = similarCount + 1; // +1 for current message
 
-    return {
+    return Promise.resolve({
         isSpam: count >= threshold,
         confidence: Math.min(1.0, count / threshold),
         count
-    };
+    });
 }
 
 /**
@@ -144,9 +145,9 @@ const SPAM_KEY_PREFIX = 'apollo:spam:';
 
 /**
  * Gets Redis client for spam tracking
- * @returns {Promise<import('ioredis').Redis | null>} Redis client or null if unavailable
+ * @returns {Promise<Redis | null>} Redis client or null if unavailable
  */
-async function getSpamRedis(): Promise<import('ioredis').Redis | null> {
+async function getSpamRedis(): Promise<Redis | null> {
     if (!config.queue.enabled) { return null; }
     return getLockRedis();
 }
@@ -576,7 +577,7 @@ export async function cleanupSpamTracker(): Promise<void> {
 }
 
 // Clean up tracker every minute
-let spamTrackerCleanupInterval: NodeJS.Timeout | null = setInterval(cleanupSpamTracker, 60000);
+let spamTrackerCleanupInterval: NodeJS.Timeout | null = setInterval(() => { void cleanupSpamTracker(); }, 60000);
 
 /**
  * Stops the spam tracker cleanup interval.

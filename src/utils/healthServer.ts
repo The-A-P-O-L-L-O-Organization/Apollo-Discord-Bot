@@ -164,7 +164,7 @@ export async function startHealthServer(client: Client): Promise<Server> {
         return healthServer;
     }
 
-    healthServer = createServer(async (req: IncomingMessage, res: ServerResponse) => {
+    healthServer = createServer((req: IncomingMessage, res: ServerResponse) => { void (async () => {
         // Check authentication
         if (!isAuthenticated(req)) {
             res.writeHead(401, { 'Content-Type': 'application/json' });
@@ -220,11 +220,11 @@ export async function startHealthServer(client: Client): Promise<Server> {
             res.writeHead(500, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ error: 'Internal server error' }));
         }
-    });
+    })(); });
 
     // Record gateway latency every 15 seconds
     const latencyInterval = setInterval(() => {
-        if (client && client.ws && client.ws.shards) {
+        if (client?.ws?.shards) {
             client.ws.shards.forEach((shard, shardId) => {
                 if (shard.ping !== undefined) {
                     recordGatewayLatency(String(shardId), shard.ping);

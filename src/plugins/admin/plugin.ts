@@ -19,9 +19,10 @@ export default class AdminPlugin extends Plugin {
         this._registerSocketHandlers();
     }
 
-    override async onDisable() {
+    override onDisable(): Promise<void> {
         this._unloadCommands();
         this._unloadEvents();
+        return Promise.resolve();
     }
 
     _registerSocketHandlers() {
@@ -50,8 +51,8 @@ export default class AdminPlugin extends Plugin {
             return { success: true, message: `Plugin "${args.id}" uninstalled` };
         });
 
-        this.manager.registerSocketHandler('admin.logging.set', async (_client: any, args: any) => {
-            return { success: true, message: `Logging ${args.setting} set to ${args.value}` };
+        this.manager.registerSocketHandler('admin.logging.set', (_client: any, args: any) => {
+            return Promise.resolve({ success: true, message: `Logging ${args.setting} set to ${args.value}` });
         });
     }
 }

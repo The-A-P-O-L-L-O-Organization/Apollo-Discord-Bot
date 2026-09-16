@@ -251,7 +251,9 @@ describe('Clear Command', () => {
                 deferUpdate: vi.fn().mockResolvedValue(undefined)
             };
             await collectCallback!(buttonInteraction);
+            await new Promise(resolve => setImmediate(resolve));
 
+            await vi.waitFor(() => expect(interaction.editReply).toHaveBeenCalled(), { timeout: 5000 });
             expect(channel.bulkDelete).toHaveBeenCalled();
             const embed = interaction.editReply.mock.calls[0]![0].embeds[0];
             expect(embed.title).toBe('[SUCCESS] All Messages Deleted');
@@ -272,6 +274,7 @@ describe('Clear Command', () => {
                 update: vi.fn().mockResolvedValue(undefined)
             };
             await collectCallback!(buttonInteraction);
+            await new Promise(resolve => setImmediate(resolve));
 
             const embed = buttonInteraction.update.mock.calls[0]![0].embeds[0];
             expect(embed.title).toBe('[CANCELLED] Operation Aborted');
@@ -288,6 +291,7 @@ describe('Clear Command', () => {
             await executePromise;
 
             await endCallback!(new Map(), 'time');
+            await new Promise(resolve => setImmediate(resolve));
 
             const embed = interaction.editReply.mock.calls[0]![0].embeds[0];
             expect(embed.title).toBe('[TIMEOUT] Confirmation Expired');
@@ -311,6 +315,7 @@ describe('Clear Command', () => {
                 deferUpdate: vi.fn().mockResolvedValue(undefined)
             };
             await collectCallback!(buttonInteraction);
+            await new Promise(resolve => setImmediate(resolve));
 
             const embed = interaction.editReply.mock.calls[0]![0].embeds[0];
             expect(embed.title).toBe('[ERROR] Delete Failed');

@@ -116,7 +116,7 @@ if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) 
         process.exit(1);
     }
     runChild({ pluginDir, env: process.env }).then(child => {
-        process.on('message', (msg) => child.handleMessage(msg as RPCMessage));
+        process.on('message', (msg) => { void child.handleMessage(msg as RPCMessage); });
     }).catch(err => {
         logger.error('[WORKER] Failed to start:', err);
         process.exit(1);

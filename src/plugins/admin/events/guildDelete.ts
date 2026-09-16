@@ -6,7 +6,7 @@ const logger = createLogger({ component: 'admin:guildDelete' });
 export default {
     name: 'guildDelete',
     once: false,
-    async execute(guild: any, client: any) {
+    execute(guild: any, client: any) {
         try {
             logger.info(`[INFO] Bot removed from server: ${guild.name} (${guild.id})`);
             logger.info(`[INFO] Server had ${guild.memberCount} members`);

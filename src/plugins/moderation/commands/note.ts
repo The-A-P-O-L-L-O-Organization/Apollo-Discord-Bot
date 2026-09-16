@@ -1,5 +1,5 @@
 // Note Command - Manage internal moderator notes on users
-import type { ChatInputCommandInteraction} from 'discord.js';
+import type { ChatInputCommandInteraction, User } from 'discord.js';
 import { PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { getUserData, setUserData, appendToUserArray } from '../../../utils/db.js';
@@ -110,7 +110,7 @@ export default {
     }
 };
 
-async function handleAddNote(interaction: ChatInputCommandInteraction, user: import('discord.js').User) {
+async function handleAddNote(interaction: ChatInputCommandInteraction, user: User) {
     const noteContent = interaction.options.getString('note');
 
     const note: ModNote = {
@@ -154,7 +154,7 @@ async function handleAddNote(interaction: ChatInputCommandInteraction, user: imp
     logger.info({ msg: `[MODERATION] Note added for user ${user.tag} by ${interaction.user.tag}. Note ID: ${note.id}` });
 }
 
-async function handleViewNotes(interaction: ChatInputCommandInteraction, user: import('discord.js').User) {
+async function handleViewNotes(interaction: ChatInputCommandInteraction, user: User) {
     const notes = (await getUserData('mod-notes', interaction.guild!.id, user.id) ?? []) as ModNote[];
 
     if (notes.length === 0) {
@@ -187,7 +187,7 @@ async function handleViewNotes(interaction: ChatInputCommandInteraction, user: i
     await interaction.reply({ embeds: [notesEmbed], flags: MessageFlags.Ephemeral });
 }
 
-async function handleRemoveNote(interaction: ChatInputCommandInteraction, user: import('discord.js').User) {
+async function handleRemoveNote(interaction: ChatInputCommandInteraction, user: User) {
     const noteId = interaction.options.getString('note-id');
 
     const notes = (await getUserData('mod-notes', interaction.guild!.id, user.id) ?? []) as ModNote[];

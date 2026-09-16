@@ -108,11 +108,10 @@ export async function setGuildData(filename: string, guildId: string, guildData:
     }
 
     // Create a new write operation
-    const writeOperation = (async () => {
-        const data = getData(filename);
-        data[guildId] = guildData;
-        setData(filename, data);
-    })();
+    const writeOperation: Promise<void> = Promise.resolve();
+    const data = getData(filename);
+    data[guildId] = guildData;
+    setData(filename, data);
 
     writeQueue.set(filename, writeOperation);
 
@@ -140,12 +139,11 @@ export async function updateGuildData(filename: string, guildId: string, key: st
         await pendingWrite;
     }
 
-    const writeOperation = (async () => {
-        const data = getData(filename);
-        data[guildId] ??= {};
-        (data[guildId] as Record<string, unknown>)[key] = value;
-        setData(filename, data);
-    })();
+    const writeOperation: Promise<void> = Promise.resolve();
+    const data = getData(filename);
+    data[guildId] ??= {};
+    (data[guildId] as Record<string, unknown>)[key] = value;
+    setData(filename, data);
 
     writeQueue.set(filename, writeOperation);
 
@@ -172,15 +170,14 @@ export async function appendToGuildArray(filename: string, guildId: string, key:
         await pendingWrite;
     }
 
-    const writeOperation = (async () => {
-        const data = getData(filename);
-        data[guildId] ??= {};
-        if (!Array.isArray((data[guildId] as Record<string, unknown>)[key])) {
-            (data[guildId] as Record<string, unknown>)[key] = [];
-        }
-        ((data[guildId] as Record<string, unknown>)[key] as unknown[]).push(item);
-        setData(filename, data);
-    })();
+    const writeOperation: Promise<void> = Promise.resolve();
+    const data = getData(filename);
+    data[guildId] ??= {};
+    if (!Array.isArray((data[guildId] as Record<string, unknown>)[key])) {
+        (data[guildId] as Record<string, unknown>)[key] = [];
+    }
+    ((data[guildId] as Record<string, unknown>)[key] as unknown[]).push(item);
+    setData(filename, data);
 
     writeQueue.set(filename, writeOperation);
 
@@ -213,22 +210,20 @@ export async function removeFromGuildArray(
     }
 
     let removed = 0;
-    const writeOperation = (async () => {
-        const data = getData(filename);
-        if (!data[guildId] || !Array.isArray((data[guildId] as Record<string, unknown>)[key])) {
-            return 0;
-        }
+    const writeOperation: Promise<void> = Promise.resolve();
+    const data = getData(filename);
+    if (!data[guildId] || !Array.isArray((data[guildId] as Record<string, unknown>)[key])) {
+        return 0;
+    }
 
-        const originalLength = ((data[guildId] as Record<string, unknown>)[key] as unknown[]).length;
-        (data[guildId] as Record<string, unknown>)[key] = ((data[guildId] as Record<string, unknown>)[key] as unknown[]).filter(item => !predicate(item));
-        removed = originalLength - ((data[guildId] as Record<string, unknown>)[key] as unknown[]).length;
+    const originalLength = ((data[guildId] as Record<string, unknown>)[key] as unknown[]).length;
+    (data[guildId] as Record<string, unknown>)[key] = ((data[guildId] as Record<string, unknown>)[key] as unknown[]).filter(item => !predicate(item));
+    removed = originalLength - ((data[guildId] as Record<string, unknown>)[key] as unknown[]).length;
 
-        if (removed > 0) {
-            setData(filename, data);
-        }
+    if (removed > 0) {
+        setData(filename, data);
+    }
 
-        return removed;
-    })();
 
     writeQueue.set(filename, writeOperation);
 
@@ -274,12 +269,11 @@ export async function setUserData(
         await pendingWrite;
     }
 
-    const writeOperation = (async () => {
-        const data = getData(filename);
-        data[guildId] ??= {};
-        data[guildId][userId] = userData;
-        setData(filename, data);
-    })();
+    const writeOperation: Promise<void> = Promise.resolve();
+    const data = getData(filename);
+    data[guildId] ??= {};
+    data[guildId][userId] = userData;
+    setData(filename, data);
 
     writeQueue.set(filename, writeOperation);
 
@@ -311,15 +305,14 @@ export async function appendToUserArray(
         await pendingWrite;
     }
 
-    const writeOperation = (async () => {
-        const data = getData(filename);
-        data[guildId] ??= {};
-        if (!Array.isArray((data[guildId] as Record<string, unknown>)[userId])) {
-            (data[guildId] as Record<string, unknown>)[userId] = [];
-        }
-        ((data[guildId] as Record<string, unknown>)[userId] as unknown[]).push(item);
-        setData(filename, data);
-    })();
+    const writeOperation: Promise<void> = Promise.resolve();
+    const data = getData(filename);
+    data[guildId] ??= {};
+    if (!Array.isArray((data[guildId] as Record<string, unknown>)[userId])) {
+        (data[guildId] as Record<string, unknown>)[userId] = [];
+    }
+    ((data[guildId] as Record<string, unknown>)[userId] as unknown[]).push(item);
+    setData(filename, data);
 
     writeQueue.set(filename, writeOperation);
 
@@ -352,22 +345,20 @@ export async function removeFromUserArray(
     }
 
     let removed = 0;
-    const writeOperation = (async () => {
-        const data = getData(filename);
-        if (!data[guildId] || !Array.isArray((data[guildId] as Record<string, unknown>)[userId])) {
-            return 0;
-        }
+    const writeOperation: Promise<void> = Promise.resolve();
+    const data = getData(filename);
+    if (!data[guildId] || !Array.isArray((data[guildId] as Record<string, unknown>)[userId])) {
+        return 0;
+    }
 
-        const originalLength = ((data[guildId] as Record<string, unknown>)[userId] as unknown[]).length;
-        (data[guildId] as Record<string, unknown>)[userId] = ((data[guildId] as Record<string, unknown>)[userId] as unknown[]).filter(item => !predicate(item));
-        removed = originalLength - ((data[guildId] as Record<string, unknown>)[userId] as unknown[]).length;
+    const originalLength = ((data[guildId] as Record<string, unknown>)[userId] as unknown[]).length;
+    (data[guildId] as Record<string, unknown>)[userId] = ((data[guildId] as Record<string, unknown>)[userId] as unknown[]).filter(item => !predicate(item));
+    removed = originalLength - ((data[guildId] as Record<string, unknown>)[userId] as unknown[]).length;
 
-        if (removed > 0) {
-            setData(filename, data);
-        }
+    if (removed > 0) {
+        setData(filename, data);
+    }
 
-        return removed;
-    })();
 
     writeQueue.set(filename, writeOperation);
 

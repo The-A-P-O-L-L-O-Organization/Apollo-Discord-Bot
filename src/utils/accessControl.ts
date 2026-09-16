@@ -66,16 +66,16 @@ export function createAccessDeniedEmbed(message = 'Only bot owners can use this 
  * @param {string} [options.customMessage] - Custom denial message
  * @returns {Promise<InteractionReplyOptions|null>} Reply options if denied, null if allowed
  */
-export async function requireOwner(interaction: Interaction, options: { ephemeral?: boolean; customMessage?: string } = {}): Promise<{ embeds: EmbedBuilder[]; ephemeral: boolean } | null> {
+export function requireOwner(interaction: Interaction, options: { ephemeral?: boolean; customMessage?: string } = {}): Promise<{ embeds: EmbedBuilder[]; ephemeral: boolean } | null> {
     const { ephemeral = true, customMessage } = options;
 
     if (!isOwnerInteraction(interaction)) {
-        return {
+        return Promise.resolve({
             embeds: [createAccessDeniedEmbed(customMessage)],
             ephemeral
-        };
+        });
     }
-    return null;
+    return Promise.resolve(null);
 }
 
 /**
@@ -150,26 +150,26 @@ export function createPermissionDeniedEmbed(permissionName = 'the required permi
  * @param {boolean} [options.ephemeral=true] - Whether reply should be ephemeral
  * @returns {Promise<InteractionReplyOptions|null>} Reply options if denied, null if allowed
  */
-export async function requirePermission(interaction: Interaction, permission: PermissionResolvable, options: { ephemeral?: boolean } = {}): Promise<{ embeds: EmbedBuilder[]; ephemeral: boolean } | null> {
+export function requirePermission(interaction: Interaction, permission: PermissionResolvable, options: { ephemeral?: boolean } = {}): Promise<{ embeds: EmbedBuilder[]; ephemeral: boolean } | null> {
     const { ephemeral = true } = options;
 
     if (!interaction.guild || !interaction.member || !('permissions' in interaction.member)) {
-        return {
+        return Promise.resolve({
             embeds: [createPermissionDeniedEmbed('guild context')],
             ephemeral
-        };
+        });
     }
 
     const member = interaction.member as GuildMember;
     if (!hasPermission(member, permission)) {
         const permName = Object.entries(PermissionsBitField.Flags)
             .find(([, v]) => v === permission)?.[0] ?? 'the required permission';
-        return {
+        return Promise.resolve({
             embeds: [createPermissionDeniedEmbed(permName)],
             ephemeral
-        };
+        });
     }
-    return null;
+    return Promise.resolve(null);
 }
 
 export default {
