@@ -9,7 +9,6 @@ import { createModCase } from './case.js';
 // @ts-expect-error - JS file not yet migrated
 import { removeTempban } from '../../../utils/tempbanScheduler.js';
 // @ts-expect-error - JS file not yet migrated
-import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
     name: 'unban',

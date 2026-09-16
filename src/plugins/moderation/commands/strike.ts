@@ -6,7 +6,6 @@ import { getUserData, appendToUserArray, generateId, getGuildData } from '../../
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { canModerate } from '../../../utils/moderation.js';
 import { safeError } from '../../../utils/safeError.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 interface StrikeEntry {
     id: string;
@@ -147,7 +146,7 @@ export default {
 
                 await user.send({ embeds: [dmEmbed] });
                 dmSent = true;
-            } catch (dmError) {
+            } catch {
                 logger.info({ msg: `[INFO] Could not DM user ${user.tag} about strike` });
             }
 

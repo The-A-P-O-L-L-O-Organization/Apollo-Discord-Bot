@@ -8,7 +8,7 @@ export default {
     name: 'messageReactionAdd',
     once: false,
 
-    async execute(reaction: any, user: any, client: any) {
+    async execute(reaction: any, user: any, _client: any) {
         if (user.bot) { return; }
 
         if (reaction.partial) {
@@ -62,7 +62,7 @@ export default {
                     await user.send({
                         content: `You have been given the **${role.name}** role in **${guild.name}**!`
                     });
-                } catch (dmError) {
+                } catch {
                 }
             }
         } catch (error) {

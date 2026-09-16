@@ -20,8 +20,6 @@ export const SECURITY_LOG_ENTRY_KEYS = [
     'riskLevel'
 ] as const;
 
-type SecurityLogKey = typeof SECURITY_LOG_ENTRY_KEYS[number];
-
 interface SecurityLogEntry {
     ts: number;
     event: string | null;

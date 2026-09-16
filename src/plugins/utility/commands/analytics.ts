@@ -1,5 +1,5 @@
 import type { ChatInputCommandInteraction} from 'discord.js';
-import { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits, AttachmentBuilder, MessageFlags, User, Channel } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits, AttachmentBuilder, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { getCommandStats, getMessageStats, getViolationStats, getModActionStats, getMemberGrowthStats } from '../../../utils/analyticsCollector.js';
 import { createBarChart, createSparkline, formatDuration, formatNumber } from '../../../utils/charts.js';
@@ -16,31 +16,9 @@ interface MemberGrowthData {
     leaveCount: number;
 }
 
-interface CommandStats {
-    byCommand: { name: string; count: number }[];
-    byUser: { userId: string; count: number }[];
-}
-
-interface MessageStats {
-    byChannel: { channelId: string; count: number }[];
-    byUser: { userId: string; count: number }[];
-    byHour: { hour: string; count: number }[];
-}
-
-interface ModActionStats {
-    byAction: { action: string; count: number }[];
-    byModerator: { moderatorId: string; count: number }[];
-}
-
 interface ViolationStats {
     type: string;
     count: number;
-}
-
-interface ExportResult {
-    filepath: string;
-    filename: string;
-    size: number;
 }
 
 export default {

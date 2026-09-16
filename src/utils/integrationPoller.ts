@@ -6,7 +6,6 @@ import { checkTwitchStream, checkYoutubeUploads, checkRssFeed } from './integrat
 import { formatTwitchNotification, formatYoutubeNotification, formatRssNotification } from './integrationFormatters.js';
 import type { Client } from '../types/shared.js';
 import type { TextChannel } from 'discord.js';
-import { logger } from './logger.js';
 
 interface IntegrationConfig {
     twitchClientId: string;

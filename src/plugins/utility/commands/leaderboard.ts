@@ -1,6 +1,5 @@
 import type { ChatInputCommandInteraction, User } from 'discord.js';
 import { EmbedBuilder, MessageFlags } from 'discord.js';
-import { logger } from '../../../utils/logger.js';
 import { getAllUserData } from '../../../utils/db.js';
 // @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';

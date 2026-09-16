@@ -1,6 +1,6 @@
 // Blacklist Command - Manage server join blacklist
 import type { ChatInputCommandInteraction} from 'discord.js';
-import { PermissionFlagsBits, EmbedBuilder, MessageFlags, type User } from 'discord.js';
+import { PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { getGuildData, getData, updateGuildData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';

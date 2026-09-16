@@ -1,13 +1,11 @@
 // @ts-expect-error - JS file not yet migrated
-import { logger } from '../../../utils/logger.js';
 import type { ChatInputCommandInteraction} from 'discord.js';
-import { PermissionsBitField, MessageFlags, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, Message } from 'discord.js';
+import { PermissionsBitField, MessageFlags, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 // @ts-expect-error - JS file not yet migrated
 import { sendModLog } from '../../../utils/modLog.js';
 // @ts-expect-error - JS file not yet migrated
 import { safeError } from '../../../utils/safeError.js';
 // @ts-expect-error - JS file not yet migrated
-import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 interface ClearCommand {
     name: string;

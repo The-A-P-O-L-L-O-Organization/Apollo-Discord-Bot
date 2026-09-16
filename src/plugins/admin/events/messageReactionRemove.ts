@@ -7,7 +7,7 @@ export default {
     name: 'messageReactionRemove',
     once: false,
 
-    async execute(reaction: any, user: any, client: any) {
+    async execute(reaction: any, user: any, _client: any) {
         if (user.bot) { return; }
 
         if (reaction.partial) {

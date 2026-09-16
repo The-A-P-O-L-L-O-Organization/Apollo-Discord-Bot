@@ -5,7 +5,7 @@ export default {
     name: 'messageDelete',
     once: false,
 
-    async execute(message: any, client: any) {
+    async execute(message: any, _client: any) {
         if (!message.guild) { return; }
 
         if (!message.author) { return; }

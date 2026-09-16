@@ -5,17 +5,6 @@ import { getGuildData } from '../../../utils/db.js';
 // @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
-interface SLAMetrics {
-    totalTickets: number;
-    avgResponseTime: number;
-    avgResolutionTime: number;
-    slaMet: number;
-    slaBreached: number;
-    openTicketsBreached: number;
-    byPriority: Record<string, { count: number; avgResponseTime: number }>;
-    byCategory: Record<string, { count: number; avgResponseTime: number }>;
-}
-
 interface SLAThresholds {
     urgent: number;
     high: number;

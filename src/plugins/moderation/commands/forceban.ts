@@ -9,7 +9,6 @@ import { createModCase } from './case.js';
 // @ts-expect-error - JS file not yet migrated
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 // @ts-expect-error - JS file not yet migrated
-import { safeError } from '../../../utils/safeError.js';
 // @ts-expect-error - JS file not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 

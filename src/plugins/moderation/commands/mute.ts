@@ -15,7 +15,6 @@ import { canModerate } from '../../../utils/moderation.js';
 // @ts-expect-error - JS file not yet migrated
 import { safeError } from '../../../utils/safeError.js';
 // @ts-expect-error - JS file not yet migrated
-import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
     name: 'mute',
@@ -160,7 +159,7 @@ export default {
 
             try {
                 await member.timeout(durationMs, reason);
-            } catch (timeoutError) {
+            } catch {
                 logger.info({ msg: '[INFO] Timeout failed, checking for mute role...' });
 
                 let muteRole = interaction.guild!.roles.cache.find(

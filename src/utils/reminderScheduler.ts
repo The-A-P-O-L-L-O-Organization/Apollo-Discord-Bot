@@ -1,6 +1,6 @@
 import { logger } from '../utils/logger.js';
 import type { Client} from 'discord.js';
-import { EmbedBuilder, User, type TextBasedChannel } from 'discord.js';
+import { EmbedBuilder } from 'discord.js';
 import { getData, setData } from './db.js';
 import { config } from '../config/config.js';
 import { getLockRedis, withLock } from './lock.js';

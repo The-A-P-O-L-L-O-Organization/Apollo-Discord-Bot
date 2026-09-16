@@ -4,7 +4,7 @@ import { logEvent } from '../../../utils/logger.js';
 export default {
     name: 'messageDeleteBulk',
     once: false,
-    async execute(messages: any, channel: any, client: any) {
+    async execute(messages: any, channel: any, _client: any) {
         try {
             if (!channel.guild) { return; }
 

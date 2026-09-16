@@ -11,7 +11,7 @@ import { flushAnalyticsCritical, trackModAction } from '../../../utils/analytics
 // @ts-expect-error - JS file not yet migrated
 import { canModerate } from '../../../utils/moderation.js';
 // @ts-expect-error - JS file not yet migrated
-import { parseDuration, formatDuration, validateDuration } from '../../../utils/duration.js';
+import { formatDuration, validateDuration } from '../../../utils/duration.js';
 // @ts-expect-error - JS file not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 

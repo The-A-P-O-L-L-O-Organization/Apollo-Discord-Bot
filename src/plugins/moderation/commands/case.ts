@@ -5,7 +5,6 @@ import { PermissionsBitField, MessageFlags } from 'discord.js';
 // @ts-expect-error - JS file not yet migrated
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
 // @ts-expect-error - JS file not yet migrated
-import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 interface CaseData {
     caseId: number;

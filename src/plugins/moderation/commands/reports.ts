@@ -3,7 +3,6 @@ import type { ChatInputCommandInteraction} from 'discord.js';
 import { EmbedBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
-import { safeError } from '../../../utils/safeError.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 interface ReportEntry {
@@ -122,7 +121,7 @@ export default {
                     )
                     .setTimestamp();
 
-                reports.slice(-10).reverse().forEach((report, index) => {
+                reports.slice(-10).reverse().forEach((report, _index) => {
                     const date = new Date(report.timestamp).toLocaleString();
                     embed.addFields({
                         name: `${report.reportId}`,

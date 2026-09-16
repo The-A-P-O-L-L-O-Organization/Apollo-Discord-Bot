@@ -2,7 +2,7 @@
 // Handles fetching guild log config and sending log events
 
 import { EmbedBuilder } from 'discord.js';
-import type { Message, GuildMember, VoiceState, Guild } from 'discord.js';
+import type { Message, GuildMember, VoiceState } from 'discord.js';
 
 /**
  * Gets logging configuration for a guild

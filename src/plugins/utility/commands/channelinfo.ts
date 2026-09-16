@@ -1,12 +1,7 @@
 import type { ChatInputCommandInteraction} from 'discord.js';
-import { ChannelType, EmbedBuilder, MessageFlags, GuildChannel, TextChannel, VoiceChannel, StageChannel, ForumChannel, NewsChannel, CategoryChannel, ThreadChannel } from 'discord.js';
-import { logger } from '../../../utils/logger.js';
+import { EmbedBuilder, MessageFlags, GuildChannel, TextChannel, VoiceChannel, StageChannel, CategoryChannel, ThreadChannel } from 'discord.js';
 // @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
-
-function isGuildChannel(channel: unknown): channel is GuildChannel {
-    return channel instanceof GuildChannel;
-}
 
 function isTextChannel(channel: unknown): channel is TextChannel {
     return channel instanceof TextChannel;
@@ -18,18 +13,6 @@ function isVoiceChannel(channel: unknown): channel is VoiceChannel {
 
 function isStageChannel(channel: unknown): channel is StageChannel {
     return channel instanceof StageChannel;
-}
-
-function isForumChannel(channel: unknown): channel is ForumChannel {
-    return channel instanceof ForumChannel;
-}
-
-function isNewsChannel(channel: unknown): channel is NewsChannel {
-    return channel instanceof NewsChannel;
-}
-
-function isCategoryChannel(channel: unknown): channel is CategoryChannel {
-    return channel instanceof CategoryChannel;
 }
 
 function isThreadChannel(channel: unknown): channel is ThreadChannel {
