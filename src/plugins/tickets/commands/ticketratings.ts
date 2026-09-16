@@ -54,13 +54,13 @@ export default {
             const guildId = interaction.guild!.id;
             const subcommand = interaction.options.getSubcommand();
             const ticketConfig = await getGuildData('tickets', guildId);
-            const closedTickets = ticketConfig.closedTickets || [];
+            const closedTickets = ticketConfig.closedTickets ?? [];
 
             if (subcommand === 'staff') {
                 const user = interaction.options.getUser('user')!;
 
                 const staffTickets = closedTickets.filter(t =>
-                    t.assignedTo?.includes(user.id) || t.claimedBy === user.id
+                    t.assignedTo?.includes(user.id) ?? t.claimedBy === user.id
                 );
 
                 if (staffTickets.length === 0) {
@@ -213,10 +213,8 @@ export default {
 
                 const categoryRatings: Record<string, number[]> = {};
                 ratedTickets.forEach(t => {
-                    const cat = t.category || 'general';
-                    if (!categoryRatings[cat]) {
-                        categoryRatings[cat] = [];
-                    }
+                    const cat = t.category ?? 'general';
+                    categoryRatings[cat] ??= [];
                     categoryRatings[cat].push(t.rating);
                 });
 

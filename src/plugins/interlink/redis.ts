@@ -12,7 +12,7 @@ export default class RedisTransport {
     isConnected: boolean;
 
     constructor(config: any) {
-        this.channelPrefix = config.channelPrefix || 'apollo:interlink';
+        this.channelPrefix = config.channelPrefix ?? 'apollo:interlink';
         this._messageChannel = `${this.channelPrefix}:message`;
         this._responseChannelPrefix = `${this.channelPrefix}:response`;
         this._config = config;

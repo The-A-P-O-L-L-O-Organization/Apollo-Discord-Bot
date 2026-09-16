@@ -44,7 +44,7 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
-            const type = interaction.options.getString('type') || 'bot';
+            const type = interaction.options.getString('type') ?? 'bot';
 
             if (type === 'bot') {
                 // Generate bot invite

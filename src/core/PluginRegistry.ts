@@ -38,7 +38,7 @@ export default class PluginRegistry {
         try {
             const raw = readFileSync(this._filePath, 'utf-8');
             const data = JSON.parse(raw);
-            this._plugins = data.plugins || [];
+            this._plugins = data.plugins ?? [];
         } catch (err) {
             // @ts-expect-error - pino logger overloads
             logger.error('[PluginRegistry] Failed to load, using defaults:', (err as Error).message);
@@ -64,7 +64,7 @@ export default class PluginRegistry {
     }
 
     get(id: string): PluginRegistryEntry | null {
-        return this._plugins.find(p => p.id === id) || null;
+        return this._plugins.find(p => p.id === id) ?? null;
     }
 
     search(query: string): PluginRegistryEntry[] {

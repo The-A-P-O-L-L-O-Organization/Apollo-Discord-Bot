@@ -37,7 +37,7 @@ export default {
 
             const uptime = Date.now() - interaction.client.stats.startTime;
             const plugins = interaction.client.manager.listPlugins();
-            const runMode = process.env.RUN_MODE || 'gateway';
+            const runMode = process.env.RUN_MODE ?? 'gateway';
 
             const fields = [
                 { name: 'Run Mode', value: runMode, inline: true },
@@ -55,12 +55,12 @@ export default {
                     const redis = new Redis({
                         host: config.queue.redis.host,
                         port: config.queue.redis.port,
-                        password: config.queue.redis.password || undefined,
+                        password: config.queue.redis.password ?? undefined,
                         maxRetriesPerRequest: null
                     });
                     const leader = await redis.get('apollo:gateway:leader');
                     await redis.quit();
-                    fields.push({ name: 'Leader', value: leader || 'None', inline: true });
+                    fields.push({ name: 'Leader', value: leader ?? 'None', inline: true });
                 } catch (err) {
                     fields.push({ name: 'Leader', value: 'Error: ' + (err as Error).message, inline: true });
                 }

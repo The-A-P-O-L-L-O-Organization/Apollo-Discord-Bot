@@ -57,14 +57,12 @@ export function initIntegrationPoller(discordClient: Client, cfg: { integrations
         intervals.push(id);
     }
 
-    if (!startupTimeout) {
-        startupTimeout = setTimeout(async () => {
-            startupTimeout = null;
-            await loadKnownItems();
-            await pollYoutubeSubscriptions();
-            await pollRssSubscriptions();
-        }, 5000);
-    }
+    startupTimeout ??= setTimeout(async () => {
+        startupTimeout = null;
+        await loadKnownItems();
+        await pollYoutubeSubscriptions();
+        await pollRssSubscriptions();
+    }, 5000);
 }
 
 export function stopIntegrationPoller(): void {
@@ -143,7 +141,7 @@ async function pollYoutubeSubscriptions(): Promise<void> {
             const videos = await checkYoutubeUploads(sub.target_id, integrationConfig);
             if (!videos || videos.length === 0) { continue; }
 
-            const seen = knownItems.get(`youtube:${sub.id}`) || new Set();
+            const seen = knownItems.get(`youtube:${sub.id}`) ?? new Set();
             let posted = false;
 
             for (const video of videos) {
@@ -180,7 +178,7 @@ async function pollRssSubscriptions(): Promise<void> {
             const feed = await checkRssFeed(sub.target_id);
             if (!feed || feed.items.length === 0) { continue; }
 
-            const seen = knownItems.get(`rss:${sub.id}`) || new Set();
+            const seen = knownItems.get(`rss:${sub.id}`) ?? new Set();
             let posted = false;
 
             for (const item of feed.items) {

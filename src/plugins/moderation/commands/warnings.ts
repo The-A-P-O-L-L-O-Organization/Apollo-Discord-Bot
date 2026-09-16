@@ -36,7 +36,7 @@ export default {
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
             const user = interaction.options.getUser('user');
-            const showInactive = interaction.options.getBoolean('show-inactive') || false;
+            const showInactive = interaction.options.getBoolean('show-inactive') ?? false;
 
             if (!user) {
                 return interaction.reply({
@@ -100,7 +100,7 @@ export default {
                     value: [
                         `**ID:** \`${warning.id}\``,
                         `**Reason:** ${warning.reason}`,
-                        `**Moderator:** ${warning.moderatorTag || 'Unknown'}`,
+                        `**Moderator:** ${warning.moderatorTag ?? 'Unknown'}`,
                         `**Date:** <t:${Math.floor(warning.timestamp / 1000)}:F>`
                     ].join('\n'),
                     inline: false

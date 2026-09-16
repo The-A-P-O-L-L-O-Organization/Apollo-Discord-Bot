@@ -31,8 +31,8 @@ export default {
     async execute(interaction: ChatInputCommandInteraction) {
         try {
             // Get the channel to lock
-            const channel = interaction.options.getChannel('channel') || interaction.channel;
-            const reason = interaction.options.getString('reason') || 'No reason provided';
+            const channel = interaction.options.getChannel('channel') ?? interaction.channel;
+            const reason = interaction.options.getString('reason') ?? 'No reason provided';
 
             // Check if the channel is a text-based channel
             if (!channel!.isTextBased()) {

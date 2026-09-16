@@ -123,9 +123,7 @@ export async function fetchMember(guild: Guild, userId: string): Promise<GuildMe
         let member = guild.members.cache.get(userId) ?? undefined;
 
         // If not in cache, fetch from API
-        if (!member) {
-            member = await guild.members.fetch(userId).catch(() => undefined);
-        }
+        member ??= await guild.members.fetch(userId).catch(() => undefined);
 
         return member ?? null;
     } catch (error) {

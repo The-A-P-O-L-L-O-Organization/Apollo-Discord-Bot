@@ -142,9 +142,7 @@ export async function updateGuildData(filename: string, guildId: string, key: st
 
     const writeOperation = (async () => {
         const data = getData(filename);
-        if (!data[guildId]) {
-            data[guildId] = {};
-        }
+        data[guildId] ??= {};
         (data[guildId] as Record<string, unknown>)[key] = value;
         setData(filename, data);
     })();
@@ -176,9 +174,7 @@ export async function appendToGuildArray(filename: string, guildId: string, key:
 
     const writeOperation = (async () => {
         const data = getData(filename);
-        if (!data[guildId]) {
-            data[guildId] = {};
-        }
+        data[guildId] ??= {};
         if (!Array.isArray((data[guildId] as Record<string, unknown>)[key])) {
             (data[guildId] as Record<string, unknown>)[key] = [];
         }
@@ -280,9 +276,7 @@ export async function setUserData(
 
     const writeOperation = (async () => {
         const data = getData(filename);
-        if (!data[guildId]) {
-            data[guildId] = {};
-        }
+        data[guildId] ??= {};
         data[guildId][userId] = userData;
         setData(filename, data);
     })();
@@ -319,9 +313,7 @@ export async function appendToUserArray(
 
     const writeOperation = (async () => {
         const data = getData(filename);
-        if (!data[guildId]) {
-            data[guildId] = {};
-        }
+        data[guildId] ??= {};
         if (!Array.isArray((data[guildId] as Record<string, unknown>)[userId])) {
             (data[guildId] as Record<string, unknown>)[userId] = [];
         }

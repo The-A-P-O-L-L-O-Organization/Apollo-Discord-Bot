@@ -37,7 +37,7 @@ export default {
             const totalMemory = Math.round(memoryUsage.heapTotal / 1024 / 1024);
 
             // Get stats from client if available (set in index.js)
-            const stats = client.stats || {
+            const stats = client.stats ?? {
                 commandsRan: 0,
                 messagesProcessed: 0
             };
@@ -51,7 +51,7 @@ export default {
             }
 
             // Get command count
-            const commandCount = client.commands?.size || 0;
+            const commandCount = client.commands?.size ?? 0;
 
             const embed = new EmbedBuilder()
                 .setColor('#3498DB')

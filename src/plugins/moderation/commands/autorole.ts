@@ -128,7 +128,7 @@ async function handleSetRole(interaction: ChatInputCommandInteraction): Promise<
     // Set new role
     config.roleId = role.id;
     config.roleName = role.name;
-    config.enabled = config.enabled !== undefined ? config.enabled : true;
+    config.enabled ??= true;
 
     await setGuildData('autorole', interaction.guild!.id, config);
 

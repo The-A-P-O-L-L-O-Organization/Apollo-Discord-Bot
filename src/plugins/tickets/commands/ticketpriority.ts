@@ -56,7 +56,7 @@ export default {
                 });
             }
 
-            const oldPriority = ticket.priority || 'medium';
+            const oldPriority = ticket.priority ?? 'medium';
 
             if (oldPriority === newPriority) {
                 return interaction.reply({
@@ -69,7 +69,7 @@ export default {
                 const t = data.openTickets?.find(x => x.channelId === channelId);
                 if (t) {
                     t.priority = newPriority;
-                    if (!t.tags) { t.tags = []; }
+                    t.tags ??= [];
                     t.tags = t.tags.filter(tag => tag !== oldPriority);
                     t.tags.push(newPriority);
                 }
@@ -78,7 +78,7 @@ export default {
 
             try {
                 const memberUser = await interaction.guild!.members.fetch(ticket.userId).catch(() => null);
-                const newTopic = `${getPriorityEmoji(newPriority)} Ticket #${ticket.ticketNumber} | ${ticket.category || 'general'} | ${newPriority} priority | Created by ${memberUser?.user?.tag || 'Unknown'}`;
+                const newTopic = `${getPriorityEmoji(newPriority)} Ticket #${ticket.ticketNumber} | ${ticket.category ?? 'general'} | ${newPriority} priority | Created by ${memberUser?.user?.tag ?? 'Unknown'}`;
                 await interaction.channel!.setTopic(newTopic);
             } catch (error) {
                 logger.error({ err: error, msg: '[ERROR] Failed to update channel topic:' });

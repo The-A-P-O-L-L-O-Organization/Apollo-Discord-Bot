@@ -86,7 +86,7 @@ export default class InterlinkServer {
         this._app.use('/api/v1', (req: any, res: any, next: any) => {
             const key = TRUST_PROXY && req.headers['x-forwarded-for']
                 ? req.headers['x-forwarded-for'].split(',')[0].trim()
-                : req.ip || req.socket.remoteAddress || 'unknown';
+                : req.ip ?? req.socket.remoteAddress ?? 'unknown';
             const result = this._rateLimiter.check(key);
             if (!result.allowed) {
                 res.setHeader('Retry-After', String(result.retryAfter));
@@ -105,7 +105,7 @@ export default class InterlinkServer {
         // Metrics endpoint - restrict to localhost only for security
         this._app.get('/metrics', async (req: any, res: any) => {
             // Only allow localhost access
-            const clientIp = req.ip || req.socket.remoteAddress || '';
+            const clientIp = req.ip ?? req.socket.remoteAddress ?? '';
             const isLocalhost = clientIp === '127.0.0.1' || clientIp === '::1' || clientIp === '::ffff:127.0.0.1';
 
             if (!isLocalhost) {
@@ -115,7 +115,7 @@ export default class InterlinkServer {
             // Lenient rate limit for metrics
             const rateKey = TRUST_PROXY && req.headers['x-forwarded-for']
                 ? req.headers['x-forwarded-for'].split(',')[0].trim()
-                : req.ip || req.socket.remoteAddress || 'unknown';
+                : req.ip ?? req.socket.remoteAddress ?? 'unknown';
             const rateResult = this._healthRateLimiter.check(rateKey);
             if (!rateResult.allowed) {
                 res.setHeader('Retry-After', String(rateResult.retryAfter));
@@ -134,7 +134,7 @@ export default class InterlinkServer {
         this._app.get('/health', (req: any, res: any) => {
             const rateKey = TRUST_PROXY && req.headers['x-forwarded-for']
                 ? req.headers['x-forwarded-for'].split(',')[0].trim()
-                : req.ip || req.socket.remoteAddress || 'unknown';
+                : req.ip ?? req.socket.remoteAddress ?? 'unknown';
             const rateResult = this._healthRateLimiter.check(rateKey);
             if (!rateResult.allowed) {
                 res.setHeader('Retry-After', String(rateResult.retryAfter));

@@ -32,7 +32,7 @@ export async function deleteUserData(userId: string): Promise<{ total: number; b
             if (removed > 0) {
                 dataObj[key] = filtered;
                 await setGuildData(category, guildId, data);
-                byCategory[category] = (byCategory[category] || 0) + removed;
+                byCategory[category] = (byCategory[category] ?? 0) + removed;
                 total += removed;
             }
         }
@@ -56,7 +56,7 @@ export async function deleteUserData(userId: string): Promise<{ total: number; b
                 const removed = before - filtered.length;
                 if (removed > 0) {
                     dataObj[ticketKey] = filtered;
-                    byCategory.tickets = (byCategory['tickets'] || 0) + removed;
+                    byCategory.tickets = (byCategory['tickets'] ?? 0) + removed;
                     total += removed;
                     storeChanged = true;
                 }
@@ -74,7 +74,7 @@ export async function deleteUserData(userId: string): Promise<{ total: number; b
             const userData = await getUserData(store, guildId, userId);
             if (userData !== undefined && userData !== null) {
                 await setUserData(store, guildId, userId, null as unknown as Record<string, unknown>);
-                byCategory[store] = (byCategory[store] || 0) + 1;
+                byCategory[store] = (byCategory[store] ?? 0) + 1;
                 total += 1;
             }
         }
@@ -102,7 +102,7 @@ export function buildDeletionSummary(summary: { total: number; byCategory: Recor
     };
 
     for (const [category, count] of Object.entries(summary.byCategory)) {
-        const label = labels[category] || category;
+        const label = labels[category] ?? category;
         lines.push(`- ${count} ${label}`);
     }
 

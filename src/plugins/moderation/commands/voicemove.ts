@@ -24,7 +24,7 @@ export default {
         try {
             const user = interaction.options.getUser('user');
             const targetChannel = interaction.options.getChannel('channel');
-            const reason = interaction.options.getString('reason') || 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? 'No reason provided';
 
             if (!user) {
                 const errorEmbed = {

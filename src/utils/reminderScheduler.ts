@@ -43,7 +43,7 @@ interface RemindersData {
 async function loadRemindersFromDatabase(): Promise<void> {
     try {
         const data = await getData('reminders');
-        const reminders = data.reminders || [];
+        const reminders = data.reminders ?? [];
         logger.info({ msg: `[INFO] Loaded ${reminders.length} reminders from database` });
     } catch (error) {
         logger.error({ err: error as Error, msg: '[ERROR] Failed to load reminders from database' });
@@ -97,7 +97,7 @@ async function checkReminders(): Promise<void> {
 
     try {
         const data = await getData('reminders');
-        const reminders = data.reminders || [];
+        const reminders = data.reminders ?? [];
         const now = Date.now();
 
         // Find due reminders
@@ -191,9 +191,7 @@ async function sendReminder(reminder: Reminder): Promise<void> {
  */
 export async function addReminder(reminderData: Reminder): Promise<Reminder> {
     const data = await getData('reminders') as RemindersData | null;
-    if (!data?.reminders) {
-        data.reminders = [];
-    }
+    data.reminders ??= [];
 
     data.reminders.push(reminderData);
     await setData('reminders', data);
@@ -208,7 +206,7 @@ export async function addReminder(reminderData: Reminder): Promise<Reminder> {
  */
 export async function getUserReminders(userId: string): Promise<Reminder[]> {
     const data = await getData('reminders') as RemindersData | null;
-    const reminders = data?.reminders || [];
+    const reminders = data?.reminders ?? [];
     return reminders.filter(r => r.userId === userId);
 }
 

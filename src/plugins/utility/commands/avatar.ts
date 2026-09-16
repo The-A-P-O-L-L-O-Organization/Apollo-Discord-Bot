@@ -26,7 +26,7 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
-            const user = interaction.options.getUser('user') || interaction.user;
+            const user = interaction.options.getUser('user') ?? interaction.user;
             const serverAvatar = interaction.options.getBoolean('server') ?? false;
 
             // Get member if checking server avatar
@@ -43,9 +43,7 @@ export default {
             }
 
             // Fall back to global avatar
-            if (!avatarURL) {
-                avatarURL = user.displayAvatarURL({ extension: 'png', size: 4096 });
-            }
+            avatarURL ??= user.displayAvatarURL({ extension: 'png', size: 4096 });
 
             // Determine format
             const format = avatarURL.includes('.gif') ? 'GIF' : 'PNG';

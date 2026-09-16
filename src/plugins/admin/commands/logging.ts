@@ -177,5 +177,5 @@ function getEventDisplayName(event: string) {
         roleChanges: 'Role Changes',
         voiceChanges: 'Voice Changes'
     };
-    return names[event] || event;
+    return names[event] ?? event;
 }

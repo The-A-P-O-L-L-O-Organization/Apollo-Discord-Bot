@@ -31,7 +31,7 @@ export default {
             const guildId = interaction.guild!.id;
             const channelId = interaction.channel!.id;
             const transferUser = interaction.options.getUser('user')!;
-            const note = interaction.options.getString('note') || 'No note provided';
+            const note = interaction.options.getString('note') ?? 'No note provided';
 
             const ticketConfig = await getGuildData('tickets', guildId);
             const openTickets = (ticketConfig['openTickets'] as Record<string, unknown>[]) || [];
@@ -72,7 +72,7 @@ export default {
                 if (t) {
                     t['assignedTo'] = [transferUser.id];
                     t['claimedBy'] = transferUser.id;
-                    if (!t['participants']) { t['participants'] = [t['userId']]; }
+                    t['participants'] ??= [t['userId']];
                     if (!(t['participants'] as string[]).includes(transferUser.id)) {
                         (t['participants'] as string[]).push(transferUser.id);
                     }

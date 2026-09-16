@@ -5,7 +5,7 @@ async function getAutomodConfig(guildId: string) {
     const cfg = guildConfig as Record<string, any>;
     return {
         enabled: cfg['enabled'] ?? false,
-        bannedWords: cfg['bannedWords'] || [],
+        bannedWords: cfg['bannedWords'] ?? [],
         filterInvites: cfg['filterInvites'] ?? true,
         filterLinks: cfg['filterLinks'] ?? true,
         maxMentions: cfg['maxMentions'] ?? 5,
@@ -13,8 +13,8 @@ async function getAutomodConfig(guildId: string) {
         minAccountAge: cfg['minAccountAge'] ?? 7,
         spamThreshold: cfg['spamThreshold'] ?? 5,
         spamInterval: cfg['spamInterval'] ?? 5000,
-        exemptChannels: cfg['exemptChannels'] || [],
-        exemptRoles: cfg['exemptRoles'] || []
+        exemptChannels: cfg['exemptChannels'] ?? [],
+        exemptRoles: cfg['exemptRoles'] ?? []
     };
 }
 
@@ -96,7 +96,7 @@ const module: CLIModule = {
             execute: async (args: any) => {
                 const word = args.word.toLowerCase();
                 const guildConfig = (await getGuildData('automod', args.guild)) as Record<string, any>;
-                if (!guildConfig['bannedWords']) {guildConfig['bannedWords'] = [];}
+                guildConfig['bannedWords'] ??= [];
                 if (guildConfig['bannedWords'].includes(word)) {
                     return { success: false, message: `"${word}" is already banned` };
                 }
@@ -161,7 +161,7 @@ const module: CLIModule = {
             ],
             execute: async (args: any) => {
                 const guildConfig = (await getGuildData('automod', args.guild)) as Record<string, any>;
-                if (!guildConfig['exemptChannels']) {guildConfig['exemptChannels'] = [];}
+                guildConfig['exemptChannels'] ??= [];
                 if (args.action === 'add') {
                     if (guildConfig['exemptChannels'].includes(args.channel)) {
                         return { success: false, message: 'Channel already exempt' };
@@ -183,7 +183,7 @@ const module: CLIModule = {
             ],
             execute: async (args: any) => {
                 const guildConfig = (await getGuildData('automod', args.guild)) as Record<string, any>;
-                if (!guildConfig['exemptRoles']) {guildConfig['exemptRoles'] = [];}
+                guildConfig['exemptRoles'] ??= [];
                 if (args.action === 'add') {
                     if (guildConfig['exemptRoles'].includes(args.role)) {
                         return { success: false, message: 'Role already exempt' };

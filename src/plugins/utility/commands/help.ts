@@ -40,7 +40,7 @@ function getUsageString(commandName: string, options: { name: string; required?:
  */
 function getPermissionName(permissions: bigint | number | string | null | undefined): string | null {
     if (!permissions) { return null; }
-    return permissionNames[String(permissions)] || 'Special Permission';
+    return permissionNames[String(permissions)] ?? 'Special Permission';
 }
 
 export default {
@@ -58,11 +58,9 @@ export default {
             const categories: Record<string, { name: string; description: string; usage: string; permissions: string | null }[]> = {};
 
             for (const [, cmd] of commands) {
-                const category = cmd.category || 'Uncategorized';
+                const category = cmd.category ?? 'Uncategorized';
 
-                if (!categories[category]) {
-                    categories[category] = [];
-                }
+                categories[category] ??= [];
 
                 categories[category].push({
                     name: cmd.name,

@@ -161,7 +161,7 @@ async function handleCreate(interaction: ChatInputCommandInteraction): Promise<v
     };
 
     await updateGuildData('giveaways', interaction.guild!.id, (data: Record<string, unknown>) => {
-        if (!data['active']) { data['active'] = []; }
+        data['active'] ??= [];
         (data['active'] as GiveawayData[]).push(giveawayData);
         return data;
     });

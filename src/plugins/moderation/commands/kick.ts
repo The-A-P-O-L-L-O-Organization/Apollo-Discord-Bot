@@ -42,7 +42,7 @@ export default {
             try {
                 // Get the user to kick
                 const user = interaction.options.getUser('user');
-                const reason = interaction.options.getString('reason') || 'No reason provided';
+                const reason = interaction.options.getString('reason') ?? 'No reason provided';
 
                 // Check if user exists
                 if (!user) {

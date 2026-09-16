@@ -71,7 +71,7 @@ const clearCommand: ClearCommand = {
                 return await this.handleDeleteAll(interaction, channel);
             }
 
-            const finalAmount = amount || 5;
+            const finalAmount = amount ?? 5;
 
             await this.deleteMessages(interaction, channel, finalAmount);
 

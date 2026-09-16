@@ -105,7 +105,7 @@ export default {
             }
 
             await updateGuildData('global_blacklist', '__global__', (data: Record<string, unknown>) => {
-                if (!data.entries) { data.entries = {}; }
+                data.entries ??= {};
                 (data.entries as Record<string, unknown>)[targetUser.id] = {
                     userId: targetUser.id,
                     userTag: targetUser.tag,

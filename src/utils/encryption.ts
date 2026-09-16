@@ -11,7 +11,7 @@ const SALT_LENGTH = 16; // 128 bits
 const CURRENT_VERSION = 1;
 
 // PBKDF2 iterations - configurable via env, default 600000 (OWASP 2024 recommendation)
-const PBKDF2_ITERATIONS = parseInt(process.env['PBKDF2_ITERATIONS'] || '600000', 10);
+const PBKDF2_ITERATIONS = parseInt(process.env['PBKDF2_ITERATIONS'] ?? '600000', 10);
 
 // LRU cache for decryption keys (salt -> derivedKey)
 const _keyCache = new Map<string, Buffer>();
@@ -26,7 +26,7 @@ const pbkdf2Async = promisify(crypto.pbkdf2);
  * @returns {string[]} Array of base64-encoded keys
  */
 function getEncryptionKeys(): string[] {
-    const keysEnv = process.env['ENCRYPTION_KEY'] || process.env['ENCRYPTION_KEYS'] || '';
+    const keysEnv = process.env['ENCRYPTION_KEY'] ?? process.env['ENCRYPTION_KEYS'] ?? '';
     if (!keysEnv) {
         return [];
     }

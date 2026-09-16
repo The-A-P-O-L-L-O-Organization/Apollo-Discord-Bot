@@ -45,8 +45,8 @@ export default {
     async execute(interaction: ChatInputCommandInteraction) {
         try {
             const userId = interaction.options.getString('user-id')!;
-            const reason = interaction.options.getString('reason') || 'No reason provided';
-            const deleteDays = interaction.options.getInteger('delete-days') || 0;
+            const reason = interaction.options.getString('reason') ?? 'No reason provided';
+            const deleteDays = interaction.options.getInteger('delete-days') ?? 0;
 
             if (!userId || !/^\d{17,19}$/.test(userId)) {
                 const errorEmbed = {

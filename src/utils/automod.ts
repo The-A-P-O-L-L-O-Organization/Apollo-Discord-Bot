@@ -330,7 +330,7 @@ export function normalizeContent(content: string): string {
         'œ': 'o', 'Œ': 'o'
     };
 
-    return cleaned.split('').map(c => leetMap[c] || c).join('');
+    return cleaned.split('').map(c => leetMap[c] ?? c).join('');
 }
 
 /**
@@ -438,7 +438,7 @@ export function checkCapsSpam(content: string, maxPercent: number, minLength = 1
     if (letters.length < minLength) { return false; }
 
     // Count uppercase letters
-    const upperCount = (content.match(/[A-Z]/g) || []).length;
+    const upperCount = (content.match(/[A-Z]/g) ?? []).length;
     const percent = (upperCount / letters.length) * 100;
 
     return percent > maxPercent;

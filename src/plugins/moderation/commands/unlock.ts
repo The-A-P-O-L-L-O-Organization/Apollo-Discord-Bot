@@ -20,8 +20,8 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction) {
         try {
-            const channel = interaction.options.getChannel('channel') || interaction.channel;
-            const reason = interaction.options.getString('reason') || 'No reason provided';
+            const channel = interaction.options.getChannel('channel') ?? interaction.channel;
+            const reason = interaction.options.getString('reason') ?? 'No reason provided';
 
             if (!channel!.isTextBased()) {
                 const errorEmbed = {

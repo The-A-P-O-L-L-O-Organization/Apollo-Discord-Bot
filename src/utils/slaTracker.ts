@@ -102,8 +102,8 @@ export function getResolutionTime(ticket: Ticket): number | null {
  */
 export async function calculateSLAMetrics(guildId: string): Promise<SLAMetrics> {
     const ticketConfig = await getGuildData('tickets', guildId) as TicketConfig | null;
-    const closedTickets = ticketConfig?.closedTickets || [];
-    const openTickets = ticketConfig?.openTickets || [];
+    const closedTickets = ticketConfig?.closedTickets ?? [];
+    const openTickets = ticketConfig?.openTickets ?? [];
     const slaThresholds = ticketConfig?.slaThresholds ?? DEFAULT_SLA_THRESHOLDS;
 
     const metrics: SLAMetrics = {
@@ -139,22 +139,18 @@ export async function calculateSLAMetrics(guildId: string): Promise<SLAMetrics> 
         }
 
         const category = ticket.category ?? 'general';
-        if (!metrics.byCategory[category]) {
-            metrics.byCategory[category] = { count: 0, avgResponseTime: 0 };
-        }
+        metrics.byCategory[category] ??= { count: 0, avgResponseTime: 0 };
         metrics.byCategory[category].count++;
         if (responseTime !== null) {
-            (metrics.byCategory[category] as any).responseTimes = (metrics.byCategory[category] as any).responseTimes || [];
+            (metrics.byCategory[category] as any).responseTimes = (metrics.byCategory[category] as any).responseTimes ?? [];
             (metrics.byCategory[category] as any).responseTimes.push(responseTime);
         }
 
         const priority = ticket.priority ?? 'medium';
-        if (!metrics.byPriority[priority]) {
-            metrics.byPriority[priority] = { count: 0, avgResponseTime: 0 };
-        }
+        metrics.byPriority[priority] ??= { count: 0, avgResponseTime: 0 };
         metrics.byPriority[priority].count++;
         if (responseTime !== null) {
-            (metrics.byPriority[priority] as any).responseTimes = (metrics.byPriority[priority] as any).responseTimes || [];
+            (metrics.byPriority[priority] as any).responseTimes = (metrics.byPriority[priority] as any).responseTimes ?? [];
             (metrics.byPriority[priority] as any).responseTimes.push(responseTime);
         }
     });
@@ -168,7 +164,7 @@ export async function calculateSLAMetrics(guildId: string): Promise<SLAMetrics> 
     }
 
     Object.keys(metrics.byCategory).forEach(category => {
-        const times = (metrics.byCategory[category] as any).responseTimes || [];
+        const times = (metrics.byCategory[category] as any).responseTimes ?? [];
         if (times.length > 0) {
             metrics.byCategory[category].avgResponseTime = times.reduce((a, b) => a + b, 0) / times.length;
         }
@@ -176,7 +172,7 @@ export async function calculateSLAMetrics(guildId: string): Promise<SLAMetrics> 
     });
 
     Object.keys(metrics.byPriority).forEach(priority => {
-        const times = (metrics.byPriority[priority] as any).responseTimes || [];
+        const times = (metrics.byPriority[priority] as any).responseTimes ?? [];
         if (times.length > 0) {
             metrics.byPriority[priority].avgResponseTime = times.reduce((a, b) => a + b, 0) / times.length;
         }

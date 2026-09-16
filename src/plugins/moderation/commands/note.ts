@@ -155,7 +155,7 @@ async function handleAddNote(interaction: ChatInputCommandInteraction, user: imp
 }
 
 async function handleViewNotes(interaction: ChatInputCommandInteraction, user: import('discord.js').User) {
-    const notes = (await getUserData('mod-notes', interaction.guild!.id, user.id) || []) as ModNote[];
+    const notes = (await getUserData('mod-notes', interaction.guild!.id, user.id) ?? []) as ModNote[];
 
     if (notes.length === 0) {
         const errorEmbed = {
@@ -190,7 +190,7 @@ async function handleViewNotes(interaction: ChatInputCommandInteraction, user: i
 async function handleRemoveNote(interaction: ChatInputCommandInteraction, user: import('discord.js').User) {
     const noteId = interaction.options.getString('note-id');
 
-    const notes = (await getUserData('mod-notes', interaction.guild!.id, user.id) || []) as ModNote[];
+    const notes = (await getUserData('mod-notes', interaction.guild!.id, user.id) ?? []) as ModNote[];
 
     const noteIndex = notes.findIndex(n => n.id === noteId);
 

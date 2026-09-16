@@ -278,7 +278,7 @@ export function createRoleChangeEmbed(oldMember: GuildMember, newMember: GuildMe
  * @returns The log embed or null if not significant
  */
 export function createVoiceChangeEmbed(oldState: VoiceState, newState: VoiceState): EmbedBuilder | null {
-    const member = newState.member || oldState.member;
+    const member = newState.member ?? oldState.member;
     if (!member) { return null; }
 
     let title: string;

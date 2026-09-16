@@ -49,8 +49,8 @@ export default {
             const guildSettings = (await getGuildData('strike-config', interaction.guild!.id)) as StrikeConfig;
 
             if (action === 'view') {
-                const banThreshold = guildSettings.banThreshold || 3;
-                const kickThreshold = guildSettings.kickThreshold || 2;
+                const banThreshold = guildSettings.banThreshold ?? 3;
+                const kickThreshold = guildSettings.kickThreshold ?? 2;
                 const autoKick = guildSettings.autoKick ?? true;
 
                 const embed = new EmbedBuilder()

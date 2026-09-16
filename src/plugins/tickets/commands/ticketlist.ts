@@ -57,12 +57,12 @@ export default {
             await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
             const guildId = interaction.guild!.id;
-            const filter = interaction.options.getString('filter') || 'all';
+            const filter = interaction.options.getString('filter') ?? 'all';
             const priorityFilter = interaction.options.getString('priority');
             const categoryFilter = interaction.options.getString('category');
 
             const ticketConfig = await getGuildData('tickets', guildId);
-            let tickets = ticketConfig.openTickets || [];
+            let tickets = ticketConfig.openTickets ?? [];
 
             if (tickets.length === 0) {
                 return interaction.editReply({
@@ -74,7 +74,7 @@ export default {
                 tickets = tickets.filter(t => !t.assignedTo || t.assignedTo.length === 0);
             } else if (filter === 'mine') {
                 tickets = tickets.filter(t =>
-                    t.assignedTo?.includes(interaction.user.id) || t.claimedBy === interaction.user.id
+                    t.assignedTo?.includes(interaction.user.id) ?? t.claimedBy === interaction.user.id
                 );
             } else if (filter === 'breached') {
                 const slaThresholds = ticketConfig.slaThresholds;
@@ -97,8 +97,8 @@ export default {
 
             const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
             tickets.sort((a, b) => {
-                const priorityA = priorityOrder[a.priority || 'medium'];
-                const priorityB = priorityOrder[b.priority || 'medium'];
+                const priorityA = priorityOrder[a.priority ?? 'medium'];
+                const priorityB = priorityOrder[b.priority ?? 'medium'];
                 if (priorityA !== priorityB) {return priorityA - priorityB;}
                 return a.createdAt - b.createdAt;
             });
@@ -119,9 +119,9 @@ export default {
                     .setTimestamp();
 
                 pageTickets.forEach(ticket => {
-                    const priority = ticket.priority || 'medium';
+                    const priority = ticket.priority ?? 'medium';
                     const emoji = getPriorityEmoji(priority);
-                    const category = ticket.category || 'general';
+                    const category = ticket.category ?? 'general';
 
                     const value = [
                         `Priority: ${emoji} ${priority}`,

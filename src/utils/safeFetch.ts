@@ -119,7 +119,7 @@ export async function safeFetch(
 
     return {
         buffer,
-        contentType: response.headers.get('content-type') || '',
+        contentType: response.headers.get('content-type') ?? '',
         finalUrl: response.url || url
     };
 }

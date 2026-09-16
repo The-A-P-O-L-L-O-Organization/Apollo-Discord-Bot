@@ -135,7 +135,7 @@ async function handleSlaBreach(guild: Guild, ticket: Record<string, unknown>, sl
     }
 
     const priority = (ticket['priority'] as string) || 'medium';
-    const threshold = slaThresholds[priority] || DEFAULT_SLA_THRESHOLDS.medium;
+    const threshold = slaThresholds[priority] ?? DEFAULT_SLA_THRESHOLDS.medium;
     const elapsed = now - (ticket['createdAt'] as number);
 
     // Find mod log channel
@@ -212,11 +212,11 @@ async function handleSlaBreach(guild: Guild, ticket: Record<string, unknown>, sl
             extra: {
                 'Ticket Number': `#${ticket['ticketNumber']}`,
                 'Priority': priority,
-                'Category': (ticket['category']) || 'general',
+                'Category': (ticket['category']) ?? 'general',
                 'SLA Threshold': formatTime(threshold),
                 'Time Elapsed': formatTime(elapsed),
                 'Channel': ticketChannel ? `#${ticketChannel.name}` : 'Unknown',
-                'Alert Count': guildAlerted.get(ticket['id'] as string)?.count || 1
+                'Alert Count': guildAlerted.get(ticket['id'] as string)?.count ?? 1
             }
         });
     } catch (error) {
@@ -243,5 +243,5 @@ export function clearSlaAlert(guildId: string, ticketId: string): void {
  * @returns {Map<string, object>} Map of ticket IDs to alert info
  */
 export function getAlertedTickets(guildId: string): Map<string, { alertedAt: number; count: number }> {
-    return alertedTickets.get(guildId) || new Map();
+    return alertedTickets.get(guildId) ?? new Map();
 }

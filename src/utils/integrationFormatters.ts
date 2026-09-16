@@ -158,7 +158,7 @@ export function formatGithubPrNotification(repo: string, sender: string, pr: Git
             color: pr.state === 'open' ? 0x2CBE4E : 0xCB2431,
             title: `#${pr.number} ${pr.title}`,
             url: pr.html_url,
-            description: (pr.body || '').slice(0, 200),
+            description: (pr.body ?? '').slice(0, 200),
             fields: [
                 { name: 'Repository', value: repo, inline: true },
                 { name: 'Author', value: sender, inline: true }
@@ -181,7 +181,7 @@ export function formatGithubIssueNotification(repo: string, sender: string, issu
             color: 0x1D1D1D,
             title: `#${issue.number} ${issue.title}`,
             url: issue.html_url,
-            description: (issue.body || '').slice(0, 200),
+            description: (issue.body ?? '').slice(0, 200),
             fields: [
                 { name: 'Repository', value: repo, inline: true },
                 { name: 'Author', value: sender, inline: true }

@@ -32,7 +32,7 @@ export async function runChild({ pluginDir, env, processLike = process as unknow
     processLike?: ProcessLike;
     loader?: () => Promise<{ default: PluginInstance }>;
 }): Promise<WorkerChild> {
-    const loadPlugin = loader || (async () => import(pathToFileURL(join(pluginDir, 'plugin.js')).href + '?t=' + Date.now()));
+    const loadPlugin = loader ?? (async () => import(pathToFileURL(join(pluginDir, 'plugin.js')).href + '?t=' + Date.now()));
 
     const mod = await loadPlugin();
     const PluginClass = mod.default as unknown as { id?: unknown; new (host: ChildHost): PluginInstance };
@@ -43,7 +43,7 @@ export async function runChild({ pluginDir, env, processLike = process as unknow
     const pending = new Map<string, (result: { ok: boolean; error?: string; [key: string]: unknown }) => void>();
 
     const host: ChildHost = {
-        allowedCapabilities: new Set(JSON.parse(env['PLUGIN_CAPABILITIES'] || '[]')),
+        allowedCapabilities: new Set(JSON.parse(env['PLUGIN_CAPABILITIES'] ?? '[]')),
         async call(capability: string, payload: unknown) {
             if (!this.allowedCapabilities.has(capability)) {
                 return { ok: false, error: `Capability '${capability}' is not granted.` };

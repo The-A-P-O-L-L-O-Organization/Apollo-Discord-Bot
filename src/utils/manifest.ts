@@ -54,7 +54,7 @@ export async function verifyPluginManifest({
         return { ok: false, errors: [`Manifest file not found: ${manifestPath}`] };
     }
 
-    const expected: Record<string, string> = manifestData || JSON.parse(readFileSync(manifestPath, 'utf8'));
+    const expected: Record<string, string> = manifestData ?? JSON.parse(readFileSync(manifestPath, 'utf8'));
     const actualFiles = walk(join(pluginsRoot, 'plugins'), dirname(pluginsRoot));
     const actual: Record<string, string> = {};
     for (const { rel, full } of actualFiles) {

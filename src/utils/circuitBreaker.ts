@@ -378,7 +378,7 @@ export function createServiceBreaker(serviceName: string, config: Partial<Circui
         }
     };
 
-    const defaultConfig = serviceConfigs[serviceName] || {};
+    const defaultConfig = serviceConfigs[serviceName] ?? {};
     return circuitBreakers.get(serviceName, { ...defaultConfig, ...config });
 }
 

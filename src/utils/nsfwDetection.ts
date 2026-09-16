@@ -180,7 +180,7 @@ export async function checkMessageAttachments(
 
     // Check if message has image attachments
     const imageAttachments = message.attachments.filter(att => {
-        const contentType = att.contentType || '';
+        const contentType = att.contentType ?? '';
         return contentType.startsWith('image/');
     });
 

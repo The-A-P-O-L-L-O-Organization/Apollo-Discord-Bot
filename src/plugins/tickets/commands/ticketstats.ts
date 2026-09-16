@@ -93,8 +93,8 @@ export default {
             const allTickets = [...openTickets, ...closedTickets];
             const categoryCounts: Record<string, number> = {};
             allTickets.forEach(ticket => {
-                const cat = ticket.category || 'general';
-                categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+                const cat = ticket.category ?? 'general';
+                categoryCounts[cat] = (categoryCounts[cat] ?? 0) + 1;
             });
 
             if (Object.keys(categoryCounts).length > 0) {
@@ -151,9 +151,7 @@ export default {
             closedTickets.forEach(ticket => {
                 if (ticket.assignedTo && ticket.assignedTo.length > 0) {
                     ticket.assignedTo.forEach(staffId => {
-                        if (!staffStats[staffId]) {
-                            staffStats[staffId] = { count: 0, responseTimes: [] };
-                        }
+                        staffStats[staffId] ??= { count: 0, responseTimes: [] };
                         staffStats[staffId].count++;
                         if (ticket.firstResponseAt) {
                             staffStats[staffId].responseTimes.push(ticket.firstResponseAt - ticket.createdAt);

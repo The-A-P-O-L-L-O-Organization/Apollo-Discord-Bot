@@ -49,7 +49,7 @@ export default {
                 return;
             }
 
-            if (!ticket.assignedTo) { ticket.assignedTo = []; }
+            ticket.assignedTo ??= [];
 
             if (ticket.assignedTo.includes(assignUser.id)) {
                 await interaction.reply({
@@ -63,7 +63,7 @@ export default {
                 const t = data.openTickets?.find(x => x.channelId === channelId);
                 if (t) {
                     t.assignedTo.push(assignUser.id);
-                    if (!t.participants) { t.participants = [t.userId]; }
+                    t.participants ??= [t.userId];
                     if (!t.participants.includes(assignUser.id)) {
                         t.participants.push(assignUser.id);
                     }
@@ -104,7 +104,7 @@ export default {
                     .setDescription(`You have been assigned to ticket #${ticket.ticketNumber} in **${interaction.guild!.name}**.`)
                     .addFields(
                         { name: 'Ticket', value: `<#${channelId}>`, inline: true },
-                        { name: 'Category', value: ticket.category || 'general', inline: true }
+                        { name: 'Category', value: ticket.category ?? 'general', inline: true }
                     )
                     .setTimestamp();
 

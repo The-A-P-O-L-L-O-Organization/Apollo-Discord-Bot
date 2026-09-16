@@ -1,5 +1,5 @@
-import type { ChatInputCommandInteraction} from 'discord.js';
-import { EmbedBuilder, MessageFlags, GuildChannel, TextChannel, VoiceChannel, StageChannel, CategoryChannel, ThreadChannel } from 'discord.js';
+import type { ChatInputCommandInteraction, GuildChannel, CategoryChannel} from 'discord.js';
+import { EmbedBuilder, MessageFlags, TextChannel, VoiceChannel, StageChannel, ThreadChannel } from 'discord.js';
 // @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 

@@ -30,7 +30,7 @@ export default {
             let ticket;
 
             if (ticketNumber) {
-                ticket = ticketConfig.openTickets?.find(t => t.ticketNumber === ticketNumber) ||
+                ticket = ticketConfig.openTickets?.find(t => t.ticketNumber === ticketNumber) ??
                          ticketConfig.closedTickets?.find(t => t.ticketNumber === ticketNumber);
             } else {
                 ticket = ticketConfig.openTickets?.find(t => t.channelId === channelId);
@@ -46,9 +46,9 @@ export default {
                 return;
             }
 
-            const priority = ticket.priority || 'medium';
-            const category = ticket.category || 'general';
-            const status = ticket.closedAt ? 'Closed' : ticket.status || 'open';
+            const priority = ticket.priority ?? 'medium';
+            const category = ticket.category ?? 'general';
+            const status = ticket.closedAt ? 'Closed' : ticket.status ?? 'open';
 
             const embed = new EmbedBuilder()
                 .setColor(getPriorityColor(priority))
@@ -88,7 +88,7 @@ export default {
                 const assignedList = assignedUsers
                     .filter(u => u)
                     .map(u => u!.tag)
-                    .join(', ') || 'Unknown';
+                    .join(', ') ?? 'Unknown';
 
                 embed.addFields({
                     name: `Assigned Staff (${ticket.assignedTo.length})`,

@@ -157,7 +157,7 @@ export const gatewayLatencyMs = new Histogram({
 
 // Helper functions
 export function recordCommand(command: string, guild: string | undefined, status: string): void {
-    commandsTotal.inc({ command, guild: guild || 'dm', status });
+    commandsTotal.inc({ command, guild: guild ?? 'dm', status });
 }
 
 export function recordCommandDuration(command: string, durationMs: number): void {
@@ -429,7 +429,7 @@ export function createMetrics({ prefix = 'apollo_' } = {}): {
 
     // Helper functions (using locally created metrics)
     function recordCommand(command: string, guild: string | undefined, status: string): void {
-        commandsTotal.inc({ command, guild: guild || 'dm', status });
+        commandsTotal.inc({ command, guild: guild ?? 'dm', status });
     }
 
     function recordCommandDuration(command: string, durationMs: number): void {

@@ -157,10 +157,10 @@ export async function checkYoutubeUploads(channelId: string, config: YoutubeConf
             }
 
             const body = await res.json() as YoutubeSearchResponse;
-            return (body.items || []).map(item => ({
+            return (body.items ?? []).map(item => ({
                 title: item.snippet.title,
                 description: item.snippet.description,
-                thumbnail: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url || '',
+                thumbnail: item.snippet.thumbnails?.high?.url ?? item.snippet.thumbnails?.default?.url ?? '',
                 videoId: item.id.videoId,
                 publishedAt: item.snippet.publishedAt
             }));
@@ -226,10 +226,10 @@ function parseFeedXml(xml: string): RssFeedResult {
         while ((entryMatch = entryRegex.exec(xml)) !== null) {
             const entry = entryMatch[1];
             if (!entry) {continue;}
-            const title = (/<title[^>]*>([^<]+)<\/title>/.exec(entry))?.[1] || '';
-            const link = (/<link[^>]+href="([^"]+)"/.exec(entry))?.[1] || '';
-            const guid = (/<id[^>]*>([^<]+)<\/id>/.exec(entry))?.[1] || '';
-            const pubDate = (/<published[^>]*>([^<]+)<\/published>/.exec(entry))?.[1] || '';
+            const title = (/<title[^>]*>([^<]+)<\/title>/.exec(entry))?.[1] ?? '';
+            const link = (/<link[^>]+href="([^"]+)"/.exec(entry))?.[1] ?? '';
+            const guid = (/<id[^>]*>([^<]+)<\/id>/.exec(entry))?.[1] ?? '';
+            const pubDate = (/<published[^>]*>([^<]+)<\/published>/.exec(entry))?.[1] ?? '';
             items.push({ title, link, guid, pubDate });
         }
     } else {
@@ -238,10 +238,10 @@ function parseFeedXml(xml: string): RssFeedResult {
         while ((itemMatch = itemRegex.exec(xml)) !== null) {
             const entry = itemMatch[1];
             if (!entry) {continue;}
-            const title = (/<title[^>]*>([^<]+)<\/title>/.exec(entry))?.[1] || '';
-            const link = (/<link[^>]*>([^<]+)<\/link>/.exec(entry))?.[1] || '';
-            const guid = (/<guid[^>]*>([^<]+)<\/guid>/.exec(entry))?.[1] || '';
-            const pubDate = (/<pubDate[^>]*>([^<]+)<\/pubDate>/.exec(entry))?.[1] || '';
+            const title = (/<title[^>]*>([^<]+)<\/title>/.exec(entry))?.[1] ?? '';
+            const link = (/<link[^>]*>([^<]+)<\/link>/.exec(entry))?.[1] ?? '';
+            const guid = (/<guid[^>]*>([^<]+)<\/guid>/.exec(entry))?.[1] ?? '';
+            const pubDate = (/<pubDate[^>]*>([^<]+)<\/pubDate>/.exec(entry))?.[1] ?? '';
             items.push({ title, link, guid, pubDate });
         }
     }

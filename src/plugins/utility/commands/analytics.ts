@@ -198,7 +198,7 @@ async function handleServerStats(interaction: ChatInputCommandInteraction): Prom
             }
         )
         .setTimestamp()
-        .setFooter({ text: `Data from ${memberGrowth[0]?.date || 'N/A'} to ${memberGrowth[memberGrowth.length - 1]?.date || 'N/A'}` });
+        .setFooter({ text: `Data from ${memberGrowth[0]?.date ?? 'N/A'} to ${memberGrowth[memberGrowth.length - 1]?.date ?? 'N/A'}` });
 
     // Add member growth trend if we have data
     if (memberCounts.length > 0) {
@@ -471,7 +471,7 @@ async function handleModerationStats(interaction: ChatInputCommandInteraction): 
 
     // Ticket statistics
     if (ticketData) {
-        const closedTickets = ticketData.closedTickets || [];
+        const closedTickets = ticketData.closedTickets ?? [];
         const recentClosed = closedTickets.filter((t: { closedAt: number; createdAt: number }) => {
             const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000);
             return t.closedAt >= cutoff;
@@ -487,7 +487,7 @@ async function handleModerationStats(interaction: ChatInputCommandInteraction): 
                 value: [
                     `**Tickets Closed:** ${recentClosed.length}`,
                     `**Avg Resolution Time:** ${formatDuration(avgResolution)}`,
-                    `**Currently Open:** ${ticketData.openTickets?.length || 0}`
+                    `**Currently Open:** ${ticketData.openTickets?.length ?? 0}`
                 ].join('\n'),
                 inline: true
             });

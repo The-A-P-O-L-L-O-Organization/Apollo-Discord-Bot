@@ -73,8 +73,8 @@ export default {
 
             if (subcommand === 'panel') {
                 const channel = interaction.options.getChannel('channel')!;
-                const title = interaction.options.getString('title') || 'Support Tickets';
-                const description = interaction.options.getString('description') ||
+                const title = interaction.options.getString('title') ?? 'Support Tickets';
+                const description = interaction.options.getString('description') ??
                 'Click the button below to create a support ticket.\n\nA staff member will assist you shortly.';
 
                 const embed = new EmbedBuilder()
