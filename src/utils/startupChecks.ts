@@ -96,7 +96,7 @@ export function assertEncryptionKey(key: string | undefined): void {
     }
 }
 
-interface OperatorConfig {
+export interface OperatorConfig {
     agreed: boolean;
     contact: string;
 }

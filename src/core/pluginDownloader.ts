@@ -1,0 +1,317 @@
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve, sep } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { lookup as dnsLookup } from 'node:dns';
+import { createHash } from 'node:crypto';
+import AdmZip from 'adm-zip';
+
+export interface IpRange {
+    start: string;
+    end: string;
+}
+
+export interface PluginFetchResponse {
+    ok: boolean;
+    status: number;
+    statusText: string;
+    headers: { get(_name: string): string | null };
+    arrayBuffer(): Promise<ArrayBuffer | Buffer | null>;
+}
+
+export interface PluginFetchInit {
+    signal?: AbortSignal;
+    redirect?: 'follow' | 'error' | 'manual';
+}
+
+export type PluginFetchImpl = (_url: string, _init: PluginFetchInit) => Promise<PluginFetchResponse>;
+
+export interface DownloadPluginOptions {
+    maxBytes?: number;
+    timeoutMs?: number;
+    maxRedirects?: number;
+    fetchImpl?: PluginFetchImpl;
+    expectedSha256?: string | null;
+    skipDnsCheck?: boolean;
+}
+
+export interface DownloadPluginResult {
+    buffer: Buffer;
+    contentType: string;
+    finalUrl: string;
+}
+
+export interface ExtractZipOptions {
+    maxUncompressedBytes?: number;
+}
+
+export interface PluginValidationResult {
+    valid: boolean;
+    id?: string;
+    error?: string;
+}
+
+const PRIVATE_IPV4_RANGES: IpRange[] = [
+    { start: '10.0.0.0', end: '10.255.255.255' },
+    { start: '100.64.0.0', end: '100.127.255.255' },
+    { start: '127.0.0.0', end: '127.255.255.255' },
+    { start: '169.254.0.0', end: '169.254.255.255' },
+    { start: '172.16.0.0', end: '172.31.255.255' },
+    { start: '192.168.0.0', end: '192.168.255.255' },
+    { start: '0.0.0.0', end: '0.255.255.255' }
+];
+
+function ipv4ToInt(ip: string): number {
+    return ip.split('.').reduce((acc, octet) => (acc * 256) + Number(octet), 0);
+}
+
+export function isPrivateIp(ip: string): boolean {
+    if (ip.includes(':')) {
+        const lower = ip.toLowerCase();
+        const mapped = lower.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+        if (mapped !== null) {
+            const inner = mapped[1];
+            if (typeof inner === 'string') { return isPrivateIp(inner); }
+        }
+        return lower === '::1'
+            || lower.startsWith('fc')
+            || lower.startsWith('fd')
+            || lower.startsWith('fe80::')
+            || lower === '::'
+            || lower.startsWith('fec0::');
+    }
+    const int = ipv4ToInt(ip);
+    if (!Number.isFinite(int)) { return true; }
+    return PRIVATE_IPV4_RANGES.some(({ start, end }) =>
+        int >= ipv4ToInt(start) && int <= ipv4ToInt(end));
+}
+
+export function isAllowedProtocol(protocol: string): boolean {
+    return protocol === 'https:';
+}
+
+export function resolvePublicIps(hostname: string): Promise<string[]> {
+    return new Promise((resolvePromise, reject) => {
+        dnsLookup(hostname, { all: true }, (err, addresses) => {
+            if (err) { return reject(new Error(`DNS lookup failed for ${hostname}`)); }
+            const ips = addresses.map(a => a.address);
+            const blocked = ips.filter(ip => isPrivateIp(ip));
+            if (blocked.length > 0) {
+                return reject(new Error(`Plugin URL resolves to a private/internal address (${blocked.join(', ')}).`));
+            }
+            resolvePromise(ips);
+        });
+    });
+}
+
+const DEFAULT_MAX_BYTES = 25 * 1024 * 1024;
+const DEFAULT_TIMEOUT_MS = 30000;
+const DEFAULT_MAX_REDIRECTS = 5;
+
+export async function downloadPluginArchive(url: string, {
+    maxBytes = DEFAULT_MAX_BYTES,
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+    maxRedirects = DEFAULT_MAX_REDIRECTS,
+    fetchImpl = fetch,
+    expectedSha256 = null,
+    skipDnsCheck = false
+}: DownloadPluginOptions = {}): Promise<DownloadPluginResult> {
+    if (!url) {
+        throw new Error('Plugin download URL is required.');
+    }
+
+    const parsed = new URL(url);
+    if (!isAllowedProtocol(parsed.protocol)) {
+        throw new Error('Plugin downloads must use https.');
+    }
+
+    if (!skipDnsCheck) {
+        await resolvePublicIps(parsed.hostname);
+    }
+
+    let currentUrl = url;
+    let redirects = 0;
+
+    const deadline = Date.now() + timeoutMs;
+
+    while (true) {
+        const remaining = deadline - Date.now();
+        if (remaining <= 0) {
+            throw new Error('Plugin download timed out.');
+        }
+
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), remaining);
+        let response: PluginFetchResponse;
+        try {
+            response = await fetchImpl(currentUrl, { signal: controller.signal, redirect: 'manual' });
+        } catch (err) {
+            clearTimeout(timer);
+            const message = err instanceof Error ? err.message : String(err);
+            throw new Error(`Plugin download failed: ${message}`, { cause: err });
+        }
+        clearTimeout(timer);
+
+        if (response.status >= 300 && response.status < 400) {
+            const location = response.headers.get('location');
+            if (!location) {
+                throw new Error('Plugin download redirect missing Location header.');
+            }
+            redirects += 1;
+            if (redirects > maxRedirects) {
+                throw new Error('Plugin download exceeded maximum redirects.');
+            }
+            const next = new URL(location, currentUrl);
+            if (!isAllowedProtocol(next.protocol)) {
+                throw new Error('Plugin download redirects must use https.');
+            }
+            if (!skipDnsCheck) {
+                await resolvePublicIps(next.hostname);
+            }
+            currentUrl = next.href;
+            continue;
+        }
+
+        if (!response.ok) {
+            throw new Error(`Download failed: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.arrayBuffer();
+        if (data === null) {
+            throw new Error('Plugin download returned an empty body.');
+        }
+        const buffer = data instanceof Buffer ? data : Buffer.from(new Uint8Array(data));
+        if (buffer.length > maxBytes) {
+            throw new Error(`Plugin download exceeds ${maxBytes} byte limit.`);
+        }
+
+        if (expectedSha256) {
+            const actual = createHash('sha256').update(buffer).digest('hex');
+            if (actual !== expectedSha256.toLowerCase()) {
+                throw new Error('Plugin download hash mismatch.');
+            }
+        }
+
+        return {
+            buffer,
+            contentType: response.headers.get('content-type') ?? '',
+            finalUrl: currentUrl
+        };
+    }
+}
+
+export async function downloadAndExtractPlugin(url: string, destDir: string, options: DownloadPluginOptions & ExtractZipOptions = {}): Promise<void> {
+    if (!url) {
+        throw new Error('Plugin download URL is required.');
+    }
+
+    const { buffer, contentType } = await downloadPluginArchive(url, options);
+
+    const isZip = buffer.length >= 4 && hasZipMagic(buffer)
+        || url.endsWith('.zip')
+        || contentType.toLowerCase().includes('zip');
+
+    if (isZip) {
+        extractZip(buffer, destDir, options);
+        return;
+    }
+
+    if (url.endsWith('.tar.gz') || url.endsWith('.tgz')) {
+        throw new Error('tar.gz extraction not yet implemented');
+    }
+
+    throw new Error('Unsupported archive format');
+}
+
+const DEFAULT_MAX_UNCOMPRESSED_BYTES = 100 * 1024 * 1024;
+
+function hasZipMagic(buffer: Buffer): boolean {
+    return buffer.length >= 4
+        && buffer[0] === 0x50 && buffer[1] === 0x4b
+        && (buffer[2] === 0x03 || buffer[2] === 0x05 || buffer[2] === 0x07);
+}
+
+export function extractZip(buffer: Buffer, destDir: string, { maxUncompressedBytes = DEFAULT_MAX_UNCOMPRESSED_BYTES }: ExtractZipOptions = {}): void {
+    if (!hasZipMagic(buffer)) {
+        throw new Error('Downloaded file is not a valid zip archive.');
+    }
+
+    const zip = new AdmZip(buffer);
+    const entries = zip.getEntries().filter(entry => !entry.isDirectory);
+
+    const totalUncompressed = entries.reduce((sum, entry) => sum + (entry.header.size || 0), 0);
+    if (totalUncompressed > maxUncompressedBytes) {
+        throw new Error(`Archive exceeds ${maxUncompressedBytes} byte uncompressed limit (possible zip bomb).`);
+    }
+
+    for (const entry of entries) {
+        const mode = (entry.header.attr & 0xF000);
+        if (mode === 0xA000) {
+            throw new Error('Archive contains a symlink entry, which is not allowed.');
+        }
+    }
+
+    const entryNames = entries.map(entry => entry.entryName);
+    const commonPrefix = findCommonPrefix(entryNames);
+
+    rmSync(destDir, { recursive: true, force: true });
+    mkdirSync(destDir, { recursive: true });
+
+    const resolvedDest = resolve(destDir) + sep;
+    for (const entry of entries) {
+        const relativePath = entry.entryName.startsWith(commonPrefix)
+            ? entry.entryName.slice(commonPrefix.length)
+            : entry.entryName;
+
+        if (!relativePath) {
+            continue;
+        }
+
+        const targetPath = join(destDir, relativePath);
+        const resolved = resolve(targetPath);
+        if (!resolved.startsWith(resolvedDest)) {
+            throw new Error('Invalid archive entry (path traversal).');
+        }
+
+        mkdirSync(dirname(resolved), { recursive: true });
+        writeFileSync(resolved, entry.getData());
+    }
+}
+
+function findCommonPrefix(paths: string[]): string {
+    if (paths.length === 0) { return ''; }
+    const parts = paths.map(p => p.split('/'));
+    const first = parts[0];
+    if (first === undefined) { return ''; }
+    const prefix: string[] = [];
+    for (let i = 0; i < first.length; i++) {
+        const part = first[i];
+        if (part === undefined) { break; }
+        if (parts.every(p => p[i] === part)) {
+            prefix.push(part);
+        } else {
+            break;
+        }
+    }
+    const result = prefix.join('/');
+    return result ? result + '/' : '';
+}
+
+export async function validatePluginDirectory(dir: string): Promise<PluginValidationResult> {
+    const pluginPath = join(dir, 'plugin.js');
+    if (!existsSync(pluginPath)) {
+        return { valid: false, error: 'No plugin.js found' };
+    }
+
+    try {
+        const url = pathToFileURL(pluginPath).href + '?t=' + Date.now();
+        const mod = await import(url) as { default?: unknown };
+        const PluginClass = mod.default as { id?: unknown } | undefined;
+        if (!PluginClass || typeof PluginClass.id !== 'string' || PluginClass.id.length === 0) {
+            return { valid: false, error: 'plugin.js must export a class with static id' };
+        }
+        return { valid: true, id: PluginClass.id };
+    } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return { valid: false, error: message };
+    }
+}
