@@ -1,5 +1,6 @@
 // Massmute Command - Timeout multiple users
-import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { MessageFlags } from 'discord.js';
 import { PermissionsBitField } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
@@ -135,7 +136,7 @@ export default {
                         continue;
                     }
 
-                    const hierarchy = canModerate(interaction.guild!, interaction.member!, member);
+                    const hierarchy = canModerate(interaction.guild!, interaction.member, member);
                     if (!hierarchy.ok) {
                         results.failed.push({ userId, error: hierarchy.reason });
                         continue;

@@ -7,7 +7,7 @@ import {
     isResponse as isResponseZod,
     validateRequest,
     validateResponse,
-    validateMessage,
+    validateMessage
 } from './rpc-schemas.js';
 
 export const MAX_PAYLOAD_BYTES = 1024 * 1024;
@@ -40,7 +40,7 @@ export function isResponse(msg: unknown): msg is RPCResponse {
 export { validateRequest, validateResponse, validateMessage };
 
 export function isOversize(msg: unknown): boolean {
-    return Buffer.byteLength(encode(msg as object)) > MAX_PAYLOAD_BYTES;
+    return Buffer.byteLength(encode(msg)) > MAX_PAYLOAD_BYTES;
 }
 
 export function serialize(payload: unknown): Buffer {

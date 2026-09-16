@@ -13,7 +13,7 @@ export default {
 
         const rolePersistenceConfig = await getGuildData('role-persistence', member.guild.id);
 
-        if (rolePersistenceConfig && rolePersistenceConfig['enabled']) {
+        if (rolePersistenceConfig?.['enabled']) {
             const roleIds = member.roles.cache
                 .filter((role) => role.name !== '@everyone')
                 .map((role) => role.id);

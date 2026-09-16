@@ -1,4 +1,5 @@
-import { ChatInputCommandInteraction, User } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { User } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 // @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
@@ -35,14 +36,14 @@ export default {
             let avatarURL = null;
             let avatarType = 'Global Avatar';
 
-if (serverAvatar && interaction.guild) {
+            if (serverAvatar && interaction.guild) {
                 member = await interaction.guild.members.fetch(user.id);
                 if (member && member.avatar) {
                     avatarURL = member.avatarURL({ extension: 'png', size: 4096 });
                     avatarType = 'Server Avatar';
                 }
             }
-            
+
             // Fall back to global avatar
             if (!avatarURL) {
                 avatarURL = user.displayAvatarURL({ extension: 'png', size: 4096 });

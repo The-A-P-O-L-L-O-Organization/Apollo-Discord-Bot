@@ -96,7 +96,7 @@ const module: CLIModule = {
             execute: async (args: any) => {
                 const word = args.word.toLowerCase();
                 const guildConfig = (await getGuildData('automod', args.guild)) as Record<string, any>;
-                if (!guildConfig['bannedWords']) guildConfig['bannedWords'] = [];
+                if (!guildConfig['bannedWords']) {guildConfig['bannedWords'] = [];}
                 if (guildConfig['bannedWords'].includes(word)) {
                     return { success: false, message: `"${word}" is already banned` };
                 }
@@ -114,7 +114,7 @@ const module: CLIModule = {
             execute: async (args: any) => {
                 const word = args.word.toLowerCase();
                 const guildConfig = (await getGuildData('automod', args.guild)) as Record<string, any>;
-                if (!guildConfig['bannedWords'] || !guildConfig['bannedWords'].includes(word)) {
+                if (!guildConfig['bannedWords']?.includes(word)) {
                     return { success: false, message: `"${word}" is not in the banned list` };
                 }
                 guildConfig['bannedWords'] = guildConfig['bannedWords'].filter((w: string) => w !== word);
@@ -143,7 +143,7 @@ const module: CLIModule = {
                     value = args.value.toLowerCase() === 'true' || args.value === '1';
                 } else if (numberSettings.includes(args.setting)) {
                     value = parseInt(args.value);
-                    if (isNaN(value)) return { success: false, message: `"${args.value}" is not a valid number` };
+                    if (isNaN(value)) {return { success: false, message: `"${args.value}" is not a valid number` };}
                 } else {
                     value = args.value;
                 }
@@ -161,7 +161,7 @@ const module: CLIModule = {
             ],
             execute: async (args: any) => {
                 const guildConfig = (await getGuildData('automod', args.guild)) as Record<string, any>;
-                if (!guildConfig['exemptChannels']) guildConfig['exemptChannels'] = [];
+                if (!guildConfig['exemptChannels']) {guildConfig['exemptChannels'] = [];}
                 if (args.action === 'add') {
                     if (guildConfig['exemptChannels'].includes(args.channel)) {
                         return { success: false, message: 'Channel already exempt' };
@@ -183,7 +183,7 @@ const module: CLIModule = {
             ],
             execute: async (args: any) => {
                 const guildConfig = (await getGuildData('automod', args.guild)) as Record<string, any>;
-                if (!guildConfig['exemptRoles']) guildConfig['exemptRoles'] = [];
+                if (!guildConfig['exemptRoles']) {guildConfig['exemptRoles'] = [];}
                 if (args.action === 'add') {
                     if (guildConfig['exemptRoles'].includes(args.role)) {
                         return { success: false, message: 'Role already exempt' };

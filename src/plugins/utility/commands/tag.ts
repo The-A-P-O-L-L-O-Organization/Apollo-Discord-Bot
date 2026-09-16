@@ -1,4 +1,5 @@
-import { ChatInputCommandInteraction, MessageFlags, PermissionsBitField, type APIEmbed } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { MessageFlags, PermissionsBitField, type APIEmbed } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { setGuildData, getGuildData } from '../../../utils/db.js';
 // @ts-expect-error safeError.js not yet migrated
@@ -229,7 +230,7 @@ async function handleCreate(interaction: ChatInputCommandInteraction): Promise<v
 
     // Check if tag exists
     const tags = (await getGuildData('tags', interaction.guild!.id)) as Record<string, unknown> | null;
-    if (tags && tags[name]) {
+    if (tags?.[name]) {
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
@@ -280,7 +281,7 @@ async function handleShow(interaction: ChatInputCommandInteraction): Promise<voi
 
     const tags = (await getGuildData('tags', interaction.guild!.id)) as Record<string, unknown> | null;
 
-    if (!tags || !tags[name]) {
+    if (!tags?.[name]) {
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
@@ -304,7 +305,7 @@ async function handleShow(interaction: ChatInputCommandInteraction): Promise<voi
     const messagePayload: { content: string; embeds?: APIEmbed[] } = { content: renderedContent };
 
     if (tag.embed) {
-        messagePayload.embeds = [buildTagEmbed(tag.embed) as APIEmbed];
+        messagePayload.embeds = [buildTagEmbed(tag.embed)];
     }
 
     await interaction.reply(messagePayload);
@@ -389,7 +390,7 @@ async function handleDelete(interaction: ChatInputCommandInteraction): Promise<v
 
     const tags = (await getGuildData('tags', interaction.guild!.id)) as Record<string, unknown> | null;
 
-    if (!tags || !tags[name]) {
+    if (!tags?.[name]) {
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
@@ -431,7 +432,7 @@ async function handleList(interaction: ChatInputCommandInteraction): Promise<voi
         return;
     }
 
-    const tagList = Object.values(tags) as Array<{ name: string; content: string; usageCount?: number }>;
+    const tagList = Object.values(tags) as { name: string; content: string; usageCount?: number }[];
     const listEmbed = {
         color: 0x3498DB,
         title: '[TAGS] Custom Commands',
@@ -452,7 +453,7 @@ async function handleInfo(interaction: ChatInputCommandInteraction): Promise<voi
 
     const tags = (await getGuildData('tags', interaction.guild!.id)) as Record<string, unknown> | null;
 
-    if (!tags || !tags[name]) {
+    if (!tags?.[name]) {
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,

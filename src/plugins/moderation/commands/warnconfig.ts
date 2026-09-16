@@ -1,5 +1,6 @@
 // Warn Config Command - Configure warning system thresholds
-import { ChatInputCommandInteraction, PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { getGuildData, setGuildData } from '../../../utils/db.ts';
 import { config } from '../../../config/config.ts';
@@ -18,8 +19,8 @@ interface WarningConfig {
 }
 
 function parseDuration(str: string): number | null {
-    const match = str.match(/^(\d+)([mhdw])$/i);
-    if (!match) return null;
+    const match = /^(\d+)([mhdw])$/i.exec(str);
+    if (!match) {return null;}
 
     const value = parseInt(match[1], 10);
     const unit = match[2].toLowerCase();
@@ -32,7 +33,7 @@ function parseDuration(str: string): number | null {
     };
 
     const multiplier = multipliers[unit];
-    if (!multiplier) return null;
+    if (!multiplier) {return null;}
 
     return value * multiplier;
 }
@@ -43,9 +44,9 @@ function formatDuration(ms: number): string {
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
 
-    if (days > 0) return `${days} day(s)`;
-    if (hours > 0) return `${hours} hour(s)`;
-    if (minutes > 0) return `${minutes} minute(s)`;
+    if (days > 0) {return `${days} day(s)`;}
+    if (hours > 0) {return `${hours} hour(s)`;}
+    if (minutes > 0) {return `${minutes} minute(s)`;}
     return `${seconds} second(s)`;
 }
 
@@ -276,18 +277,18 @@ export default {
 
             try {
                 switch (subcommand) {
-                    case 'view':
-                        await handleView(interaction);
-                        break;
-                    case 'set':
-                        await handleSet(interaction);
-                        break;
-                    case 'setmuteduration':
-                        await handleSetMuteDuration(interaction);
-                        break;
-                    case 'reset':
-                        await handleReset(interaction);
-                        break;
+                case 'view':
+                    await handleView(interaction);
+                    break;
+                case 'set':
+                    await handleSet(interaction);
+                    break;
+                case 'setmuteduration':
+                    await handleSetMuteDuration(interaction);
+                    break;
+                case 'reset':
+                    await handleReset(interaction);
+                    break;
                 }
             } catch (error) {
                 logger.error({ err: error, msg: '[ERROR] Warn config command error' });

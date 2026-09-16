@@ -1,4 +1,5 @@
-import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags, ChatInputCommandInteraction } from 'discord.js';
+import type { ChatInputCommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { getGuildData } from '../../../utils/db.js';
 // @ts-expect-error - discordErrors not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
@@ -57,8 +58,8 @@ export default {
 
             if (subcommand === 'staff') {
                 const user = interaction.options.getUser('user')!;
-                
-                const staffTickets = closedTickets.filter(t => 
+
+                const staffTickets = closedTickets.filter(t =>
                     t.assignedTo?.includes(user.id) || t.claimedBy === user.id
                 );
 
@@ -69,7 +70,7 @@ export default {
                 }
 
                 const ratedTickets = staffTickets.filter(t => t.rating);
-                
+
                 if (ratedTickets.length === 0) {
                     return interaction.editReply({
                         content: `${user} has handled ${staffTickets.length} ticket(s), but none have been rated yet.`
@@ -112,7 +113,7 @@ export default {
                     .slice(0, 3);
 
                 if (recentFeedback.length > 0) {
-                    const feedbackList = recentFeedback.map(t => 
+                    const feedbackList = recentFeedback.map(t =>
                         `${'★'.repeat(t.rating)} (Ticket #${t.ticketNumber}): "${t.ratingFeedback.substring(0, 100)}${t.ratingFeedback.length > 100 ? '...' : ''}"`
                     ).join('\n\n');
 
@@ -123,7 +124,7 @@ export default {
 
             } else if (subcommand === 'category') {
                 const category = interaction.options.getString('category')!;
-                
+
                 const categoryTickets = closedTickets.filter(t => t.category === category);
 
                 if (categoryTickets.length === 0) {
@@ -133,7 +134,7 @@ export default {
                 }
 
                 const ratedTickets = categoryTickets.filter(t => t.rating);
-                
+
                 if (ratedTickets.length === 0) {
                     return interaction.editReply({
                         content: `${categoryTickets.length} ticket(s) in "${category}" category, but none have been rated yet.`
@@ -173,7 +174,7 @@ export default {
 
             } else if (subcommand === 'overall') {
                 const ratedTickets = closedTickets.filter(t => t.rating);
-                
+
                 if (ratedTickets.length === 0) {
                     return interaction.editReply({
                         content: `${closedTickets.length} ticket(s) have been closed, but none have been rated yet.`

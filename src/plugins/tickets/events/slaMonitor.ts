@@ -1,7 +1,8 @@
 // SLA Monitor Event
 // Periodically checks open tickets for SLA breaches and sends alerts
 import { logger } from '../../../utils/logger.js';
-import { EmbedBuilder, ChannelType, TextChannel, Guild } from 'discord.js';
+import type { TextChannel, Guild } from 'discord.js';
+import { EmbedBuilder, ChannelType } from 'discord.js';
 // @ts-expect-error - slaTracker not yet migrated
 import { hasBreachedSLA, DEFAULT_SLA_THRESHOLDS, formatTime, getPriorityColor, getPriorityEmoji } from '../../../utils/slaTracker.js';
 // @ts-expect-error - modLog not yet migrated
@@ -25,10 +26,10 @@ const ALERT_COOLDOWN = 30 * 60 * 1000;
  */
 export function startSlaMonitor(client: any): void {
     logger.info({ msg: '[SLA] Starting SLA monitor...' });
-    
+
     // Initial check
     checkAllTickets(client);
-    
+
     // Periodic checks
     setInterval(() => {
         checkAllTickets(client);
@@ -44,12 +45,12 @@ async function checkAllTickets(client: any): Promise<void> {
     try {
         // Get all guild IDs that have tickets configured
         const guildIds = await getAllGuildIds('tickets');
-        
+
         // Process guilds in batches to avoid blocking
         const BATCH_SIZE = 10;
         for (let i = 0; i < guildIds.length; i += BATCH_SIZE) {
             const batch = guildIds.slice(i, i + BATCH_SIZE);
-            
+
             await Promise.all(batch.map(async(guildId: string) => {
                 try {
                     await checkGuildTickets(client, guildId);
@@ -57,7 +58,7 @@ async function checkAllTickets(client: any): Promise<void> {
                     logger.error({ err: error, msg: `[SLA] Error checking guild ${guildId}:` });
                 }
             }));
-            
+
             // Small delay between batches
             if (i + BATCH_SIZE < guildIds.length) {
                 await new Promise(resolve => setTimeout(resolve, 100));
@@ -74,20 +75,20 @@ async function checkAllTickets(client: any): Promise<void> {
  * @param {string} guildId - Guild ID
  */
 async function checkGuildTickets(client: any, guildId: string): Promise<void> {
-    const ticketConfig = await getGuildData('tickets', guildId) as Record<string, unknown>;
-    const openTickets = (ticketConfig['openTickets'] as Array<Record<string, unknown>>) || [];
-    
+    const ticketConfig = await getGuildData('tickets', guildId);
+    const openTickets = (ticketConfig['openTickets'] as Record<string, unknown>[]) || [];
+
     if (openTickets.length === 0) {
         return;
     }
-    
+
     const guild = client.guilds.cache.get(guildId);
     if (!guild) {
         return;
     }
-    
+
     const slaThresholds = (ticketConfig['slaThresholds'] as Record<string, number>) || DEFAULT_SLA_THRESHOLDS;
-    
+
     for (const ticket of openTickets) {
         if (hasBreachedSLA(ticket, slaThresholds)) {
             await handleSlaBreach(guild, ticket, slaThresholds, client);
@@ -104,15 +105,15 @@ async function checkGuildTickets(client: any, guildId: string): Promise<void> {
  */
 async function handleSlaBreach(guild: Guild, ticket: Record<string, unknown>, slaThresholds: Record<string, number>, client: any): Promise<void> {
     const now = Date.now();
-    
+
     // Check if already alerted (with cooldown)
     if (!alertedTickets.has(guild.id)) {
         alertedTickets.set(guild.id, new Map());
     }
-    
+
     const guildAlerted = alertedTickets.get(guild.id)!;
     const existingAlert = guildAlerted.get(ticket['id'] as string);
-    
+
     if (existingAlert) {
         // Check cooldown
         if (now - existingAlert.alertedAt < ALERT_COOLDOWN) {
@@ -124,7 +125,7 @@ async function handleSlaBreach(guild: Guild, ticket: Record<string, unknown>, sl
     } else {
         guildAlerted.set(ticket['id'] as string, { alertedAt: now, count: 1 });
     }
-    
+
     // Clean up old alerts periodically
     if (guildAlerted.size > 1000) {
         const entries = Array.from(guildAlerted.entries());
@@ -132,19 +133,19 @@ async function handleSlaBreach(guild: Guild, ticket: Record<string, unknown>, sl
         // Keep last 500
         entries.slice(-500).forEach(([key, value]) => guildAlerted.set(key, value));
     }
-    
+
     const priority = (ticket['priority'] as string) || 'medium';
     const threshold = slaThresholds[priority] || DEFAULT_SLA_THRESHOLDS.medium;
     const elapsed = now - (ticket['createdAt'] as number);
-    
+
     // Find mod log channel
     const modChannel = guild.channels.cache.find(
         ch => ch.name === config.moderation.moderationLogChannel && ch.type === ChannelType.GuildText
     ) as TextChannel | undefined;
-    
+
     // Find ticket channel
     const ticketChannel = guild.channels.cache.get(ticket['channelId'] as string);
-    
+
     // Create breach alert embed
     const alertEmbed = new EmbedBuilder()
         .setColor(getPriorityColor(priority))
@@ -160,27 +161,27 @@ async function handleSlaBreach(guild: Guild, ticket: Record<string, unknown>, sl
         )
         .setTimestamp()
         .setFooter({ text: 'SLA Monitor • Immediate attention required' });
-    
+
     if (ticketChannel) {
         alertEmbed.addFields({ name: 'Channel', value: ticketChannel.toString(), inline: true });
     }
-    
+
     // Send to mod log channel
     if (modChannel) {
         try {
             // Ping support role if configured
             let content = '';
-            const ticketConfig = await getGuildData('tickets', guild.id) as Record<string, unknown>;
+            const ticketConfig = await getGuildData('tickets', guild.id);
             if (ticketConfig['supportRoleId']) {
                 content = `<@&${ticketConfig['supportRoleId']}>`;
             }
-            
+
             await modChannel.send({ content, embeds: [alertEmbed] });
         } catch (error) {
             logger.error({ err: error, msg: '[SLA] Failed to send breach alert to mod channel:' });
         }
     }
-    
+
     // Also send to ticket channel if it exists
     if (ticketChannel && ticketChannel.type === ChannelType.GuildText) {
         try {
@@ -194,13 +195,13 @@ async function handleSlaBreach(guild: Guild, ticket: Record<string, unknown>, sl
                     { name: 'Action Required', value: 'Support team should respond immediately.', inline: false }
                 )
                 .setTimestamp();
-            
+
             await ticketChannel.send({ embeds: [channelAlertEmbed] });
         } catch (error) {
             logger.error({ err: error, msg: '[SLA] Failed to send breach alert to ticket channel:' });
         }
     }
-    
+
     // Log to mod log system
     try {
         await sendModLog(guild, {
@@ -211,7 +212,7 @@ async function handleSlaBreach(guild: Guild, ticket: Record<string, unknown>, sl
             extra: {
                 'Ticket Number': `#${ticket['ticketNumber']}`,
                 'Priority': priority,
-                'Category': (ticket['category'] as string) || 'general',
+                'Category': (ticket['category']) || 'general',
                 'SLA Threshold': formatTime(threshold),
                 'Time Elapsed': formatTime(elapsed),
                 'Channel': ticketChannel ? `#${ticketChannel.name}` : 'Unknown',
@@ -221,7 +222,7 @@ async function handleSlaBreach(guild: Guild, ticket: Record<string, unknown>, sl
     } catch (error) {
         logger.error({ err: error, msg: '[SLA] Failed to log SLA breach:' });
     }
-    
+
     logger.info({ msg: `[SLA] Breach alert sent for ticket #${ticket['ticketNumber']} in ${guild.name}` });
 }
 

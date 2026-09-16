@@ -1,4 +1,5 @@
-import { MessageContextMenuCommandInteraction, ModalSubmitInteraction, MessageFlags } from 'discord.js';
+import type { MessageContextMenuCommandInteraction, ModalSubmitInteraction} from 'discord.js';
+import { MessageFlags } from 'discord.js';
 import { ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 // @ts-expect-error discordErrors.js not yet migrated
@@ -53,7 +54,7 @@ export default {
                 const modalSubmit = await interaction.awaitModalSubmit({
                     time: 120_000,
                     filter: i => i.customId === `translate_lang_${interaction.id}`
-                }) as ModalSubmitInteraction;
+                });
 
                 const targetLanguage = modalSubmit.fields.getTextInputValue('target_language').trim() || 'EN';
 

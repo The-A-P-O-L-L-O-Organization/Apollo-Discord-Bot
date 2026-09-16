@@ -1,5 +1,6 @@
 // Temprole Command - Assign a temporary role that expires after a set duration
-import { ChatInputCommandInteraction, MessageFlags, GuildMember, Role } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { MessageFlags, GuildMember, Role } from 'discord.js';
 import { PermissionsBitField } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
@@ -237,7 +238,7 @@ async function handleList(interaction: ChatInputCommandInteraction) {
 }
 
 function parseDuration(str: string): number | null {
-    const match = str.match(/^(\d+)([mhdw])$/i);
+    const match = /^(\d+)([mhdw])$/i.exec(str);
     if (!match) { return null; }
 
     const value = parseInt(match[1]);

@@ -1,4 +1,5 @@
-import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, ChatInputCommandInteraction } from 'discord.js';
+import type { ChatInputCommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
 import { getGuildData } from '../../../utils/db.js';
 // @ts-expect-error - slaTracker not yet migrated
 import { formatTime, getPriorityEmoji } from '../../../utils/slaTracker.js';
@@ -105,7 +106,7 @@ export default {
                 results = allTickets.filter(t => t.category === category);
             } else if (subcommand === 'assigned') {
                 const staff = interaction.options.getUser('staff')!;
-                results = allTickets.filter(t => 
+                results = allTickets.filter(t =>
                     t.assignedTo?.includes(staff.id) || t.claimedBy === staff.id
                 );
             } else if (subcommand === 'priority') {
@@ -143,7 +144,7 @@ export default {
                     const status = ticket.closedAt ? 'Closed' : 'Open';
                     const priority = ticket.priority || 'medium';
                     const emoji = getPriorityEmoji(priority);
-                    
+
                     const value = [
                         `Status: ${status}`,
                         `Priority: ${emoji} ${priority}`,
@@ -153,12 +154,12 @@ export default {
 
                     if (ticket.closedAt) {
                         value.push(`Closed: <t:${Math.floor(ticket.closedAt / 1000)}:R>`);
-                        
+
                         if (ticket.firstResponseAt) {
                             const responseTime = ticket.firstResponseAt - ticket.createdAt;
                             value.push(`Response Time: ${formatTime(responseTime)}`);
                         }
-                        
+
                         if (ticket.rating) {
                             value.push(`Rating: ${'★'.repeat(ticket.rating)}`);
                         }

@@ -1,4 +1,5 @@
-import { ChatInputCommandInteraction, EmbedBuilder, MessageFlags, User } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { EmbedBuilder, MessageFlags, User } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { getUserData } from '../../../utils/db.js';
 import { calculateXPForLevel } from '../../../utils/xp.js';
@@ -15,31 +16,31 @@ export default {
     name: 'level',
     description: 'View your current level and experience points',
     category: 'Utility',
-    
+
     dmPermission: true,
     options: [
         { name: 'user', description: 'User to check level for', type: 6, required: false }
     ],
-    
+
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
             const user = interaction.options.getUser('user') ?? interaction.user;
-            
+
             const levelData = await getUserData('levels', interaction.guild!.id, user.id);
             const typedLevelData = (levelData as unknown as LevelData) ?? {
                 xp: 0,
                 level: 0,
                 messages: 0
             };
-            
+
             const xpForNextLevel = calculateXPForLevel(typedLevelData.level + 1);
             const currentLevelXP = calculateXPForLevel(typedLevelData.level);
             const xpProgress = typedLevelData.xp - currentLevelXP;
             const xpNeeded = xpForNextLevel - currentLevelXP;
             const progressPercent = Math.floor((xpProgress / xpNeeded) * 100);
-            
+
             const progressBar = createProgressBar(progressPercent);
-            
+
             const levelEmbed = new EmbedBuilder()
                 .setColor(0x3498DB)
                 .setTitle(`[LEVEL] ${user.tag}`)
@@ -52,11 +53,11 @@ export default {
                     { name: '[INFO] XP Needed', value: `${formatNumber(xpNeeded - xpProgress)} more XP`, inline: true }
                 )
                 .setTimestamp();
-            
+
             if (user.displayAvatarURL()) {
                 levelEmbed.setThumbnail(user.displayAvatarURL({ extension: 'png', size: 256 }));
             }
-            
+
             await interaction.reply({ embeds: [levelEmbed] });
         } catch (error) {
             const errorMessage = handleDiscordError(error);

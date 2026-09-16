@@ -1,4 +1,5 @@
-import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, ChatInputCommandInteraction, MessageFlags, type TextBasedChannel } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags, type TextBasedChannel } from 'discord.js';
 import { setGuildData, getGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
@@ -81,7 +82,7 @@ export default {
                 } else if (subcommand === 'remove') {
                     const existingConfig = await getGuildData('logging', guildId) as Record<string, unknown> | null;
 
-                    if (!existingConfig || !existingConfig['channelId']) {
+                    if (!existingConfig?.['channelId']) {
                         return interaction.reply({
                             content: 'No logging channel is currently set.',
                             flags: MessageFlags.Ephemeral
@@ -103,7 +104,7 @@ export default {
                 } else if (subcommand === 'view') {
                     const config = await getGuildData('logging', guildId) as Record<string, unknown> | null;
 
-                    if (!config || !config['channelId']) {
+                    if (!config?.['channelId']) {
                         return interaction.reply({
                             content: 'No logging channel is currently set.\n\nUse `/setlogchannel set` to configure one.',
                             flags: MessageFlags.Ephemeral

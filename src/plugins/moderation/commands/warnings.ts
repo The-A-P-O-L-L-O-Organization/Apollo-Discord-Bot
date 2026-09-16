@@ -1,5 +1,6 @@
 // Warnings Command - View warnings for a user
-import { ChatInputCommandInteraction, PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { getUserData } from '../../../utils/db.ts';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';

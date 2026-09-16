@@ -1,4 +1,5 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { calculateSLAMetrics, formatTime, DEFAULT_SLA_THRESHOLDS } from '../../../utils/slaTracker.js';
 import { getGuildData } from '../../../utils/db.js';
 // @ts-expect-error discordErrors.js not yet migrated
@@ -40,7 +41,7 @@ export default {
             await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
             const guildId = interaction.guild!.id;
-            const metrics = await calculateSLAMetrics(guildId) as SLAMetrics;
+            const metrics = await calculateSLAMetrics(guildId);
             const ticketConfig = await getGuildData('tickets', guildId) as TicketConfig | null;
             const slaThresholds = ticketConfig?.slaThresholds ?? DEFAULT_SLA_THRESHOLDS;
 

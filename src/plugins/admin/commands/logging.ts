@@ -1,4 +1,5 @@
-import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ChatInputCommandInteraction, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { setGuildData, getGuildData } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
@@ -67,7 +68,7 @@ export default {
                     const event = interaction.options.getString('event');
                     const enabled = subcommand === 'enable';
 
-                    const existingConfig = await getGuildData('logging', guildId) as Record<string, unknown>;
+                    const existingConfig = await getGuildData('logging', guildId);
                     const events = (existingConfig['events'] as Record<string, boolean>) || { ...config.logging.defaultEvents };
 
                     if (event === 'all') {
@@ -75,7 +76,7 @@ export default {
                             events[eventName] = enabled;
                         }
                     } else {
-                        events[event as string] = enabled;
+                        events[event!] = enabled;
                     }
 
                     await setGuildData('logging', guildId, {
@@ -89,7 +90,7 @@ export default {
                         flags: MessageFlags.Ephemeral
                     });
                 } else if (subcommand === 'status') {
-                    const loggingConfig = await getGuildData('logging', guildId) as Record<string, unknown>;
+                    const loggingConfig = await getGuildData('logging', guildId);
                     const events = (loggingConfig['events'] as Record<string, boolean>) || config.logging.defaultEvents;
 
                     let channelStatus = 'Not configured';
@@ -114,35 +115,35 @@ export default {
                         .addFields(
                             { name: 'Log Channel', value: channelStatus, inline: false },
                             { name: '\u200B', value: '**Event Status**', inline: false },
-                            { 
-                                name: 'Message Delete', 
-                                value: events['messageDelete'] ?? config.logging.defaultEvents.messageDelete ? '[ON] Enabled' : '[OFF] Disabled', 
-                                inline: true 
+                            {
+                                name: 'Message Delete',
+                                value: events['messageDelete'] ?? config.logging.defaultEvents.messageDelete ? '[ON] Enabled' : '[OFF] Disabled',
+                                inline: true
                             },
-                            { 
-                                name: 'Message Edit', 
-                                value: events['messageEdit'] ?? config.logging.defaultEvents.messageEdit ? '[ON] Enabled' : '[OFF] Disabled', 
-                                inline: true 
+                            {
+                                name: 'Message Edit',
+                                value: events['messageEdit'] ?? config.logging.defaultEvents.messageEdit ? '[ON] Enabled' : '[OFF] Disabled',
+                                inline: true
                             },
-                            { 
-                                name: 'Member Join', 
-                                value: events['memberJoin'] ?? config.logging.defaultEvents.memberJoin ? '[ON] Enabled' : '[OFF] Disabled', 
-                                inline: true 
+                            {
+                                name: 'Member Join',
+                                value: events['memberJoin'] ?? config.logging.defaultEvents.memberJoin ? '[ON] Enabled' : '[OFF] Disabled',
+                                inline: true
                             },
-                            { 
-                                name: 'Member Leave', 
-                                value: events['memberLeave'] ?? config.logging.defaultEvents.memberLeave ? '[ON] Enabled' : '[OFF] Disabled', 
-                                inline: true 
+                            {
+                                name: 'Member Leave',
+                                value: events['memberLeave'] ?? config.logging.defaultEvents.memberLeave ? '[ON] Enabled' : '[OFF] Disabled',
+                                inline: true
                             },
-                            { 
-                                name: 'Role Changes', 
-                                value: events['roleChanges'] ?? config.logging.defaultEvents.roleChanges ? '[ON] Enabled' : '[OFF] Disabled', 
-                                inline: true 
+                            {
+                                name: 'Role Changes',
+                                value: events['roleChanges'] ?? config.logging.defaultEvents.roleChanges ? '[ON] Enabled' : '[OFF] Disabled',
+                                inline: true
                             },
-                            { 
-                                name: 'Voice Changes', 
-                                value: events['voiceChanges'] ?? config.logging.defaultEvents.voiceChanges ? '[ON] Enabled' : '[OFF] Disabled', 
-                                inline: true 
+                            {
+                                name: 'Voice Changes',
+                                value: events['voiceChanges'] ?? config.logging.defaultEvents.voiceChanges ? '[ON] Enabled' : '[OFF] Disabled',
+                                inline: true
                             }
                         )
                         .setFooter({ text: 'Use /logging enable or /logging disable to change settings' })

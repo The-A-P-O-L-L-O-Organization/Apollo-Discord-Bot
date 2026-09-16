@@ -1,4 +1,5 @@
-import { ChatInputCommandInteraction, MessageFlags, PermissionsBitField, GuildChannel, TextChannel } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { MessageFlags, PermissionsBitField, GuildChannel, TextChannel } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 // @ts-expect-error discordErrors.js not yet migrated
@@ -237,7 +238,7 @@ async function handleCancel(interaction: ChatInputCommandInteraction): Promise<v
 
     const announcements = await getGuildData('announcements', interaction.guild!.id) as Record<string, AnnouncementData> | null;
 
-    if (!announcements || !announcements[id]) {
+    if (!announcements?.[id]) {
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
@@ -264,7 +265,7 @@ async function handleCancel(interaction: ChatInputCommandInteraction): Promise<v
 }
 
 function parseDelay(str: string): number | null {
-    const match = str.match(/^(\d+)([mhd])$/i);
+    const match = /^(\d+)([mhd])$/i.exec(str);
     if (!match) { return null; }
 
     const value = parseInt(match[1]!, 10);

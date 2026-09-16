@@ -10,7 +10,8 @@ import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/disc
 import { isRaidModeEnabled } from '../../../utils/raidDetection.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { config } from '../../../config/config.js';
-import { EmbedBuilder, Colors, MessageFlags, PermissionFlagsBits, Message, GuildMember, TextChannel, ThreadChannel, NewsChannel, User, Guild, Client } from 'discord.js';
+import type { Message, User, Client } from 'discord.js';
+import { EmbedBuilder, Colors, MessageFlags, PermissionFlagsBits, GuildMember, TextChannel, ThreadChannel, NewsChannel, Guild } from 'discord.js';
 
 const logger = createLogger({ component: 'automod:messageCreate' });
 
@@ -194,16 +195,16 @@ async function handleViolation(message: Message, type: string, reason: string, c
 }
 
 function parseDuration(duration: string): number {
-    const match = duration.match(/^(\d+)([mhdw])$/);
+    const match = /^(\d+)([mhdw])$/.exec(duration);
     if (!match) {return 600000;} // 10 minutes default
     const value = parseInt(match[1]!, 10);
     const unit = match[2]!;
     switch (unit) {
-        case 'm': return value * 60 * 1000;
-        case 'h': return value * 60 * 60 * 1000;
-        case 'd': return value * 24 * 60 * 60 * 1000;
-        case 'w': return value * 7 * 24 * 60 * 60 * 1000;
-        default: return 600000;
+    case 'm': return value * 60 * 1000;
+    case 'h': return value * 60 * 60 * 1000;
+    case 'd': return value * 24 * 60 * 60 * 1000;
+    case 'w': return value * 7 * 24 * 60 * 60 * 1000;
+    default: return 600000;
     }
 }
 
@@ -267,7 +268,7 @@ export default {
                     return;
                 }
             }
-    
+
             if (automodConfig.filterInvites) {
                 const invite = checkInvites(message.content);
                 if (invite) {
@@ -275,7 +276,7 @@ export default {
                     return;
                 }
             }
-    
+
             if (automodConfig.filterLinks) {
                 const link = checkLinks(message.content);
                 if (link) {
@@ -283,15 +284,15 @@ export default {
                     return;
                 }
             }
-    
+
             if (automodConfig.filterPhishingLinks) {
                 const phishing = checkPhishingLinks(message.content);
                 if (phishing) {
-                    await handleViolation(message, 'phishing_link', `Phishing link detected`, client, true);
+                    await handleViolation(message, 'phishing_link', 'Phishing link detected', client, true);
                     return;
                 }
             }
-    
+
             if (automodConfig.maxMentions > 0) {
                 const mention = checkMentionSpam(message, automodConfig.maxMentions);
                 if (mention) {
@@ -299,7 +300,7 @@ export default {
                     return;
                 }
             }
-    
+
             if (automodConfig.maxCapsPercent < 100) {
                 const caps = checkCapsSpam(message.content, automodConfig.maxCapsPercent, automodConfig.minCapsLength || 10);
                 if (caps) {

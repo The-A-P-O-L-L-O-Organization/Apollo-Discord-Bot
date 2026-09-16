@@ -1,5 +1,6 @@
 // Strike Command - Issue a strike to a user (more severe than warnings)
-import { ChatInputCommandInteraction, PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { getUserData, appendToUserArray, generateId, getGuildData } from '../../../utils/db.ts';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';

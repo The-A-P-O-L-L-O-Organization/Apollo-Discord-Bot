@@ -2,7 +2,8 @@ import { config } from '../../../config/config.js';
 import { getQueueMetrics } from '../../../queue/metrics.js';
 import { requireOwner } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
-import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { MessageFlags } from 'discord.js';
 
 export default {
     name: 'queue',
@@ -45,7 +46,7 @@ export default {
                         { name: 'Waiting', value: String(metrics.waiting), inline: true },
                         { name: 'Active', value: String(metrics.active), inline: true },
                         { name: 'Failed', value: String(metrics.failed), inline: true },
-                        { name: 'Redis', value: config.queue.redis.host + ':' + config.queue.redis.port, inline: false },
+                        { name: 'Redis', value: config.queue.redis.host + ':' + config.queue.redis.port, inline: false }
                     ],
                     timestamp: new Date().toISOString()
                 }]

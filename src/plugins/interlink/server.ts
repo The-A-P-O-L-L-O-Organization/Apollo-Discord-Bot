@@ -53,15 +53,15 @@ export default class InterlinkServer {
         this._app.use(helmet({
             contentSecurityPolicy: {
                 directives: {
-                    defaultSrc: ["'self'"],
-                    scriptSrc: ["'self'"],
-                    styleSrc: ["'self'"],
-                    imgSrc: ["'self'", 'data:'],
-                    connectSrc: ["'self'"],
-                    fontSrc: ["'self'"],
-                    objectSrc: ["'none'"],
-                    mediaSrc: ["'self'"],
-                    frameSrc: ["'none'"]
+                    defaultSrc: ['\'self\''],
+                    scriptSrc: ['\'self\''],
+                    styleSrc: ['\'self\''],
+                    imgSrc: ['\'self\'', 'data:'],
+                    connectSrc: ['\'self\''],
+                    fontSrc: ['\'self\''],
+                    objectSrc: ['\'none\''],
+                    mediaSrc: ['\'self\''],
+                    frameSrc: ['\'none\'']
                 }
             },
             crossOriginEmbedderPolicy: false,
@@ -145,7 +145,7 @@ export default class InterlinkServer {
         });
 
         // @ts-expect-error - config type doesn't include bindHost
-const bindHost = config.interlink?.bindHost;
+        const bindHost = config.interlink?.bindHost;
         if (bindHost !== '127.0.0.1' && bindHost !== '::1') {
             console.warn(`[WARN] Interlink binding to ${bindHost} — ensure this is intentional and firewalled.`);
         }

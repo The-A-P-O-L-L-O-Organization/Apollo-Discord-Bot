@@ -1,6 +1,7 @@
 // Report Message Command - Context menu command to report messages
-import { 
-    MessageContextMenuCommandInteraction, 
+import type {
+    MessageContextMenuCommandInteraction} from 'discord.js';
+import {
     EmbedBuilder,
     ActionRowBuilder,
     ButtonBuilder,
@@ -16,7 +17,7 @@ import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/disc
 export default {
     data: {
         name: 'Report Message',
-        type: 3, // ApplicationCommandType.Message
+        type: 3 // ApplicationCommandType.Message
     },
 
     async execute(interaction: MessageContextMenuCommandInteraction) {
@@ -67,41 +68,41 @@ export default {
                 ch => ch.name === config.moderation.moderationLogChannel
             );
 
-            if (modChannel && modChannel.isTextBased()) {
+            if (modChannel?.isTextBased()) {
                 const reportEmbed = new EmbedBuilder()
                     .setColor('#FFA500')
                     .setTitle('[!] Message Reported')
                     .setDescription(`A message has been reported by ${interaction.user}`)
                     .addFields(
-                        { 
-                            name: 'Reported Message Author', 
-                            value: `${message.author.tag}\n\`${message.author.id}\``, 
-                            inline: true 
+                        {
+                            name: 'Reported Message Author',
+                            value: `${message.author.tag}\n\`${message.author.id}\``,
+                            inline: true
                         },
-                        { 
-                            name: 'Reporter', 
-                            value: `${interaction.user.tag}\n\`${interaction.user.id}\``, 
-                            inline: true 
+                        {
+                            name: 'Reporter',
+                            value: `${interaction.user.tag}\n\`${interaction.user.id}\``,
+                            inline: true
                         },
-                        { 
-                            name: 'Channel', 
-                            value: `<#${message.channel.id}>`, 
-                            inline: true 
+                        {
+                            name: 'Channel',
+                            value: `<#${message.channel.id}>`,
+                            inline: true
                         },
-                        { 
-                            name: 'Message Content', 
-                            value: message.content ? (message.content.length > 1000 ? message.content.substring(0, 1000) + '...' : message.content) : '*No text content*', 
-                            inline: false 
+                        {
+                            name: 'Message Content',
+                            value: message.content ? (message.content.length > 1000 ? message.content.substring(0, 1000) + '...' : message.content) : '*No text content*',
+                            inline: false
                         },
-                        { 
-                            name: 'Message Link', 
-                            value: `[Jump to Message](${message.url})`, 
-                            inline: false 
+                        {
+                            name: 'Message Link',
+                            value: `[Jump to Message](${message.url})`,
+                            inline: false
                         },
-                        { 
-                            name: 'Report ID', 
-                            value: reportId, 
-                            inline: true 
+                        {
+                            name: 'Report ID',
+                            value: reportId,
+                            inline: true
                         }
                     )
                     .setTimestamp()
@@ -131,9 +132,9 @@ export default {
                             .setStyle(ButtonStyle.Secondary)
                     );
 
-                await modChannel.send({ 
-                    embeds: [reportEmbed], 
-                    components: [row] 
+                await modChannel.send({
+                    embeds: [reportEmbed],
+                    components: [row]
                 });
             }
 

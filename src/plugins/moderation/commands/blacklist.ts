@@ -1,5 +1,6 @@
 // Blacklist Command - Manage server join blacklist
-import { ChatInputCommandInteraction, PermissionFlagsBits, EmbedBuilder, MessageFlags, type User } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { PermissionFlagsBits, EmbedBuilder, MessageFlags, type User } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { getGuildData, getData, updateGuildData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
@@ -177,7 +178,7 @@ async function handleAdd(interaction: ChatInputCommandInteraction): Promise<void
 
         // Add to blacklist
         await updateGuildData('blacklist', interaction.guild!.id, (data: BlacklistData) => {
-            if (!data.entries) data.entries = {};
+            if (!data.entries) {data.entries = {};}
             data.entries[user.id] = {
                 userId: user.id,
                 userTag: user.tag,
@@ -385,7 +386,7 @@ async function handleGlobal(interaction: ChatInputCommandInteraction): Promise<v
             }
 
             await updateGuildData('global_blacklist', '__global__', (data: BlacklistData) => {
-                if (!data.entries) data.entries = {};
+                if (!data.entries) {data.entries = {};}
                 data.entries[user.id] = {
                     userId: user.id,
                     userTag: user.tag,

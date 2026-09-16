@@ -1,5 +1,6 @@
 // Voice Disconnect Command - Disconnect a user from a voice channel
-import { ChatInputCommandInteraction, PermissionFlagsBits, ChannelType, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { PermissionFlagsBits, ChannelType, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { createModCase } from './case.ts';
@@ -86,7 +87,7 @@ export default {
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
 
-            const hierarchy = canModerate(interaction.guild!, interaction.member!, member);
+            const hierarchy = canModerate(interaction.guild!, interaction.member, member);
             if (!hierarchy.ok) {
                 const errorEmbed = {
                     color: 0xFF0000,

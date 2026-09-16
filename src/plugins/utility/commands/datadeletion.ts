@@ -1,4 +1,5 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, MessageComponentInteraction } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, MessageComponentInteraction } from 'discord.js';
 import { getAllGuildData, setGuildData, getUserData, setUserData } from '../../../utils/db.js';
 import { logSecurityEvent } from '../../../utils/securityLog.js';
 // @ts-expect-error discordErrors.js not yet migrated
@@ -23,7 +24,7 @@ export async function deleteUserData(userId: string): Promise<{ total: number; b
     for (const [category, { key, match }] of Object.entries(GUILD_ARRAY_STORES)) {
         const allGuildData = await getAllGuildData(category);
         for (const { guildId, data } of allGuildData) {
-            if (!data || typeof data !== 'object' || !Array.isArray((data as Record<string, unknown>)[key])) { continue; }
+            if (!data || typeof data !== 'object' || !Array.isArray((data)[key])) { continue; }
             const dataObj = data as Record<string, unknown[]>;
             const before = dataObj[key].length;
             const filtered = dataObj[key].filter((item) => !match(item, userId));

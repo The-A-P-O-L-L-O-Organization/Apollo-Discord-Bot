@@ -42,7 +42,7 @@ export function createRedisClient(name: string, options: RedisClientOptions = {}
     const config = {
         ...DEFAULT_OPTIONS,
         ...options
-    } as RedisClientOptions;
+    };
 
     // @ts-expect-error ioredis v6 module export issue
     const redis = new Redis(config);

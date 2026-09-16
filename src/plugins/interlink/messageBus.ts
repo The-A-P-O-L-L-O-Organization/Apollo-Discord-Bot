@@ -165,7 +165,7 @@ export default class MessageBus {
                 }
             } catch (err) {
                 const msg = err instanceof Error ? err.message : String(err);
-                const httpMatch = msg.match(/^Fetch failed: (\d{3})/);
+                const httpMatch = /^Fetch failed: (\d{3})/.exec(msg);
                 if (httpMatch) {
                     return { success: false, status: Number(httpMatch[1]), error: `HTTP ${httpMatch[1]}` };
                 }

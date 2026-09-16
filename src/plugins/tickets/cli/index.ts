@@ -4,33 +4,33 @@ interface CLICommand {
     name: string;
     description: string;
     needsSocket?: boolean;
-    options: Array<{
+    options: {
         name: string;
         description: string;
         required?: boolean;
-    }>;
-    subcommands?: Array<{
+    }[];
+    subcommands?: {
         name: string;
         description: string;
         needsSocket?: boolean;
-        options: Array<{
+        options: {
             name: string;
             description: string;
             required?: boolean;
-        }>;
+        }[];
         execute?: (args: Record<string, unknown>) => Promise<unknown>;
-    }>;
-    commands?: Array<{
+    }[];
+    commands?: {
         name: string;
         description: string;
         needsSocket?: boolean;
-        options: Array<{
+        options: {
             name: string;
             description: string;
             required?: boolean;
-        }>;
+        }[];
         execute?: (args: Record<string, unknown>) => Promise<unknown>;
-    }>;
+    }[];
 }
 
 const ticketsCLI: CLICommand = {
@@ -43,8 +43,8 @@ const ticketsCLI: CLICommand = {
             description: 'List all tickets',
             options: [],
             execute: async (args: Record<string, unknown>) => {
-                const data = await getGuildData('tickets', args['guild'] as string) as Record<string, unknown> || {};
-                const open = ((data['openTickets'] as Array<Record<string, unknown>>) || []).map(t => ({
+                const data = await getGuildData('tickets', args['guild'] as string) || {};
+                const open = ((data['openTickets'] as Record<string, unknown>[]) || []).map(t => ({
                     id: t['id'],
                     ticketNumber: t['ticketNumber'],
                     userId: t['userId'],
@@ -52,7 +52,7 @@ const ticketsCLI: CLICommand = {
                     status: t['status'],
                     priority: t['priority']
                 }));
-                const closed = ((data['closedTickets'] as Array<Record<string, unknown>>) || []).map(t => ({
+                const closed = ((data['closedTickets'] as Record<string, unknown>[]) || []).map(t => ({
                     ticketNumber: t['ticketNumber'],
                     userId: t['userId'],
                     closedAt: t['closedAt']

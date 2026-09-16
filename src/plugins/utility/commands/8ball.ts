@@ -1,6 +1,6 @@
 // 8ball Command
 // Ask the magic 8-ball a question
-import { ChatInputCommandInteraction } from 'discord.js';
+import type { ChatInputCommandInteraction } from 'discord.js';
 // @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply } from '../../../utils/discordErrors.js';
 
@@ -46,10 +46,10 @@ export default {
                 { text: 'Very doubtful.', color: 0xFF0000 }
             ];
 
-const response = responses[Math.floor(Math.random() * responses.length)];
-            
+            const response = responses[Math.floor(Math.random() * responses.length)];
+
             if (!response) { return; }
-            
+
             const ballEmbed = {
                 color: response.color,
                 title: '🎱 Magic 8-Ball',

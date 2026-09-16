@@ -242,7 +242,7 @@ export async function encryptFields(obj: Record<string, unknown> | unknown[] | u
     const result = { ...obj as Record<string, unknown> };
     for (const field of fields) {
         if (result[field] !== undefined && result[field] !== null) {
-            result[field] = await encrypt(result[field] as string);
+            result[field] = await encrypt(result[field]);
         }
     }
     return result;
@@ -308,7 +308,7 @@ export async function reEncryptIfNeeded(encryptedData: string): Promise<string> 
     }
     // Decrypt with any available key, then re-encrypt with current key
     const plaintext = await decrypt(encryptedData);
-    return encrypt(plaintext as string);
+    return encrypt(plaintext);
 }
 
 export default {

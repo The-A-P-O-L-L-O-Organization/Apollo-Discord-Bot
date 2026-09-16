@@ -2,7 +2,8 @@
 // Configure automatic moderation settings per server
 import { logger } from '../../../utils/logger.js';
 
-import { PermissionsBitField, EmbedBuilder, ChannelType, MessageFlags, SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
+import type { ChatInputCommandInteraction } from 'discord.js';
+import { PermissionsBitField, EmbedBuilder, ChannelType, MessageFlags, SlashCommandBuilder } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
 import { safeError } from '../../../utils/safeError.js';
@@ -31,7 +32,7 @@ export default {
     name: 'automod',
     description: 'Configure automatic moderation',
     category: 'Moderation',
-    
+
     defaultMemberPermissions: PermissionsBitField.Flags.Administrator,
     dmPermission: false,
     options: [
@@ -270,7 +271,7 @@ async function handleEnable(interaction: ChatInputCommandInteraction) {
     const cfg = await getGuildData('automod', interaction.guild!.id);
     cfg.enabled = true;
     await setGuildData('automod', interaction.guild!.id, cfg);
-    
+
     const embed = new EmbedBuilder()
         .setColor('#00FF00')
         .setTitle('Automod Enabled')
@@ -282,7 +283,7 @@ async function handleEnable(interaction: ChatInputCommandInteraction) {
                    '• Use `/automod status` to view settings'
         })
         .setTimestamp();
-    
+
     await interaction.reply({ embeds: [embed] });
     logger.info({ msg: '[AUTOMOD] Enabled', guild: interaction.guild!.name });
 }
@@ -291,20 +292,20 @@ async function handleDisable(interaction: ChatInputCommandInteraction) {
     const cfg = await getGuildData('automod', interaction.guild!.id);
     cfg.enabled = false;
     await setGuildData('automod', interaction.guild!.id, cfg);
-    
+
     const embed = new EmbedBuilder()
         .setColor('#FF0000')
         .setTitle('Automod Disabled')
         .setDescription('Automatic moderation is now **disabled** for this server.')
         .setTimestamp();
-    
+
     await interaction.reply({ embeds: [embed] });
     logger.info({ msg: '[AUTOMOD] Disabled', guild: interaction.guild!.name });
 }
 
 async function handleStatus(interaction: ChatInputCommandInteraction) {
     const cfg = await getAutomodConfig(interaction.guild!.id);
-    
+
     const embed = new EmbedBuilder()
         .setColor(cfg.enabled ? '#00FF00' : '#FF0000')
         .setTitle('Automod Configuration')
@@ -326,18 +327,18 @@ async function handleStatus(interaction: ChatInputCommandInteraction) {
         )
         .setTimestamp()
         .setFooter({ text: 'Use /automod set to modify settings' });
-    
+
     await interaction.reply({ embeds: [embed] });
 }
 
 async function handleAddWord(interaction: ChatInputCommandInteraction) {
     const word = interaction.options.getString('word', true).toLowerCase();
     const guildConfig = await getGuildData('automod', interaction.guild!.id);
-    
+
     if (!guildConfig.bannedWords) {
         guildConfig.bannedWords = [];
     }
-    
+
     if (guildConfig.bannedWords.includes(word)) {
         return interaction.reply({
             embeds: [{
@@ -349,17 +350,17 @@ async function handleAddWord(interaction: ChatInputCommandInteraction) {
             flags: MessageFlags.Ephemeral
         });
     }
-    
+
     guildConfig.bannedWords.push(word);
     await setGuildData('automod', interaction.guild!.id, guildConfig);
-    
+
     const embed = new EmbedBuilder()
         .setColor('#00FF00')
         .setTitle('Word Added')
         .setDescription(`Added \`${word}\` to the banned words list.`)
         .addFields({ name: 'Total Banned Words', value: `${guildConfig.bannedWords.length}` })
         .setTimestamp();
-    
+
     await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     logger.info({ msg: '[AUTOMOD] Added banned word', guild: interaction.guild!.name });
 }
@@ -367,8 +368,8 @@ async function handleAddWord(interaction: ChatInputCommandInteraction) {
 async function handleRemoveWord(interaction: ChatInputCommandInteraction) {
     const word = interaction.options.getString('word', true).toLowerCase();
     const guildConfig = await getGuildData('automod', interaction.guild!.id);
-    
-    if (!guildConfig.bannedWords || !guildConfig.bannedWords.includes(word)) {
+
+    if (!guildConfig.bannedWords?.includes(word)) {
         return interaction.reply({
             embeds: [{
                 color: 0xFF0000,
@@ -379,24 +380,24 @@ async function handleRemoveWord(interaction: ChatInputCommandInteraction) {
             flags: MessageFlags.Ephemeral
         });
     }
-    
+
     guildConfig.bannedWords = guildConfig.bannedWords.filter(w => w !== word);
     await setGuildData('automod', interaction.guild!.id, guildConfig);
-    
+
     const embed = new EmbedBuilder()
         .setColor('#00FF00')
         .setTitle('Word Removed')
         .setDescription(`Removed \`${word}\` from the banned words list.`)
         .addFields({ name: 'Total Banned Words', value: `${guildConfig.bannedWords.length}` })
         .setTimestamp();
-    
+
     await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     logger.info({ msg: '[AUTOMOD] Removed banned word', guild: interaction.guild!.name });
 }
 
 async function handleListWords(interaction: ChatInputCommandInteraction) {
     const cfg = await getAutomodConfig(interaction.guild!.id);
-    
+
     if (cfg.bannedWords.length === 0) {
         return interaction.reply({
             embeds: [{
@@ -408,32 +409,32 @@ async function handleListWords(interaction: ChatInputCommandInteraction) {
             flags: MessageFlags.Ephemeral
         });
     }
-    
+
     // Censor the words partially for display
     const censoredWords = cfg.bannedWords.map(w => {
         if (w.length <= 2) { return '*'.repeat(w.length); }
         return w[0] + '*'.repeat(w.length - 2) + w[w.length - 1];
     });
-    
+
     const embed = new EmbedBuilder()
         .setColor('#0099FF')
         .setTitle('Banned Words List')
         .setDescription(`**${cfg.bannedWords.length}** word(s) banned:\n\n${censoredWords.join(', ')}`)
         .setTimestamp()
         .setFooter({ text: 'Words are partially censored for safety' });
-    
+
     await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
 async function handleSet(interaction: ChatInputCommandInteraction) {
     const setting = interaction.options.getString('setting', true);
     const valueStr = interaction.options.getString('value', true);
-    
+
     // Parse value based on setting type
     let value: boolean | number;
     const booleanSettings = ['filterInvites', 'filterLinks', 'filterPhishingLinks', 'raidDetection', 'aiModeration', 'nsfwFilter'];
     const numberSettings = ['maxMentions', 'maxCapsPercent', 'minAccountAge', 'spamThreshold', 'spamInterval'];
-    
+
     if (booleanSettings.includes(setting)) {
         value = valueStr.toLowerCase() === 'true' || valueStr === '1';
     } else if (numberSettings.includes(setting)) {
@@ -449,7 +450,7 @@ async function handleSet(interaction: ChatInputCommandInteraction) {
                 flags: MessageFlags.Ephemeral
             });
         }
-        
+
         // Validate ranges
         if (setting === 'maxCapsPercent' && (value < 0 || value > 100)) {
             return interaction.reply({
@@ -462,7 +463,7 @@ async function handleSet(interaction: ChatInputCommandInteraction) {
                 flags: MessageFlags.Ephemeral
             });
         }
-        
+
         // Validate positive numbers for numeric settings (except maxCapsPercent which can be 0)
         if (setting !== 'maxCapsPercent' && value <= 0) {
             return interaction.reply({
@@ -481,17 +482,17 @@ async function handleSet(interaction: ChatInputCommandInteraction) {
             flags: MessageFlags.Ephemeral
         });
     }
-    
+
     const cfg = await getGuildData('automod', interaction.guild!.id);
     cfg[setting] = value;
     await setGuildData('automod', interaction.guild!.id, cfg);
-    
+
     const embed = new EmbedBuilder()
         .setColor('#00FF00')
         .setTitle('Setting Updated')
         .setDescription(`**${setting}** has been set to **${value}**.`)
         .setTimestamp();
-    
+
     await interaction.reply({ embeds: [embed] });
     logger.info({ msg: '[AUTOMOD] Setting updated', setting, value, guild: interaction.guild!.name });
 }
@@ -499,12 +500,12 @@ async function handleSet(interaction: ChatInputCommandInteraction) {
 async function handleExemptChannel(interaction: ChatInputCommandInteraction) {
     const channel = interaction.options.getChannel('channel', true);
     const action = interaction.options.getString('action', true);
-    
+
     const guildConfig = await getGuildData('automod', interaction.guild!.id);
     if (!guildConfig.exemptChannels) {
         guildConfig.exemptChannels = [];
     }
-    
+
     if (action === 'add') {
         if (guildConfig.exemptChannels.includes(channel.id)) {
             return interaction.reply({
@@ -517,10 +518,10 @@ async function handleExemptChannel(interaction: ChatInputCommandInteraction) {
                 flags: MessageFlags.Ephemeral
             });
         }
-        
+
         guildConfig.exemptChannels.push(channel.id);
         await setGuildData('automod', interaction.guild!.id, guildConfig);
-        
+
         await interaction.reply({
             embeds: [{
                 color: 0x00FF00,
@@ -541,10 +542,10 @@ async function handleExemptChannel(interaction: ChatInputCommandInteraction) {
                 flags: MessageFlags.Ephemeral
             });
         }
-        
+
         guildConfig.exemptChannels = guildConfig.exemptChannels.filter(id => id !== channel.id);
         await setGuildData('automod', interaction.guild!.id, guildConfig);
-        
+
         await interaction.reply({
             embeds: [{
                 color: 0x00FF00,
@@ -559,12 +560,12 @@ async function handleExemptChannel(interaction: ChatInputCommandInteraction) {
 async function handleExemptRole(interaction: ChatInputCommandInteraction) {
     const role = interaction.options.getRole('role', true);
     const action = interaction.options.getString('action', true);
-    
+
     const guildConfig = await getGuildData('automod', interaction.guild!.id);
     if (!guildConfig.exemptRoles) {
         guildConfig.exemptRoles = [];
     }
-    
+
     if (action === 'add') {
         if (guildConfig.exemptRoles.includes(role.id)) {
             return interaction.reply({
@@ -577,10 +578,10 @@ async function handleExemptRole(interaction: ChatInputCommandInteraction) {
                 flags: MessageFlags.Ephemeral
             });
         }
-        
+
         guildConfig.exemptRoles.push(role.id);
         await setGuildData('automod', interaction.guild!.id, guildConfig);
-        
+
         await interaction.reply({
             embeds: [{
                 color: 0x00FF00,
@@ -601,10 +602,10 @@ async function handleExemptRole(interaction: ChatInputCommandInteraction) {
                 flags: MessageFlags.Ephemeral
             });
         }
-        
+
         guildConfig.exemptRoles = guildConfig.exemptRoles.filter(id => id !== role.id);
         await setGuildData('automod', interaction.guild!.id, guildConfig);
-        
+
         await interaction.reply({
             embeds: [{
                 color: 0x00FF00,

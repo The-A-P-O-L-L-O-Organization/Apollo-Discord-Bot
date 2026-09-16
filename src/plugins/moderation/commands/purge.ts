@@ -1,5 +1,6 @@
 // Purge Command - Delete multiple messages from a channel
-import { ChatInputCommandInteraction, ApplicationCommandType, MessageFlags, PermissionsBitField, TextChannel, ThreadChannel, NewsChannel } from 'discord.js';
+import type { ChatInputCommandInteraction, TextChannel, ThreadChannel, NewsChannel } from 'discord.js';
+import { ApplicationCommandType, MessageFlags, PermissionsBitField } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { canModerate } from '../../../utils/moderation.js';
@@ -56,7 +57,7 @@ export default {
 
             const manageableChannel = channel as TextChannel | ThreadChannel | NewsChannel;
 
-            if (!manageableChannel.permissionsFor(interaction.client.user!).has(PermissionsBitField.Flags.ManageMessages)) {
+            if (!manageableChannel.permissionsFor(interaction.client.user).has(PermissionsBitField.Flags.ManageMessages)) {
                 const errorEmbed = {
                     color: 0xFF0000,
                     title: '[ERROR] Missing Permissions',
@@ -75,7 +76,7 @@ export default {
 
             if (targetUser) {
                 const targetMember = await fetchMember(interaction.guild!, targetUser.id).catch(() => null);
-                const hierarchy = canModerate(interaction.guild!, interaction.member!, targetMember);
+                const hierarchy = canModerate(interaction.guild!, interaction.member, targetMember);
                 if (!hierarchy.ok) {
                     const errorEmbed = {
                         color: 0xFF0000,

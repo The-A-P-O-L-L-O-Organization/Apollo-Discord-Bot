@@ -7,13 +7,13 @@ export const RPCRequestSchema = z.object({
     pluginId: z.string(),
     method: z.string(),
     correlationId: z.string(),
-    payload: z.unknown(),
+    payload: z.unknown()
 });
 
 export const RPCResponseSchema = z.object({
     kind: z.literal('response'),
     correlationId: z.string(),
-    result: z.unknown(),
+    result: z.unknown()
 });
 
 export const RPCMessageSchema = z.union([RPCRequestSchema, RPCResponseSchema]);

@@ -1,5 +1,6 @@
 // Slowmode Command - Set channel slowmode (rate limit)
-import { ChatInputCommandInteraction, MessageFlags, TextBasedChannel } from 'discord.js';
+import type { ChatInputCommandInteraction, TextBasedChannel } from 'discord.js';
+import { MessageFlags } from 'discord.js';
 import { PermissionsBitField } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { sendModLog } from '../../../utils/modLog.js';
@@ -105,7 +106,7 @@ export default {
                     };
                     await textChannel.send({ embeds: [slowmodeNotice] });
                 } catch (err) {
-                    logger.info({ msg: `[WARNING] Could not send slowmode notice to channel:`, err: (err as Error).message });
+                    logger.info({ msg: '[WARNING] Could not send slowmode notice to channel:', err: (err as Error).message });
                 }
             }
 

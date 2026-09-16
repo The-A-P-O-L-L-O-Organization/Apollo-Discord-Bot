@@ -1,4 +1,5 @@
-import { ChatInputCommandInteraction, MessageFlags, PermissionsBitField } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { MessageFlags, PermissionsBitField } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 // @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
@@ -77,7 +78,7 @@ export default {
 
                 // Check permissions
                 const me = interaction.guild.members.me;
-                if (!me || !me.permissions.has(PermissionsBitField.Flags.CreateInstantInvite)) {
+                if (!me?.permissions.has(PermissionsBitField.Flags.CreateInstantInvite)) {
                     await interaction.reply({
                         content: '[ERROR] I do not have permission to create invites.',
                         flags: MessageFlags.Ephemeral

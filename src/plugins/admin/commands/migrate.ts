@@ -3,7 +3,8 @@ import { getDb, runMigrations } from '../../../db/knex.js';
 import { safeError } from '../../../utils/safeError.js';
 import { requireOwner } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
-import { ChatInputCommandInteraction, MessageFlags, EmbedBuilder } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { MessageFlags, EmbedBuilder } from 'discord.js';
 
 export default {
     name: 'migrate',
@@ -15,13 +16,13 @@ export default {
         {
             name: 'status',
             description: 'Check database migration status',
-            type: 1,
+            type: 1
         },
         {
             name: 'run',
             description: 'Run pending database migrations',
-            type: 1,
-        },
+            type: 1
+        }
     ],
 
     async execute(interaction: ChatInputCommandInteraction) {

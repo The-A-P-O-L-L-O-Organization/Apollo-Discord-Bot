@@ -1,4 +1,5 @@
-import { UserContextMenuCommandInteraction, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, MessageFlags } from 'discord.js';
+import type { UserContextMenuCommandInteraction} from 'discord.js';
+import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, MessageFlags } from 'discord.js';
 import { getData, updateGuildData } from '../../../utils/db.js';
 import { isOwner } from '../../../utils/accessControl.js';
 // @ts-expect-error discordErrors.js not yet migrated

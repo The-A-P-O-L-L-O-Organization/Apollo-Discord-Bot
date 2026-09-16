@@ -1,5 +1,5 @@
 import Plugin from '../../core/Plugin.js';
-import PluginManager from '../../core/PluginManager.js';
+import type PluginManager from '../../core/PluginManager.js';
 import { createLogger } from '../../utils/logger.js';
 import type { Client } from 'discord.js';
 
@@ -13,7 +13,7 @@ export default class AutomodPlugin extends Plugin {
     static override id = 'automod';
     static override version = '1.0.0';
     static override dependencies = [];
-    
+
     // TensorFlow needs more memory
     static resourceLimits = {
         maxOldGenerationSizeMb: 512,

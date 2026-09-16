@@ -1,5 +1,6 @@
 // Tempban Command - Temporarily ban a user from the server
-import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { MessageFlags } from 'discord.js';
 import { PermissionsBitField } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
@@ -59,7 +60,7 @@ export default {
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
 
-            const match = durationStr.match(/^(\d+)([mhdw])$/);
+            const match = /^(\d+)([mhdw])$/.exec(durationStr);
             if (!match) {
                 const errorEmbed = {
                     color: 0xFF0000,

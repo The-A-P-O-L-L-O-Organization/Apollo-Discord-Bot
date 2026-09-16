@@ -1,5 +1,6 @@
 // Unlock Command - Unlock a previously locked channel
-import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { MessageFlags } from 'discord.js';
 import { PermissionsBitField } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { setGuildData, getGuildData } from '../../../utils/db.js';
@@ -32,7 +33,7 @@ export default {
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
 
-            const lockdownData = (await getGuildData('channel-lockdowns', interaction.guild!.id)) as Record<string, unknown>;
+            const lockdownData = (await getGuildData('channel-lockdowns', interaction.guild!.id));
             const lockInfo = lockdownData[channel!.id] as { originalPermissions: { SendMessages: boolean | null; AddReactions: boolean | null }; lockedByTag: string; lockedAt: number; reason: string } | undefined;
 
             if (!lockInfo) {
@@ -94,7 +95,7 @@ export default {
                 };
                 await channel!.send({ embeds: [unlockNotice] });
             } catch (err) {
-                logger.info({ msg: `[WARNING] Could not send unlock notice to channel:`, err: (err as Error).message });
+                logger.info({ msg: '[WARNING] Could not send unlock notice to channel:', err: (err as Error).message });
             }
 
             await sendModLog(interaction.guild!, {

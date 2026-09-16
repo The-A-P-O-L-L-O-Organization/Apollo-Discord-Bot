@@ -1,7 +1,8 @@
 import { safeError } from '../../../utils/safeError.js';
 import { requireOwner } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
-import { ChatInputCommandInteraction, MessageFlags, EmbedBuilder } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { MessageFlags, EmbedBuilder } from 'discord.js';
 import type { PluginManifest } from '../../../types/plugin.js';
 
 export default {
@@ -113,7 +114,7 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction) {
         try {
-            await interaction.deferReply({ flags: MessageFlags.Ephemeral as number });
+            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
             const denial = await requireOwner(interaction);
             if (denial) {
                 return interaction.editReply(denial);
@@ -151,7 +152,7 @@ export default {
                     ],
                     timestamp: new Date().toISOString()
                 };
-                return interaction.editReply({ embeds: [embed], flags: MessageFlags.Ephemeral as number });
+                return interaction.editReply({ embeds: [embed], flags: MessageFlags.Ephemeral });
             }
 
             case 'enable': {
@@ -165,14 +166,14 @@ export default {
                             description: '**' + name + '** has been enabled.',
                             timestamp: new Date().toISOString()
                         }],
-                        flags: MessageFlags.Ephemeral as number
+                        flags: MessageFlags.Ephemeral
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
-                        flags: MessageFlags.Ephemeral as number
+                        flags: MessageFlags.Ephemeral
                     });
                 }
             }
@@ -188,14 +189,14 @@ export default {
                             description: '**' + name + '** has been disabled.',
                             timestamp: new Date().toISOString()
                         }],
-                        flags: MessageFlags.Ephemeral as number
+                        flags: MessageFlags.Ephemeral
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
-                        flags: MessageFlags.Ephemeral as number
+                        flags: MessageFlags.Ephemeral
                     });
                 }
             }
@@ -211,14 +212,14 @@ export default {
                             description: '**' + name + '** has been hot-reloaded.',
                             timestamp: new Date().toISOString()
                         }],
-                        flags: MessageFlags.Ephemeral as number
+                        flags: MessageFlags.Ephemeral
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
-                        flags: MessageFlags.Ephemeral as number
+                        flags: MessageFlags.Ephemeral
                     });
                 }
             }
@@ -236,14 +237,14 @@ export default {
                             description: '**' + name + '** v' + (plugin.constructor as any).version + ' loaded and enabled.',
                             timestamp: new Date().toISOString()
                         }],
-                        flags: MessageFlags.Ephemeral as number
+                        flags: MessageFlags.Ephemeral
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
-                        flags: MessageFlags.Ephemeral as number
+                        flags: MessageFlags.Ephemeral
                     });
                 }
             }
@@ -261,7 +262,7 @@ export default {
                                 'Re-run with `confirm: true` to proceed.',
                             timestamp: new Date().toISOString()
                         }],
-                        flags: MessageFlags.Ephemeral as number
+                        flags: MessageFlags.Ephemeral
                     });
                 }
                 try {
@@ -294,14 +295,14 @@ export default {
                             description: '**' + name + '** has been removed.',
                             timestamp: new Date().toISOString()
                         }],
-                        flags: MessageFlags.Ephemeral as number
+                        flags: MessageFlags.Ephemeral
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: safeError(err)
                         }],
-                        flags: MessageFlags.Ephemeral as number
+                        flags: MessageFlags.Ephemeral
                     });
                 }
             }
@@ -327,7 +328,7 @@ export default {
                         }] : [],
                         timestamp: new Date().toISOString()
                     }],
-                    flags: MessageFlags.Ephemeral as number
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -352,7 +353,7 @@ export default {
                     });
                 }
             }
-        }
+            }
 
         } catch (error) {
             const errorMessage = handleDiscordError(error) ?? 'An unexpected error occurred.';

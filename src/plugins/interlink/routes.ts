@@ -26,7 +26,7 @@ export default function createRoutes({ registry, messageBus, redis, config }: {
     router.post('/message', authMiddleware, replayMiddleware, async (req: any, res: any) => {
         try {
             const envelope = req.body;
-            if (!envelope || !envelope.type || !envelope.protocol) {
+            if (!envelope?.type || !envelope.protocol) {
                 return res.status(400).json({ error: 'Invalid message envelope' });
             }
             if (envelope.protocol !== 'interlink') {

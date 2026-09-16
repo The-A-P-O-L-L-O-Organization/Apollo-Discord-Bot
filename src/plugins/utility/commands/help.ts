@@ -2,7 +2,8 @@
 // Dynamically displays all available commands with descriptions and usage
 import { logger } from '../../../utils/logger.js';
 
-import { ChatInputCommandInteraction, EmbedBuilder, PermissionsBitField } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { EmbedBuilder, PermissionsBitField } from 'discord.js';
 // @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
@@ -22,7 +23,7 @@ const permissionNames: Record<string, string> = {
  * @param options - Command options array
  * @returns Usage string
  */
-function getUsageString(commandName: string, options: Array<{ name: string; required?: boolean }> = []): string {
+function getUsageString(commandName: string, options: { name: string; required?: boolean }[] = []): string {
     if (!options.length) { return `/${commandName}`; }
 
     const optionStrings = options.map(opt => {
@@ -51,10 +52,10 @@ export default {
         try {
             // Get all commands from the client
             // @ts-expect-error commands Map added by plugin system
-            const commands = interaction.client.commands as Map<string, { name: string; description: string; category?: string; options: Array<{ name: string; required?: boolean }>; defaultMemberPermissions?: bigint | number | string }>;
+            const commands = interaction.client.commands as Map<string, { name: string; description: string; category?: string; options: { name: string; required?: boolean }[]; defaultMemberPermissions?: bigint | number | string }>;
 
             // Group commands by category
-            const categories: Record<string, Array<{ name: string; description: string; usage: string; permissions: string | null }>> = {};
+            const categories: Record<string, { name: string; description: string; usage: string; permissions: string | null }[]> = {};
 
             for (const [, cmd] of commands) {
                 const category = cmd.category || 'Uncategorized';
@@ -66,8 +67,8 @@ export default {
                 categories[category].push({
                     name: cmd.name,
                     description: cmd.description,
-                    usage: getUsageString(cmd.name, cmd.options as Array<{ name: string; required?: boolean }>),
-                    permissions: getPermissionName(cmd.defaultMemberPermissions as bigint | null)
+                    usage: getUsageString(cmd.name, cmd.options),
+                    permissions: getPermissionName(cmd.defaultMemberPermissions)
                 });
             }
 

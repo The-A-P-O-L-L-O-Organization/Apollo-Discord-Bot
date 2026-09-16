@@ -1,5 +1,6 @@
 // Nickname Command - Force nickname changes for users
-import { ChatInputCommandInteraction, PermissionFlagsBits, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { safeError } from '../../../utils/safeError.js';
@@ -8,7 +9,7 @@ import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/disc
 export default {
     // Force nickname changes for users
     name: 'nickname',
-    description: "Change a user's nickname",
+    description: 'Change a user\'s nickname',
     category: 'Moderation',
     defaultMemberPermissions: PermissionFlagsBits.ManageNicknames,
     dmPermission: false,
@@ -72,7 +73,7 @@ export default {
                 const errorEmbed = {
                     color: 0xFF0000,
                     title: '[ERROR] Cannot Change Nickname',
-                    description: "I cannot change this user's nickname. They may have higher permissions than me.",
+                    description: 'I cannot change this user\'s nickname. They may have higher permissions than me.',
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });

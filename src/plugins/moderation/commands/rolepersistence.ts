@@ -1,5 +1,6 @@
 // Role Persistence Command - Configure role persistence for members who rejoin
-import { ChatInputCommandInteraction, PermissionFlagsBits, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
@@ -114,7 +115,7 @@ async function handleView(interaction: ChatInputCommandInteraction): Promise<voi
         fields: [
             {
                 name: '[INFO] Status',
-                value: config && config.enabled ? 'Enabled' : 'Disabled',
+                value: config?.enabled ? 'Enabled' : 'Disabled',
                 inline: true
             },
             {
@@ -134,7 +135,7 @@ async function handleClear(interaction: ChatInputCommandInteraction): Promise<vo
 
     const config = (await getGuildData('role-persistence', interaction.guild!.id)) as RolePersistenceConfig | undefined;
 
-    if (!config || !config.savedRoles) {
+    if (!config?.savedRoles) {
         await interaction.reply({
             embeds: [{
                 color: 0xFFA500,

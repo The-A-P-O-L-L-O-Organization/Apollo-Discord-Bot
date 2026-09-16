@@ -1,4 +1,5 @@
-import { ChatInputCommandInteraction, EmbedBuilder, MessageFlags, PermissionFlagsBits, SlashCommandBuilder, Attachment } from 'discord.js';
+import type { ChatInputCommandInteraction, Attachment } from 'discord.js';
+import { EmbedBuilder, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 // @ts-expect-error markdownParser.js not yet migrated
 import { parseMarkdownToEmbed } from '../../../utils/markdownParser.js';
@@ -95,7 +96,7 @@ export default {
             const author = interaction.options.getString('author');
             const url = interaction.options.getString('url');
             const timestamp = interaction.options.getBoolean('timestamp');
-            const fileAttachment = interaction.options.getAttachment('file') as Attachment | null;
+            const fileAttachment = interaction.options.getAttachment('file');
 
             let parsed: Record<string, unknown> = {};
             if (fileAttachment) {
@@ -151,7 +152,7 @@ export default {
 
             if (color) {
                 const hexRegex = /^#?([0-9A-Fa-f]{6})$/;
-                const match = color.match(hexRegex);
+                const match = hexRegex.exec(color);
                 if (match) {
                     embed.setColor(`#${match[1]}`);
                 } else {
@@ -211,7 +212,7 @@ export default {
             }
 
             if (parsed.fields) {
-                for (const field of parsed.fields as Array<{ name: string; value: string; inline?: boolean }>) {
+                for (const field of parsed.fields as { name: string; value: string; inline?: boolean }[]) {
                     embed.addFields(field);
                 }
             }
@@ -228,7 +229,7 @@ export default {
                 if (footer) { embedTexts.push(footer); }
                 if (author) { embedTexts.push(author); }
                 if (parsed.fields) {
-                    for (const field of parsed.fields as Array<{ name: string; value: string }>) {
+                    for (const field of parsed.fields as { name: string; value: string }[]) {
                         embedTexts.push(field.name);
                         embedTexts.push(field.value);
                     }

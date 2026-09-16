@@ -8,20 +8,20 @@ export default {
         try {
             const guild = ban.guild;
             const user = ban.user;
-            
+
             if (!guild || !user) {
                 console.log('[WARNING] guildBanRemove: Missing guild or user');
                 return;
             }
-            
+
             let executor = null;
-            
+
             try {
                 const auditLogs = await guild.fetchAuditLogs({
                     type: 23,
                     limit: 1
                 });
-                
+
                 const unbanLog = auditLogs.entries.first();
                 if (unbanLog && unbanLog.target.id === user.id) {
                     executor = unbanLog.executor;
@@ -29,7 +29,7 @@ export default {
             } catch {
                 console.log('[INFO] Could not fetch audit log for unban');
             }
-            
+
             const embed = {
                 color: 0x00FF00,
                 title: '[MODERATION] Member Unbanned',
@@ -51,11 +51,11 @@ export default {
                 },
                 timestamp: new Date().toISOString()
             };
-            
+
             await logEvent(guild, 'unban', embed);
-            
+
             console.log(`[MODERATION] User ${user.tag} was unbanned from ${guild.name}`);
-            
+
         } catch (error) {
             console.error('[ERROR] guildBanRemove event error:', error);
         }

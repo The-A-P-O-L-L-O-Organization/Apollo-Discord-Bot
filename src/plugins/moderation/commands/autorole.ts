@@ -1,5 +1,6 @@
 // Autorole Command
-import { ChatInputCommandInteraction, PermissionFlagsBits, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
@@ -159,7 +160,7 @@ async function handleSetRole(interaction: ChatInputCommandInteraction): Promise<
 async function handleRemoveRole(interaction: ChatInputCommandInteraction): Promise<void> {
     const config = (await getGuildData('autorole', interaction.guild!.id)) as AutoRoleConfig | undefined;
 
-    if (!config || !config.roleId) {
+    if (!config?.roleId) {
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
@@ -236,7 +237,7 @@ async function handleToggle(interaction: ChatInputCommandInteraction): Promise<v
 async function handleView(interaction: ChatInputCommandInteraction): Promise<void> {
     const config = (await getGuildData('autorole', interaction.guild!.id)) as AutoRoleConfig | undefined;
 
-    if (!config || !config.roleId) {
+    if (!config?.roleId) {
         await interaction.reply({
             embeds: [{
                 color: 0xFFA500,

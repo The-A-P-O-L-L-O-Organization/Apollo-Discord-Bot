@@ -1,4 +1,5 @@
-import { ChatInputCommandInteraction, EmbedBuilder, MessageFlags, User } from 'discord.js';
+import type { ChatInputCommandInteraction, User } from 'discord.js';
+import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { getAllUserData } from '../../../utils/db.js';
 // @ts-expect-error discordErrors.js not yet migrated
@@ -41,14 +42,14 @@ export default {
             max_value: 25
         }
     ],
-    
+
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
             const type = interaction.options.getString('type') ?? 'level';
             const limit = interaction.options.getInteger('limit') ?? 10;
-            
+
             const allLevelData = (await getAllUserData('levels', interaction.guild!.id)) as unknown as UserDataEntry[];
-            
+
             if (allLevelData.length === 0) {
                 await interaction.reply({
                     embeds: [{
@@ -61,7 +62,7 @@ export default {
                 });
                 return;
             }
-            
+
             const sorted = allLevelData
                 .filter(data => data.data && (data.data.xp || data.data.level || data.data.messages))
                 .map(data => ({
@@ -77,7 +78,7 @@ export default {
                     return 0;
                 })
                 .slice(0, limit);
-            
+
             const userMap = new Map<string, User>();
             for (const entry of sorted) {
                 try {
@@ -87,7 +88,7 @@ export default {
                     // User not found, skip
                 }
             }
-            
+
             const typeLabel = type === 'level' ? 'Level' : type === 'xp' ? 'XP' : 'Messages';
             const fields = sorted.map((entry, index) => {
                 const user = userMap.get(entry.userId);
@@ -95,21 +96,21 @@ export default {
                 const value = type === 'level' ? `Level ${entry.level}` :
                     type === 'xp' ? `${formatNumber(entry.xp)} XP` :
                         `${formatNumber(entry.messages)} messages`;
-                
+
                 return {
                     name: `${medal} ${user ? user.tag : 'Unknown User'}`,
                     value: value,
                     inline: false
                 };
             });
-            
+
             const leaderboardEmbed = new EmbedBuilder()
                 .setColor(0x3498DB)
                 .setTitle(`[LEADERBOARD] Top ${typeLabel}`)
                 .setDescription(`Top ${limit} users by ${typeLabel.toLowerCase()}`)
                 .addFields(fields)
                 .setTimestamp();
-            
+
             await interaction.reply({ embeds: [leaderboardEmbed] });
         } catch (error) {
             const errorMessage = handleDiscordError(error);
