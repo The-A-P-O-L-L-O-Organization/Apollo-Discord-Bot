@@ -10,7 +10,7 @@ export default {
     name: 'interactionCreate',
     once: false,
 
-    async execute(interaction: ButtonInteraction, client: any): Promise<void> {
+    async execute(interaction: ButtonInteraction, _client: any): Promise<void> {
         if (!interaction.isButton()) { return; }
 
         const customId = interaction.customId;
