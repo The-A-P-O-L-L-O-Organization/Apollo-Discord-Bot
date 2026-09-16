@@ -1,8 +1,6 @@
 import { fork, type ForkOptions, type ChildProcess } from 'node:child_process';
 // @ts-ignore - securityLog.js not migrated yet
 import { logSecurityEvent } from '../../utils/securityLog.js';
-import { pathToFileURL } from 'node:url';
-import path from 'node:path';
 import type { RPCMessage } from './rpc.js';
 
 const MAX_CONSECUTIVE_CRASHES = 5;

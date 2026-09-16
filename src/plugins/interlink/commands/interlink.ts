@@ -2,7 +2,6 @@
 import { getDb } from '../../../db/knex.js';
 import BotRegistry from '../registry.js';
 import MessageBus from '../messageBus.js';
-import { generateApiKey } from '../auth.js';
 import { safeError } from '../../../utils/safeError.js';
 import { isOwner, getOwnerIds } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';

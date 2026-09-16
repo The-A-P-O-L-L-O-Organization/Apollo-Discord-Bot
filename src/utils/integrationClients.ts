@@ -1,6 +1,6 @@
 // Integration Clients
 // Twitch, YouTube, and RSS feed integration clients with circuit breaker protection
-import { safeFetch, SafeFetchResult } from './safeFetch.js';
+import { safeFetch } from './safeFetch.js';
 import { createServiceBreaker, CircuitBreakerOpenError } from './circuitBreaker.js';
 import { logger } from './logger.js';
 
