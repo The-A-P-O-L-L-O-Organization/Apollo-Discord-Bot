@@ -25,7 +25,7 @@ export default [
             'quotes': ['error', 'single'],
             'semi': ['error', 'always'],
             'indent': ['error', 4],
-            'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+            'no-unused-vars': 'off',
             'no-console': ['warn', { allow: ['warn', 'error'] }],
             '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
             '@typescript-eslint/no-explicit-any': 'warn',
