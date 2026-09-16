@@ -1,6 +1,5 @@
 import { PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { getData, setData } from '../../../utils/db.js';
-// @ts-expect-error - unmigrated utils
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {

@@ -1,7 +1,6 @@
 import type { ChatInputCommandInteraction } from 'discord.js';
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { getGuildData } from '../../../utils/db.js';
-// @ts-expect-error - discordErrors not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
@@ -54,7 +53,7 @@ export default {
             const guildId = interaction.guild!.id;
             const subcommand = interaction.options.getSubcommand();
             const ticketConfig = await getGuildData('tickets', guildId);
-            const closedTickets = ticketConfig.closedTickets ?? [];
+            const closedTickets = ticketConfig['closedTickets'] ?? [];
 
             if (subcommand === 'staff') {
                 const user = interaction.options.getUser('user')!;

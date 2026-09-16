@@ -1,9 +1,7 @@
 import type { ChatInputCommandInteraction } from 'discord.js';
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
-// @ts-expect-error - discordErrors not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
-// @ts-expect-error - logger not yet migrated
 import { logger } from '../../../utils/logger.js';
 
 export default {
@@ -99,8 +97,8 @@ export default {
                     });
 
                     await updateGuildData('tickets', guildId, (data) => {
-                        data.panelMessageId = panelMessage.id;
-                        data.panelChannelId = channel.id;
+                        data['panelMessageId'] = panelMessage.id;
+                        data['panelChannelId'] = channel.id;
                         return data;
                     });
 
@@ -120,7 +118,7 @@ export default {
                 const category = interaction.options.getChannel('category')!;
 
                 await updateGuildData('tickets', guildId, (data) => {
-                    data.categoryId = category.id;
+                    data['categoryId'] = category.id;
                     return data;
                 });
 
@@ -133,7 +131,7 @@ export default {
                 const role = interaction.options.getRole('role')!;
 
                 await updateGuildData('tickets', guildId, (data) => {
-                    data.supportRoleId = role.id;
+                    data['supportRoleId'] = role.id;
                     return data;
                 });
 
@@ -151,9 +149,9 @@ export default {
                     .setTimestamp();
 
                 let categoryStatus = 'Not configured';
-                if (ticketConfig.categoryId) {
+                if (ticketConfig['categoryId']) {
                     try {
-                        const category = await interaction.guild!.channels.fetch(ticketConfig.categoryId);
+                        const category = await interaction.guild!.channels.fetch(ticketConfig['categoryId']);
                         if (category) {
                             categoryStatus = category.name;
                         }
@@ -163,9 +161,9 @@ export default {
                 }
 
                 let roleStatus = 'Not configured';
-                if (ticketConfig.supportRoleId) {
+                if (ticketConfig['supportRoleId']) {
                     try {
-                        const role = await interaction.guild!.roles.fetch(ticketConfig.supportRoleId);
+                        const role = await interaction.guild!.roles.fetch(ticketConfig['supportRoleId']);
                         if (role) {
                             roleStatus = role.name;
                         }
@@ -175,8 +173,8 @@ export default {
                 }
 
                 let panelStatus = 'Not created';
-                if (ticketConfig.panelMessageId && ticketConfig.panelChannelId) {
-                    panelStatus = `[Jump to panel](https://discord.com/channels/${guildId}/${ticketConfig.panelChannelId}/${ticketConfig.panelMessageId})`;
+                if (ticketConfig['panelMessageId'] && ticketConfig['panelChannelId']) {
+                    panelStatus = `[Jump to panel](https://discord.com/channels/${guildId}/${ticketConfig['panelChannelId']}/${ticketConfig['panelMessageId']})`;
                 }
 
                 embed.addFields(

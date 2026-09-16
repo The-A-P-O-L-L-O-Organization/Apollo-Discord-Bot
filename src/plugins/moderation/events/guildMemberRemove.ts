@@ -20,8 +20,8 @@ export default {
 
             if (roleIds.length > 0) {
                 await updateGuildData('role-persistence', member.guild.id, (data) => {
-                    data.savedRoles ??= {};
-                    data.savedRoles[member.id] = {
+                    data['savedRoles'] ??= {};
+                    data['savedRoles'][member.id] = {
                         roles: roleIds,
                         username: member.user.tag,
                         savedAt: Date.now()

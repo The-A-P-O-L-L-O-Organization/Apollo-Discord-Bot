@@ -30,10 +30,10 @@ export default {
             let ticket;
 
             if (ticketNumber) {
-                ticket = ticketConfig.openTickets?.find(t => t.ticketNumber === ticketNumber) ??
-                         ticketConfig.closedTickets?.find(t => t.ticketNumber === ticketNumber);
+                ticket = ticketConfig['openTickets']?.find(t => t.ticketNumber === ticketNumber) ??
+                         ticketConfig['closedTickets']?.find(t => t.ticketNumber === ticketNumber);
             } else {
-                ticket = ticketConfig.openTickets?.find(t => t.channelId === channelId);
+                ticket = ticketConfig['openTickets']?.find(t => t.channelId === channelId);
             }
 
             if (!ticket) {

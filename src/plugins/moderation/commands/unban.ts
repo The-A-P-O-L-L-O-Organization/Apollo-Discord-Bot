@@ -1,14 +1,9 @@
-// @ts-expect-error - JS file not yet migrated
 import { logger } from '../../../utils/logger.js';
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { PermissionsBitField, MessageFlags } from 'discord.js';
-// @ts-expect-error - JS file not yet migrated
 import { sendModLog } from '../../../utils/modLog.js';
-// @ts-expect-error - JS file not yet migrated
 import { createModCase } from './case.js';
-// @ts-expect-error - JS file not yet migrated
 import { removeTempban } from '../../../utils/tempbanScheduler.js';
-// @ts-expect-error - JS file not yet migrated
 
 export default {
     name: 'unban',

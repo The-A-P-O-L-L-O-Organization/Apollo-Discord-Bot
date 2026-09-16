@@ -1,11 +1,7 @@
 import { Plugin } from '../../core/Plugin.js';
-// @ts-expect-error - JS files not yet migrated
 import { initReminderScheduler, stopReminderScheduler } from '../../utils/reminderScheduler.js';
-// @ts-expect-error - JS files not yet migrated
 import { initPollScheduler, stopPollScheduler } from '../../utils/pollScheduler.js';
-// @ts-expect-error - JS files not yet migrated
 import { initAnalyticsCollector, stopAnalyticsCollector } from '../../utils/analyticsCollector.js';
-// @ts-expect-error - JS files not yet migrated
 import TranslationService from '../../utils/translation.js';
 import { createLogger } from '../../utils/logger.js';
 
@@ -116,9 +112,9 @@ export default class UtilityPlugin extends Plugin {
                 });
             }
 
-            if (parsed.title && !args.title) { embed.setTitle(parsed.title as string); } else if (args.title) { embed.setTitle(args.title); }
+            if (parsed['title'] && !args.title) { embed.setTitle(parsed['title'] as string); } else if (args.title) { embed.setTitle(args.title); }
 
-            if (parsed.description && !args.description) { embed.setDescription(parsed.description as string); } else if (args.description) { embed.setDescription(args.description); }
+            if (parsed['description'] && !args.description) { embed.setDescription(parsed['description'] as string); } else if (args.description) { embed.setDescription(args.description); }
 
             if (args.color) {
                 const hexRegex = /^#?([0-9A-Fa-f]{6})$/;
@@ -130,13 +126,13 @@ export default class UtilityPlugin extends Plugin {
 
             if (args.image) { embed.setImage(args.image); }
             if (args.thumbnail) { embed.setThumbnail(args.thumbnail); }
-            if (args.footer) { embed.setFooter({ text: args.footer }); } else if (parsed.footer) { embed.setFooter(parsed.footer as any); }
+            if (args.footer) { embed.setFooter({ text: args.footer }); } else if (parsed['footer']) { embed.setFooter(parsed['footer'] as any); }
             if (args.author) { embed.setAuthor({ name: args.author }); }
             if (args.url) { embed.setURL(args.url); }
             if (args.timestamp === 'true' || args.timestamp === true) { embed.setTimestamp(); }
 
-            if (parsed.fields) {
-                for (const field of parsed.fields as any[]) {
+            if (parsed['fields']) {
+                for (const field of parsed['fields'] as any[]) {
                     embed.addFields(field);
                 }
             }

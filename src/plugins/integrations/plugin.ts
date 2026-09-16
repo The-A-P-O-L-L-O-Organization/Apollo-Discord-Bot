@@ -1,7 +1,5 @@
 import Plugin from '../../core/Plugin.js';
-// @ts-expect-error - unmigrated utils
 import { initIntegrationPoller, stopIntegrationPoller } from '../../utils/integrationPoller.js';
-// @ts-expect-error - unmigrated utils
 import { startWebhookServer, stopWebhookServer } from '../../utils/integrationWebhook.js';
 import { createLogger } from '../../utils/logger.js';
 

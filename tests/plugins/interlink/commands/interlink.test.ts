@@ -31,7 +31,7 @@ describe('Interlink Commands', () => {
     });
 
     it('should restrict to bot owners', async () => {
-        process.env.OWNER_IDS = 'owner123';
+        process.env['OWNER_IDS'] = 'owner123';
         const interaction = {
             user: { id: 'notowner' },
             reply: vi.fn(),
@@ -43,6 +43,6 @@ describe('Interlink Commands', () => {
         expect(interaction.deferReply).toHaveBeenCalled();
         expect(interaction.editReply).toHaveBeenCalled();
         expect(interaction.editReply.mock.calls[0][0].embeds[0].color).toBe(0xFF0000);
-        delete process.env.OWNER_IDS;
+        delete process.env['OWNER_IDS'];
     });
 });

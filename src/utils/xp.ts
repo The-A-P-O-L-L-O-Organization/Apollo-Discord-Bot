@@ -30,11 +30,11 @@ const cooldowns = new Map<string, number>();
 export async function getLevelsConfig(guildId: string): Promise<LevelsConfig> {
     const guildConfig = await getGuildData('levels-config', guildId) as Record<string, unknown> | null;
     return {
-        enabled: (guildConfig?.enabled as boolean) ?? config.levels.enabled,
-        cooldown: (guildConfig?.cooldown as number) ?? config.levels.cooldown,
-        minXp: (guildConfig?.minXp as number) ?? config.levels.minXp,
-        maxXp: (guildConfig?.maxXp as number) ?? config.levels.maxXp,
-        announceLevelUp: (guildConfig?.announceLevelUp as boolean) ?? config.levels.announceLevelUp
+        enabled: (guildConfig?.['enabled'] as boolean) ?? config.levels.enabled,
+        cooldown: (guildConfig?.['cooldown'] as number) ?? config.levels.cooldown,
+        minXp: (guildConfig?.['minXp'] as number) ?? config.levels.minXp,
+        maxXp: (guildConfig?.['maxXp'] as number) ?? config.levels.maxXp,
+        announceLevelUp: (guildConfig?.['announceLevelUp'] as boolean) ?? config.levels.announceLevelUp
     };
 }
 

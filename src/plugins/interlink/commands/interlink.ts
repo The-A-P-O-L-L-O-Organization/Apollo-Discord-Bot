@@ -1,4 +1,3 @@
-// @ts-expect-error - unmigrated db
 import { getDb } from '../../../db/knex.js';
 import BotRegistry from '../registry.js';
 import MessageBus from '../messageBus.js';

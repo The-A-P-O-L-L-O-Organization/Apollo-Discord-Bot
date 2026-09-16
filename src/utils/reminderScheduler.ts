@@ -43,7 +43,7 @@ interface RemindersData {
 async function loadRemindersFromDatabase(): Promise<void> {
     try {
         const data = await getData('reminders');
-        const reminders = data.reminders ?? [];
+        const reminders = data['reminders'] ?? [];
         logger.info({ msg: `[INFO] Loaded ${reminders.length} reminders from database` });
     } catch (error) {
         logger.error({ err: error as Error, msg: '[ERROR] Failed to load reminders from database' });
@@ -97,7 +97,7 @@ async function checkReminders(): Promise<void> {
 
     try {
         const data = await getData('reminders');
-        const reminders = data.reminders ?? [];
+        const reminders = data['reminders'] ?? [];
         const now = Date.now();
 
         // Find due reminders
@@ -116,7 +116,7 @@ async function checkReminders(): Promise<void> {
         }
 
         // Remove sent reminders
-        data.reminders = reminders.filter(r => r.remindAt > now);
+        data['reminders'] = reminders.filter(r => r.remindAt > now);
         await setData('reminders', data);
 
         // Update performance stats

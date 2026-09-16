@@ -45,7 +45,7 @@ export default {
         // --- Blacklist check ---
         if (!member.user.bot) {
             const globalData = (await getData('global_blacklist')) || { entries: {} };
-            const globalEntries = globalData.entries ?? {};
+            const globalEntries = globalData['entries'] ?? {};
             let entry = globalEntries[member.id];
             let isGlobal = false;
 
@@ -53,7 +53,7 @@ export default {
                 isGlobal = true;
             } else {
                 const guildData = await getGuildData('blacklist', guild.id);
-                const entries = guildData.entries ?? {};
+                const entries = guildData['entries'] ?? {};
                 entry = entries[member.id];
             }
 
@@ -110,8 +110,8 @@ export default {
         if (!member.user.bot) {
             const autoRoleConfig = await getGuildData('autorole', guild.id);
 
-            if (autoRoleConfig?.enabled && autoRoleConfig.roleId) {
-                const role = guild.roles.cache.get(autoRoleConfig.roleId);
+            if (autoRoleConfig?.['enabled'] && autoRoleConfig['roleId']) {
+                const role = guild.roles.cache.get(autoRoleConfig['roleId']);
 
                 if (role) {
                     try {
@@ -125,8 +125,8 @@ export default {
 
             const rolePersistenceConfig = await getGuildData('role-persistence', guild.id);
 
-            if (rolePersistenceConfig?.enabled && rolePersistenceConfig.savedRoles) {
-                const savedData = rolePersistenceConfig.savedRoles[member.id];
+            if (rolePersistenceConfig?.['enabled'] && rolePersistenceConfig['savedRoles']) {
+                const savedData = rolePersistenceConfig['savedRoles'][member.id];
 
                 if (savedData?.roles && savedData.roles.length > 0) {
                     const validRoles = savedData.roles
@@ -139,8 +139,8 @@ export default {
                             console.log(`[SUCCESS] Restored ${validRoles.length} roles for ${member.user.tag}`);
 
                             await updateGuildData('role-persistence', guild.id, (data) => {
-                                if (data.savedRoles) {
-                                    delete data.savedRoles[member.id];
+                                if (data['savedRoles']) {
+                                    delete data['savedRoles'][member.id];
                                 }
                                 return data;
                             });

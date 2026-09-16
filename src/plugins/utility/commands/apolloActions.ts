@@ -2,7 +2,6 @@ import type { UserContextMenuCommandInteraction} from 'discord.js';
 import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, MessageFlags } from 'discord.js';
 import { getData, updateGuildData } from '../../../utils/db.js';
 import { isOwner } from '../../../utils/accessControl.js';
-// @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
 
@@ -105,8 +104,8 @@ export default {
             }
 
             await updateGuildData('global_blacklist', '__global__', (data: Record<string, unknown>) => {
-                data.entries ??= {};
-                (data.entries as Record<string, unknown>)[targetUser.id] = {
+                data['entries'] ??= {};
+                (data['entries'] as Record<string, unknown>)[targetUser.id] = {
                     userId: targetUser.id,
                     userTag: targetUser.tag,
                     reason: reason,

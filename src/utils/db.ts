@@ -50,7 +50,7 @@ async function _initAdapter(): Promise<Record<string, unknown>> {
 }
 
 export async function getGuildData(store: string, guildId: string): Promise<Record<string, unknown>> {
-    if (USE_PG) { return (await getAdapter()).getGuildData(store, guildId); }
+    if (USE_PG) { return (await getAdapter())['getGuildData'](store, guildId); }
     const isTest = process.env['NODE_ENV'] === 'test' || process.env['VITEST'] === 'true';
     if (isTest && config.database.type === 'sqlite') {
         const db = getDb();
@@ -67,7 +67,7 @@ export async function getGuildData(store: string, guildId: string): Promise<Reco
 }
 
 export async function setGuildData(store: string, guildId: string, data: Record<string, unknown>): Promise<void> {
-    if (USE_PG) { return (await getAdapter()).setGuildData(store, guildId, data); }
+    if (USE_PG) { return (await getAdapter())['setGuildData'](store, guildId, data); }
     const isTest = process.env['NODE_ENV'] === 'test' || process.env['VITEST'] === 'true';
     if (isTest && config.database.type === 'sqlite') {
         const db = getDb();
@@ -110,7 +110,7 @@ export async function removeFromGuildArray(store: string, guildId: string, key: 
 }
 
 export async function getAllGuildData(store: string): Promise<{ guildId: string; data: Record<string, unknown> }[]> {
-    if (USE_PG) { return (await getAdapter()).getAllGuildData(store); }
+    if (USE_PG) { return (await getAdapter())['getAllGuildData'](store); }
     const { db } = await getAdapter() as { db: unknown };
     const stmt = (db as { prepare: (sql: string) => { all: (store: string) => { guild_id: string; data: string }[] } }).prepare('SELECT guild_id, data FROM guild_store WHERE store = ?');
     const rows = stmt.all(store).filter((r) => r.guild_id !== '__global__');
@@ -132,7 +132,7 @@ export async function getAllGuildIds(store: string): Promise<string[]> {
 }
 
 export async function getUserData(store: string, guildId: string, userId: string): Promise<Record<string, unknown> | undefined> {
-    if (USE_PG) { return (await getAdapter()).getUserData(store, guildId, userId); }
+    if (USE_PG) { return (await getAdapter())['getUserData'](store, guildId, userId); }
     const { db } = await getAdapter() as { db: unknown };
     const stmt = (db as { prepare: (sql: string) => { get: (store: string, guildId: string, userId: string) => { data?: string } } }).prepare('SELECT data FROM guild_user_store WHERE store = ? AND guild_id = ? AND user_id = ?');
     const row = stmt.get(store, guildId, userId);
@@ -140,7 +140,7 @@ export async function getUserData(store: string, guildId: string, userId: string
 }
 
 export async function setUserData(store: string, guildId: string, userId: string, data: Record<string, unknown>): Promise<void> {
-    if (USE_PG) { return (await getAdapter()).setUserData(store, guildId, userId, data); }
+    if (USE_PG) { return (await getAdapter())['setUserData'](store, guildId, userId, data); }
     const { db } = await getAdapter() as { db: unknown };
     const stmt = (db as { prepare: (sql: string) => { run: (store: string, guildId: string, userId: string, data: string) => void } }).prepare('INSERT INTO guild_user_store (store, guild_id, user_id, data) VALUES (?, ?, ?, ?) ON CONFLICT(store, guild_id, user_id) DO UPDATE SET data = excluded.data');
     stmt.run(store, guildId, userId, JSON.stringify(data));
@@ -163,7 +163,7 @@ export async function removeFromUserArray(store: string, guildId: string, userId
 }
 
 export async function getAllUserData(store: string, guildId: string): Promise<{ userId: string; data: Record<string, unknown> }[]> {
-    if (USE_PG) { return (await getAdapter()).getAllUserData(store, guildId); }
+    if (USE_PG) { return (await getAdapter())['getAllUserData'](store, guildId); }
     const { db } = await getAdapter() as { db: unknown };
     const stmt = (db as { prepare: (sql: string) => { all: (store: string, guildId: string) => { user_id: string; data: string }[] } }).prepare('SELECT user_id, data FROM guild_user_store WHERE store = ? AND guild_id = ?');
     return stmt.all(store, guildId).map((r) => {

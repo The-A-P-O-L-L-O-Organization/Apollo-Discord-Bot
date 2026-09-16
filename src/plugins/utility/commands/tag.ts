@@ -1,9 +1,7 @@
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { MessageFlags, PermissionsBitField, type APIEmbed } from 'discord.js';
 import { setGuildData, getGuildData } from '../../../utils/db.js';
-// @ts-expect-error safeError.js not yet migrated
 import { safeError } from '../../../utils/safeError.js';
-// @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 const ALLOWED_EMBED_KEYS = ['title', 'description', 'color', 'fields', 'image', 'thumbnail', 'footer', 'author'] as const;

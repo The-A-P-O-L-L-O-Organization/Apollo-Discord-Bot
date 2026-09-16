@@ -1,12 +1,8 @@
-// @ts-expect-error - JS file not yet migrated
 import { logger } from '../../../utils/logger.js';
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { PermissionsBitField, MessageFlags } from 'discord.js';
-// @ts-expect-error - JS file not yet migrated
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
-// @ts-expect-error - JS file not yet migrated
 import { getUserData, setUserData } from '../../../utils/db.js';
-// @ts-expect-error - JS file not yet migrated
 
 export default {
     name: 'unmute',
@@ -103,8 +99,8 @@ export default {
             }
 
             const savedRoles = await getUserData('muted-roles', interaction.guild!.id, user.id);
-            if (savedRoles?.roles && Array.isArray(savedRoles.roles)) {
-                const rolesToRestore = savedRoles.roles.filter(roleId => {
+            if (savedRoles?.['roles'] && Array.isArray(savedRoles['roles'])) {
+                const rolesToRestore = savedRoles['roles'].filter(roleId => {
                     const role = interaction.guild!.roles.cache.get(roleId);
                     return role && roleId !== interaction.guild!.id && role.name !== 'Muted';
                 });

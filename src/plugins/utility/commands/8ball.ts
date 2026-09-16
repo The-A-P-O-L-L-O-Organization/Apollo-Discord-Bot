@@ -1,7 +1,6 @@
 // 8ball Command
 // Ask the magic 8-ball a question
 import type { ChatInputCommandInteraction } from 'discord.js';
-// @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply } from '../../../utils/discordErrors.js';
 
 export default {

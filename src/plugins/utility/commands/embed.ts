@@ -1,11 +1,8 @@
 import type { ChatInputCommandInteraction } from 'discord.js';
 import { EmbedBuilder, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
-// @ts-expect-error markdownParser.js not yet migrated
 import { parseMarkdownToEmbed } from '../../../utils/markdownParser.js';
-// @ts-expect-error automod.js not yet migrated
 import { getAutomodConfig, checkBannedWords } from '../../../utils/automod.js';
-// @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 function isValidUrl(string: string): boolean {
@@ -140,14 +137,14 @@ export default {
 
             if (title) {
                 embed.setTitle(title);
-            } else if (parsed.title) {
-                embed.setTitle(parsed.title as string);
+            } else if (parsed['title']) {
+                embed.setTitle(parsed['title'] as string);
             }
 
             if (description) {
                 embed.setDescription(description);
-            } else if (parsed.description) {
-                embed.setDescription(parsed.description as string);
+            } else if (parsed['description']) {
+                embed.setDescription(parsed['description'] as string);
             }
 
             if (color) {
@@ -211,12 +208,12 @@ export default {
                 embed.setTimestamp();
             }
 
-            if (parsed.fields) {
-                for (const field of parsed.fields as { name: string; value: string; inline?: boolean }[]) {
+            if (parsed['fields']) {
+                for (const field of parsed['fields'] as { name: string; value: string; inline?: boolean }[]) {
                     embed.addFields(field);
                 }
             }
-            if (parsed.footer && !footer) {
+            if (parsed['footer'] && !footer) {
                 // @ts-expect-error parsed.footer type
                 embed.setFooter(parsed.footer);
             }
@@ -224,12 +221,12 @@ export default {
             const cfg = await getAutomodConfig(interaction.guild!.id);
             if (cfg.enabled && cfg.bannedWords.length > 0) {
                 const embedTexts: string[] = [];
-                if (title) { embedTexts.push(title); } else if (parsed.title) { embedTexts.push(parsed.title as string); }
-                if (description) { embedTexts.push(description); } else if (parsed.description) { embedTexts.push(parsed.description as string); }
+                if (title) { embedTexts.push(title); } else if (parsed['title']) { embedTexts.push(parsed['title'] as string); }
+                if (description) { embedTexts.push(description); } else if (parsed['description']) { embedTexts.push(parsed['description'] as string); }
                 if (footer) { embedTexts.push(footer); }
                 if (author) { embedTexts.push(author); }
-                if (parsed.fields) {
-                    for (const field of parsed.fields as { name: string; value: string }[]) {
+                if (parsed['fields']) {
+                    for (const field of parsed['fields'] as { name: string; value: string }[]) {
                         embedTexts.push(field.name);
                         embedTexts.push(field.value);
                     }

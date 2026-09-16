@@ -1,5 +1,4 @@
 import Plugin from '../../core/Plugin.js';
-// @ts-expect-error - JS file not yet migrated
 import { createLogger } from '../../utils/logger.js';
 
 export default class ModerationPlugin extends Plugin {

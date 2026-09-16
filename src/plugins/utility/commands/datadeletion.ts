@@ -2,7 +2,6 @@ import type { ChatInputCommandInteraction} from 'discord.js';
 import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
 import { getAllGuildData, setGuildData, getUserData, setUserData } from '../../../utils/db.js';
 import { logSecurityEvent } from '../../../utils/securityLog.js';
-// @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 const GUILD_ARRAY_STORES: Record<string, { key: string; match: (item: unknown, userId: string) => boolean }> = {
@@ -56,7 +55,7 @@ export async function deleteUserData(userId: string): Promise<{ total: number; b
                 const removed = before - filtered.length;
                 if (removed > 0) {
                     dataObj[ticketKey] = filtered;
-                    byCategory.tickets = (byCategory['tickets'] ?? 0) + removed;
+                    byCategory['tickets'] = (byCategory['tickets'] ?? 0) + removed;
                     total += removed;
                     storeChanged = true;
                 }

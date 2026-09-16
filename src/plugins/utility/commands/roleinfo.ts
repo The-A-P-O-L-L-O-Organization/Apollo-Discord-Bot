@@ -1,6 +1,5 @@
 import type { ChatInputCommandInteraction, Role } from 'discord.js';
 import { PermissionsBitField, EmbedBuilder, MessageFlags } from 'discord.js';
-// @ts-expect-error discordErrors.js not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {

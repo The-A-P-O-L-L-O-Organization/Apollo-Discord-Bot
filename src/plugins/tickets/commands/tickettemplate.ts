@@ -1,7 +1,6 @@
 import type { ChatInputCommandInteraction } from 'discord.js';
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { getGuildData, updateGuildData, generateId } from '../../../utils/db.js';
-// @ts-expect-error - discordErrors not yet migrated
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 interface TemplateData {

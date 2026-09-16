@@ -1,6 +1,4 @@
-// @ts-expect-error - JS file not yet migrated
 import { getGuildData } from '../../../utils/db.js';
-// @ts-expect-error - JS file not yet migrated
 import { logger } from '../../../utils/logger.js';
 
 export default {
@@ -30,9 +28,9 @@ export default {
             : reaction.emoji.name;
 
         const reactionRoles = await getGuildData('reactionroles', guildId);
-        if (!reactionRoles.roles || reactionRoles.roles.length === 0) { return; }
+        if (!reactionRoles['roles'] || reactionRoles['roles'].length === 0) { return; }
 
-        const reactionRole = reactionRoles.roles.find(
+        const reactionRole = reactionRoles['roles'].find(
             (rr: any) => rr.messageId === messageId &&
                   (rr.emoji === emojiIdentifier || rr.emoji === reaction.emoji.name || rr.emoji === reaction.emoji.id)
         );

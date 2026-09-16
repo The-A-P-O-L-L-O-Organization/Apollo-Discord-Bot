@@ -43,7 +43,7 @@ export function verifyPluginManifest({
     pluginsRoot = join(process.cwd(), 'src'),
     manifestPath = join(process.cwd(), 'plugin-manifest.json'),
     manifestData = null,
-    allowUnverified = process.env.ALLOW_UNVERIFIED_PLUGINS === '1'
+    allowUnverified = process.env['ALLOW_UNVERIFIED_PLUGINS'] === '1'
 }: VerifyPluginManifestOptions = {}): Promise<VerifyPluginManifestResult> {
     if (allowUnverified) {
         logSecurityEvent({ event: 'manifest.verification_skipped', reason: 'ALLOW_UNVERIFIED_PLUGINS is set' });
