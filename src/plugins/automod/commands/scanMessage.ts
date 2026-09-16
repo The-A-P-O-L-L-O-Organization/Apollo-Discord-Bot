@@ -5,7 +5,6 @@ import type { MessageContextMenuCommandInteraction } from 'discord.js';
 import { ApplicationCommandType, EmbedBuilder, PermissionsBitField, MessageFlags } from 'discord.js';
 import { checkMessageAttachments, formatNsfwPredictions } from '../../../utils/nsfwDetection.js';
 import { safeError } from '../../../utils/safeError.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 const logger = createLogger({ component: 'automod:scanMessage' });
 

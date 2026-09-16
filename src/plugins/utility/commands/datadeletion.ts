@@ -1,5 +1,5 @@
 import type { ChatInputCommandInteraction} from 'discord.js';
-import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, MessageComponentInteraction } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
 import { getAllGuildData, setGuildData, getUserData, setUserData } from '../../../utils/db.js';
 import { logSecurityEvent } from '../../../utils/securityLog.js';
 // @ts-expect-error discordErrors.js not yet migrated

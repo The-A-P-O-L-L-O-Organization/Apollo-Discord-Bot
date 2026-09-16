@@ -1,12 +1,11 @@
 // Voice Disconnect Command - Disconnect a user from a voice channel
 import type { ChatInputCommandInteraction} from 'discord.js';
-import { PermissionFlagsBits, ChannelType, MessageFlags } from 'discord.js';
+import { PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { createModCase } from './case.ts';
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 import { canModerate } from '../../../utils/moderation.js';
-import { safeError } from '../../../utils/safeError.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {

@@ -1,4 +1,4 @@
-import type { ChatInputCommandInteraction, Attachment } from 'discord.js';
+import type { ChatInputCommandInteraction } from 'discord.js';
 import { EmbedBuilder, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 // @ts-expect-error markdownParser.js not yet migrated

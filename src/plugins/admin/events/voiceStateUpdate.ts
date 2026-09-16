@@ -4,7 +4,7 @@ import { logEvent, createVoiceChangeEmbed } from '../../../utils/logger.js';
 export default {
     name: 'voiceStateUpdate',
     once: false,
-    async execute(oldState: any, newState: any, client: any) {
+    async execute(oldState: any, newState: any, _client: any) {
         const member = newState.member || oldState.member;
 
         if (member?.user?.bot) { return; }

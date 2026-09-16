@@ -1,5 +1,5 @@
 import type { ChatInputCommandInteraction} from 'discord.js';
-import { PermissionFlagsBits, EmbedBuilder, MessageFlags, Role, type Channel, type GuildBasedChannel } from 'discord.js';
+import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 

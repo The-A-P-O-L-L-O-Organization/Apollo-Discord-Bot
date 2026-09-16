@@ -4,7 +4,7 @@ import { logEvent, createMessageEditEmbed } from '../../../utils/logger.js';
 export default {
     name: 'messageUpdate',
     once: false,
-    async execute(oldMessage: any, newMessage: any, client: any) {
+    async execute(oldMessage: any, newMessage: any, _client: any) {
         if (!newMessage.guild) { return; }
 
         if (!newMessage.author) { return; }
@@ -14,7 +14,7 @@ export default {
         if (oldMessage.partial) {
             try {
                 await oldMessage.fetch();
-            } catch (error) {
+            } catch {
                 oldMessage = { content: '*Message content not cached*', ...oldMessage };
             }
         }
@@ -22,7 +22,7 @@ export default {
         if (newMessage.partial) {
             try {
                 await newMessage.fetch();
-            } catch (error) {
+            } catch {
                 return;
             }
         }

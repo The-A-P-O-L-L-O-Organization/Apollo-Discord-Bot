@@ -4,7 +4,7 @@ import { safeError } from '../../../utils/safeError.js';
 import { requireOwner } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import type { ChatInputCommandInteraction} from 'discord.js';
-import { MessageFlags, EmbedBuilder } from 'discord.js';
+import { MessageFlags } from 'discord.js';
 
 export default {
     name: 'migrate',

@@ -3,7 +3,6 @@ import type { ChatInputCommandInteraction} from 'discord.js';
 import { PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 interface AutoRoleConfig {
     roleId?: string | null;

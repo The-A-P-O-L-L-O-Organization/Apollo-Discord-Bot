@@ -1,4 +1,4 @@
-import type { MessageContextMenuCommandInteraction, ModalSubmitInteraction} from 'discord.js';
+import type { MessageContextMenuCommandInteraction} from 'discord.js';
 import { MessageFlags } from 'discord.js';
 import { ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 import { logger } from '../../../utils/logger.js';

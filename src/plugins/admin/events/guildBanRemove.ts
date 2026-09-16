@@ -4,7 +4,7 @@ import { logEvent } from '../../../utils/logger.js';
 export default {
     name: 'guildBanRemove',
     once: false,
-    async execute(ban: any, client: any) {
+    async execute(ban: any, _client: any) {
         try {
             const guild = ban.guild;
             const user = ban.user;

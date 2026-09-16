@@ -3,12 +3,6 @@ import { logger } from '../../../utils/logger.js';
 import { EmbedBuilder } from 'discord.js';
 import { getLevelsConfig, isOnCooldown, awardXp } from '../../../utils/xp.js';
 
-interface LevelData {
-    level: number;
-    xp: number;
-    messages: number;
-}
-
 export default {
     name: 'messageCreate',
     once: false,

@@ -3,7 +3,7 @@ import { logger } from '../../../utils/logger.js';
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { PermissionsBitField, MessageFlags } from 'discord.js';
 // @ts-expect-error - JS file not yet migrated
-import { getUserData, appendToUserArray, generateId, getGuildData, setGuildData } from '../../../utils/db.js';
+import { getUserData, appendToUserArray, generateId, getGuildData } from '../../../utils/db.js';
 // @ts-expect-error - JS file not yet migrated
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { config } from '../../../config/config.js';
@@ -16,7 +16,6 @@ import { canModerate } from '../../../utils/moderation.js';
 // @ts-expect-error - JS file not yet migrated
 import { safeError } from '../../../utils/safeError.js';
 // @ts-expect-error - JS file not yet migrated
-import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 function getNextThreshold(currentCount: number, thresholds: Record<string, number>): { action: string; count: number } | null {
     const sorted = [
@@ -161,7 +160,7 @@ export default {
 
                     await user.send({ embeds: [dmEmbed] });
                     dmSent = true;
-                } catch (dmError) {
+                } catch {
                     logger.info({ msg: `[INFO] Could not DM user ${user.tag} about warning` });
                 }
             }

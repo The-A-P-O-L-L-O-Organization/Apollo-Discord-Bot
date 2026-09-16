@@ -65,7 +65,6 @@ export default {
             }
 
             const oldAssignees = [...((ticket['assignedTo'] as string[]) || [])];
-            const oldClaimed = ticket['claimedBy'];
 
             await updateGuildData('tickets', guildId, (data: Record<string, unknown>) => {
                 const openTicketsLocal = (data['openTickets'] as Record<string, unknown>[]) || [];

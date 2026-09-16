@@ -6,7 +6,6 @@ import {
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
-    PermissionFlagsBits,
     MessageFlags
 } from 'discord.js';
 import { logger } from '../../../utils/logger.js';

@@ -7,8 +7,7 @@ import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { createModCase } from './case.ts';
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 import { canModerate } from '../../../utils/moderation.js';
-import { safeError } from '../../../utils/safeError.js';
-import { parseDuration, formatDuration, validateDuration } from '../../../utils/duration.js';
+import { formatDuration, validateDuration } from '../../../utils/duration.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {

@@ -5,8 +5,7 @@ import { logger } from './logger.js';
 import { getGuildData, setGuildData } from './db.js';
 import { config } from '../config/config.js';
 import { getLockRedis, withLock } from './lock.js';
-import type { Client, Role } from 'discord.js';
-import { Guild } from 'discord.js';
+import type { Client } from 'discord.js';
 
 let checkInterval: NodeJS.Timeout | null = null;
 const CHECK_DELAY = 60000;

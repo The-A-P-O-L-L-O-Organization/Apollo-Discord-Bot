@@ -2,8 +2,8 @@ import { safeError } from '../../../utils/safeError.js';
 import { requireOwner } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import type { ChatInputCommandInteraction} from 'discord.js';
-import { MessageFlags, EmbedBuilder } from 'discord.js';
-import type { PluginManifest } from '../../../types/plugin.js';
+import { MessageFlags } from 'discord.js';
+import type { } from '../../../types/plugin.js';
 
 export default {
     name: 'plugin',

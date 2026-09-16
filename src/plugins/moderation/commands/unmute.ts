@@ -7,7 +7,6 @@ import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 // @ts-expect-error - JS file not yet migrated
 import { getUserData, setUserData } from '../../../utils/db.js';
 // @ts-expect-error - JS file not yet migrated
-import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
     name: 'unmute',
@@ -91,7 +90,7 @@ export default {
                 if (member.isCommunicationDisabled()) {
                     await member.timeout(null, reason);
                 }
-            } catch (timeoutError) {
+            } catch {
                 logger.info({ msg: '[INFO] Timeout removal failed, checking for mute role...' });
             }
 

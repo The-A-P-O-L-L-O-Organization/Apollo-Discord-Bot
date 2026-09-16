@@ -6,7 +6,6 @@ import { getData, setData } from './db.js';
 import { config } from '../config/config.js';
 import { getLockRedis, withLock } from './lock.js';
 import type { Client} from 'discord.js';
-import { Guild } from 'discord.js';
 
 let client: Client | null = null;
 let schedulerInterval: NodeJS.Timeout | null = null;

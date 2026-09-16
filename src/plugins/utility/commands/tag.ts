@@ -1,6 +1,5 @@
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { MessageFlags, PermissionsBitField, type APIEmbed } from 'discord.js';
-import { logger } from '../../../utils/logger.js';
 import { setGuildData, getGuildData } from '../../../utils/db.js';
 // @ts-expect-error safeError.js not yet migrated
 import { safeError } from '../../../utils/safeError.js';

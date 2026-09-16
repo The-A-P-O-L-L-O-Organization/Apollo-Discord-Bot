@@ -3,7 +3,6 @@ import type { ChatInputCommandInteraction} from 'discord.js';
 import { PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { getUserData } from '../../../utils/db.ts';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 interface WarningEntry {
     id: string;
@@ -93,7 +92,6 @@ export default {
 
             for (let i = 0; i < displayWarnings.length; i++) {
                 const warning = displayWarnings[i];
-                const date = new Date(warning.timestamp);
                 const status = warning.active === false ? '~~' : '';
                 const statusLabel = warning.active === false ? ' [CLEARED]' : '';
 
