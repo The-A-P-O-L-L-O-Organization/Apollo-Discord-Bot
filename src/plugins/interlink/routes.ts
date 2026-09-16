@@ -8,7 +8,7 @@ export default function createRoutes({ registry, messageBus, redis, config }: {
     messageBus: any;
     redis: any;
     config: any;
-}) {
+}): ReturnType<typeof Router> {
     const router = Router();
     const authMiddleware = createAuthMiddleware(registry);
 

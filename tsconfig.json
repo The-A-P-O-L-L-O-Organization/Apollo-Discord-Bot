@@ -21,16 +21,15 @@
         "verbatimModuleSyntax": true,
         "skipLibCheck": false,
         "types": ["node", "vitest/globals", "@discordjs/builders"],
-        "baseUrl": ".",
         "paths": {
-            "@core/*": ["src/core/*"],
-            "@utils/*": ["src/utils/*"],
-            "@plugins/*": ["src/plugins/*"],
-            "@queue/*": ["src/queue/*"],
-            "@db/*": ["src/db/*"],
-            "@config": ["src/config/config"],
-            "@types/*": ["src/types/*"],
-            "@tests/*": ["tests/*"]
+            "@core/*": ["./src/core/*"],
+            "@utils/*": ["./src/utils/*"],
+            "@plugins/*": ["./src/plugins/*"],
+            "@queue/*": ["./src/queue/*"],
+            "@db/*": ["./src/db/*"],
+            "@config": ["./src/config/config"],
+            "@types/*": ["./src/types/*"],
+            "@tests/*": ["./tests/*"]
         }
     },
     "include": [
