@@ -5,7 +5,7 @@ import type { Guild, GuildMember, TextChannel } from 'discord.js';
 import { EmbedBuilder } from 'discord.js';
 import { config } from '../config/config.js';
 
-interface ModLogOptions {
+export interface ModLogOptions {
     action: string;
     target: { tag: string; id: string; displayAvatarURL(): string };
     moderator: { tag: string; id: string };

@@ -1,0 +1,344 @@
+// Kick Command Tests
+// Tests for the kick command functionality
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { ChatInputCommandInteraction, Guild, GuildMember, User } from 'discord.js';
+import kickCommand from '../../src/plugins/moderation/commands/kick.js';
+import {
+    createMockInteraction,
+    createMockUser,
+    createMockMember,
+    createMockGuild
+} from '../mocks/discord.js';
+import type { MockCommandInteraction, MockGuild, MockGuildMember, MockUser } from '../mocks/discord.js';
+import { DiscordErrorCodes } from '../../src/utils/discordErrors.js';
+
+// Mock the db module
+vi.mock('../../src/utils/db.js', () => ({
+    getGuildData: vi.fn(),
+    setGuildData: vi.fn(),
+    updateGuildData: vi.fn((store, guildId, updater) => {
+        return Promise.resolve(updater({ nextCaseId: 1 }));
+    }),
+    getData: vi.fn(),
+    setData: vi.fn()
+}));
+
+// Mock the modLog module
+vi.mock('../../src/utils/modLog.js', () => ({
+    sendModLog: vi.fn().mockResolvedValue(undefined),
+    fetchMember: vi.fn()
+}));
+
+import { sendModLog, fetchMember } from '../../src/utils/modLog.js';
+
+describe('Kick Command', () => {
+    let mockInteraction: MockCommandInteraction;
+    let targetUser: MockUser;
+    let targetMember: MockGuildMember;
+    let mockGuild: MockGuild;
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        
+        targetUser = createMockUser({ 
+            id: '111222333', 
+            tag: 'TargetUser#0001',
+            bot: false 
+        });
+        
+        mockGuild = createMockGuild();
+        
+        targetMember = createMockMember({
+            user: targetUser,
+            guild: mockGuild,
+            kickable: true
+        });
+        
+        mockInteraction = createMockInteraction({
+            user: createMockUser({ id: '999888777', tag: 'Moderator#0001' }),
+            member: createMockMember({ user: createMockUser({ id: '999888777' }) }),
+            guild: mockGuild,
+            options: {
+                getUser: vi.fn().mockReturnValue(targetUser),
+                getString: vi.fn().mockReturnValue('Violating server rules')
+            }
+        }) as unknown as MockCommandInteraction;
+
+        vi.mocked(fetchMember).mockResolvedValue(targetMember);
+    });
+
+    describe('Command Metadata', () => {
+        it('should have correct name', () => {
+            expect(kickCommand.name).toBe('kick');
+        });
+
+        it('should have a description', () => {
+            expect(kickCommand.description).toBeTruthy();
+            expect(typeof kickCommand.description).toBe('string');
+        });
+
+        it('should be in Moderation category', () => {
+            expect(kickCommand.category).toBe('Moderation');
+        });
+
+        it('should require KickMembers permission', () => {
+            expect(kickCommand.defaultMemberPermissions).toBeTruthy();
+        });
+
+        it('should not allow DM usage', () => {
+            expect(kickCommand.dmPermission).toBe(false);
+        });
+
+        it('should have correct options', () => {
+            expect(kickCommand.options).toHaveLength(2);
+            
+            const userOption = kickCommand.options.find((o: { name: string }) => o.name === 'user');
+            expect(userOption!.required).toBe(true);
+            expect(userOption!.type).toBe(6); // USER type
+            
+            const reasonOption = kickCommand.options.find((o: { name: string }) => o.name === 'reason');
+            expect(reasonOption!.required).toBe(false);
+            expect(reasonOption!.type).toBe(3); // STRING type
+        });
+    });
+
+    describe('execute - Success Cases', () => {
+        it('should kick user successfully', async() => {
+            await kickCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
+            
+            expect(targetMember.kick).toHaveBeenCalledWith('Violating server rules');
+        });
+
+        it('should reply with success embed', async() => {
+            await kickCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
+            
+            expect(mockInteraction.reply).toHaveBeenCalled();
+            const replyCall = mockInteraction.reply.mock.calls[0]![0];
+            expect(replyCall.embeds[0].title).toBe('[SUCCESS] User Kicked');
+        });
+
+        it('should include correct kick details in response', async() => {
+            await kickCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
+            
+            const replyCall = mockInteraction.reply.mock.calls[0]![0];
+            const embed = replyCall.embeds[0];
+            
+            expect(embed.description).toContain('TargetUser#0001');
+            expect(embed.fields.some((f: { name: string; value: string }) => f.name.includes('Reason'))).toBe(true);
+            expect(embed.fields.some((f: { name: string; value: string }) => f.name.includes('Moderator'))).toBe(true);
+            expect(embed.fields.some((f: { name: string; value: string }) => f.name.includes('User ID'))).toBe(true);
+        });
+
+        it('should send mod log', async() => {
+            await kickCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
+            
+            expect(sendModLog).toHaveBeenCalledWith(
+                mockGuild,
+                expect.objectContaining({
+                    action: 'kick',
+                    target: targetUser,
+                    moderator: mockInteraction.user,
+                    reason: 'Violating server rules'
+                })
+            );
+        });
+
+        it('should use default reason when none provided', async() => {
+            mockInteraction.options.getString.mockReturnValue(null);
+            
+            await kickCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
+            
+            expect(targetMember.kick).toHaveBeenCalledWith('No reason provided');
+        });
+    });
+
+    describe('execute - Error Cases', () => {
+        it('should reject when no user specified', async() => {
+            mockInteraction.options.getUser.mockReturnValue(null);
+            
+            await kickCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
+            
+            expect(mockInteraction.reply).toHaveBeenCalled();
+            const replyCall = mockInteraction.reply.mock.calls[0]![0];
+            expect(replyCall.embeds[0].title).toContain('[ERROR]');
+            expect(replyCall.embeds[0].title).toContain('Missing User');
+            expect(replyCall.flags).toBe(64);
+        });
+
+        it('should reject self-kick', async() => {
+            const sameUser = createMockUser({ id: '999888777' });
+            mockInteraction.options.getUser.mockReturnValue(sameUser);
+            
+            await kickCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
+            
+            const replyCall = mockInteraction.reply.mock.calls[0]![0];
+            expect(replyCall.embeds[0].title).toContain('Self Action');
+            expect(replyCall.flags).toBe(64);
+        });
+
+        it('should reject when member not found', async() => {
+            vi.mocked(fetchMember).mockResolvedValue(null);
+            
+            await kickCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
+            
+            const replyCall = mockInteraction.reply.mock.calls[0]![0];
+            expect(replyCall.embeds[0].title).toContain('Member Not Found');
+            expect(replyCall.flags).toBe(64);
+        });
+
+        it('should reject when member is not kickable', async() => {
+            targetMember.kickable = false;
+            vi.mocked(fetchMember).mockResolvedValue(targetMember);
+            
+            await kickCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
+            
+            const replyCall = mockInteraction.reply.mock.calls[0]![0];
+            expect(replyCall.embeds[0].title).toContain('Cannot Kick');
+            expect(replyCall.flags).toBe(64);
+        });
+
+        it('should handle kick API error gracefully', async() => {
+            targetMember.kick.mockRejectedValue(new Error('API Error'));
+            
+            await kickCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
+            
+            const replyCall = mockInteraction.reply.mock.calls[0]![0];
+            expect(replyCall.embeds[0].title).toContain('[ERROR]');
+            expect(replyCall.flags).toBe(64);
+        });
+    });
+
+    describe('execute - Edge Cases', () => {
+        it('should handle very long reasons', async() => {
+            const longReason = 'x'.repeat(500);
+            mockInteraction.options.getString.mockReturnValue(longReason);
+            
+            await kickCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
+            
+            expect(targetMember.kick).toHaveBeenCalledWith(longReason);
+        });
+
+        it('should handle special characters in reason', async() => {
+            const specialReason = 'Breaking rules: <script>alert("xss")</script>';
+            mockInteraction.options.getString.mockReturnValue(specialReason);
+            
+            await kickCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
+            
+            expect(targetMember.kick).toHaveBeenCalledWith(specialReason);
+        });
+    });
+
+    describe('hierarchy check', () => {
+        it('should block kicking a higher-ranked member', async() => {
+            const lowMod = createMockMember({
+                user: createMockUser({ id: 'lowmod' }),
+                roles: { highest: { position: 2 } }
+            });
+            const highTarget = createMockMember({
+                user: targetUser,
+                kickable: true,
+                roles: { highest: { position: 5 } }
+            });
+            vi.mocked(fetchMember).mockResolvedValue(highTarget);
+            mockInteraction.member = lowMod;
+
+            await kickCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
+
+            const replyCall = mockInteraction.reply.mock.calls[0]![0];
+            expect(replyCall.embeds[0].title).toContain('Hierarchy Check Failed');
+            expect(highTarget.kick).not.toHaveBeenCalled();
+        });
+
+        it('should allow kicking a lower-ranked member', async() => {
+            const highMod = createMockMember({
+                user: createMockUser({ id: 'highmod' }),
+                roles: { highest: { position: 5 } }
+            });
+            const lowTarget = createMockMember({
+                user: targetUser,
+                kickable: true,
+                roles: { highest: { position: 2 } }
+            });
+            vi.mocked(fetchMember).mockResolvedValue(lowTarget);
+            mockInteraction.member = highMod;
+
+            await kickCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
+
+            expect(lowTarget.kick).toHaveBeenCalled();
+        });
+    });
+
+    describe('execute - Discord API Error Handling', () => {
+        it('should handle 50013 Missing Permissions error with generic error message', async() => {
+            const error = new Error('Missing Permissions');
+            (error as unknown as { code: unknown }).code = DiscordErrorCodes.MISSING_PERMISSIONS;
+            targetMember.kick.mockRejectedValue(error);
+            
+            await kickCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
+            
+            const replyCall = mockInteraction.reply.mock.calls[0]![0];
+            expect(replyCall.embeds[0].title).toContain('[ERROR]');
+            expect(replyCall.embeds[0].description).toContain('An error occurred while trying to kick the user');
+            expect(replyCall.flags).toBe(64);
+        });
+
+        it('should handle 10062 Unknown Interaction error with generic error message', async() => {
+            const error = new Error('Unknown Interaction');
+            (error as unknown as { code: unknown }).code = DiscordErrorCodes.UNKNOWN_INTERACTION;
+            targetMember.kick.mockRejectedValue(error);
+            
+            await kickCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
+            
+            const replyCall = mockInteraction.reply.mock.calls[0]![0];
+            expect(replyCall.embeds[0].title).toContain('[ERROR]');
+            expect(replyCall.embeds[0].description).toContain('An error occurred while trying to kick the user');
+            expect(replyCall.flags).toBe(64);
+        });
+
+        it('should handle ECONNREFUSED network error with generic error message', async() => {
+            const error = new Error('connect ECONNREFUSED');
+            (error as unknown as { code: unknown }).code = 'ECONNREFUSED';
+            targetMember.kick.mockRejectedValue(error);
+            
+            await kickCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
+            
+            const replyCall = mockInteraction.reply.mock.calls[0]![0];
+            expect(replyCall.embeds[0].title).toContain('[ERROR]');
+            expect(replyCall.embeds[0].description).toContain('An error occurred while trying to kick the user');
+            expect(replyCall.flags).toBe(64);
+        });
+
+        it('should handle 50035 Invalid Form Body validation error with generic error message', async() => {
+            const error = new Error('Invalid Form Body');
+            (error as unknown as { code: unknown }).code = DiscordErrorCodes.INVALID_FORM_BODY;
+            (error as unknown as { errors: unknown }).errors = {
+                'reason': {
+                    _errors: [{ code: 'INVALID_VALUE', message: 'Reason is too long' }]
+                }
+            };
+            targetMember.kick.mockRejectedValue(error);
+            
+            await kickCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
+            
+            const replyCall = mockInteraction.reply.mock.calls[0]![0];
+            expect(replyCall.embeds[0].title).toContain('[ERROR]');
+            expect(replyCall.embeds[0].description).toContain('An error occurred while trying to kick the user');
+            expect(replyCall.flags).toBe(64);
+        });
+
+        it('should handle 429 Rate Limited error with generic error message', async() => {
+            const error = new Error('Rate Limited');
+            (error as unknown as { code: unknown }).code = DiscordErrorCodes.RATE_LIMITED;
+            (error as unknown as { retryAfter: unknown }).retryAfter = 5000;
+            targetMember.kick.mockRejectedValue(error);
+            
+            await kickCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
+            
+            const replyCall = mockInteraction.reply.mock.calls[0]![0];
+            expect(replyCall.embeds[0].title).toContain('[ERROR]');
+            expect(replyCall.embeds[0].description).toContain('An error occurred while trying to kick the user');
+            expect(replyCall.flags).toBe(64);
+        });
+    });
+});

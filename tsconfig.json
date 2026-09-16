@@ -29,7 +29,8 @@
             "@queue/*": ["src/queue/*"],
             "@db/*": ["src/db/*"],
             "@config": ["src/config/config"],
-            "@types/*": ["src/types/*"]
+            "@types/*": ["src/types/*"],
+            "@tests/*": ["tests/*"]
         }
     },
     "include": [

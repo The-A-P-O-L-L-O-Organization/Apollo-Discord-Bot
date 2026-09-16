@@ -4,7 +4,8 @@
         "noEmit": false,
         "rootDir": "./src",
         "declaration": true,
-        "declarationMap": true
+        "declarationMap": true,
+        "skipLibCheck": true
     },
     "include": [
         "src/**/*"

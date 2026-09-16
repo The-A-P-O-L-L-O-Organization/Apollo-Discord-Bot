@@ -35,8 +35,8 @@ export async function runChild({ pluginDir, env, processLike = process as unknow
     const loadPlugin = loader || (async () => import(pathToFileURL(join(pluginDir, 'plugin.js')).href + '?t=' + Date.now()));
 
     const mod = await loadPlugin();
-    const PluginClass = mod.default;
-    if (!PluginClass || !PluginClass.constructor.id) {
+    const PluginClass = mod.default as unknown as { id?: unknown; new (host: ChildHost): PluginInstance };
+    if (!PluginClass || typeof PluginClass.id !== 'string' || PluginClass.id.length === 0) {
         throw new Error('plugin.js must export a class with static id');
     }
 

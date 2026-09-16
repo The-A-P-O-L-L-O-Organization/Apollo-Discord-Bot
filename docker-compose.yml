@@ -16,11 +16,13 @@ services:
     image: ghcr.io/the-a-p-o-l-l-o-organization/apollo-discord-bot:latest
     container_name: apollo-discord-bot
     restart: on-failure:5
+    command: ["node", "dist/index.js"]
     env_file:
       - .env
     environment:
       - HEALTH_PORT=3000
       - HEALTH_HOST=0.0.0.0
+      - NODE_OPTIONS=--enable-source-maps
     volumes:
       - bot-data:/app/src/data
       - bot-plugins:/app/data/plugins
@@ -81,12 +83,14 @@ services:
     profiles: [multi]
     container_name: apollo-gateway
     restart: unless-stopped
+    command: ["node", "dist/index.js"]
     env_file:
       - .env
     environment:
       DB_TYPE: postgres
       QUEUE_ENABLED: "true"
       RUN_MODE: gateway
+      NODE_OPTIONS: --enable-source-maps
     depends_on:
       postgres:
         condition: service_healthy
@@ -104,12 +108,14 @@ services:
     image: ghcr.io/the-a-p-o-l-l-o-organization/apollo-discord-bot:latest
     profiles: [multi]
     restart: unless-stopped
+    command: ["node", "dist/worker.js"]
     env_file:
       - .env
     environment:
       DB_TYPE: postgres
       QUEUE_ENABLED: "true"
       RUN_MODE: worker
+      NODE_OPTIONS: --enable-source-maps
     depends_on:
       postgres:
         condition: service_healthy
