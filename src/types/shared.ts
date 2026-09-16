@@ -1,7 +1,7 @@
 // Shared types to avoid duplication across type modules
 // This module has NO dependencies on other local type modules to avoid circular imports
 
-import type { Client, Interaction, AutocompleteInteraction, CommandInteraction, ButtonInteraction, SelectMenuInteraction, ContextMenuCommandInteraction, Collection, GatewayIntentBits, Partials } from 'discord.js';
+import type { Client, Interaction, AutocompleteInteraction, CommandInteraction, ButtonInteraction, SelectMenuInteraction, ContextMenuCommandInteraction, Collection } from 'discord.js';
 
 // ============================================
 // Discord.js common types (re-exported for convenience)
@@ -678,11 +678,11 @@ export interface BackupCreateJobData { type: 'full' | 'incremental'; includeData
 export interface CleanupExpiredJobData { type: 'reminders' | 'polls' | 'tickets' | 'warnings' | 'analytics'; olderThan: number; dryRun?: boolean; }
 
 export interface JobsOptions {}
-export interface Queue<T> {}
+export interface Queue<_T> {}
 export interface EventBus {}
 export interface PublishOptions {}
 export interface SubscribeOptions {}
 export interface Subscription {}
 export interface EventBusHealth {}
-export interface EventHandler<T> {}
+export interface EventHandler<_T> {}
 export interface DatabaseAdapter {}

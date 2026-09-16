@@ -115,34 +115,6 @@ export type {
     IntentsBitField
 };
 
-// Extended types for Apollo - import from shared.ts
-import type {
-    ApolloConfig,
-    ApolloClientExtensions,
-    PluginManager,
-    PluginInstance,
-    PluginCommand,
-    PluginEvent,
-    CLICommand,
-    CLICommandOption,
-    ParsedArgs,
-    PluginContext,
-    AnalyticsInstance,
-    AnalyticsStats,
-    MetricsInstance,
-    HealthCheckInstance,
-    HealthCheckResult,
-    ComponentHealth,
-    CommandData,
-    CommandOption,
-    CommandChoice,
-    RPCHandler
-} from './shared.js';
-
-export interface DiscordClient extends Client {
-    apollo: ApolloClientExtensions;
-}
-
 // Re-export shared types
 export type {
     ApolloConfig,

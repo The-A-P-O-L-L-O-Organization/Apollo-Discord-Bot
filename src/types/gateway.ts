@@ -2,7 +2,6 @@
 
 import type {
     ClientOptions,
-    GatewayDispatchEvents,
     GatewayIntentBits,
     ClientUser,
     Guild,
@@ -10,11 +9,7 @@ import type {
     User,
     Team,
     REST,
-    Routes,
-    APIUser,
-    APIGuild,
-    APIChannel,
-    Webhook
+    APIUser
 } from 'discord.js';
 
 export interface GatewayConfig {

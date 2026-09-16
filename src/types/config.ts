@@ -1,7 +1,7 @@
 // Configuration types for Apollo Discord Bot
 // Mirrors src/config/config.js structure with explicit interfaces
 
-import type { ClientOptions, GatewayDispatchEvents } from 'discord.js';
+import type { ClientOptions } from 'discord.js';
 import type { DefaultJobOptions, JobSerializer } from './queue.js';
 
 export interface DiscordConfig {
