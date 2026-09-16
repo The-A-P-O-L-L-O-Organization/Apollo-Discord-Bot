@@ -1,36 +1,16 @@
 import { createLogger } from '../../../utils/logger.js';
-import { trackMessage, trackViolation, flushAnalyticsCritical } from '../../../utils/analyticsCollector.js';
-import { getGuildData, updateGuildData, appendToUserArray, generateId } from '../../../utils/db.js';
+import { trackMessage, trackViolation } from '../../../utils/analyticsCollector.js';
+import { getGuildData, appendToUserArray } from '../../../utils/db.js';
 import { checkSpam, checkBurstSpam, getAutomodConfig, isExempt, isChannelExempt, checkBannedWords, checkInvites, checkLinks, checkMentionSpam, checkCapsSpam, checkPhishingLinks, checkAccountAge } from '../../../utils/automod.js';
 import { checkMessageAttachments, isNsfwDetectionAvailable } from '../../../utils/nsfwDetection.js';
 import { enqueueNsfwAnalysis } from '../../../utils/nsfwDetection.js';
-import { logEvent } from '../../../utils/guildLogging.js';
-import { safeError } from '../../../utils/safeError.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { isRaidModeEnabled } from '../../../utils/raidDetection.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { config } from '../../../config/config.js';
-import type { Message, User, Client } from 'discord.js';
-import { EmbedBuilder, Colors, MessageFlags, PermissionFlagsBits, GuildMember, TextChannel, ThreadChannel, NewsChannel, Guild } from 'discord.js';
+import type { Message, Client } from 'discord.js';
+import { EmbedBuilder } from 'discord.js';
 
 const logger = createLogger({ component: 'automod:messageCreate' });
-
-function createModerationEmbed(data: { action: string; user: User; moderator: User; reason: string; details?: string; caseId: string }): EmbedBuilder {
-    const embed = new EmbedBuilder()
-        .setTitle(`[MOD] ${data.action}`)
-        .setColor(Colors.Red)
-        .addFields(
-            { name: 'User', value: `${data.user.tag} (${data.user.id})`, inline: true },
-            { name: 'Moderator', value: data.moderator.tag, inline: true },
-            { name: 'Reason', value: data.reason, inline: false },
-            { name: 'Case ID', value: data.caseId, inline: true }
-        )
-        .setTimestamp();
-    if (data.details) {
-        embed.addFields({ name: 'Details', value: data.details, inline: false });
-    }
-    return embed;
-}
 
 interface Violation {
     type: string;
@@ -67,21 +47,6 @@ interface AutomodConfig {
         warningsToMute?: number;
         muteDuration?: string;
     };
-}
-
-function normalizeText(text: string): string {
-    return text.toLowerCase()
-        .replace(/[4@]/g, 'a')
-        .replace(/[3]/g, 'e')
-        .replace(/[1!|]/g, 'i')
-        .replace(/[0]/g, 'o')
-        .replace(/[5$]/g, 's')
-        .replace(/[7]/g, 't')
-        .replace(/[2]/g, 'z')
-        .replace(/[6]/g, 'g')
-        .replace(/[8]/g, 'b')
-        .replace(/[9]/g, 'g')
-        .replace(/[\[\]\(\)\{\}\*\-\_\+\=\|\<\>\`\~]/g, '');
 }
 
 async function handleViolation(message: Message, type: string, reason: string, client: Client, deleteMessage = true, violationCooldownKey?: string): Promise<void> {
@@ -192,24 +157,6 @@ async function handleViolation(message: Message, type: string, reason: string, c
             autoPunishment
         }
     });
-}
-
-function parseDuration(duration: string): number {
-    const match = /^(\d+)([mhdw])$/.exec(duration);
-    if (!match) {return 600000;} // 10 minutes default
-    const value = parseInt(match[1]!, 10);
-    const unit = match[2]!;
-    switch (unit) {
-    case 'm': return value * 60 * 1000;
-    case 'h': return value * 60 * 60 * 1000;
-    case 'd': return value * 24 * 60 * 60 * 1000;
-    case 'w': return value * 7 * 24 * 60 * 60 * 1000;
-    default: return 600000;
-    }
-}
-
-function castConfig(cfg: AutomodConfig): Record<string, unknown> {
-    return cfg as unknown as Record<string, unknown>;
 }
 
 export default {
@@ -376,56 +323,6 @@ function checkLinks(message: Message, config: AutomodConfig): Violation | null {
     const linkRegex = /https?:\/\/[^\s]+/gi;
     if (linkRegex.test(message.content)) {
         return { type: 'link', channelId: message.channel.id };
-    }
-    return null;
-}
-
-function checkPhishing(message: Message, config: AutomodConfig): Violation | null {
-    if (!config.phishingFilter) {return null;}
-    const suspiciousPatterns = [
-        /bit\.ly/gi,
-        /tinyurl\.com/gi,
-        /t\.co/gi,
-        /cutt\.ly/gi,
-        /rebrand\.ly/gi,
-        /is\.gd/gi,
-        /v\.gd/gi,
-        /bc\.vc/gi,
-        /shorte\.st/gi,
-        /adf\.ly/gi,
-        /ouo\.io/gi,
-        /ouo\.press/gi
-    ];
-    for (const pattern of suspiciousPatterns) {
-        if (pattern.test(message.content)) {
-            return { type: 'phishing', channelId: message.channel.id };
-        }
-    }
-    return null;
-}
-
-function checkMentions(message: Message, config: AutomodConfig): Violation | null {
-    if (!config.mentionFilter) {return null;}
-    const threshold = config.mentionThreshold ?? 5;
-    const mentionCount = message.mentions.users.size + message.mentions.roles.size;
-    if (mentionCount > threshold) {
-        return { type: 'mention_spam', details: `${mentionCount} mentions`, channelId: message.channel.id };
-    }
-    return null;
-}
-
-function checkCaps(message: Message, config: AutomodConfig): Violation | null {
-    if (!config.capsFilter) {return null;}
-    const threshold = config.capsThreshold ?? 70;
-    const minLength = config.capsMinLength ?? 10;
-    const content = message.content;
-    if (content.length < minLength) {return null;}
-    const letters = content.replace(/[^a-zA-Z]/g, '');
-    if (letters.length < minLength) {return null;}
-    const upperCount = (letters.match(/[A-Z]/g) || []).length;
-    const percent = (upperCount / letters.length) * 100;
-    if (percent > threshold) {
-        return { type: 'caps', details: `${Math.round(percent)}% caps`, channelId: message.channel.id };
     }
     return null;
 }

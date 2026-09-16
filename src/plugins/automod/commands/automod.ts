@@ -8,7 +8,7 @@ import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
 import { safeError } from '../../../utils/safeError.js';
 import { checkMessageAttachments } from '../../../utils/nsfwDetection.js';
-import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { handleDiscordError, safeReply } from '../../../utils/discordErrors.js';
 
 interface AutomodConfig {
     enabled: boolean;
