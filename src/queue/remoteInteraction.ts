@@ -3,10 +3,11 @@
 
 import { logger } from '../utils/logger.js';
 import { Routes, Collection } from 'discord.js';
+import type { REST } from 'discord.js';
 
 export default class RemoteInteraction {
     _data: Record<string, unknown>;
-    _rest: unknown;
+    _rest: REST;
     _replied: boolean;
     _deferred: boolean;
 
@@ -51,12 +52,12 @@ export default class RemoteInteraction {
         commands: Collection<string, unknown>;
         config: Record<string, unknown>;
         manager: unknown;
-        rest: unknown;
+        rest: REST;
     };
 
     constructor(
         data: Record<string, unknown>,
-        rest: unknown,
+        rest: REST,
         { commands, config }: { commands?: Collection<string, unknown>; config?: Record<string, unknown> } = {}
     ) {
         this._data = data;
@@ -154,7 +155,6 @@ export default class RemoteInteraction {
     async reply(options: Record<string, unknown>): Promise<void> {
         const body = buildMessageBody(options);
         try {
-            // @ts-expect-error rest type
             await this._rest.patch(Routes.webhookMessage(this.applicationId, this.token), { body });
             this._replied = true;
         } catch (err) {
@@ -166,7 +166,6 @@ export default class RemoteInteraction {
     async editReply(options: Record<string, unknown>): Promise<void> {
         const body = buildMessageBody(options);
         try {
-            // @ts-expect-error rest type
             await this._rest.patch(Routes.webhookMessage(this.applicationId, this.token), { body });
             this._replied = true;
         } catch (err) {
@@ -184,7 +183,6 @@ export default class RemoteInteraction {
     async followUp(options: Record<string, unknown>): Promise<void> {
         const body = buildMessageBody(options);
         try {
-            // @ts-expect-error rest type
             await this._rest.post(Routes.webhook(this.applicationId, this.token), { body });
         } catch (err) {
             logger.error({ err: err as Error, msg: '[RemoteInteraction] followUp failed' });
@@ -194,7 +192,6 @@ export default class RemoteInteraction {
 
     async deleteReply(): Promise<void> {
         try {
-            // @ts-expect-error rest type
             await this._rest.delete(Routes.webhookMessage(this.applicationId, this.token));
         } catch (err) {
             logger.error({ err: err as Error, msg: '[RemoteInteraction] deleteReply failed' });
@@ -203,7 +200,6 @@ export default class RemoteInteraction {
 
     async fetchReply(): Promise<unknown> {
         try {
-            // @ts-expect-error rest type
             const msg = await this._rest.get(Routes.webhookMessage(this.applicationId, this.token));
             return msg;
         } catch (err) {
@@ -236,12 +232,17 @@ function buildMessageBody(options: Record<string, unknown>): Record<string, unkn
 
 class RemoteOptions {
     _data: { name: string; type: number; value: unknown; focused?: boolean; options?: unknown[] }[];
-    _resolved: Record<string, unknown> | null;
+    _resolved: {
+        channels?: Record<string, Record<string, unknown>>;
+        roles?: Record<string, Record<string, unknown>>;
+        users?: Record<string, Record<string, unknown>>;
+        members?: Record<string, Record<string, unknown>>;
+    } | null;
     data: { name: string; type: number; value: unknown; focused?: boolean; options?: unknown[] }[];
 
     constructor(optionsData: { name: string; type: number; value: unknown; focused?: boolean; options?: unknown[] }[] = [], resolved: Record<string, unknown> | null = null) {
         this._data = optionsData || [];
-        this._resolved = resolved;
+        this._resolved = resolved as RemoteOptions['_resolved'];
         this.data = this._data;
     }
 
@@ -252,23 +253,23 @@ class RemoteOptions {
     getChannel(name: string): Record<string, unknown> | null {
         const opt = this._find(name);
         if (!opt?.value) { return null; }
-        return this._resolved?.['channels']?.[opt.value as string] ?? { id: opt.value, name: opt.value };
+        return this._resolved?.channels?.[opt.value as string] ?? { id: opt.value, name: opt.value };
     }
     getRole(name: string): Record<string, unknown> | null {
         const opt = this._find(name);
         if (!opt?.value) { return null; }
-        return this._resolved?.['roles']?.[opt.value as string] ?? { id: opt.value, name: opt.value };
+        return this._resolved?.roles?.[opt.value as string] ?? { id: opt.value, name: opt.value };
     }
     getUser(name: string): Record<string, unknown> | null {
         const opt = this._find(name);
         if (!opt?.value) { return null; }
-        return this._resolved?.['users']?.[opt.value as string] ?? { id: opt.value, username: opt.value };
+        return this._resolved?.users?.[opt.value as string] ?? { id: opt.value, username: opt.value };
     }
     getMember(name: string): Record<string, unknown> | null {
         const opt = this._find(name);
         if (!opt?.value) { return null; }
-        const resolvedUser = this._resolved?.['users']?.[opt.value as string];
-        const resolvedMember = this._resolved?.['members']?.[opt.value as string];
+        const resolvedUser = this._resolved?.users?.[opt.value as string];
+        const resolvedMember = this._resolved?.members?.[opt.value as string];
         if (resolvedUser) {
             return { ...resolvedUser as Record<string, unknown>, ...resolvedMember as Record<string, unknown>, roles: { cache: new Collection() } };
         }
@@ -336,7 +337,10 @@ class RemoteGuildMembers {
     async fetch(userId: string): Promise<{ id: string; user: { id: string; tag: string; username: string }; roles: { cache: Collection<string, { id: string }> }; permissions: { has: () => boolean } }> {
         if (!userId) { throw new Error('userId is required'); }
         try {
-            const data = await this._api.rest.get(Routes.guildMember(this._guildId, userId));
+            const data = await this._api.rest.get(Routes.guildMember(this._guildId, userId)) as {
+                user?: { id?: string; username?: string; discriminator?: string };
+                roles?: string[];
+            };
             return {
                 id: data.user?.id ?? userId,
                 user: { id: data.user?.id ?? userId, tag: `${data.user?.username ?? 'Unknown'}#${data.user?.discriminator ?? '0'}`, username: data.user?.username ?? 'Unknown' },
@@ -344,7 +348,12 @@ class RemoteGuildMembers {
                 permissions: { has: () => false }
             };
         } catch {
-            return { id: userId, user: { id: userId } };
+            return {
+                id: userId,
+                user: { id: userId, tag: 'Unknown#0', username: 'Unknown' },
+                roles: { cache: new Collection() },
+                permissions: { has: () => false }
+            };
         }
     }
 }
@@ -362,7 +371,7 @@ class RemoteGuildChannels {
 
     async fetch(id: string): Promise<RemoteChannel> {
         try {
-            const data = await this._api.rest.get(Routes.channel(id));
+            const data = await this._api.rest.get(Routes.channel(id)) as { id: string; name: string };
             return new RemoteChannel(data.id, data.name, this._api);
         } catch {
             return new RemoteChannel(id, id, this._api);
@@ -380,7 +389,7 @@ class RemoteGuildChannels {
                     parent: options['parent'],
                     rate_limit_per_user: options['rateLimitPerUser']
                 }
-            });
+            }) as { id: string; name: string };
             return new RemoteChannel(data.id, data.name, this._api);
         } catch (err) {
             logger.error({ err: err as Error, msg: '[RemoteGuildChannels] create failed' });
@@ -402,10 +411,16 @@ class RemoteGuildRoles {
 
     async fetch(id: string): Promise<{ id: string; name: string; color: number; position: number; permissions: string }> {
         try {
-            const data = await this._api.rest.get(Routes.guildRole(this._guildId, id));
+            const data = await this._api.rest.get(Routes.guildRole(this._guildId, id)) as {
+                id: string;
+                name: string;
+                color: number;
+                position: number;
+                permissions: string;
+            };
             return { id: data.id, name: data.name, color: data.color, position: data.position, permissions: data.permissions };
         } catch {
-            return { id, name: id };
+            return { id, name: id, color: 0, position: 0, permissions: '0' };
         }
     }
 }
@@ -432,7 +447,7 @@ class RemoteGuildBans {
 
     async fetch(userId: string): Promise<{ user: unknown; reason: string } | null> {
         try {
-            const data = await this._api.rest.get(Routes.guildBan(this._guildId, userId));
+            const data = await this._api.rest.get(Routes.guildBan(this._guildId, userId)) as { user: unknown; reason: string };
             return { user: data.user, reason: data.reason };
         } catch {
             return null;
@@ -479,7 +494,7 @@ class RemoteChannel {
         try {
             const invite = await this._api.rest.post(Routes.channelInvites(this.id), {
                 body: { max_age: options['maxAge'] ?? 86400, max_uses: options['maxUses'] ?? 0, temporary: options['temporary'] ?? false }
-            });
+            }) as { code: string };
             return { code: invite.code, url: `https://discord.gg/${invite.code}` };
         } catch (err) {
             logger.error({ err: err as Error, msg: '[RemoteChannel] createInvite failed' });
@@ -538,10 +553,10 @@ class RemotePermissionOverwrites {
 }
 
 class DiscordAPI {
-    rest: unknown;
+    rest: REST;
     applicationId: string;
 
-    constructor(rest: unknown, applicationId: string) {
+    constructor(rest: REST, applicationId: string) {
         this.rest = rest;
         this.applicationId = applicationId;
     }

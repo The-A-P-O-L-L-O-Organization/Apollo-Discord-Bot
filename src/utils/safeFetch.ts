@@ -71,7 +71,7 @@ interface SafeFetchOptions {
     skipDnsCheck?: boolean;
 }
 
-interface SafeFetchResult {
+export interface SafeFetchResult {
     buffer: Buffer;
     contentType: string;
     finalUrl: string;
