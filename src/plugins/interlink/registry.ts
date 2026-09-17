@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import { generateApiKey } from './auth.js';
 import type { Knex } from 'knex';
 
-interface BotRecord {
+export interface BotRecord {
     id: string;
     name: string;
     description: string;
@@ -17,14 +17,14 @@ interface BotRecord {
     last_seen_at: string | null;
 }
 
-interface CreateBotData {
+export interface CreateBotData {
     name: string;
     webhookUrl: string;
     description?: string;
     supportsRedis?: boolean;
 }
 
-interface CreatedBot {
+export interface CreatedBot {
     id: string;
     name: string;
     webhook_url: string;
@@ -36,7 +36,7 @@ interface CreatedBot {
     scopes: string;
 }
 
-interface RotatedKey {
+export interface RotatedKey {
     rawKey: string;
     hash: string;
     prefix: string;

@@ -3,7 +3,8 @@
 
 import { updateGuildData, generateId } from './db.js';
 import { flushAnalyticsCritical } from './analyticsCollector.js';
-import { logger, getLoggingConfig } from './logger.js';
+import { logger } from './logger.js';
+import { getLoggingConfig } from './guildLogging.js';
 import type { Message} from 'discord.js';
 import { MessageFlags, type TextChannel } from 'discord.js';
 

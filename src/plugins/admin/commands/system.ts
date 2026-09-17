@@ -2,7 +2,7 @@ import { config } from '../../../config/config.js';
 import { requireOwner } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import type { ChatInputCommandInteraction} from 'discord.js';
-import type { ApolloClient } from '../../../types/discord.js';
+import type { ApolloClient } from '../../../types/shared.js';
 import { MessageFlags } from 'discord.js';
 
 function formatDuration(ms: number): string {

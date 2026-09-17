@@ -159,7 +159,8 @@ const config = {
     reactionRoles: {
         enabled: true,
         maxRolesPerMessage: 20,
-        maxReactionRolesPerGuild: 100
+        maxReactionRolesPerGuild: 100,
+        dmOnRole: false
     },
 
     // Command Prefix (for legacy commands if needed)
@@ -208,6 +209,11 @@ const config = {
         retryStrategy: undefined,
         enableReadyCheck: undefined,
         lazyConnect: undefined
+    },
+
+    // Health check server
+    health: {
+        authToken: getEnv('HEALTH_AUTH_TOKEN')
     },
 
     // Interlink (Cross-Bot Communication)
@@ -269,7 +275,7 @@ const config = {
 
     // Operator Agreement (required to start the bot)
     operator: {
-        agreed: false,
+        agreed: false as boolean,
         contact: getEnv('OPERATOR_CONTACT') ?? '',
         requireAgreement: true,
         agreementUrl: 'https://github.com/CodeMaster013/Apollo-Discord-Bot/blob/main/legal/TOS.md',

@@ -61,8 +61,8 @@ export async function updateThreatScore(
     await redis.zremrangebyscore(key, 0, now - 86400000);
 
     // Get total score (sum of severities in 24h window)
-    // After zremrangebyscore, all remaining are within 24h
-    const scores = await redis.zrange(key, 0, -1, { WITHSCORES: true });
+// $ExpectError: ioredis 6.x type definition mismatch for zrange withWITHSCORES
+    const scores = await redis.zrange(key, 0, -1, 'WITHSCORES');
     let totalScore = 0;
     for (let i = 1; i < scores.length; i += 2) {
         totalScore += parseFloat(scores[i] ?? '0');

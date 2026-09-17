@@ -6,14 +6,14 @@ interface ParsedField {
     value: string;
 }
 
-interface ParsedMarkdown {
+export interface ParsedMarkdown {
     title?: string;
     description?: string;
     fields?: { name: string; value: string }[];
     footer?: { text: string };
 }
 
-interface ExistingEmbedData {
+export interface ExistingEmbedData {
     title?: string;
     description?: string;
 }

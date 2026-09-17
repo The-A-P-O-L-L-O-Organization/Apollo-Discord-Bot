@@ -46,7 +46,7 @@ export function stopTempRolesScheduler(): void {
 async function checkExpiredTempRoles(client: Client): Promise<void> {
     try {
         // Get all guilds with temp roles
-        const allTempRoles = getGuildData('temp-roles', '__all__') as Record<string, GuildTempRoles> | null;
+        const allTempRoles = (await getGuildData('temp-roles', '__all__')) as unknown as Record<string, GuildTempRoles> | null;
 
         if (!allTempRoles || Object.keys(allTempRoles).length === 0) {
             return;

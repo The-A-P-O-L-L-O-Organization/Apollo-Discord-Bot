@@ -20,7 +20,7 @@ export default {
             logger.info(`[INFO] Now serving ${client.guilds.cache.size} servers`);
 
         } catch (error) {
-            logger.error('[ERROR] guildDelete event error:', error);
+            logger.error({ err: error as Error }, '[ERROR] guildDelete event error');
         }
     }
 };

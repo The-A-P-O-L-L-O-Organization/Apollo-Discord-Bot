@@ -263,7 +263,7 @@ export class TwoLevelLRUCache {
             maxSize: maxGuilds,
             onEvict: (guildId: string, guildCache: LRUCache<string, unknown>) => {
                 // Clean up guild cache when guild is evicted
-                for (const [userId, value] of guildCache.entries()) {
+                for (const { key: userId, value } of guildCache.entries()) {
                     if (this.onEvict) {
 
                         try { this.onEvict(guildId, userId, value); } catch {}

@@ -242,7 +242,10 @@ export default {
             }
 
             try {
-                await interaction.channel?.send({ embeds: [embed] });
+                const targetChannel = interaction.channel;
+                if (targetChannel && 'send' in targetChannel) {
+                    await targetChannel.send({ embeds: [embed] });
+                }
                 await interaction.reply({
                     content: 'Embed created successfully!',
                     flags: MessageFlags.Ephemeral
@@ -258,7 +261,7 @@ export default {
             }
 
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

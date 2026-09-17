@@ -4,6 +4,7 @@ import { initPollScheduler, stopPollScheduler } from '../../utils/pollScheduler.
 import { initAnalyticsCollector, stopAnalyticsCollector } from '../../utils/analyticsCollector.js';
 import TranslationService from '../../utils/translation.js';
 import { createLogger } from '../../utils/logger.js';
+import type { ParsedMarkdown } from '../../utils/markdownParser.js';
 
 export default class UtilityPlugin extends Plugin {
     public declare logger: ReturnType<typeof createLogger>;
@@ -32,7 +33,7 @@ export default class UtilityPlugin extends Plugin {
             global.translationService = translationService;
             this.logger.info('[Utility] Translation service initialized');
         } catch (error) {
-            this.logger.warn('[Utility] Translation service not available:', (error as Error).message);
+            this.logger.warn('[Utility] Translation service not available: ' + (error as Error).message);
         }
     }
 
@@ -71,7 +72,7 @@ export default class UtilityPlugin extends Plugin {
                 tag: member.user.tag,
                 nickname: member.nickname,
                 joinedAt: member.joinedAt?.toISOString(),
-                roles: member.roles.cache.map(r => r.name),
+                roles: member.roles.cache.map((r: { name: string }) => r.name),
                 permissions: member.permissions.toArray()
             };
         });
@@ -82,7 +83,7 @@ export default class UtilityPlugin extends Plugin {
 
         this.manager.registerSocketHandler('utility.embed', async (_client: any, args: any) => {
             const { EmbedBuilder } = await import('discord.js');
-            const { parseMarkdownToEmbed } = await import('../../../utils/markdownParser.js');
+            const { parseMarkdownToEmbed } = await import('../../utils/markdownParser.js');
             const { readFileSync } = await import('fs');
             const { resolve, sep } = await import('path');
 
@@ -92,7 +93,7 @@ export default class UtilityPlugin extends Plugin {
 
             const embed = new EmbedBuilder();
 
-            let parsed: Record<string, unknown> = {};
+            let parsed: ParsedMarkdown | Record<string, unknown> = {};
             if (args.file) {
                 const DATA_ROOT = resolve(process.cwd(), 'data');
                 const targetPath = resolve(DATA_ROOT, args.file);

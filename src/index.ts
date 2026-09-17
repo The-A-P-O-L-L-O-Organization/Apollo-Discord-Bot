@@ -19,9 +19,11 @@ import { assertDiscordToken, assertOperatorAgreement, assertEncryptionKey, valid
 import { createRedisClient, closeRedisClient as closeRedis } from './utils/redis.js';
 import { startHealthServer, stopHealthServer } from './utils/healthServer.js';
 import { createLogger } from './utils/logger.js';
+import type { TypedClient } from './core/PluginManager.js';
 import { SocketServer } from './cli/socket-server.js';
 import { acquireGlobalLock, releaseLock, startHeartbeat, stopHeartbeat, GLOBAL_LEADER_LOCK_KEY } from './gateway/leader.js';
-import type { ApolloClient, CommandModule } from './types/discord.js';
+import type { ApolloClient } from './types/shared.js';
+import type { CommandModule } from './types/discord.js';
 
 const logger = createLogger({ component: 'gateway' });
 
@@ -67,7 +69,7 @@ client.stats = {
 };
 
 const bus = new EventBus();
-const pluginManager = new PluginManager(client, bus);
+const pluginManager = new PluginManager(client as unknown as import('./core/PluginManager.js').TypedClient, bus);
 
 client.manager = pluginManager;
 client.bus = bus;

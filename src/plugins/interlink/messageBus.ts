@@ -1,14 +1,8 @@
 import crypto from 'crypto';
 import { ReplayProtection } from './replayProtection.js';
+import type { BotRecord } from './registry.js';
 
 const VALID_TYPES = new Set(['ping', 'pong', 'command', 'event', 'custom']);
-
-interface BotRecord {
-    name: string;
-    webhook_url: string;
-    is_active: number;
-    [key: string]: unknown;
-}
 
 interface Envelope {
     protocol: string;

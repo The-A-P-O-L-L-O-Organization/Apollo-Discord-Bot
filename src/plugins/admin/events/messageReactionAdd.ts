@@ -29,10 +29,11 @@ export default {
             : reaction.emoji.name;
 
         const reactionRoles = await getGuildData('reactionroles', guildId);
-        if (!reactionRoles['roles'] || reactionRoles['roles'].length === 0) { return; }
+        const roles = (reactionRoles['roles'] ?? []) as { messageId: string; emoji: string; roleId: string }[];
+        if (roles.length === 0) { return; }
 
-        const reactionRole = reactionRoles['roles'].find(
-            (rr: any) => rr.messageId === messageId &&
+        const reactionRole = roles.find(
+            (rr) => rr.messageId === messageId &&
                   (rr.emoji === emojiIdentifier || rr.emoji === reaction.emoji.name || rr.emoji === reaction.emoji.id)
         );
 

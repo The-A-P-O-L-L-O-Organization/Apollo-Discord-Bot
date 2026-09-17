@@ -2,6 +2,7 @@
 // This module has NO dependencies on other local type modules to avoid circular imports
 
 import type { Client, Interaction, AutocompleteInteraction, ChatInputCommandInteraction, CommandInteraction, ButtonInteraction, SelectMenuInteraction, ContextMenuCommandInteraction, Collection, SlashCommandBuilder, RESTPostAPIChatInputApplicationCommandsJSONBody, ClientOptions } from 'discord.js';
+import type { WarningThresholds, WarningsConfig, TicketsConfig, LevelsConfig, HealthConfig } from './config.js';
 
 // ============================================
 // Discord.js common types (re-exported for convenience)
@@ -424,6 +425,7 @@ export interface ApolloConfig {
     moderation: { defaultReason: string; muteRoleName: string; muteDuration: number; maxMessagesPerPurge: number; purgeCooldown: number; logModerationActions: boolean; moderationLogChannel: string };
     prefix: string;
     ENCRYPTION_KEY: string;
+    health: HealthConfig;
 }
 
 // Minimal config sub-interfaces for ApolloConfig
@@ -513,31 +515,6 @@ export interface AutomodConfig {
     useRedisThreatScore: boolean;
 }
 
-export interface WarningThresholds { mute: number; kick: number; ban: number; }
-
-export interface WarningsConfig { thresholds: WarningThresholds; muteDuration: number; dmOnWarn: boolean; }
-
-export interface TicketsConfig {
-    enabled: boolean;
-    categoryId: string | undefined;
-    logChannelId: string | undefined;
-    supportRoles: string[];
-    maxTicketsPerUser: number;
-    autoCloseAfterHours: number;
-    transcriptEnabled: boolean;
-}
-
-export interface LevelsConfig {
-    enabled: boolean;
-    xpPerMessage: number;
-    xpCooldownMs: number;
-    xpPerMinuteVoice: number;
-    roles: { level: number; roleId: string }[];
-    ignoredChannels: string[];
-    ignoredRoles: string[];
-    announceChannelId: string | undefined;
-}
-
 export interface LoggingConfig {
     level: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
     pretty: boolean;
@@ -547,7 +524,13 @@ export interface LoggingConfig {
     availableEvents: string[];
 }
 
-export interface RemindersConfig { enabled: boolean; maxRemindersPerUser: number; defaultTimezone: string; maxDuration: number; }
+export interface RemindersConfig {
+    enabled: boolean;
+    maxRemindersPerUser: number;
+    defaultTimezone: string;
+    maxDuration: number;
+    checkInterval: number;
+}
 
 export interface PollsConfig { enabled: boolean; maxOptions: number; maxDurationHours: number; defaultDurationHours: number; maxDuration: number; }
 

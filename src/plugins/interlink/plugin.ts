@@ -8,72 +8,9 @@ import InterlinkServer from './server.js';
 import { createLogger } from '../../utils/logger.js';
 import { config } from '../../config/config.js';
 import type { EventBusImpl } from '../../core/EventBus.js';
+import type { BotRecord, CreateBotData, CreatedBot, RotatedKey } from './registry.js';
 
 // Type definitions for Interlink components
-interface BotRegistryInstance {
-    list(): Promise<BotRecord[]>;
-    get(name: string): Promise<BotRecord | null>;
-    getById(id: string): Promise<BotRecord | null>;
-    create(data: CreateBotData): Promise<CreatedBot>;
-    remove(name: string): Promise<number>;
-    findByApiKeyPrefix(prefix: string): Promise<BotRecord | null>;
-    rotateKey(name: string): Promise<RotatedKey>;
-    updateLastSeen(name: string): Promise<number>;
-}
-
-interface BotRecord {
-    id: string;
-    name: string;
-    description: string;
-    webhook_url: string;
-    supports_redis: number;
-    api_key_hash: string;
-    api_key_prefix: string;
-    scopes: string;
-    is_active: number;
-    created_at: string;
-    updated_at: string;
-    last_seen_at: string | null;
-}
-
-interface CreateBotData {
-    name: string;
-    webhookUrl: string;
-    description?: string;
-    supportsRedis?: boolean;
-}
-
-interface CreatedBot {
-    id: string;
-    name: string;
-    webhook_url: string;
-    description: string;
-    supports_redis: boolean;
-    api_key_prefix: string;
-    api_key_hash: string;
-    rawKey: string;
-    scopes: string;
-}
-
-interface RotatedKey {
-    rawKey: string;
-    hash: string;
-    prefix: string;
-}
-
-interface MessageBusInstance {
-    _registry: BotRegistryInstance;
-    _auth: unknown;
-    _redis: RedisTransport | null;
-    _config: InterlinkConfig;
-    eventBus: EventBusImpl | null;
-    createEnvelope(type: string, target: string, payload: unknown): Envelope;
-    send(botName: string, type: string, payload: unknown): Promise<SendResult>;
-    broadcast(type: string, payload: unknown): Promise<BroadcastResult[]>;
-    handleIncomingMessage(envelope: Envelope, sendResponse?: (resp: Envelope) => void): Promise<void>;
-    _sendHttp(bot: BotRecord, envelope: Envelope): Promise<SendResult>;
-}
-
 interface Envelope {
     protocol: string;
     version: string;
@@ -115,35 +52,9 @@ interface RedisConfig {
     channelPrefix?: string;
 }
 
-interface RedisTransportInstance {
-    channelPrefix: string;
-    _messageChannel: string;
-    _responseChannelPrefix: string;
-    _config: RedisConfig;
-    _pub: unknown;
-    _sub: unknown;
-    _messageHandler: ((data: unknown) => void) | null;
-    isConnected: boolean;
-    connect(onMessage: (data: unknown) => void): Promise<void>;
-    publishResponse(botId: string, envelope: Envelope): void;
-    disconnect(): Promise<void>;
-}
-
-interface InterlinkServerInstance {
-    _app: unknown;
-    _server: unknown;
-    _registry: BotRegistryInstance;
-    _messageBus: MessageBusInstance;
-    _redis: RedisTransportInstance | null;
-    _config: InterlinkConfig;
-    _rateLimiter: unknown;
-    _healthRateLimiter: unknown;
-    start(port: number): Promise<void>;
-    stop(): Promise<void>;
-}
-
 interface PluginManagerRef {
     bus: EventBusImpl;
+    registerSocketHandler(namespace: string, handler: (...args: any[]) => Promise<any>): void;
 }
 
 export default class InterlinkPlugin extends Plugin {
@@ -152,10 +63,10 @@ export default class InterlinkPlugin extends Plugin {
     static override dependencies: string[] = [];
 
     public declare logger: ReturnType<typeof createLogger>;
-    private _registry!: BotRegistryInstance;
-    private _messageBus!: MessageBusInstance;
-    private _httpServer!: InterlinkServerInstance;
-    private _redisTransport: RedisTransportInstance | null = null;
+    private _registry!: BotRegistry;
+    private _messageBus!: MessageBus;
+    private _httpServer!: InterlinkServer;
+    private _redisTransport: RedisTransport | null = null;
     private _eventUnsubscribers: (() => void)[] = [];
 
     constructor(client: any, manager: PluginManagerRef) {

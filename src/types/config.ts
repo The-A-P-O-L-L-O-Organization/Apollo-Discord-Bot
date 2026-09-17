@@ -207,6 +207,11 @@ export interface ReactionRolesConfig {
     enabled: boolean;
     maxRolesPerMessage: number;
     maxReactionRolesPerGuild: number;
+    dmOnRole: boolean;
+}
+
+export interface HealthConfig {
+    authToken: string | undefined;
 }
 
 export interface ApolloConfig {
@@ -227,6 +232,7 @@ export interface ApolloConfig {
     polls: PollsConfig;
     integrations: IntegrationsConfig;
     reactionRoles: ReactionRolesConfig;
+    health: HealthConfig;
     threshold: number;
     deleteMessages: boolean;
     warnOnDetection: boolean;
