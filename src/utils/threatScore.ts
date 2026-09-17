@@ -61,7 +61,7 @@ export async function updateThreatScore(
     await redis.zremrangebyscore(key, 0, now - 86400000);
 
     // Get total score (sum of severities in 24h window)
-// $ExpectError: ioredis 6.x type definition mismatch for zrange withWITHSCORES
+// @ts-expect-error ioredis 6.x zrange WITHSCORES type mismatch
     const scores = await redis.zrange(key, 0, -1, 'WITHSCORES');
     let totalScore = 0;
     for (let i = 1; i < scores.length; i += 2) {
@@ -87,6 +87,7 @@ export async function getThreatScore(guildId: string, userId: string): Promise<n
     await redis.zremrangebyscore(key, 0, now - 86400000);
 
     // Sum remaining scores
+// @ts-expect-error ioredis 6.x zrange WITHSCORES type mismatch
     const scores = await redis.zrange(key, 0, -1, 'WITHSCORES');
     let totalScore = 0;
     for (let i = 1; i < scores.length; i += 2) {
