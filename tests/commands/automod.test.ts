@@ -14,8 +14,8 @@ import type { MockCommandInteraction, MockGuild, MockTextChannel } from '../mock
 
 // Mock the db module
 vi.mock('../../src/utils/db.js', () => ({
-    getGuildData: vi.fn().mockReturnValue({}),
-    setGuildData: vi.fn(),
+    getGuildData: vi.fn().mockReturnValue({ bannedWords: [] as string[] }),
+    setGuildData: vi.fn().mockReturnValue({ bannedWords: [] as string[] }),
     updateGuildData: vi.fn()
 }));
 
@@ -183,7 +183,7 @@ describe('Automod Command', () => {
             await automodCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
             expect(setGuildData).toHaveBeenCalled();
-            const setCall = vi.mocked(setGuildData).mock.calls[0]!;
+            const setCall: [string, Record<string, unknown>[], ...unknown[]] = vi.mocked(setGuildData).mock.calls[0] as [string, Record<string, unknown>[], ...unknown[]];
             expect(setCall[2]['bannedWords']).toContain('badword');
         });
 
