@@ -137,7 +137,7 @@ export default {
             logger.info({ msg: `[SUCCESS] Help command executed by ${interaction.user.tag}` });
 
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

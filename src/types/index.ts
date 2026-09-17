@@ -206,7 +206,6 @@ export type {
     REST,
     Routes,
     ApolloClientExtensions,
-    ApolloClient,
     CommandBuilder,
     SlashCommandModule,
     ContextMenuCommandModule,

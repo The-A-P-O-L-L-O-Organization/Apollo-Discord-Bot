@@ -119,7 +119,6 @@ export type {
 export type {
     ApolloConfig,
     ApolloClientExtensions,
-    ApolloClient,
     PluginManager,
     PluginInstance,
     PluginCommand,

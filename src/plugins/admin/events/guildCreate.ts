@@ -114,11 +114,11 @@ export default {
                     logger.info('[SUCCESS] Sent welcome message to server');
                 }
             } catch (welcomeError) {
-                logger.info('[WARNING] Could not send welcome message:', (welcomeError as Error).message);
+                logger.info('[WARNING] Could not send welcome message: ' + (welcomeError as Error).message);
             }
 
         } catch (error) {
-            logger.error('[ERROR] guildCreate event error:', error);
+            logger.error({ err: error as Error }, '[ERROR] guildCreate event error');
         }
     }
 };
