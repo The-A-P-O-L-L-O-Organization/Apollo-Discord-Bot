@@ -4,13 +4,14 @@ interface CLICommand {
     name: string;
     description: string;
     needsSocket?: boolean;
-    options: {
+    options?: {
         name: string;
         description: string;
         required?: boolean;
         choices?: { name: string; value: string }[];
     }[];
     execute?: (args: Record<string, unknown>) => Promise<unknown>;
+    commands?: CLICommand[];
 }
 
 const moderationCLI: CLICommand = {
@@ -61,10 +62,11 @@ const moderationCLI: CLICommand = {
                 { name: 'id', description: 'Case ID', required: true }
             ],
             execute: async (args) => {
-                const data = await getGuildData('moderation', args.guild);
-                const cases = (data?.['cases']) ?? [];
-                const c = cases.find(x => x.id === args.id);
-                if (!c) {return { success: false, message: `Case "${args.id}" not found` };}
+                const data = await getGuildData('moderation', args['guild'] as string);
+                const cases = ((data as Record<string, unknown> | undefined)?.['cases'] as { id: unknown }[] | undefined) ?? [];
+                const caseId = args['id'] as string;
+                const c = cases.find(x => x.id === caseId);
+                if (!c) {return { success: false, message: `Case "${caseId}" not found` };}
                 return c;
             }
         },

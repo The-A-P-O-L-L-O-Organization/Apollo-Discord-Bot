@@ -2,17 +2,10 @@
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
-import { getUserData, setUserData } from '../../../utils/db.ts';
+import { getUserData, setUserData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
-
-interface StrikeEntry {
-    id: string;
-    reason: string;
-    moderatorTag: string;
-    timestamp: number;
-    active?: boolean;
-}
+import type { StrikeEntry } from './strike.js';
 
 export default {
     // Remove strikes from a user
@@ -42,7 +35,7 @@ export default {
             const strikeId = interaction.options.getString('strike_id');
 
             if (!user) {
-                return interaction.reply({
+                await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
                         title: '[ERROR] Missing User',
@@ -51,13 +44,14 @@ export default {
                     }],
                     flags: MessageFlags.Ephemeral
                 });
+                return;
             }
 
             // Get user's strikes
-            const strikes = (await getUserData('strikes', interaction.guild!.id, user.id)) as StrikeEntry[] || [];
+            const strikes = ((await getUserData('strikes', interaction.guild!.id, user.id)) as unknown as StrikeEntry[]) ?? [];
 
             if (strikes.length === 0) {
-                return interaction.reply({
+                await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
                         title: '[ERROR] No Strikes',
@@ -66,6 +60,7 @@ export default {
                     }],
                     flags: MessageFlags.Ephemeral
                 });
+                return;
             }
 
             let removed = 0;
@@ -76,7 +71,7 @@ export default {
                 const strikeIndex = strikes.findIndex(s => s.id === strikeId);
 
                 if (strikeIndex === -1) {
-                    return interaction.reply({
+                    await interaction.reply({
                         embeds: [{
                             color: 0xFF0000,
                             title: '[ERROR] Strike Not Found',
@@ -85,9 +80,10 @@ export default {
                         }],
                         flags: MessageFlags.Ephemeral
                     });
+                    return;
                 }
 
-                strikes[strikeIndex].active = false;
+                strikes[strikeIndex]!.active = false;
                 removed = 1;
                 description = `Strike ${strikeId} has been removed.`;
 
@@ -134,7 +130,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] ${removed} strike(s) cleared for ${user.tag} by ${interaction.user.tag}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

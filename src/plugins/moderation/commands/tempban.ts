@@ -5,7 +5,7 @@ import { PermissionsBitField } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { addTempban } from '../../../utils/tempbanScheduler.js';
-import { createModCase } from './case.ts';
+import { createModCase } from './case.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 export default {
@@ -57,7 +57,8 @@ export default {
                     description: 'Please specify a valid user to ban.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             const match = /^(\d+)([mhdw])$/.exec(durationStr);
@@ -68,10 +69,11 @@ export default {
                     description: 'Invalid duration format. Use: 1m (minutes), 1h (hours), 1d (days), 1w (weeks)',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
-            const value = parseInt(match[1]);
+            const value = parseInt(match[1] ?? '');
             const unit = match[2];
 
             let durationMs: number;
@@ -106,7 +108,8 @@ export default {
                     description: 'Minimum tempban duration is 1 minute.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             const member = await fetchMember(interaction.guild!, user.id);
@@ -118,7 +121,8 @@ export default {
                     description: 'I cannot ban this user. They may have higher permissions than me.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             if (user.id === interaction.user.id) {
@@ -128,7 +132,8 @@ export default {
                     description: 'You cannot ban yourself.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             if (user.id === interaction.client.user.id) {
@@ -138,7 +143,8 @@ export default {
                     description: 'You cannot ban the bot.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             const bannedAt = Date.now();
@@ -204,7 +210,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] User ${user.tag} was temporarily banned by ${interaction.user.tag}. Duration: ${durationText}. Reason: ${reason}. Case ID: ${caseId}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

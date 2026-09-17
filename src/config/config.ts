@@ -109,7 +109,9 @@ const config = {
         supportRoles: [],
         maxTicketsPerUser: 5,
         autoCloseAfterHours: 72,
-        transcriptEnabled: true
+        transcriptEnabled: true,
+        channelPrefix: getEnv('TICKET_CHANNEL_PREFIX') ?? 'ticket-',
+        welcomeMessage: getEnv('TICKET_WELCOME_MESSAGE') ?? 'Thanks for opening a ticket! A staff member will be with you shortly.'
     },
 
     // Logging Settings

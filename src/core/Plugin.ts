@@ -20,6 +20,7 @@ export interface TypedClient extends Client {
 // Forward reference to avoid circular dependency
 interface PluginManagerRef {
     bus: EventBusImpl;
+    registerSocketHandler(namespace: string, handler: (...args: any[]) => Promise<any>): void;
 }
 
 export abstract class Plugin<C extends CommandModule = CommandModule, _E extends EventHandlerModule = EventHandlerModule> implements BasePlugin, PluginInstance {

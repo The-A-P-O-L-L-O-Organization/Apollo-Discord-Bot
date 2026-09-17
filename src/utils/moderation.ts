@@ -1,6 +1,8 @@
 // Moderation utilities
 // Shared authorization helpers for moderation commands
 
+import type { APIInteractionGuildMember } from 'discord.js';
+
 interface GuildLike {
     ownerId: string | null;
 }
@@ -31,10 +33,11 @@ interface ModerationResult {
  */
 export function canModerate(
     guild: GuildLike,
-    moderator: MemberLike | null,
+    moderator: MemberLike | APIInteractionGuildMember | null,
     target: MemberLike | null
 ): ModerationResult {
-    if (!moderator?.id) {
+    const moderatorId = moderator && 'id' in moderator ? moderator.id : moderator?.user?.id;
+    if (!moderatorId) {
         return { ok: false, reason: 'Cannot verify moderator identity.' };
     }
 
@@ -43,7 +46,7 @@ export function canModerate(
         return { ok: true };
     }
 
-    if (target.id === moderator.id) {
+    if (target.id === moderatorId) {
         return { ok: false, reason: 'You cannot moderate yourself.' };
     }
 
@@ -51,7 +54,8 @@ export function canModerate(
         return { ok: false, reason: 'You cannot moderate the server owner.' };
     }
 
-    const moderatorPosition = moderator.roles?.highest?.position ?? 0;
+    const modRoles = moderator && 'roles' in moderator ? moderator.roles : undefined;
+    const moderatorPosition = (!Array.isArray(modRoles) ? modRoles?.highest?.position : undefined) ?? 0;
     const targetPosition = target.roles?.highest?.position ?? 0;
 
     if (moderatorPosition > 0 && targetPosition > 0 && targetPosition >= moderatorPosition) {

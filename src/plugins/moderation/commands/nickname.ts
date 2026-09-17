@@ -154,7 +154,7 @@ export default {
             // Log the action
             logger.info({ msg: `[MODERATION] User ${user.tag}'s nickname was ${action} by ${interaction.user.tag}. Old: "${oldNickname}", New: "${newNickname}". Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

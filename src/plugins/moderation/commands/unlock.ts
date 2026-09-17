@@ -1,5 +1,5 @@
 // Unlock Command - Unlock a previously locked channel
-import type { ChatInputCommandInteraction} from 'discord.js';
+import type { ChatInputCommandInteraction, TextChannel, PermissionOverwriteOptions} from 'discord.js';
 import { MessageFlags } from 'discord.js';
 import { PermissionsBitField } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
@@ -20,7 +20,7 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction) {
         try {
-            const channel = interaction.options.getChannel('channel') ?? interaction.channel;
+            const channel = (interaction.options.getChannel('channel') ?? interaction.channel) as TextChannel | null;
             const reason = interaction.options.getString('reason') ?? 'No reason provided';
 
             if (!channel!.isTextBased()) {
@@ -30,7 +30,8 @@ export default {
                     description: 'You can only unlock text-based channels.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             const lockdownData = (await getGuildData('channel-lockdowns', interaction.guild!.id));
@@ -43,12 +44,13 @@ export default {
                     description: `${channel} is not currently in lockdown mode.`,
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             const everyoneRole = interaction.guild!.roles.everyone;
 
-            const restorePermissions: Record<string, boolean> = {};
+            const restorePermissions: PermissionOverwriteOptions = {};
             if (lockInfo.originalPermissions.SendMessages !== null) {
                 restorePermissions['SendMessages'] = lockInfo.originalPermissions.SendMessages;
             }
@@ -57,7 +59,7 @@ export default {
             }
 
             if (Object.keys(restorePermissions).length === 0) {
-                await channel!.permissionOverwrites.delete(everyoneRole, { reason: `Unlock by ${interaction.user.tag}: ${reason}` });
+                await channel!.permissionOverwrites.delete(everyoneRole, `Unlock by ${interaction.user.tag}: ${reason}`);
             } else {
                 await channel!.permissionOverwrites.edit(everyoneRole, restorePermissions, { reason: `Unlock by ${interaction.user.tag}: ${reason}` });
             }
@@ -108,7 +110,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] Channel ${channel!.name} was unlocked by ${interaction.user.tag}. Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

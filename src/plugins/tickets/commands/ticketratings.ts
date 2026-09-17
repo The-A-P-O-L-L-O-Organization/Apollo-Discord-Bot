@@ -3,6 +3,16 @@ import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } 
 import { getGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
+interface ClosedTicket {
+    assignedTo?: string[];
+    claimedBy?: string;
+    rating?: number;
+    ratingFeedback?: string;
+    closedAt: number;
+    category?: string;
+    ticketNumber?: number;
+}
+
 export default {
     name: 'ticketratings',
     data: new SlashCommandBuilder()
@@ -53,7 +63,7 @@ export default {
             const guildId = interaction.guild!.id;
             const subcommand = interaction.options.getSubcommand();
             const ticketConfig = await getGuildData('tickets', guildId);
-            const closedTickets = ticketConfig['closedTickets'] ?? [];
+            const closedTickets = (ticketConfig['closedTickets'] ?? []) as ClosedTicket[];
 
             if (subcommand === 'staff') {
                 const user = interaction.options.getUser('user')!;
@@ -63,17 +73,19 @@ export default {
                 );
 
                 if (staffTickets.length === 0) {
-                    return interaction.editReply({
+                    await interaction.editReply({
                         content: `No closed tickets found for ${user}.`
                     });
+                    return;
                 }
 
-                const ratedTickets = staffTickets.filter(t => t.rating);
+                const ratedTickets = staffTickets.filter((t): t is ClosedTicket & { rating: number } => Boolean(t.rating));
 
                 if (ratedTickets.length === 0) {
-                    return interaction.editReply({
+                    await interaction.editReply({
                         content: `${user} has handled ${staffTickets.length} ticket(s), but none have been rated yet.`
                     });
+                    return;
                 }
 
                 const avgRating = ratedTickets.reduce((sum, t) => sum + t.rating, 0) / ratedTickets.length;
@@ -107,7 +119,7 @@ export default {
                 embed.addFields({ name: 'Rating Distribution', value: distribution, inline: false });
 
                 const recentFeedback = ratedTickets
-                    .filter(t => t.ratingFeedback)
+                    .filter((t): t is ClosedTicket & { rating: number; ratingFeedback: string } => Boolean(t.ratingFeedback))
                     .sort((a, b) => b.closedAt - a.closedAt)
                     .slice(0, 3);
 
@@ -119,7 +131,8 @@ export default {
                     embed.addFields({ name: 'Recent Feedback', value: feedbackList, inline: false });
                 }
 
-                return interaction.editReply({ embeds: [embed] });
+                await interaction.editReply({ embeds: [embed] });
+                return;
 
             } else if (subcommand === 'category') {
                 const category = interaction.options.getString('category')!;
@@ -127,17 +140,19 @@ export default {
                 const categoryTickets = closedTickets.filter(t => t.category === category);
 
                 if (categoryTickets.length === 0) {
-                    return interaction.editReply({
+                    await interaction.editReply({
                         content: `No closed tickets found for category "${category}".`
                     });
+                    return;
                 }
 
-                const ratedTickets = categoryTickets.filter(t => t.rating);
+                const ratedTickets = categoryTickets.filter((t): t is ClosedTicket & { rating: number } => Boolean(t.rating));
 
                 if (ratedTickets.length === 0) {
-                    return interaction.editReply({
+                    await interaction.editReply({
                         content: `${categoryTickets.length} ticket(s) in "${category}" category, but none have been rated yet.`
                     });
+                    return;
                 }
 
                 const avgRating = ratedTickets.reduce((sum, t) => sum + t.rating, 0) / ratedTickets.length;
@@ -169,15 +184,17 @@ export default {
 
                 embed.addFields({ name: 'Rating Distribution', value: distribution, inline: false });
 
-                return interaction.editReply({ embeds: [embed] });
+                await interaction.editReply({ embeds: [embed] });
+                return;
 
             } else if (subcommand === 'overall') {
-                const ratedTickets = closedTickets.filter(t => t.rating);
+                const ratedTickets = closedTickets.filter((t): t is ClosedTicket & { rating: number } => Boolean(t.rating));
 
                 if (ratedTickets.length === 0) {
-                    return interaction.editReply({
+                    await interaction.editReply({
                         content: `${closedTickets.length} ticket(s) have been closed, but none have been rated yet.`
                     });
+                    return;
                 }
 
                 const avgRating = ratedTickets.reduce((sum, t) => sum + t.rating, 0) / ratedTickets.length;
@@ -228,10 +245,11 @@ export default {
                     embed.addFields({ name: 'Average Rating by Category', value: categoryStats, inline: false });
                 }
 
-                return interaction.editReply({ embeds: [embed] });
+                await interaction.editReply({ embeds: [embed] });
+                return;
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

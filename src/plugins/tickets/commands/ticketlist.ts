@@ -2,7 +2,15 @@ import type { ChatInputCommandInteraction } from 'discord.js';
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
 import { getGuildData } from '../../../utils/db.js';
 import { getPriorityEmoji, formatTime, hasBreachedSLA } from '../../../utils/slaTracker.js';
+import type { Ticket as SlaTicket, SLAThresholds } from '../../../utils/slaTracker.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+
+interface OpenTicket extends SlaTicket {
+    assignedTo?: string[];
+    claimedBy?: string;
+    channelId?: string;
+    ticketNumber?: number;
+}
 
 export default {
     name: 'ticketlist',
@@ -60,12 +68,14 @@ export default {
             const categoryFilter = interaction.options.getString('category');
 
             const ticketConfig = await getGuildData('tickets', guildId);
-            let tickets = ticketConfig['openTickets'] ?? [];
+            let tickets = (ticketConfig['openTickets'] ?? []) as OpenTicket[];
+            const slaThresholds = ticketConfig['slaThresholds'] as SLAThresholds | undefined;
 
             if (tickets.length === 0) {
-                return interaction.editReply({
+                await interaction.editReply({
                     content: 'There are no open tickets at the moment.'
                 });
+                return;
             }
 
             if (filter === 'unassigned') {
@@ -75,7 +85,6 @@ export default {
                     t.assignedTo?.includes(interaction.user.id) ?? t.claimedBy === interaction.user.id
                 );
             } else if (filter === 'breached') {
-                const slaThresholds = ticketConfig['slaThresholds'];
                 tickets = tickets.filter(t => hasBreachedSLA(t, slaThresholds));
             }
 
@@ -88,9 +97,10 @@ export default {
             }
 
             if (tickets.length === 0) {
-                return interaction.editReply({
+                await interaction.editReply({
                     content: 'No tickets match your filter criteria.'
                 });
+                return;
             }
 
             const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
@@ -139,7 +149,7 @@ export default {
                         const waitingTime = Date.now() - ticket.createdAt;
                         value.push(`Waiting: ${formatTime(waitingTime)}`);
 
-                        if (hasBreachedSLA(ticket, ticketConfig['slaThresholds'])) {
+                        if (hasBreachedSLA(ticket, slaThresholds)) {
                             value.push('**SLA BREACHED**');
                         }
                     }
@@ -226,7 +236,7 @@ export default {
                 });
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

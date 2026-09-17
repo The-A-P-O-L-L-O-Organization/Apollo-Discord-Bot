@@ -152,7 +152,7 @@ export default {
 
             logger.info({ msg: `[REPORT] Message ${message.id} reported by ${interaction.user.tag} (Report ID: ${reportId})` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

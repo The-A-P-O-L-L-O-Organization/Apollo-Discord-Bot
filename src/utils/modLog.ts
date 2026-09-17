@@ -7,7 +7,7 @@ import { config } from '../config/config.js';
 
 export interface ModLogOptions {
     action: string;
-    target: { tag: string; id: string; displayAvatarURL(): string };
+    target: { tag: string; id: string; displayAvatarURL(): string | null };
     moderator: { tag: string; id: string };
     reason: string;
     duration?: string;

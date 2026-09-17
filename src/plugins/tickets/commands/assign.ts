@@ -1,9 +1,18 @@
-import type { ChatInputCommandInteraction } from 'discord.js';
+import type { ChatInputCommandInteraction, GuildMember, TextChannel } from 'discord.js';
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
 import { MessageFlags } from 'discord.js';
+
+interface AssignTicketData {
+    userId: string;
+    channelId?: string;
+    ticketNumber?: number;
+    category?: string;
+    assignedTo?: string[];
+    participants?: string[];
+}
 
 export default {
     name: 'assign',
@@ -27,7 +36,8 @@ export default {
 
             const ticketConfig = await getGuildData('tickets', guildId);
 
-            const ticket = ticketConfig['openTickets']?.find(t => t.channelId === channelId);
+            const openTickets = (ticketConfig['openTickets'] ?? []) as AssignTicketData[];
+            const ticket = openTickets.find(t => t.channelId === channelId);
 
             if (!ticket) {
                 await interaction.reply({
@@ -37,8 +47,8 @@ export default {
                 return;
             }
 
-            const member = interaction.member;
-            const hasSupport = ticketConfig['supportRoleId'] && member.roles.cache.has(ticketConfig['supportRoleId']);
+            const member = interaction.member as GuildMember;
+            const hasSupport = ticketConfig['supportRoleId'] && member.roles.cache.has(ticketConfig['supportRoleId'] as string);
             const isAdmin = member.permissions.has(PermissionFlagsBits.Administrator);
 
             if (!hasSupport && !isAdmin) {
@@ -60,19 +70,22 @@ export default {
             }
 
             await updateGuildData('tickets', guildId, (data) => {
-                const t = data['openTickets']?.find(x => x.channelId === channelId);
+                const open = (data['openTickets'] as AssignTicketData[] ?? []);
+                const t = open.find(x => x.channelId === channelId);
                 if (t) {
+                    t.assignedTo ??= [];
                     t.assignedTo.push(assignUser.id);
                     t.participants ??= [t.userId];
                     if (!t.participants.includes(assignUser.id)) {
                         t.participants.push(assignUser.id);
                     }
                 }
+                data['openTickets'] = open;
                 return data;
             });
 
             try {
-                await interaction.channel!.permissionOverwrites.edit(assignUser.id, {
+                await (interaction.channel as TextChannel).permissionOverwrites.edit(assignUser.id, {
                     ViewChannel: true,
                     SendMessages: true,
                     ReadMessageHistory: true,
@@ -113,7 +126,7 @@ export default {
                 // Ignore DM failures
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

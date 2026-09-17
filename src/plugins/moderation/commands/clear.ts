@@ -53,7 +53,7 @@ const clearCommand: ClearCommand = {
             const deleteAll = interaction.options.getBoolean('all');
 
             if (!channel?.isTextBased()) {
-                return interaction.reply({
+                await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
                         title: '[ERROR] Invalid Channel',
@@ -61,10 +61,12 @@ const clearCommand: ClearCommand = {
                     }],
                     flags: MessageFlags.Ephemeral
                 });
+                return;
             }
 
             if (deleteAll) {
-                return await this.handleDeleteAll(interaction, channel);
+                await this.handleDeleteAll(interaction, channel);
+                return;
             }
 
             const finalAmount = amount ?? 5;
@@ -72,7 +74,7 @@ const clearCommand: ClearCommand = {
             await this.deleteMessages(interaction, channel, finalAmount);
 
         } catch (error) {
-            return interaction.reply({
+            await interaction.reply({
                 embeds: [{
                     color: 0xFF0000,
                     title: '[ERROR] Command Failed',
@@ -80,6 +82,7 @@ const clearCommand: ClearCommand = {
                 }],
                 flags: MessageFlags.Ephemeral
             });
+            return;
         }
     },
 
@@ -87,7 +90,7 @@ const clearCommand: ClearCommand = {
         const fetched = await channel.messages.fetch({ limit: amount });
 
         if (fetched.size === 0) {
-            return interaction.reply({
+            await interaction.reply({
                 embeds: [{
                     color: 0xFFAA00,
                     title: '[WARNING] No Messages',
@@ -95,6 +98,7 @@ const clearCommand: ClearCommand = {
                 }],
                 flags: MessageFlags.Ephemeral
             });
+            return;
         }
 
         const deleted = await channel.bulkDelete(fetched, true);
@@ -109,8 +113,9 @@ const clearCommand: ClearCommand = {
 
         await sendModLog(interaction.guild!, {
             action: 'clear',
-            target: { tag: `#${channel.name}`, id: channel.id },
+            target: { tag: `#${channel.name}`, id: channel.id, displayAvatarURL: () => null },
             moderator: interaction.user,
+            reason: `${deleted.size} message(s) cleared`,
             extra: {
                 'Channel': `<#${channel.id}>`,
                 'Messages Deleted': deleted.size.toString()
@@ -190,8 +195,9 @@ const clearCommand: ClearCommand = {
 
                     await sendModLog(interaction.guild!, {
                         action: 'clear_all',
-                        target: { tag: `#${channel.name}`, id: channel.id },
+                        target: { tag: `#${channel.name}`, id: channel.id, displayAvatarURL: () => null },
                         moderator: interaction.user,
+                        reason: `${totalDeleted} message(s) cleared`,
                         extra: {
                             'Channel': `<#${channel.id}>`,
                             'Messages Deleted': totalDeleted.toString()

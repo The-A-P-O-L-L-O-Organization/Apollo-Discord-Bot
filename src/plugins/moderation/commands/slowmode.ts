@@ -1,5 +1,5 @@
 // Slowmode Command - Set channel slowmode (rate limit)
-import type { ChatInputCommandInteraction, TextBasedChannel } from 'discord.js';
+import type { ChatInputCommandInteraction, TextChannel } from 'discord.js';
 import { MessageFlags } from 'discord.js';
 import { PermissionsBitField } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
@@ -41,7 +41,7 @@ export default {
             const channel = interaction.options.getChannel('channel') ?? interaction.channel;
             const reason = interaction.options.getString('reason') ?? 'No reason provided';
 
-            const textChannel = channel as TextBasedChannel;
+            const textChannel = channel as TextChannel;
 
             if (!textChannel.isTextBased()) {
                 const errorEmbed = {
@@ -124,7 +124,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] Slowmode ${duration === 0 ? 'disabled' : 'set to ' + duration + 's'} for channel ${textChannel.name} by ${interaction.user.tag}. Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

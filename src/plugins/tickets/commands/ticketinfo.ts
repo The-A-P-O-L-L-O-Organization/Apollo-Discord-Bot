@@ -5,6 +5,27 @@ import { formatTime, getPriorityColor, getPriorityEmoji } from '../../../utils/s
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { MessageFlags } from 'discord.js';
 
+interface TicketInfoData {
+    userId: string;
+    ticketNumber?: number;
+    channelId?: string;
+    priority?: string;
+    category?: string;
+    status?: string;
+    closedAt?: number;
+    createdAt: number;
+    reason?: string;
+    claimedBy?: string;
+    assignedTo?: string[];
+    participants?: string[];
+    firstResponseAt?: number;
+    closedBy?: string;
+    closeReason?: string;
+    rating?: number;
+    ratingFeedback?: string;
+    tags?: string[];
+}
+
 export default {
     name: 'ticketinfo',
     data: new SlashCommandBuilder()
@@ -27,13 +48,15 @@ export default {
             const ticketNumber = interaction.options.getInteger('number');
 
             const ticketConfig = await getGuildData('tickets', guildId);
-            let ticket;
+            const openTickets = (ticketConfig['openTickets'] ?? []) as TicketInfoData[];
+            const closedTickets = (ticketConfig['closedTickets'] ?? []) as TicketInfoData[];
+            let ticket: TicketInfoData | undefined;
 
             if (ticketNumber) {
-                ticket = ticketConfig['openTickets']?.find(t => t.ticketNumber === ticketNumber) ??
-                         ticketConfig['closedTickets']?.find(t => t.ticketNumber === ticketNumber);
+                ticket = openTickets.find(t => t.ticketNumber === ticketNumber) ??
+                    closedTickets.find(t => t.ticketNumber === ticketNumber);
             } else {
-                ticket = ticketConfig['openTickets']?.find(t => t.channelId === channelId);
+                ticket = openTickets.find(t => t.channelId === channelId);
             }
 
             if (!ticket) {
@@ -178,7 +201,7 @@ export default {
 
             await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

@@ -113,7 +113,7 @@ export default {
                 await handleGlobal(interaction);
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {
@@ -163,12 +163,13 @@ async function handleAdd(interaction: ChatInputCommandInteraction): Promise<void
         const entries = guildData.entries ?? {};
 
         // Check if already blacklisted
-        if (entries[user.id]) {
+        const existingEntry = entries[user.id];
+        if (existingEntry) {
             await interaction.reply({
                 embeds: [{
                     color: 0xFFA500,
                     title: '[WARNING] Already Blacklisted',
-                    description: `${user.tag} is already on the blacklist.\nReason: ${entries[user.id].reason}`,
+                    description: `${user.tag} is already on the blacklist.\nReason: ${existingEntry.reason}`,
                     timestamp: new Date().toISOString()
                 }],
                 flags: MessageFlags.Ephemeral
@@ -243,7 +244,7 @@ async function handleRemove(interaction: ChatInputCommandInteraction): Promise<v
             return;
         }
 
-        const removedEntry = entries[user.id];
+        const removedEntry = entries[user.id]!;
         await updateGuildData('blacklist', interaction.guild!.id, (data: BlacklistData) => {
             if (data.entries) {
                 delete data.entries[user.id];
@@ -372,12 +373,13 @@ async function handleGlobal(interaction: ChatInputCommandInteraction): Promise<v
                 return;
             }
 
-            if (entries[user.id]) {
+            const existingGlobalEntry = entries[user.id];
+            if (existingGlobalEntry) {
                 await interaction.reply({
                     embeds: [{
                         color: 0xFFA500,
                         title: '[WARNING] Already Blacklisted',
-                        description: `${user.tag} is already on the global blacklist.\nReason: ${entries[user.id].reason}`,
+                        description: `${user.tag} is already on the global blacklist.\nReason: ${existingGlobalEntry.reason}`,
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -440,7 +442,7 @@ async function handleGlobal(interaction: ChatInputCommandInteraction): Promise<v
                 return;
             }
 
-            const removedEntry = entries[user.id];
+            const removedEntry = entries[user.id]!;
             await updateGuildData('global_blacklist', '__global__', (data: BlacklistData) => {
                 if (data.entries) {
                     delete data.entries[user.id];

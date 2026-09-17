@@ -89,12 +89,26 @@ export default {
             const guildId = interaction.guild!.id;
             const subcommand = interaction.options.getSubcommand();
             const ticketConfig = await getGuildData('tickets', guildId);
-            const allTickets = [
-                ...(ticketConfig['openTickets'] ?? []),
-                ...(ticketConfig['closedTickets'] ?? [])
+
+            interface SearchTicketData {
+                userId?: string;
+                category?: string;
+                assignedTo?: string[];
+                claimedBy?: string;
+                priority?: string;
+                ticketNumber?: number;
+                createdAt: number;
+                closedAt?: number;
+                firstResponseAt?: number;
+                rating?: number;
+            }
+
+            const allTickets: SearchTicketData[] = [
+                ...((ticketConfig['openTickets'] ?? []) as SearchTicketData[]),
+                ...((ticketConfig['closedTickets'] ?? []) as SearchTicketData[])
             ];
 
-            let results: any[] = [];
+            let results: SearchTicketData[] = [];
 
             if (subcommand === 'user') {
                 const user = interaction.options.getUser('user')!;
@@ -116,9 +130,10 @@ export default {
             }
 
             if (results.length === 0) {
-                return interaction.editReply({
+                await interaction.editReply({
                     content: 'No tickets found matching your search criteria.'
                 });
+                return;
             }
 
             results.sort((a, b) => b.createdAt - a.createdAt);
@@ -245,7 +260,7 @@ export default {
                 });
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

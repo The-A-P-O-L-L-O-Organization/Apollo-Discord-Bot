@@ -100,10 +100,11 @@ export default {
                 const list = (templates['list'] as TemplateData[]) || [];
 
                 if (list.find(t => t.name.toLowerCase() === name.toLowerCase())) {
-                    return interaction.reply({
+                    await interaction.reply({
                         content: `A template named **${name}** already exists. Delete it first to create a new one with this name.`,
                         flags: MessageFlags.Ephemeral
                     });
+                    return;
                 }
 
                 const questions = questionsStr ? questionsStr.split('|').map(q => q.trim()).filter(q => q.length > 0) : [];
@@ -136,7 +137,8 @@ export default {
                     )
                     .setTimestamp();
 
-                return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+                return;
 
             } else if (subcommand === 'delete') {
                 const name = interaction.options.getString('name')!;
@@ -147,33 +149,36 @@ export default {
                 const templateIndex = list.findIndex(t => t.name.toLowerCase() === name.toLowerCase());
 
                 if (templateIndex === -1) {
-                    return interaction.reply({
+                    await interaction.reply({
                         content: `Template **${name}** not found.`,
                         flags: MessageFlags.Ephemeral
                     });
+                    return;
                 }
 
-                const deletedTemplate = list[templateIndex];
+                const deletedTemplate = list[templateIndex]!;
                 await updateGuildData('ticket-templates', guildId, (data: Record<string, unknown>) => {
                     const currentList = (data['list'] as TemplateData[]) || [];
                     data['list'] = currentList.filter(t => t.id !== deletedTemplate.id);
                     return data;
                 });
 
-                return interaction.reply({
+                await interaction.reply({
                     content: `Template **${deletedTemplate.name}** has been deleted.`,
                     flags: MessageFlags.Ephemeral
                 });
+                return;
 
             } else if (subcommand === 'list') {
                 const templates = await getGuildData('ticket-templates', guildId);
                 const list = (templates['list'] as TemplateData[]) || [];
 
                 if (list.length === 0) {
-                    return interaction.reply({
+                    await interaction.reply({
                         content: 'No templates have been created yet. Use `/tickettemplate create` to create one.',
                         flags: MessageFlags.Ephemeral
                     });
+                    return;
                 }
 
                 const embed = new EmbedBuilder()
@@ -190,7 +195,8 @@ export default {
                     });
                 });
 
-                return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+                return;
 
             } else if (subcommand === 'view') {
                 const name = interaction.options.getString('name')!;
@@ -201,10 +207,11 @@ export default {
                 const template = list.find(t => t.name.toLowerCase() === name.toLowerCase());
 
                 if (!template) {
-                    return interaction.reply({
+                    await interaction.reply({
                         content: `Template **${name}** not found.`,
                         flags: MessageFlags.Ephemeral
                     });
+                    return;
                 }
 
                 const embed = new EmbedBuilder()
@@ -218,10 +225,11 @@ export default {
                     )
                     .setTimestamp();
 
-                return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+                return;
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

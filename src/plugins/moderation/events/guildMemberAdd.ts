@@ -1,16 +1,23 @@
 import { EmbedBuilder } from 'discord.js';
+import type { GuildMember, GuildBasedChannel, TextChannel } from 'discord.js';
 import { config } from '../../../config/config.js';
-import { logEvent, createMemberJoinEmbed } from '../../../utils/logger.js';
+import { logEvent, createMemberJoinEmbed } from '../../../utils/guildLogging.js';
 import { getGuildData, getData, updateGuildData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { checkRaidPattern, handleRaidDetected, checkRaidPatternRedis, trackJoinRedis } from '../../../utils/raidDetection.js';
 import { getLockRedis } from '../../../utils/lock.js';
 import { trackMemberChange } from '../../../utils/analyticsCollector.js';
 
+interface BlacklistEntry {
+    reason?: string;
+    moderatorTag?: string;
+    moderatorId?: string;
+}
+
 export default {
     name: 'guildMemberAdd',
     once: false,
-    async execute(member, _client) {
+    async execute(member: GuildMember, _client: unknown) {
         const { guild } = member;
 
         // Track member join for analytics
@@ -27,14 +34,14 @@ export default {
                     const accountAge = Date.now() - member.user.createdTimestamp;
                     const accountAgeDays = accountAge / (1000 * 60 * 60 * 24);
                     await trackJoinRedis(guild.id, member.user.id, member.user.username, Date.now(), accountAgeDays);
-                    isRaid = await checkRaidPatternRedis(guild.id, 5, 10000, Date.now());
+                    isRaid = (await checkRaidPatternRedis(guild.id, 5, 10000, Date.now())).detected;
                 } else {
                     // Fallback to in-memory
-                    isRaid = checkRaidPattern(guild.id, member);
+                    isRaid = await checkRaidPattern(guild.id, member);
                 }
             } else {
                 // Use in-memory detection
-                isRaid = checkRaidPattern(guild.id, member);
+                isRaid = await checkRaidPattern(guild.id, member);
             }
 
             if (isRaid) {
@@ -44,16 +51,16 @@ export default {
 
         // --- Blacklist check ---
         if (!member.user.bot) {
-            const globalData = (await getData('global_blacklist')) || { entries: {} };
-            const globalEntries = globalData['entries'] ?? {};
-            let entry = globalEntries[member.id];
+            const globalData = await getData('global_blacklist');
+            const globalEntries = (globalData['entries'] ?? {}) as Record<string, BlacklistEntry>;
+            let entry: BlacklistEntry | undefined = globalEntries[member.id];
             let isGlobal = false;
 
             if (entry) {
                 isGlobal = true;
             } else {
                 const guildData = await getGuildData('blacklist', guild.id);
-                const entries = guildData['entries'] ?? {};
+                const entries = (guildData['entries'] ?? {}) as Record<string, BlacklistEntry>;
                 entry = entries[member.id];
             }
 
@@ -67,8 +74,8 @@ export default {
                             : 'You are on this server\'s blacklist and have been automatically banned.'
                         )
                         .addFields(
-                            { name: 'Reason', value: entry.reason, inline: false },
-                            { name: 'Blacklisted By', value: entry.moderatorTag, inline: true },
+                            { name: 'Reason', value: entry.reason ?? 'No reason provided', inline: false },
+                            { name: 'Blacklisted By', value: entry.moderatorTag ?? 'Unknown', inline: true },
                             { name: 'Server', value: guild.name, inline: true },
                             { name: 'Scope', value: isGlobal ? 'Global (All Servers)' : 'This Server Only', inline: true }
                         )
@@ -77,7 +84,7 @@ export default {
 
                     await member.user.send({ embeds: [dmEmbed] });
                 } catch (dmError) {
-                    console.log(`[INFO] Could not DM blacklisted user ${member.user.tag}: ${dmError.message}`);
+                    console.log(`[INFO] Could not DM blacklisted user ${member.user.tag}: ${(dmError as Error).message}`);
                 }
 
                 try {
@@ -88,7 +95,7 @@ export default {
                     await sendModLog(guild, {
                         action: 'ban',
                         target: member.user,
-                        moderator: { tag: entry.moderatorTag, id: entry.moderatorId, displayAvatarURL: () => null },
+                        moderator: { tag: entry.moderatorTag ?? 'Unknown', id: entry.moderatorId ?? 'Unknown' },
                         reason: `Auto-ban (${isGlobal ? 'global ' : ''}blacklisted): ${entry.reason}`,
                         extra: {
                             'Trigger': 'Server join',
@@ -111,7 +118,7 @@ export default {
             const autoRoleConfig = await getGuildData('autorole', guild.id);
 
             if (autoRoleConfig?.['enabled'] && autoRoleConfig['roleId']) {
-                const role = guild.roles.cache.get(autoRoleConfig['roleId']);
+                const role = guild.roles.cache.get(autoRoleConfig['roleId'] as string);
 
                 if (role) {
                     try {
@@ -126,12 +133,15 @@ export default {
             const rolePersistenceConfig = await getGuildData('role-persistence', guild.id);
 
             if (rolePersistenceConfig?.['enabled'] && rolePersistenceConfig['savedRoles']) {
-                const savedData = rolePersistenceConfig['savedRoles'][member.id];
+                const savedRoles = rolePersistenceConfig['savedRoles'] as Record<string, { roles?: string[] }>;
+                const savedData = savedRoles[member.id];
 
                 if (savedData?.roles && savedData.roles.length > 0) {
                     const validRoles = savedData.roles
-                        .filter(roleId => guild.roles.cache.has(roleId))
-                        .map(roleId => guild.roles.cache.get(roleId));
+                        .flatMap((roleId: string) => {
+                            const r = guild.roles.cache.get(roleId);
+                            return r ? [r] : [];
+                        });
 
                     if (validRoles.length > 0) {
                         try {
@@ -139,8 +149,9 @@ export default {
                             console.log(`[SUCCESS] Restored ${validRoles.length} roles for ${member.user.tag}`);
 
                             await updateGuildData('role-persistence', guild.id, (data) => {
-                                if (data['savedRoles']) {
-                                    delete data['savedRoles'][member.id];
+                                const saved = data['savedRoles'] as Record<string, { roles?: string[] }> | undefined;
+                                if (saved) {
+                                    delete saved[member.id];
                                 }
                                 return data;
                             });
@@ -163,7 +174,7 @@ export default {
             return;
         }
 
-        const canSend = (ch) => ch.isTextBased() && ch.permissionsFor(me).has('SendMessages');
+        const canSend = (ch: GuildBasedChannel) => ch.isTextBased() && ch.permissionsFor(me)?.has('SendMessages');
 
         const welcomeChannel = guild.channels.cache.find(
             (ch) => ch.name === config.welcome.channelName
@@ -208,18 +219,18 @@ export default {
             .setThumbnail(member.user.displayAvatarURL())
             .setFooter({
                 text: `Total Members: ${guild.memberCount}`,
-                iconURL: guild.iconURL()
+                iconURL: guild.iconURL() ?? undefined
             })
             .setTimestamp();
 
         try {
-            await targetChannel.send({
+            await (targetChannel as TextChannel).send({
                 content: `Hey ${member.toString()}!`,
                 embeds: [welcomeEmbed]
             });
             console.log(`[SUCCESS] Welcome message sent for ${member.user.tag}`);
         } catch (error) {
-            console.warn(`[WARN] Could not send welcome message in #${targetChannel.name} (${targetChannel.id}): ${error.message}`);
+            console.warn(`[WARN] Could not send welcome message in #${targetChannel.name} (${targetChannel.id}): ${(error as Error).message}`);
         }
     }
 };

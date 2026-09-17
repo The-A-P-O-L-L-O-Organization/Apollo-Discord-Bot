@@ -8,13 +8,14 @@ import { createModCase } from './case.js';
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 import { canModerate } from '../../../utils/moderation.js';
 import { safeError } from '../../../utils/safeError.js';
+import type { WarningEntry } from './warnings.js';
 
 function getNextThreshold(currentCount: number, thresholds: Record<string, number>): { action: string; count: number } | null {
     const sorted = [
         { action: 'mute', count: thresholds['mute'] },
         { action: 'kick', count: thresholds['kick'] },
         { action: 'ban', count: thresholds['ban'] }
-    ].filter(t => t.count).sort((a, b) => a.count - b.count);
+    ].filter((t): t is { action: string; count: number } => Boolean(t.count)).sort((a, b) => a.count - b.count);
 
     return sorted.find(t => t.count > currentCount) ?? null;
 }
@@ -117,8 +118,8 @@ export default {
 
             await appendToUserArray('warnings', interaction.guild!.id, user.id, warning);
 
-            const userWarnings = await getUserData('warnings', interaction.guild!.id, user.id) ?? [];
-            const activeWarnings = userWarnings.filter((w: any) => w.active !== false);
+            const userWarnings = ((await getUserData('warnings', interaction.guild!.id, user.id)) as unknown as WarningEntry[]) ?? [];
+            const activeWarnings = userWarnings.filter(w => w.active !== false);
             const warningCount = activeWarnings.length;
 
             const caseId = createModCase(interaction.guild!.id, {
@@ -131,8 +132,8 @@ export default {
             });
 
             const guildSettings = await getGuildData('warnings-config', interaction.guild!.id);
-            const thresholds = guildSettings['thresholds'] ?? config.warnings.thresholds;
-            const muteDuration = guildSettings['muteDuration'] ?? config.warnings.muteDuration;
+            const thresholds = (guildSettings['thresholds'] as Record<string, number> | undefined) ?? config.warnings.thresholds;
+            const muteDuration = (guildSettings['muteDuration'] as number | undefined) ?? config.warnings.muteDuration;
 
             let dmSent = false;
             if (config.warnings.dmOnWarn) {

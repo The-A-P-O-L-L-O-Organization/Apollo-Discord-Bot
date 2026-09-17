@@ -1,6 +1,6 @@
 // Purge Command - Delete multiple messages from a channel
 import type { ChatInputCommandInteraction, TextChannel, ThreadChannel, NewsChannel } from 'discord.js';
-import { ApplicationCommandType, MessageFlags, PermissionsBitField } from 'discord.js';
+import { ApplicationCommandType, Collection, MessageFlags, PermissionsBitField } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { canModerate } from '../../../utils/moderation.js';
@@ -49,28 +49,43 @@ export default {
                     description: 'Please specify a number between 1 and 100.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
-            const channel = interaction.channel;
+            const manageableChannel = interaction.channel as (TextChannel | ThreadChannel | NewsChannel) | null;
 
-            const manageableChannel = channel as TextChannel | ThreadChannel | NewsChannel;
+            if (!manageableChannel) {
+                await interaction.reply({
+                    embeds: [{
+                        color: 0xFF0000,
+                        title: '[ERROR] No Channel',
+                        description: 'This command must be used in a channel.',
+                        timestamp: new Date().toISOString()
+                    }],
+                    flags: MessageFlags.Ephemeral
+                });
+                return;
+            }
 
-            if (!manageableChannel.permissionsFor(interaction.client.user).has(PermissionsBitField.Flags.ManageMessages)) {
+            const botUser = interaction.client.user;
+            const channelPerms = manageableChannel.permissionsFor(botUser!);
+            if (!channelPerms?.has(PermissionsBitField.Flags.ManageMessages)) {
                 const errorEmbed = {
                     color: 0xFF0000,
                     title: '[ERROR] Missing Permissions',
                     description: 'I do not have permission to delete messages in this channel.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             let messages = await manageableChannel.messages.fetch({ limit: amount });
 
             if (targetUser) {
                 messages = messages.filter(msg => msg.author.id === targetUser.id);
-                messages = new Map([...messages].slice(0, 100));
+                messages = new Collection([...messages].slice(0, 100));
             }
 
             if (targetUser) {
@@ -83,7 +98,8 @@ export default {
                         description: hierarchy.reason,
                         timestamp: new Date().toISOString()
                     };
-                    return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                    await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                    return;
                 }
             }
 
@@ -96,16 +112,18 @@ export default {
                         : 'No messages found to delete.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             const deletedMessages = await manageableChannel.bulkDelete(messages, true);
 
             if (deletedMessages.size === 0 && messages.size > 0) {
-                return interaction.reply({
+                await interaction.reply({
                     content: 'Could not delete messages - they may be older than 14 days.',
                     flags: MessageFlags.Ephemeral
                 });
+                return;
             }
 
             const successEmbed = {

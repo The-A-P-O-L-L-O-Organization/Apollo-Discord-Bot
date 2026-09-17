@@ -89,7 +89,8 @@ export default {
                     description: 'Please specify a valid user.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             if (subcommand === 'add') {
@@ -100,7 +101,7 @@ export default {
                 await handleRemoveNote(interaction, user);
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {
@@ -164,7 +165,8 @@ async function handleViewNotes(interaction: ChatInputCommandInteraction, user: U
             description: `No notes found for ${user.tag}.`,
             timestamp: new Date().toISOString()
         };
-        return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+        return;
     }
 
     notes.sort((a, b) => b.timestamp - a.timestamp);
@@ -201,10 +203,11 @@ async function handleRemoveNote(interaction: ChatInputCommandInteraction, user: 
             description: `No note with ID \`${noteId}\` found for ${user.tag}.`,
             timestamp: new Date().toISOString()
         };
-        return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+        return;
     }
 
-    const removedNote = notes.splice(noteIndex, 1)[0];
+    const removedNote = notes.splice(noteIndex, 1)[0]!;
     await setUserData('mod-notes', interaction.guild!.id, user.id, notes);
 
     const successEmbed = {

@@ -2,12 +2,12 @@
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
-import { getUserData, appendToUserArray, generateId, getGuildData } from '../../../utils/db.ts';
+import { getUserData, appendToUserArray, generateId, getGuildData } from '../../../utils/db.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { canModerate } from '../../../utils/moderation.js';
 import { safeError } from '../../../utils/safeError.js';
 
-interface StrikeEntry {
+export interface StrikeEntry {
     id: string;
     reason: string;
     moderatorId: string;
@@ -50,7 +50,7 @@ export default {
             const reason = interaction.options.getString('reason', true);
 
             if (!user) {
-                return interaction.reply({
+                await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
                         title: '[ERROR] Missing User',
@@ -59,10 +59,11 @@ export default {
                     }],
                     flags: MessageFlags.Ephemeral
                 });
+                return;
             }
 
             if (user.bot) {
-                return interaction.reply({
+                await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
                         title: '[ERROR] Invalid Target',
@@ -71,10 +72,11 @@ export default {
                     }],
                     flags: MessageFlags.Ephemeral
                 });
+                return;
             }
 
             if (user.id === interaction.user.id) {
-                return interaction.reply({
+                await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
                         title: '[ERROR] Self Action',
@@ -83,12 +85,13 @@ export default {
                     }],
                     flags: MessageFlags.Ephemeral
                 });
+                return;
             }
 
             const member = await fetchMember(interaction.guild!, user.id);
 
             if (!member) {
-                return interaction.reply({
+                await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
                         title: '[ERROR] Member Not Found',
@@ -97,6 +100,7 @@ export default {
                     }],
                     flags: MessageFlags.Ephemeral
                 });
+                return;
             }
 
             const hierarchy = canModerate(interaction.guild!, interaction.member, member);
@@ -107,7 +111,8 @@ export default {
                     description: hierarchy.reason,
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             const strike = {
@@ -121,7 +126,7 @@ export default {
 
             await appendToUserArray('strikes', interaction.guild!.id, user.id, strike);
 
-            const userStrikes = (await getUserData('strikes', interaction.guild!.id, user.id)) as StrikeEntry[] || [];
+            const userStrikes = ((await getUserData('strikes', interaction.guild!.id, user.id)) as unknown as StrikeEntry[]) ?? [];
             const activeStrikes = userStrikes.filter(s => s.active !== false);
             const strikeCount = activeStrikes.length;
 

@@ -4,8 +4,7 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, MessageFla
 import { PermissionsBitField } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
-// @ts-expect-error - JS file not yet migrated
-import { createModCase } from './case.ts';
+import { createModCase } from './case.js';
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 import { canModerate } from '../../../utils/moderation.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
@@ -153,7 +152,7 @@ export default {
 
                             const hierarchy = canModerate(interaction.guild!, interaction.member, member);
                             if (!hierarchy.ok) {
-                                results.failed.push({ userId, error: hierarchy.reason });
+                                results.failed.push({ userId, error: hierarchy.reason ?? 'Hierarchy check failed.' });
                                 continue;
                             }
 
@@ -231,7 +230,7 @@ export default {
                 }
             });
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

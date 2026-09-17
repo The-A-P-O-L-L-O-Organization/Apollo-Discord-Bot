@@ -1,5 +1,5 @@
 // Lockdown Command - Lock a channel to prevent @everyone from sending messages
-import type { ChatInputCommandInteraction} from 'discord.js';
+import type { ChatInputCommandInteraction, TextChannel} from 'discord.js';
 import { MessageFlags } from 'discord.js';
 import { PermissionsBitField } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
@@ -31,7 +31,7 @@ export default {
     async execute(interaction: ChatInputCommandInteraction) {
         try {
             // Get the channel to lock
-            const channel = interaction.options.getChannel('channel') ?? interaction.channel;
+            const channel = (interaction.options.getChannel('channel') ?? interaction.channel) as TextChannel | null;
             const reason = interaction.options.getString('reason') ?? 'No reason provided';
 
             // Check if the channel is a text-based channel
@@ -42,7 +42,8 @@ export default {
                     description: 'You can only lock text-based channels.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             // Get the @everyone role
@@ -60,7 +61,8 @@ export default {
                     description: `${channel} is already in lockdown mode.`,
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             // Store original permissions before locking
@@ -152,7 +154,7 @@ export default {
             // Log the action
             logger.info({ msg: `[MODERATION] Channel ${channel!.name} was locked by ${interaction.user.tag}. Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

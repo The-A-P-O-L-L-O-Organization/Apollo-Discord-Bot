@@ -1,9 +1,9 @@
 // Voice Move Command - Move a user to a different voice channel
-import type { ChatInputCommandInteraction} from 'discord.js';
+import type { ChatInputCommandInteraction, VoiceChannel} from 'discord.js';
 import { PermissionFlagsBits, ChannelType, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
-import { createModCase } from './case.ts';
+import { createModCase } from './case.js';
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 import { canModerate } from '../../../utils/moderation.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
@@ -23,7 +23,7 @@ export default {
     async execute(interaction: ChatInputCommandInteraction) {
         try {
             const user = interaction.options.getUser('user');
-            const targetChannel = interaction.options.getChannel('channel');
+            const targetChannel = interaction.options.getChannel('channel') as VoiceChannel | null;
             const reason = interaction.options.getString('reason') ?? 'No reason provided';
 
             if (!user) {
@@ -163,7 +163,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] User ${user.tag} was moved from ${sourceChannelName} to ${targetChannelName} by ${interaction.user.tag}. Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

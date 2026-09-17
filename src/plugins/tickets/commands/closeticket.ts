@@ -1,4 +1,4 @@
-import type { ChatInputCommandInteraction } from 'discord.js';
+import type { ChatInputCommandInteraction, FetchMessagesOptions, GuildMember, GuildTextBasedChannel, Message } from 'discord.js';
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
 import { saveTranscripts } from '../../../utils/transcriptGenerator.js';
@@ -6,6 +6,17 @@ import { clearSlaAlert } from '../../../plugins/tickets/events/slaMonitor.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
 import { MessageFlags } from 'discord.js';
+
+interface CloseTicketData {
+    id: string;
+    userId: string;
+    ticketNumber?: number;
+    reason?: string;
+    createdAt: number;
+    priority?: string;
+    category?: string;
+    channelId?: string;
+}
 
 export default {
     name: 'closeticket',
@@ -29,9 +40,10 @@ export default {
 
             const ticketConfig = await getGuildData('tickets', guildId);
 
-            const ticketIndex = ticketConfig['openTickets']?.findIndex(t => t.channelId === channelId);
+            const openTickets = (ticketConfig['openTickets'] ?? []) as CloseTicketData[];
+            const ticketIndex = openTickets.findIndex(t => t.channelId === channelId);
 
-            if (ticketIndex === -1 || ticketIndex === undefined) {
+            if (ticketIndex === -1) {
                 await interaction.reply({
                     content: 'This channel is not a ticket channel.',
                     flags: MessageFlags.Ephemeral
@@ -39,11 +51,11 @@ export default {
                 return;
             }
 
-            const ticket = ticketConfig['openTickets'][ticketIndex];
+            const ticket = openTickets[ticketIndex]!;
 
-            const member = interaction.member;
+            const member = interaction.member as GuildMember;
             const isTicketOwner = ticket.userId === interaction.user.id;
-            const hasSupport = ticketConfig['supportRoleId'] && member.roles.cache.has(ticketConfig['supportRoleId']);
+            const hasSupport = ticketConfig['supportRoleId'] && member.roles.cache.has(ticketConfig['supportRoleId'] as string);
             const isAdmin = member.permissions.has(PermissionFlagsBits.Administrator);
 
             if (!isTicketOwner && !hasSupport && !isAdmin) {
@@ -60,14 +72,14 @@ export default {
             });
 
             // Fetch messages with cursor-based pagination to avoid rate limits
-            let allMessages = [];
-            let lastMessageId = null;
+            let allMessages: Message[] = [];
+            let lastMessageId: string | null = null;
             const MAX_MESSAGES = 1000;
             const FETCH_DELAY_MS = 100; // Delay between fetches to avoid rate limits
 
             try {
                 while (allMessages.length < MAX_MESSAGES) {
-                    const options = { limit: 100 };
+                    const options: FetchMessagesOptions = { limit: 100 };
                     if (lastMessageId) {
                         options.before = lastMessageId;
                     }
@@ -92,10 +104,10 @@ export default {
             const ticketCreator = await interaction.client.users.fetch(ticket.userId).catch(() => null);
 
             const transcript = {
-                ticketNumber: ticket.ticketNumber,
+                ticketNumber: String(ticket.ticketNumber ?? 0),
                 guildId,
                 guildName: interaction.guild!.name,
-                channelName: interaction.channel!.name,
+                channelName: (interaction.channel as GuildTextBasedChannel).name,
                 createdBy: {
                     id: ticket.userId,
                     tag: ticketCreator?.tag ?? 'Unknown'
@@ -104,7 +116,7 @@ export default {
                     id: interaction.user.id,
                     tag: interaction.user.tag
                 },
-                reason: ticket.reason,
+                reason: ticket.reason ?? reason,
                 closeReason: reason,
                 createdAt: ticket.createdAt,
                 closedAt: Date.now(),
@@ -134,14 +146,16 @@ export default {
             const { htmlFile, textFile } = await saveTranscripts(transcript);
 
             await updateGuildData('tickets', guildId, (data) => {
-                data['openTickets'].splice(ticketIndex, 1);
+                const currentOpenTickets = (data['openTickets'] as CloseTicketData[] ?? []);
+                currentOpenTickets.splice(ticketIndex, 1);
+                data['openTickets'] = currentOpenTickets;
 
-                data['closedTickets'] ??= [];
-                data['closedTickets'].push({
+                const closedTickets = (data['closedTickets'] as Record<string, unknown>[] ?? []);
+                closedTickets.push({
                     ticketNumber: ticket.ticketNumber,
                     userId: ticket.userId,
                     closedBy: interaction.user.id,
-                    reason: ticket.reason,
+                reason: ticket.reason ?? reason,
                     closeReason: reason,
                     createdAt: ticket.createdAt,
                     closedAt: Date.now(),
@@ -149,8 +163,10 @@ export default {
                     transcriptTextFile: textFile
                 });
 
-                if (data['closedTickets'].length > 100) {
-                    data['closedTickets'] = data['closedTickets'].slice(-100);
+                if (closedTickets.length > 100) {
+                    data['closedTickets'] = closedTickets.slice(-100);
+                } else {
+                    data['closedTickets'] = closedTickets;
                 }
 
                 return data;
@@ -180,14 +196,14 @@ export default {
             setTimeout(() => { void (async () => {
                 try {
                     const channel = await interaction.client.channels.fetch(channelId);
-                    await channel.delete(`Ticket closed by ${interaction.user.tag}: ${reason}`);
+                    await channel?.delete(`Ticket closed by ${interaction.user.tag}: ${reason}`);
                 } catch (error) {
                     logger.error({ msg: '[ERROR] Failed to delete ticket channel', err: error });
                 }
             })(); }, 3000);
 
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

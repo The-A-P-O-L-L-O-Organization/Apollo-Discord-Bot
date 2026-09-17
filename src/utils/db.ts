@@ -66,7 +66,7 @@ export async function getGuildData(store: string, guildId: string): Promise<Reco
     try { return row?.data ? JSON.parse(row.data) : {}; } catch { return {}; }
 }
 
-export async function setGuildData(store: string, guildId: string, data: Record<string, unknown>): Promise<void> {
+export async function setGuildData(store: string, guildId: string, data: unknown): Promise<void> {
     if (USE_PG) { return (await getAdapter())['setGuildData'](store, guildId, data); }
     const isTest = process.env['NODE_ENV'] === 'test' || process.env['VITEST'] === 'true';
     if (isTest && config.database.type === 'sqlite') {
@@ -139,7 +139,7 @@ export async function getUserData(store: string, guildId: string, userId: string
     try { return row?.data ? JSON.parse(row.data) : undefined; } catch { return undefined; }
 }
 
-export async function setUserData(store: string, guildId: string, userId: string, data: Record<string, unknown>): Promise<void> {
+export async function setUserData(store: string, guildId: string, userId: string, data: unknown): Promise<void> {
     if (USE_PG) { return (await getAdapter())['setUserData'](store, guildId, userId, data); }
     const { db } = await getAdapter() as { db: unknown };
     const stmt = (db as { prepare: (sql: string) => { run: (store: string, guildId: string, userId: string, data: string) => void } }).prepare('INSERT INTO guild_user_store (store, guild_id, user_id, data) VALUES (?, ?, ?, ?) ON CONFLICT(store, guild_id, user_id) DO UPDATE SET data = excluded.data');
