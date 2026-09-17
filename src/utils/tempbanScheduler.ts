@@ -5,7 +5,7 @@ import { logger } from './logger.js';
 import { getData, setData } from './db.js';
 import { config } from '../config/config.js';
 import { getLockRedis, withLock } from './lock.js';
-import type { Client} from 'discord.js';
+import type { Client, TextChannel } from 'discord.js';
 
 let client: Client | null = null;
 let schedulerInterval: NodeJS.Timeout | null = null;
@@ -65,7 +65,7 @@ async function checkTempbans(): Promise<void> {
     if (!client) { return; }
 
     try {
-        const data = getData('tempbans') as TempbansData | null;
+        const data = (await getData('tempbans')) as unknown as TempbansData | null;
         const tempbans = data?.tempbans ?? [];
         const now = Date.now();
 
@@ -99,6 +99,7 @@ async function checkTempbans(): Promise<void> {
  * @param tempban - The tempban object
  */
 async function processTempbanExpiry(tempban: TempbanData): Promise<void> {
+    if (!client) { return; }
     try {
         // Get the guild
         const guild = await client.guilds.fetch(tempban.guildId).catch(() => null);
@@ -150,7 +151,7 @@ async function processTempbanExpiry(tempban: TempbanData): Promise<void> {
                     }
                 };
 
-                await logChannel.send({ embeds: [unbanEmbed] }).catch((err: Error) => {
+                await (logChannel as TextChannel).send({ embeds: [unbanEmbed] }).catch((err: Error) => {
                     logger.info({ msg: `[WARNING] Could not send tempban expiry log: ${err.message}` });
                 });
             }
@@ -175,7 +176,7 @@ async function processTempbanExpiry(tempban: TempbanData): Promise<void> {
  * @param tempbanData - The tempban data
  */
 export async function addTempban(tempbanData: TempbanData): Promise<void> {
-    const data = getData('tempbans') as TempbansData | null;
+    const data = ((await getData('tempbans')) as unknown as TempbansData | null) ?? { tempbans: [] as TempbanData[] };
     data.tempbans ??= [];
 
     data.tempbans.push(tempbanData);
@@ -191,7 +192,7 @@ export async function addTempban(tempbanData: TempbanData): Promise<void> {
  * @returns Whether the tempban was found and removed
  */
 export async function removeTempban(guildId: string, userId: string): Promise<boolean> {
-    const data = getData('tempbans') as TempbansData | null;
+    const data = (await getData('tempbans')) as unknown as TempbansData | null;
     if (!data?.tempbans) { return false; }
 
     const index = data.tempbans.findIndex(
@@ -213,8 +214,8 @@ export async function removeTempban(guildId: string, userId: string): Promise<bo
  * @param userId - The user ID
  * @returns The tempban object or null
  */
-export function getTempban(guildId: string, userId: string): TempbanData | null {
-    const data = getData('tempbans') as TempbansData | null;
+export async function getTempban(guildId: string, userId: string): Promise<TempbanData | null> {
+    const data = (await getData('tempbans')) as unknown as TempbansData | null;
     const tempbans = data?.tempbans ?? [];
     return tempbans.find(t => t.guildId === guildId && t.userId === userId) ?? null;
 }

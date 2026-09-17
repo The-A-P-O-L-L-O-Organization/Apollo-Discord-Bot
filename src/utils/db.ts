@@ -4,17 +4,31 @@ import { getDb } from '../db/knex.js';
 
 const USE_PG = config.database.type === 'postgres';
 
-let _pgAdapter: Record<string, unknown> | null = null;
+let _pgAdapter: DbAdapter | null = null;
 let _sqliteDb: { db: unknown; DATA_DIR: string } | null = null;
-let _adapterPromise: Promise<Record<string, unknown>> | null = null;
+let _adapterPromise: Promise<AdapterHandle> | null = null;
 
-async function getAdapter(): Promise<Record<string, unknown>> {
+interface DbAdapter {
+    getGuildData: (store: string, guildId: string) => Promise<Record<string, unknown>>;
+    setGuildData: (store: string, guildId: string, data: unknown) => Promise<void>;
+    updateGuildData: (store: string, guildId: string, updater: (data: Record<string, unknown>) => Record<string, unknown>) => Promise<Record<string, unknown>>;
+    getAllGuildData: (store: string) => Promise<{ guildId: string; data: Record<string, unknown> }[]>;
+    getUserData: (store: string, guildId: string, userId: string) => Promise<Record<string, unknown> | undefined>;
+    setUserData: (store: string, guildId: string, userId: string, data: unknown) => Promise<void>;
+    getAllUserData: (store: string, guildId: string) => Promise<{ userId: string; data: Record<string, unknown> }[]>;
+    getData: (store: string) => Promise<Record<string, unknown>>;
+    setData: (store: string, data: unknown) => Promise<void>;
+}
+
+type AdapterHandle = DbAdapter | { db: unknown; DATA_DIR: string };
+
+async function getAdapter(): Promise<AdapterHandle> {
     if (_adapterPromise) { return _adapterPromise; }
     _adapterPromise = _initAdapter();
     return _adapterPromise;
 }
 
-async function _initAdapter(): Promise<Record<string, unknown>> {
+async function _initAdapter(): Promise<AdapterHandle> {
     if (USE_PG) {
         const { createAdapter, getGuildData, setGuildData, updateGuildData,
             getAllGuildData, getUserData, setUserData, getAllUserData,
@@ -50,7 +64,7 @@ async function _initAdapter(): Promise<Record<string, unknown>> {
 }
 
 export async function getGuildData(store: string, guildId: string): Promise<Record<string, unknown>> {
-    if (USE_PG) { return (await getAdapter())['getGuildData'](store, guildId); }
+    if (USE_PG) { return (await getAdapter() as DbAdapter).getGuildData(store, guildId); }
     const isTest = process.env['NODE_ENV'] === 'test' || process.env['VITEST'] === 'true';
     if (isTest && config.database.type === 'sqlite') {
         const db = getDb();
@@ -60,14 +74,14 @@ export async function getGuildData(store: string, guildId: string): Promise<Reco
             .first();
         try { return row ? JSON.parse(row.data) : {}; } catch { return {}; }
     }
-    const { db } = await getAdapter() as { db: unknown };
+    const { db } = await getAdapter() as unknown as { db: unknown };
     const stmt = (db as { prepare: (sql: string) => { get: (store: string, guildId: string) => { data?: string } } }).prepare('SELECT data FROM guild_store WHERE store = ? AND guild_id = ?');
     const row = stmt.get(store, guildId);
     try { return row?.data ? JSON.parse(row.data) : {}; } catch { return {}; }
 }
 
 export async function setGuildData(store: string, guildId: string, data: unknown): Promise<void> {
-    if (USE_PG) { return (await getAdapter())['setGuildData'](store, guildId, data); }
+    if (USE_PG) { return (await getAdapter() as DbAdapter).setGuildData(store, guildId, data); }
     const isTest = process.env['NODE_ENV'] === 'test' || process.env['VITEST'] === 'true';
     if (isTest && config.database.type === 'sqlite') {
         const db = getDb();
@@ -77,7 +91,7 @@ export async function setGuildData(store: string, guildId: string, data: unknown
         );
         return;
     }
-    const { db } = await getAdapter() as { db: unknown };
+    const { db } = await getAdapter() as unknown as { db: unknown };
     const stmt = (db as { prepare: (sql: string) => { run: (store: string, guildId: string, data: string) => void } }).prepare('INSERT INTO guild_store (store, guild_id, data) VALUES (?, ?, ?) ON CONFLICT(store, guild_id) DO UPDATE SET data = excluded.data');
     stmt.run(store, guildId, JSON.stringify(data));
 }
@@ -90,9 +104,11 @@ export async function updateGuildData(store: string, guildId: string, updater: (
 }
 
 export async function appendToGuildArray(store: string, guildId: string, key: string, item: unknown): Promise<void> {
-    return updateGuildData(store, guildId, (data) => {
-        if (!Array.isArray(data[key])) { data[key] = []; }
-        data[key].push(item);
+    await updateGuildData(store, guildId, (data) => {
+        const existing = data[key];
+        const arr: unknown[] = Array.isArray(existing) ? existing : [];
+        arr.push(item);
+        data[key] = arr;
         return data;
     });
 }
@@ -100,18 +116,20 @@ export async function appendToGuildArray(store: string, guildId: string, key: st
 export async function removeFromGuildArray(store: string, guildId: string, key: string, predicate: (item: unknown) => boolean): Promise<number> {
     let removed = 0;
     await updateGuildData(store, guildId, (data) => {
-        if (!Array.isArray(data[key])) { return data; }
-        const before = data[key].length;
-        data[key] = data[key].filter((item) => !predicate(item));
-        removed = before - data[key].length;
+        const existing = data[key];
+        if (!Array.isArray(existing)) { return data; }
+        const before = existing.length;
+        const next = existing.filter((item) => !predicate(item));
+        data[key] = next;
+        removed = before - next.length;
         return data;
     });
     return removed;
 }
 
 export async function getAllGuildData(store: string): Promise<{ guildId: string; data: Record<string, unknown> }[]> {
-    if (USE_PG) { return (await getAdapter())['getAllGuildData'](store); }
-    const { db } = await getAdapter() as { db: unknown };
+    if (USE_PG) { return (await getAdapter() as DbAdapter).getAllGuildData(store); }
+    const { db } = await getAdapter() as unknown as { db: unknown };
     const stmt = (db as { prepare: (sql: string) => { all: (store: string) => { guild_id: string; data: string }[] } }).prepare('SELECT guild_id, data FROM guild_store WHERE store = ?');
     const rows = stmt.all(store).filter((r) => r.guild_id !== '__global__');
     return rows.map((r) => {
@@ -125,30 +143,30 @@ export async function getAllGuildIds(store: string): Promise<string[]> {
         const data = await getAllGuildData(store);
         return data.map(d => d.guildId);
     }
-    const { db } = await getAdapter() as { db: unknown };
+    const { db } = await getAdapter() as unknown as { db: unknown };
     const stmt = (db as { prepare: (sql: string) => { all: (store: string, global: string) => { guild_id: string }[] } }).prepare('SELECT guild_id FROM guild_store WHERE store = ? AND guild_id != ?');
     const rows = stmt.all(store, '__global__');
     return rows.map(r => r.guild_id);
 }
 
 export async function getUserData(store: string, guildId: string, userId: string): Promise<Record<string, unknown> | undefined> {
-    if (USE_PG) { return (await getAdapter())['getUserData'](store, guildId, userId); }
-    const { db } = await getAdapter() as { db: unknown };
+    if (USE_PG) { return (await getAdapter() as DbAdapter).getUserData(store, guildId, userId); }
+    const { db } = await getAdapter() as unknown as { db: unknown };
     const stmt = (db as { prepare: (sql: string) => { get: (store: string, guildId: string, userId: string) => { data?: string } } }).prepare('SELECT data FROM guild_user_store WHERE store = ? AND guild_id = ? AND user_id = ?');
     const row = stmt.get(store, guildId, userId);
     try { return row?.data ? JSON.parse(row.data) : undefined; } catch { return undefined; }
 }
 
 export async function setUserData(store: string, guildId: string, userId: string, data: unknown): Promise<void> {
-    if (USE_PG) { return (await getAdapter())['setUserData'](store, guildId, userId, data); }
-    const { db } = await getAdapter() as { db: unknown };
+    if (USE_PG) { return (await getAdapter() as DbAdapter).setUserData(store, guildId, userId, data); }
+    const { db } = await getAdapter() as unknown as { db: unknown };
     const stmt = (db as { prepare: (sql: string) => { run: (store: string, guildId: string, userId: string, data: string) => void } }).prepare('INSERT INTO guild_user_store (store, guild_id, user_id, data) VALUES (?, ?, ?, ?) ON CONFLICT(store, guild_id, user_id) DO UPDATE SET data = excluded.data');
     stmt.run(store, guildId, userId, JSON.stringify(data));
 }
 
 export async function appendToUserArray(store: string, guildId: string, userId: string, item: unknown): Promise<void> {
     const current = await getUserData(store, guildId, userId);
-    const arr = Array.isArray(current) ? current : [];
+    const arr: unknown[] = Array.isArray(current) ? current : [];
     arr.push(item);
     await setUserData(store, guildId, userId, arr);
 }
@@ -163,8 +181,8 @@ export async function removeFromUserArray(store: string, guildId: string, userId
 }
 
 export async function getAllUserData(store: string, guildId: string): Promise<{ userId: string; data: Record<string, unknown> }[]> {
-    if (USE_PG) { return (await getAdapter())['getAllUserData'](store, guildId); }
-    const { db } = await getAdapter() as { db: unknown };
+    if (USE_PG) { return (await getAdapter() as DbAdapter).getAllUserData(store, guildId); }
+    const { db } = await getAdapter() as unknown as { db: unknown };
     const stmt = (db as { prepare: (sql: string) => { all: (store: string, guildId: string) => { user_id: string; data: string }[] } }).prepare('SELECT user_id, data FROM guild_user_store WHERE store = ? AND guild_id = ?');
     return stmt.all(store, guildId).map((r) => {
         try { return { userId: r.user_id, data: JSON.parse(r.data) }; } catch { return { userId: r.user_id, data: [] }; }
@@ -175,7 +193,7 @@ export async function getData(store: string): Promise<Record<string, unknown>> {
     return getGuildData(store, '__global__');
 }
 
-export async function setData(store: string, data: Record<string, unknown>): Promise<void> {
+export async function setData(store: string, data: unknown): Promise<void> {
     return setGuildData(store, '__global__', data);
 }
 
@@ -228,10 +246,10 @@ export function startWalCheckpointInterval(intervalMs = 5 * 60 * 1000): void {
                 (_sqliteDb.db as { pragma: (cmd: string) => void }).pragma('wal_checkpoint(TRUNCATE)');
             } catch (err) {
                 import('./logger.js').then(({ logger }) => {
-                    logger.warn('[DB] WAL checkpoint failed:', err.message);
+                    logger.warn({ err: err as Error }, '[DB] WAL checkpoint failed');
                 }).catch(err => {
 
-                    console.warn('[DB] WAL checkpoint failed (logger import error):', err.message);
+                    console.warn('[DB] WAL checkpoint failed (logger import error):', (err as Error).message);
                 });
             }
         }

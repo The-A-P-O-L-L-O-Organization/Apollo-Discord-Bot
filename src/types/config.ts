@@ -175,6 +175,7 @@ export interface RemindersConfig {
     maxRemindersPerUser: number;
     defaultTimezone: string;
     maxDuration: number;
+    checkInterval: number;
 }
 
 export interface PollsConfig {

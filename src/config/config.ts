@@ -259,7 +259,8 @@ const config = {
         enabled: parseBoolSafe(getEnv('REMINDERS_ENABLED')),
         maxRemindersPerUser: parseIntSafe(getEnv('MAX_REMINDERS_PER_USER'), 10),
         defaultTimezone: getEnv('DEFAULT_TIMEZONE') ?? 'UTC',
-        maxDuration: parseIntSafe(getEnv('MAX_REMINDER_DURATION'), 7 * 24 * 60 * 60 * 1000) // 7 days in ms
+        maxDuration: parseIntSafe(getEnv('MAX_REMINDER_DURATION'), 7 * 24 * 60 * 60 * 1000), // 7 days in ms
+        checkInterval: parseIntSafe(getEnv('REMINDERS_CHECK_INTERVAL'), 30000)
     },
 
     // Operator Agreement (required to start the bot)

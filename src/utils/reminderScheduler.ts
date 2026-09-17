@@ -1,5 +1,5 @@
 import { logger } from '../utils/logger.js';
-import type { Client} from 'discord.js';
+import type { Client, TextChannel } from 'discord.js';
 import { EmbedBuilder } from 'discord.js';
 import { getData, setData } from './db.js';
 import { config } from '../config/config.js';
@@ -43,7 +43,7 @@ interface RemindersData {
 async function loadRemindersFromDatabase(): Promise<void> {
     try {
         const data = await getData('reminders');
-        const reminders = data['reminders'] ?? [];
+        const reminders = (data['reminders'] as Reminder[] | undefined) ?? [];
         logger.info({ msg: `[INFO] Loaded ${reminders.length} reminders from database` });
     } catch (error) {
         logger.error({ err: error as Error, msg: '[ERROR] Failed to load reminders from database' });
@@ -97,7 +97,7 @@ async function checkReminders(): Promise<void> {
 
     try {
         const data = await getData('reminders');
-        const reminders = data['reminders'] ?? [];
+        const reminders = (data['reminders'] as Reminder[] | undefined) ?? [];
         const now = Date.now();
 
         // Find due reminders
@@ -140,6 +140,7 @@ async function checkReminders(): Promise<void> {
  * @param reminder - The reminder object
  */
 async function sendReminder(reminder: Reminder): Promise<void> {
+    if (!client) {return;}
     try {
         // Create reminder embed
         const embed = new EmbedBuilder()
@@ -169,7 +170,7 @@ async function sendReminder(reminder: Reminder): Promise<void> {
             try {
                 const channel = await client.channels.fetch(reminder.channelId);
                 if (channel?.isTextBased()) {
-                    await channel.send({
+                    await (channel as TextChannel).send({
                         content: `<@${reminder.userId}>`,
                         embeds: [embed]
                     });
@@ -190,7 +191,7 @@ async function sendReminder(reminder: Reminder): Promise<void> {
  * @returns The created reminder
  */
 export async function addReminder(reminderData: Reminder): Promise<Reminder> {
-    const data = await getData('reminders') as RemindersData | null;
+    const data = (await getData('reminders') as unknown as RemindersData | null) ?? { reminders: [] as Reminder[] };
     data.reminders ??= [];
 
     data.reminders.push(reminderData);
@@ -205,7 +206,7 @@ export async function addReminder(reminderData: Reminder): Promise<Reminder> {
  * @returns Array of reminders
  */
 export async function getUserReminders(userId: string): Promise<Reminder[]> {
-    const data = await getData('reminders') as RemindersData | null;
+    const data = await getData('reminders') as unknown as RemindersData | null;
     const reminders = data?.reminders ?? [];
     return reminders.filter(r => r.userId === userId);
 }
@@ -217,7 +218,7 @@ export async function getUserReminders(userId: string): Promise<Reminder[]> {
  * @returns Whether the reminder was found and cancelled
  */
 export async function cancelReminder(reminderId: string, userId: string): Promise<boolean> {
-    const data = await getData('reminders') as RemindersData | null;
+    const data = await getData('reminders') as unknown as RemindersData | null;
     if (!data?.reminders) {return false;}
 
     const index = data.reminders.findIndex(
@@ -257,8 +258,8 @@ export function parseTimeString(timeStr: string): number | null {
     const match = /^(\d+)([smhdw])$/i.exec(timeStr);
     if (!match) {return null;}
 
-    const value = parseInt(match[1]);
-    const unit = match[2].toLowerCase();
+    const value = parseInt(match[1] ?? '');
+    const unit = (match[2] ?? '').toLowerCase();
 
     const multipliers: Record<string, number> = {
         's': 1000,           // seconds

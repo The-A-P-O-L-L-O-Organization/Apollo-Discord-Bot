@@ -97,6 +97,6 @@ export async function getData(store: string): Promise<Record<string, unknown>> {
     return getGuildData(store, '__global__');
 }
 
-export async function setData(store: string, data: Record<string, unknown>): Promise<void> {
+export async function setData(store: string, data: unknown): Promise<void> {
     return setGuildData(store, '__global__', data);
 }
