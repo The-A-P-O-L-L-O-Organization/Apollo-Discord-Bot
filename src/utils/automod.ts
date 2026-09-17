@@ -232,6 +232,8 @@ interface AutomodConfig {
     spamChannelOverrides: Record<string, ChannelOverride>;
     aiModeration: boolean;
     nsfwFilter: boolean;
+    nsfwThreshold?: number;
+    filterPhishingLinks: boolean;
     exemptChannels: string[];
     exemptRoles: string[];
 }
@@ -258,6 +260,8 @@ export async function getAutomodConfig(guildId: string): Promise<AutomodConfig> 
         spamChannelOverrides: (automodConfig['spamChannelOverrides'] as Record<string, ChannelOverride>) ?? config.automod.spamChannelOverrides,
         aiModeration: (automodConfig['aiModeration'] as boolean) ?? config.automod.aiModeration,
         nsfwFilter: (automodConfig['nsfwFilter'] as boolean) ?? config.automod.nsfwFilter,
+        nsfwThreshold: automodConfig['nsfwThreshold'] as number | undefined,
+        filterPhishingLinks: (automodConfig['filterPhishingLinks'] as boolean) ?? config.automod.filterPhishingLinks,
         exemptChannels: (automodConfig['exemptChannels'] as string[]) || [],
         exemptRoles: (automodConfig['exemptRoles'] as string[]) || []
     };

@@ -7,7 +7,7 @@ import { enqueueNsfwAnalysis } from '../../../utils/nsfwDetection.js';
 import { isRaidModeEnabled } from '../../../utils/raidDetection.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { config } from '../../../config/config.js';
-import type { Message, Client } from 'discord.js';
+import type { Message, Client, TextChannel } from 'discord.js';
 import { EmbedBuilder } from 'discord.js';
 
 const logger = createLogger({ component: 'automod:messageCreate' });
@@ -18,35 +18,6 @@ interface Violation {
     channelId?: string;
     action?: string;
     punishment?: string;
-}
-
-interface AutomodConfig {
-    enabled?: boolean;
-    bannedWords?: string[];
-    inviteFilter?: boolean;
-    linkFilter?: boolean;
-    mentionFilter?: boolean;
-    mentionThreshold?: number;
-    capsFilter?: boolean;
-    capsThreshold?: number;
-    capsMinLength?: number;
-    phishingFilter?: boolean;
-    accountAgeFilter?: boolean;
-    accountAgeMinDays?: number;
-    spamFilter?: boolean;
-    spamThreshold?: number;
-    spamWindow?: number;
-    nsfwFilter?: boolean;
-    nsfwThreshold?: number;
-    exemptChannels?: string[];
-    exemptRoles?: string[];
-    autoPunish?: {
-        enabled?: boolean;
-        warningsToBan?: number;
-        warningsToKick?: number;
-        warningsToMute?: number;
-        muteDuration?: string;
-    };
 }
 
 async function handleViolation(message: Message, type: string, reason: string, client: Client, deleteMessage = true, violationCooldownKey?: string): Promise<void> {
@@ -73,8 +44,8 @@ async function handleViolation(message: Message, type: string, reason: string, c
     const warning = {
         id: (await import('../../../utils/db.js')).generateId(),
         reason: `[AUTOMOD] ${reason}`,
-        moderatorId: client.user.id,
-        moderatorTag: client.user.tag,
+        moderatorId: client.user!.id,
+        moderatorTag: client.user!.tag,
         timestamp: Date.now(),
         active: true,
         automod: true,
@@ -85,7 +56,7 @@ async function handleViolation(message: Message, type: string, reason: string, c
     await appendToUserArray('warnings', guildId, userId, warning);
 
     // Get warning count
-    const userWarnings = await import('../../../utils/db.js').then(m => m.getUserData('warnings', guildId, userId)) ?? [];
+    const userWarnings = (await import('../../../utils/db.js').then(m => m.getUserData('warnings', guildId, userId)) as unknown as { active: boolean }[] | undefined) ?? [];
     const activeWarnings = userWarnings.filter((w: { active: boolean }) => w.active !== false);
     const warningCount = activeWarnings.length;
 
@@ -101,24 +72,24 @@ async function handleViolation(message: Message, type: string, reason: string, c
         .setFooter({ text: 'This message will be deleted in 10 seconds' })
         .setTimestamp();
 
-    const warningMsg = await message.channel.send({ embeds: [warningEmbed] });
+    const warningMsg = await (message.channel as TextChannel).send({ embeds: [warningEmbed] });
 
     // Delete warning message after 10 seconds
     setTimeout(() => {
-        warningMsg.delete().catch(err => logger.error({ msg: '[WARN] Failed to delete warning message', error: err }));
+        warningMsg.delete().catch((err: unknown) => logger.error({ msg: '[WARN] Failed to delete warning message', error: err }));
     }, 10000);
 
     // Check for auto-punishment thresholds
     const guildSettings = await getGuildData('warnings-config', guildId);
-    const thresholds = guildSettings?.['thresholds'] ?? config.warnings.thresholds;
-    const muteDuration = guildSettings?.['muteDuration'] ?? config.warnings.muteDuration;
+    const thresholds = (guildSettings?.['thresholds'] as Record<string, number> | undefined) ?? config.warnings.thresholds;
+    const muteDuration = (guildSettings?.['muteDuration'] as number | undefined) ?? config.warnings.muteDuration;
 
     let autoPunishment = null;
     const member = message.member;
 
     if (thresholds.ban && warningCount >= thresholds.ban) {
         try {
-            await message.guild.bans.create(userId, {
+            await message.guild!.bans.create(userId, {
                 reason: `[AUTOMOD] Auto-ban: Reached ${warningCount} warnings`
             });
             autoPunishment = 'banned';
@@ -177,12 +148,12 @@ export default {
         if (!automodConfig.enabled) {return;}
 
         // Check exemptions
-        if (isExempt(message.member) || isChannelExempt(message.channel.id)) {
+        if (isExempt(message.member, automodConfig) || isChannelExempt(message.channel.id, automodConfig)) {
             return;
         }
 
         // Track message for analytics
-        trackMessage(guildId, userId, message.content.length, false);
+        trackMessage(guildId, message.channel.id, userId);
 
         // Check raid mode
         if (await isRaidModeEnabled(guildId)) {
@@ -279,14 +250,7 @@ export default {
                     // Queue NSFW analysis for worker
                     for (const attachment of message.attachments.values()) {
                         if (attachment.contentType?.startsWith('image/') || attachment.contentType?.startsWith('video/')) {
-                            await enqueueNsfwAnalysis({
-                                imageUrl: attachment.url,
-                                guildId,
-                                channelId: message.channel.id,
-                                messageId: message.id,
-                                userId,
-                                threshold: automodConfig.nsfwThreshold ?? 0.5
-                            });
+                            await enqueueNsfwAnalysis(attachment.url, guildId, automodConfig.nsfwThreshold ?? 0.5);
                         }
                     }
                 } else {
@@ -308,21 +272,3 @@ export default {
         }
     }
 };
-
-function checkInvites(message: Message, config: AutomodConfig): Violation | null {
-    if (!config.inviteFilter) {return null;}
-    const inviteRegex = /(?:discord\.(?:gg|com\/invite|me)|discordapp\.com\/invite)\/[a-zA-Z0-9]+/gi;
-    if (inviteRegex.test(message.content)) {
-        return { type: 'invite', channelId: message.channel.id };
-    }
-    return null;
-}
-
-function checkLinks(message: Message, config: AutomodConfig): Violation | null {
-    if (!config.linkFilter) {return null;}
-    const linkRegex = /https?:\/\/[^\s]+/gi;
-    if (linkRegex.test(message.content)) {
-        return { type: 'link', channelId: message.channel.id };
-    }
-    return null;
-}
