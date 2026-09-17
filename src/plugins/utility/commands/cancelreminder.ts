@@ -20,7 +20,7 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
-            const reminderId = interaction.options.getString('id');
+            const reminderId = interaction.options.getString('id') ?? '';
             const userId = interaction.user.id;
 
             // Get the reminder message before deleting (for confirmation)
@@ -52,7 +52,7 @@ export default {
             });
 
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

@@ -35,6 +35,9 @@ interface SecurityLogEntry {
     exitCode: number | null;
     signal: string | null;
     riskLevel: string | null;
+    pluginPath: string | null;
+    expectedHash: string | null;
+    actualHash: string | null;
 }
 
 export function logSecurityEvent(fields: Partial<SecurityLogEntry>): SecurityLogEntry {
@@ -52,7 +55,10 @@ export function logSecurityEvent(fields: Partial<SecurityLogEntry>): SecurityLog
         error: fields.error ?? null,
         exitCode: fields.exitCode ?? null,
         signal: fields.signal ?? null,
-        riskLevel: fields.riskLevel ?? null
+        riskLevel: fields.riskLevel ?? null,
+        pluginPath: fields.pluginPath ?? null,
+        expectedHash: fields.expectedHash ?? null,
+        actualHash: fields.actualHash ?? null
     };
 
     logger.info(`[SECURITY] ${JSON.stringify(entry)}`);

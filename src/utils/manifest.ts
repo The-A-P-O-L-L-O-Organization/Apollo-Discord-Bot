@@ -80,7 +80,7 @@ export function verifyPluginManifest({
     if (errors.length > 0) {
         logger.error('[SECURITY] Plugin integrity verification failed:');
         for (const err of errors) {
-            logger.error('  -', err);
+            logger.error('  - ' + err);
         }
         return Promise.resolve({ ok: false, errors });
     }
@@ -94,11 +94,11 @@ export function verifyPluginFile(pluginPath: string, expectedHash: string): bool
         logSecurityEvent({
             event: 'plugin.toctou_hash_mismatch',
             pluginPath,
-            expected: expectedHash,
-            actual: hash
+            expectedHash: expectedHash,
+            actualHash: hash
         });
         throw new Error(`[SECURITY] Plugin file hash mismatch for ${pluginPath}. Expected ${expectedHash}, got ${hash}.`);
     }
-    logSecurityEvent({ event: 'plugin.file_verified', pluginPath, hash });
+    logSecurityEvent({ event: 'plugin.file_verified', pluginPath, actualHash: hash });
     return true;
 }

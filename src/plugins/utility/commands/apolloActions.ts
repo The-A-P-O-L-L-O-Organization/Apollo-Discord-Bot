@@ -88,15 +88,16 @@ export default {
 
             const reason = modalSubmit.fields.getTextInputValue('reason').trim();
 
-            const globalData = await getData('global_blacklist') as GlobalBlacklistData | undefined ?? { entries: {} };
+            const globalData = ((await getData('global_blacklist')) as unknown as GlobalBlacklistData | undefined) ?? { entries: {} };
             const entries = globalData.entries ?? {};
 
-            if (entries[targetUser.id]) {
+            const existing = entries[targetUser.id];
+            if (existing) {
                 await modalSubmit.reply({
                     embeds: [{
                         color: 0xFFA500,
                         title: '[WARNING] Already Blacklisted',
-                        description: `${targetUser.tag} is already on the global blacklist.\nReason: ${entries[targetUser.id].reason}`
+                        description: `${targetUser.tag} is already on the global blacklist.\nReason: ${existing.reason}`
                     }],
                     flags: MessageFlags.Ephemeral
                 });
@@ -134,7 +135,7 @@ export default {
 
             logger.info({ msg: `[GLOBAL BAN] User ${targetUser.tag} globally blacklisted by ${interaction.user.tag}. Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

@@ -316,6 +316,13 @@ export interface PluginManager {
     unloadPlugin: (name: string) => Promise<void>;
     getPlugin: (name: string) => PluginInstance | undefined;
     reloadPlugin: (name: string) => Promise<void>;
+    listPlugins: () => { id: string; version: string; loaded: boolean; enabled: boolean }[];
+    scanPlugins: (baseDir?: string) => string[];
+    installPlugin: (name: string) => Promise<void>;
+    uninstallPlugin: (name: string) => Promise<void>;
+    registerSocketHandler: (namespace: string, handler: (...args: any[]) => Promise<any>) => void;
+    installedPlugins: Map<string, { origin: 'built-in' | 'installed'; dir: string }>;
+    workerHost?: { isDisabled: (id: string) => boolean };
 }
 
 export interface PluginInstance {

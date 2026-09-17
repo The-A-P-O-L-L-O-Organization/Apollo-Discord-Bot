@@ -2,7 +2,7 @@
 // Centralized error handling for Discord API errors
 import { logger } from './logger.js';
 import { EmbedBuilder, MessageFlags } from 'discord.js';
-import type { ChatInputCommandInteraction, MessageContextMenuCommandInteraction } from 'discord.js';
+import type { ChatInputCommandInteraction, MessageContextMenuCommandInteraction, UserContextMenuCommandInteraction } from 'discord.js';
 
 /**
  * Discord API error codes that we handle specially
@@ -207,7 +207,7 @@ export function createErrorEmbed(message: string, title = 'Error'): EmbedBuilder
  * @returns {Promise<boolean>} True if reply succeeded
  */
 export async function safeReply(
-    interaction: ChatInputCommandInteraction | MessageContextMenuCommandInteraction,
+    interaction: ChatInputCommandInteraction | MessageContextMenuCommandInteraction | UserContextMenuCommandInteraction,
     message: string,
     ephemeral = true
 ): Promise<boolean> {
@@ -243,7 +243,7 @@ export async function safeReply(
  * @returns {Promise<boolean>} True if followup succeeded
  */
 export async function safeFollowUp(
-    interaction: ChatInputCommandInteraction | MessageContextMenuCommandInteraction,
+    interaction: ChatInputCommandInteraction | MessageContextMenuCommandInteraction | UserContextMenuCommandInteraction,
     message: string,
     ephemeral = true
 ): Promise<boolean> {
