@@ -2,6 +2,7 @@ import { config } from '../../../config/config.js';
 import { requireOwner } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import type { ChatInputCommandInteraction} from 'discord.js';
+import type { ApolloClient } from '../../../types/discord.js';
 import { MessageFlags } from 'discord.js';
 
 function formatDuration(ms: number): string {
@@ -33,8 +34,9 @@ export default {
                 return interaction.reply(denial);
             }
 
-            const uptime = Date.now() - interaction.client.stats.startTime;
-            const plugins = interaction.client.manager.listPlugins();
+            const client = interaction.client as ApolloClient;
+            const uptime = Date.now() - client.stats.startTime;
+            const plugins = client.manager.listPlugins();
             const runMode = process.env['RUN_MODE'] ?? 'gateway';
 
             const fields = [
@@ -44,7 +46,7 @@ export default {
                 { name: 'Queue', value: config.queue.enabled ? 'Enabled (' + config.queue.prefix + ')' : 'Disabled', inline: true },
                 { name: 'Plugins', value: plugins.length + ' loaded (' + plugins.filter(p => p.enabled).length + ' enabled)', inline: true },
                 { name: 'Uptime', value: formatDuration(uptime), inline: true },
-                { name: 'Commands Run', value: String(interaction.client.stats.commandsRan), inline: true }
+                { name: 'Commands Run', value: String(client.stats.commandsRan), inline: true }
             ];
 
             if (config.queue.enabled) {
@@ -74,7 +76,7 @@ export default {
                 flags: MessageFlags.Ephemeral
             });
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

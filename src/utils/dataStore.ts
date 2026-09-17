@@ -62,7 +62,7 @@ export function getData(filename: string): Record<string, unknown> {
         }
         return {};
     } catch (error) {
-        logger.error(`[ERROR] Failed to read ${filename}.json:`, error);
+        logger.error({ err: error as Error }, `[ERROR] Failed to read ${filename}.json`);
         return {};
     }
 }
@@ -78,7 +78,7 @@ export function setData(filename: string, data: Record<string, unknown>): void {
     try {
         writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
     } catch (error) {
-        logger.error(`[ERROR] Failed to write ${filename}.json:`, error);
+        logger.error({ err: error as Error }, `[ERROR] Failed to write ${filename}.json`);
     }
 }
 
@@ -271,8 +271,9 @@ export async function setUserData(
 
     const writeOperation: Promise<void> = Promise.resolve();
     const data = getData(filename);
-    data[guildId] ??= {};
-    data[guildId][userId] = userData;
+    const guildData = (data[guildId] ?? {}) as Record<string, unknown>;
+    guildData[userId] = userData;
+    data[guildId] = guildData;
     setData(filename, data);
 
     writeQueue.set(filename, writeOperation);
@@ -395,6 +396,6 @@ export function writeToSubDir(subdir: string, filename: string, data: Record<str
         writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
         logger.info(`[INFO] Wrote file: ${subdir}/${filename}`);
     } catch (error) {
-        logger.error(`[ERROR] Failed to write ${subdir}/${filename}:`, error);
+        logger.error({ err: error as Error }, `[ERROR] Failed to write ${subdir}/${filename}`);
     }
 }

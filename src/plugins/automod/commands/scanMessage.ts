@@ -1,7 +1,7 @@
 // Context Menu Command: Scan for NSFW
 // Right-click a message → "Scan for NSFW"
 import { createLogger } from '../../../utils/logger.js';
-import type { MessageContextMenuCommandInteraction } from 'discord.js';
+import type { MessageContextMenuCommandInteraction, TextChannel } from 'discord.js';
 import { ApplicationCommandType, EmbedBuilder, PermissionsBitField, MessageFlags } from 'discord.js';
 import { checkMessageAttachments, formatNsfwPredictions } from '../../../utils/nsfwDetection.js';
 import { safeError } from '../../../utils/safeError.js';
@@ -18,7 +18,8 @@ export default {
     async execute(interaction: MessageContextMenuCommandInteraction) {
         try {
             // Check if the user has permission to view the channel and message
-            if (!interaction.channel.viewable) {
+            const channel = interaction.channel as TextChannel | null;
+            if (!channel?.viewable) {
                 return interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
@@ -78,7 +79,7 @@ export default {
                 .setTimestamp();
 
             // If we should delete and the bot has permission, delete the message
-            if (result.shouldDelete && interaction.channel.permissionsFor(interaction.guild!.members.me!).has(PermissionsBitField.Flags.ManageMessages)) {
+            if (result.shouldDelete && (channel?.permissionsFor(interaction.guild!.members.me!)?.has(PermissionsBitField.Flags.ManageMessages) ?? false)) {
                 try {
                     await targetMessage.delete();
                     embed.setDescription('NSFW content was found and the message has been deleted.');

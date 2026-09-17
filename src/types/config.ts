@@ -148,6 +148,10 @@ export interface LevelsConfig {
     xpPerMessage: number;
     xpCooldownMs: number;
     xpPerMinuteVoice: number;
+    cooldown: number;
+    minXp: number;
+    maxXp: number;
+    announceLevelUp: boolean;
     roles: {
         level: number;
         roleId: string;

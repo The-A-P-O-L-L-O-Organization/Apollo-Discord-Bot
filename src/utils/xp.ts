@@ -82,7 +82,7 @@ export async function awardXp(
     amount: number,
     incrementMessages = true
 ): Promise<{ data: LevelData; leveledUp: boolean }> {
-    const data = await getUserData('levels', guildId, userId) as LevelData | null ?? { xp: 0, level: 0, messages: 0 };
+    const data = ((await getUserData('levels', guildId, userId)) as unknown as LevelData | null) ?? { xp: 0, level: 0, messages: 0 };
 
     data.xp += amount;
     if (incrementMessages) {

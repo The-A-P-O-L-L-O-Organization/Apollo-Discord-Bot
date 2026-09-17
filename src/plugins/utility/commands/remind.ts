@@ -28,8 +28,8 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
-            const timeInput = interaction.options.getString('time');
-            const message = interaction.options.getString('message');
+            const timeInput = interaction.options.getString('time') ?? '';
+            const message = interaction.options.getString('message') ?? 'Reminder!';
             const userId = interaction.user.id;
             const guildId = interaction.guild?.id ?? 'dm';
 
@@ -63,7 +63,7 @@ export default {
                 id: reminderId,
                 userId,
                 message,
-                channelId: interaction.channel.id,
+                channelId: interaction.channel?.id ?? null,
                 guildId,
                 createdAt: Date.now(),
                 remindAt: reminderTime
@@ -81,7 +81,7 @@ export default {
             });
 
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

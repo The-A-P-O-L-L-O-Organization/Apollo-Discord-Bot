@@ -25,8 +25,9 @@ export async function deleteUserData(userId: string): Promise<{ total: number; b
         for (const { guildId, data } of allGuildData) {
             if (!data || typeof data !== 'object' || !Array.isArray((data)[key])) { continue; }
             const dataObj = data as Record<string, unknown[]>;
-            const before = dataObj[key].length;
-            const filtered = dataObj[key].filter((item) => !match(item, userId));
+            const arr = dataObj[key] ?? [];
+            const before = arr.length;
+            const filtered = arr.filter((item) => !match(item, userId));
             const removed = before - filtered.length;
             if (removed > 0) {
                 dataObj[key] = filtered;
@@ -157,7 +158,8 @@ export default {
 
             let buttonInteraction;
             try {
-                buttonInteraction = await interaction.awaitMessageComponent({
+                const replyMessage = await interaction.fetchReply();
+                buttonInteraction = await replyMessage.awaitMessageComponent({
                     time: 60_000,
                     filter: (i) => i.user.id === userId && (i.customId === 'data_deletion_accept' || i.customId === 'data_deletion_cancel')
                 });
@@ -227,7 +229,7 @@ export default {
             }
 
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

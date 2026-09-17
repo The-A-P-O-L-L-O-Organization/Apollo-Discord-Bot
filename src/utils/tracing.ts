@@ -154,27 +154,31 @@ export function createTraceContext(options: { traceId?: string; parentSpanId?: s
  * @returns Express middleware
  */
 export function traceMiddleware(): (req: unknown, res: unknown, next: () => void) => void {
-    return (req: Record<string, unknown>, res: Record<string, unknown>, next: () => void): void => {
-        const headers = (req['headers'] as Record<string, string>) ?? {};
+    return (req: unknown, res: unknown, next: () => void): void => {
+        const reqRec = req as Record<string, unknown>;
+        const resRec = res as Record<string, unknown>;
+        const headers = (reqRec['headers'] as Record<string, string>) ?? {};
         const traceId = headers['x-trace-id'] ?? headers['traceparent']?.split('-')[1];
         const parentSpanId = headers['x-parent-span-id'];
+        const route = reqRec['route'] as { path?: unknown } | undefined;
 
         const ctx = createTraceContext({ traceId, parentSpanId });
 
         // Add request info to span
         ctx.attributes = {
-            'http.method': req['method'],
-            'http.url': req['url'],
-            'http.route': req['route']?.path ?? req['path'],
+            'http.method': reqRec['method'],
+            'http.url': reqRec['url'],
+            'http.route': route?.path ?? reqRec['path'],
             'http.user_agent': headers['user-agent']
         };
 
         // Run handler with trace context
         traceContext.run(ctx, () => {
             // Add trace headers to response
-            if (res['setHeader']) {
-                res['setHeader']('x-trace-id', ctx.traceId);
-                res['setHeader']('x-span-id', ctx.spanId);
+            const setHeader = resRec['setHeader'] as ((name: string, value: string) => void) | undefined;
+            if (setHeader) {
+                setHeader('x-trace-id', ctx.traceId);
+                setHeader('x-span-id', ctx.spanId);
             }
             next();
         });
@@ -204,7 +208,7 @@ export function traceInteraction<T extends Record<string, unknown>>(
             'discord.interaction.command': interaction['commandName'],
             'discord.guild.id': interaction['guildId'],
             'discord.channel.id': interaction['channelId'],
-            'discord.user.id': interaction['user']?.id
+            'discord.user.id': (interaction['user'] as { id?: unknown } | undefined)?.id
         };
 
         return traceContext.run(ctx, () => handler(interaction));

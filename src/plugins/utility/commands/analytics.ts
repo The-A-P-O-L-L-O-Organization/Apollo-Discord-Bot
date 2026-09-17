@@ -143,7 +143,7 @@ export default {
             }
 
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {
@@ -165,7 +165,7 @@ async function handleServerStats(interaction: ChatInputCommandInteraction): Prom
 
     // Get summary data
     const summary = await getAnalyticsSummary(guildId, days);
-    const memberGrowth = await getMemberGrowthStats(guildId, days) as MemberGrowthData[];
+    const memberGrowth = await getMemberGrowthStats(guildId, days) as unknown as MemberGrowthData[];
 
     // Create sparklines for trends
     const memberCounts = memberGrowth.map((d: MemberGrowthData) => d.totalMembers);
@@ -470,7 +470,7 @@ async function handleModerationStats(interaction: ChatInputCommandInteraction): 
 
     // Ticket statistics
     if (ticketData) {
-        const closedTickets = ticketData['closedTickets'] ?? [];
+        const closedTickets = (ticketData['closedTickets'] as { closedAt: number; createdAt: number }[] | undefined) ?? [];
         const recentClosed = closedTickets.filter((t: { closedAt: number; createdAt: number }) => {
             const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000);
             return t.closedAt >= cutoff;
@@ -486,7 +486,7 @@ async function handleModerationStats(interaction: ChatInputCommandInteraction): 
                 value: [
                     `**Tickets Closed:** ${recentClosed.length}`,
                     `**Avg Resolution Time:** ${formatDuration(avgResolution)}`,
-                    `**Currently Open:** ${ticketData['openTickets']?.length ?? 0}`
+                    `**Currently Open:** ${(ticketData['openTickets'] as unknown[] | undefined)?.length ?? 0}`
                 ].join('\n'),
                 inline: true
             });
@@ -496,10 +496,10 @@ async function handleModerationStats(interaction: ChatInputCommandInteraction): 
     // Warning effectiveness
     const warningsData = await getUserData('warnings', guildId, 'ALL');
     if (warningsData) {
-        const allWarnings = Object.values(warningsData).flat();
+        const allWarnings = Object.values(warningsData).flatMap(v => Array.isArray(v) ? v : [v]) as { timestamp: number; automod?: boolean }[];
         const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000);
         const recentWarnings = allWarnings.filter((w: { timestamp: number }) => w.timestamp >= cutoff);
-        const automodWarnings = recentWarnings.filter((w: { automod: boolean }) => w.automod);
+        const automodWarnings = recentWarnings.filter(w => w.automod);
 
         embed.addFields({
             name: '[WARNING] Warnings',
@@ -523,6 +523,10 @@ async function handleUserStats(interaction: ChatInputCommandInteraction): Promis
     await interaction.deferReply();
 
     const user = interaction.options.getUser('target');
+    if (!user) {
+        await interaction.editReply({ content: 'User not found.' });
+        return;
+    }
     const days = interaction.options.getInteger('days') ?? 30;
     const guildId = interaction.guild!.id;
 
@@ -540,7 +544,7 @@ async function handleUserStats(interaction: ChatInputCommandInteraction): Promis
     const messageRank = messageStats.byUser.findIndex(u => u.userId === user.id) + 1;
 
     // Get warnings
-    const warnings = (await getUserData('warnings', guildId, user.id) as { active?: boolean; timestamp: number; automod?: boolean }[]) ?? [];
+    const warnings = ((await getUserData('warnings', guildId, user.id)) as unknown as { active?: boolean; timestamp: number; automod?: boolean }[] | undefined) ?? [];
     const activeWarnings = warnings.filter((w: { active?: boolean }) => w.active !== false);
     const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000);
     const recentWarnings = warnings.filter((w: { timestamp: number }) => w.timestamp >= cutoff);
