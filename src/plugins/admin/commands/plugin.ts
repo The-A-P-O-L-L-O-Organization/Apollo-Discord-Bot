@@ -152,7 +152,7 @@ export default {
                     ],
                     timestamp: new Date().toISOString()
                 };
-                return interaction.editReply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+                return interaction.editReply({ embeds: [embed] });
             }
 
             case 'enable': {
@@ -165,15 +165,13 @@ export default {
                             title: '[SUCCESS] Plugin Enabled',
                             description: '**' + name + '** has been enabled.',
                             timestamp: new Date().toISOString()
-                        }],
-                        flags: MessageFlags.Ephemeral
+                        }]
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: safeError(err)
-                        }],
-                        flags: MessageFlags.Ephemeral
+                        }]
                     });
                 }
             }
@@ -188,15 +186,13 @@ export default {
                             title: '[SUCCESS] Plugin Disabled',
                             description: '**' + name + '** has been disabled.',
                             timestamp: new Date().toISOString()
-                        }],
-                        flags: MessageFlags.Ephemeral
+                        }]
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: safeError(err)
-                        }],
-                        flags: MessageFlags.Ephemeral
+                        }]
                     });
                 }
             }
@@ -211,15 +207,13 @@ export default {
                             title: '[SUCCESS] Plugin Reloaded',
                             description: '**' + name + '** has been hot-reloaded.',
                             timestamp: new Date().toISOString()
-                        }],
-                        flags: MessageFlags.Ephemeral
+                        }]
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: safeError(err)
-                        }],
-                        flags: MessageFlags.Ephemeral
+                        }]
                     });
                 }
             }
@@ -236,15 +230,13 @@ export default {
                             title: '[SUCCESS] Plugin Loaded',
                             description: '**' + name + '** v' + (plugin.constructor as any).version + ' loaded and enabled.',
                             timestamp: new Date().toISOString()
-                        }],
-                        flags: MessageFlags.Ephemeral
+                        }]
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: safeError(err)
-                        }],
-                        flags: MessageFlags.Ephemeral
+                        }]
                     });
                 }
             }
@@ -261,8 +253,7 @@ export default {
                                 'It will run isolated from the main process. ' +
                                 'Re-run with `confirm: true` to proceed.',
                             timestamp: new Date().toISOString()
-                        }],
-                        flags: MessageFlags.Ephemeral
+                        }]
                     });
                 }
                 try {
@@ -294,15 +285,13 @@ export default {
                             title: '[SUCCESS] Plugin Uninstalled',
                             description: '**' + name + '** has been removed.',
                             timestamp: new Date().toISOString()
-                        }],
-                        flags: MessageFlags.Ephemeral
+                        }]
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000, title: '[ERROR]', description: safeError(err)
-                        }],
-                        flags: MessageFlags.Ephemeral
+                        }]
                     });
                 }
             }
@@ -327,8 +316,7 @@ export default {
                             value: results.map((r: any) => '`/plugin install ' + r.id + '`').join('\n')
                         }] : [],
                         timestamp: new Date().toISOString()
-                    }],
-                    flags: MessageFlags.Ephemeral
+                    }]
                 });
             }
 
