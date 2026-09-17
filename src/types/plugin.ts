@@ -1,22 +1,11 @@
 // Plugin system types
 
-import type { Client, Guild, Channel, User, GuildMember, Message, Interaction } from 'discord.js';
-import type { QueueManager, JobName, QueueJobDataMap } from './queue.js';
-import type { EventBus, PublishOptions, SubscribeOptions, Subscription, EventBusHealth, EventHandler } from './eventbus.js';
-import type { DatabaseAdapter } from './database.js';
 import type {
-    PluginLogger,
     PluginCommand,
     PluginEvent,
     CLICommand,
-    CLICommandOption,
-    ParsedArgs,
     RPCHandler,
-    BasePlugin,
-    PluginContext,
-    CommandData,
-    CommandOption,
-    CommandChoice
+    BasePlugin
 } from './shared.js';
 
 export interface PluginManifest {
@@ -62,7 +51,9 @@ export type {
     PluginContext,
     CommandData,
     CommandOption,
-    CommandChoice
+    CommandChoice,
+    CommandModule,
+    EventHandlerModule
 } from './shared.js';
 
 export interface PluginDatabase {

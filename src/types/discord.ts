@@ -115,34 +115,6 @@ export type {
     IntentsBitField
 };
 
-// Extended types for Apollo - import from shared.ts
-import type {
-    ApolloConfig,
-    ApolloClientExtensions,
-    PluginManager,
-    PluginInstance,
-    PluginCommand,
-    PluginEvent,
-    CLICommand,
-    CLICommandOption,
-    ParsedArgs,
-    PluginContext,
-    AnalyticsInstance,
-    AnalyticsStats,
-    MetricsInstance,
-    HealthCheckInstance,
-    HealthCheckResult,
-    ComponentHealth,
-    CommandData,
-    CommandOption,
-    CommandChoice,
-    RPCHandler
-} from './shared.js';
-
-export interface DiscordClient extends Client {
-    apollo: ApolloClientExtensions;
-}
-
 // Re-export shared types
 export type {
     ApolloConfig,
@@ -164,6 +136,7 @@ export type {
     CommandData,
     CommandOption,
     CommandChoice,
+    CommandModule,
     RPCHandler
 } from './shared.js';
 
@@ -321,17 +294,11 @@ export interface ContextMenuCommandModule {
     execute: (interaction: ContextMenuCommandInteraction) => Promise<void>;
 }
 
-export interface AutocompleteHandler {
-    (interaction: AutocompleteInteraction): Promise<void>;
-}
+export type AutocompleteHandler = (interaction: AutocompleteInteraction) => Promise<void>;
 
-export interface ComponentHandler {
-    (interaction: ButtonInteraction | SelectMenuInteraction): Promise<void>;
-}
+export type ComponentHandler = (interaction: ButtonInteraction | SelectMenuInteraction) => Promise<void>;
 
-export interface ModalHandler {
-    (interaction: ModalSubmitInteraction): Promise<void>;
-}
+export type ModalHandler = (interaction: ModalSubmitInteraction) => Promise<void>;
 
 // Additional Discord.js API types
 export type GatewayDispatchEvents = Events;

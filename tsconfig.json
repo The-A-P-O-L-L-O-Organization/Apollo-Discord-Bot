@@ -1,11 +1,10 @@
 {
     "compilerOptions": {
-        "target": "ES2024",
+        "target": "ES2023",
         "module": "NodeNext",
         "moduleResolution": "NodeNext",
-        "lib": ["ES2024"],
+        "lib": ["ES2023"],
         "outDir": "./dist",
-        "rootDir": "./src",
         "declaration": true,
         "declarationMap": true,
         "sourceMap": true,
@@ -14,7 +13,6 @@
         "noUncheckedIndexedAccess": true,
         "noImplicitOverride": true,
         "noPropertyAccessFromIndexSignature": true,
-        "exactOptionalPropertyTypes": true,
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
         "forceConsistentCasingInFileNames": true,
@@ -23,15 +21,15 @@
         "verbatimModuleSyntax": true,
         "skipLibCheck": false,
         "types": ["node", "vitest/globals", "@discordjs/builders"],
-        "baseUrl": ".",
         "paths": {
-            "@core/*": ["src/core/*"],
-            "@utils/*": ["src/utils/*"],
-            "@plugins/*": ["src/plugins/*"],
-            "@queue/*": ["src/queue/*"],
-            "@db/*": ["src/db/*"],
-            "@config": ["src/config/config"],
-            "@types/*": ["src/types/*"]
+            "@core/*": ["./src/core/*"],
+            "@utils/*": ["./src/utils/*"],
+            "@plugins/*": ["./src/plugins/*"],
+            "@queue/*": ["./src/queue/*"],
+            "@db/*": ["./src/db/*"],
+            "@config": ["./src/config/config"],
+            "@types/*": ["./src/types/*"],
+            "@tests/*": ["./tests/*"]
         }
     },
     "include": [

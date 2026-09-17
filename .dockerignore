@@ -61,9 +61,9 @@ NOTICE
 # CI
 .github/
 
-# Scripts (except deploy-commands.js)
+# Scripts (only manifest generator needed for prod builder stage)
 scripts/*
-!scripts/deploy-commands.js
+!scripts/generate-manifest.mjs
 
 # Opencode
 .slim/

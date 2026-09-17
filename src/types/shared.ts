@@ -1,7 +1,8 @@
 // Shared types to avoid duplication across type modules
 // This module has NO dependencies on other local type modules to avoid circular imports
 
-import type { Client, Interaction, AutocompleteInteraction, CommandInteraction, ButtonInteraction, SelectMenuInteraction, ContextMenuCommandInteraction } from 'discord.js';
+import type { Client, Interaction, AutocompleteInteraction, ChatInputCommandInteraction, CommandInteraction, ButtonInteraction, SelectMenuInteraction, ContextMenuCommandInteraction, Collection, SlashCommandBuilder, RESTPostAPIChatInputApplicationCommandsJSONBody, ClientOptions } from 'discord.js';
+import type { WarningThresholds, WarningsConfig, TicketsConfig, LevelsConfig, HealthConfig } from './config.js';
 
 // ============================================
 // Discord.js common types (re-exported for convenience)
@@ -25,6 +26,7 @@ export interface SerializedUser {
     discriminator: string;
     avatar: string | null;
     bot: boolean;
+    system: boolean;
 }
 
 export interface SerializedMember {
@@ -186,6 +188,28 @@ export interface ParsedArgs {
     _: string[];
 }
 
+// Command module type for dynamic loading
+export interface CommandModule {
+    name: string;
+    description?: string;
+    pluginId: string;
+    data?: SlashCommandBuilder | RESTPostAPIChatInputApplicationCommandsJSONBody;
+    type?: number;
+    options?: unknown[];
+    dmPermission?: boolean;
+    canQueue?: boolean;
+    execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
+    autocomplete?: (interaction: AutocompleteInteraction) => Promise<void>;
+}
+
+// Event handler module type for dynamic loading
+export interface EventHandlerModule {
+    name: string;
+    once?: boolean;
+    execute: (...args: unknown[]) => Promise<void>;
+    handler?: (...args: unknown[]) => void;
+}
+
 export type RPCHandler = (params: unknown, context: RPCContext) => Promise<unknown>;
 
 export interface RPCContext {
@@ -287,13 +311,19 @@ export interface PluginContext {
 // Service Interfaces (for ApolloClientExtensions)
 // ============================================
 export interface PluginManager {
-    loadPlugin: (name: string, path: string) => Promise<void>;
+    loadPlugin: (name: string, path: string) => Promise<BasePlugin | PluginInstance>;
     enablePlugin: (name: string) => Promise<void>;
     disablePlugin: (name: string) => Promise<void>;
     unloadPlugin: (name: string) => Promise<void>;
     getPlugin: (name: string) => PluginInstance | undefined;
-    getAllPlugins: () => Map<string, PluginInstance>;
     reloadPlugin: (name: string) => Promise<void>;
+    listPlugins: () => { id: string; version: string; loaded: boolean; enabled: boolean }[];
+    scanPlugins: (baseDir?: string) => string[];
+    installPlugin: (name: string) => Promise<void>;
+    uninstallPlugin: (name: string) => Promise<void>;
+    registerSocketHandler: (namespace: string, handler: (...args: any[]) => Promise<any>) => void;
+    installedPlugins: Map<string, { origin: 'built-in' | 'installed'; dir: string }>;
+    workerHost?: { isDisabled: (id: string) => boolean };
 }
 
 export interface PluginInstance {
@@ -302,11 +332,11 @@ export interface PluginInstance {
     description: string;
     enabled: boolean;
     capabilities: string[];
-    commands: Map<string, PluginCommand>;
-    events: Map<string, PluginEvent>;
-    cliCommands: Map<string, CLICommand>;
+    commands: Map<string, unknown>;
+    events: Map<string, unknown>;
+    cliCommands: Map<string, unknown>;
     rpcNamespace?: string;
-    rpcHandlers?: Map<string, RPCHandler>;
+    rpcHandlers?: Map<string, unknown>;
 }
 
 export interface AnalyticsInstance {
@@ -389,11 +419,13 @@ export interface ApolloConfig {
     deleteMessages: boolean;
     warnOnDetection: boolean;
     env: 'development' | 'production' | 'test';
+    podId: string;
     activity: { name: string; type: string };
     welcome: { channelName: string; message: string };
     moderation: { defaultReason: string; muteRoleName: string; muteDuration: number; maxMessagesPerPurge: number; purgeCooldown: number; logModerationActions: boolean; moderationLogChannel: string };
     prefix: string;
     ENCRYPTION_KEY: string;
+    health: HealthConfig;
 }
 
 // Minimal config sub-interfaces for ApolloConfig
@@ -402,9 +434,9 @@ export interface DiscordConfig {
     clientId: string;
     clientSecret: string | undefined;
     shardCount: number | undefined;
-    gateway: unknown;
+    gateway: ClientOptions['ws'] | undefined;
     intents: number | undefined;
-    presence: unknown;
+    presence: ClientOptions['presence'] | undefined;
 }
 
 export interface DatabaseConfig {
@@ -431,13 +463,6 @@ export interface QueueRedisConfig extends RedisConfig {
     prefix: string | undefined;
 }
 
-export interface QueueConfig {
-    enabled: boolean;
-    redis: QueueRedisConfig;
-    prefix: string;
-    shard?: { queuePrefixBase: string };
-}
-
 export interface InterlinkConfig {
     enabled: boolean;
     host: string;
@@ -448,9 +473,13 @@ export interface InterlinkConfig {
 
 export interface ShardConfig {
     queuePrefixBase: string;
+    socketPathBase: string;
+    redisKeyPrefixBase: string;
 }
 
 export interface OperatorConfig {
+    agreed: boolean;
+    contact: string;
     requireAgreement: boolean;
     agreementUrl: string;
     agreementVersion: string;
@@ -486,41 +515,24 @@ export interface AutomodConfig {
     useRedisThreatScore: boolean;
 }
 
-export interface WarningThresholds { mute: number; kick: number; ban: number; }
-
-export interface WarningsConfig { thresholds: WarningThresholds; muteDuration: number; dmOnWarn: boolean; }
-
-export interface TicketsConfig {
-    enabled: boolean;
-    categoryId: string | undefined;
-    logChannelId: string | undefined;
-    supportRoles: string[];
-    maxTicketsPerUser: number;
-    autoCloseAfterHours: number;
-    transcriptEnabled: boolean;
-}
-
-export interface LevelsConfig {
-    enabled: boolean;
-    xpPerMessage: number;
-    xpCooldownMs: number;
-    xpPerMinuteVoice: number;
-    roles: Array<{ level: number; roleId: string }>;
-    ignoredChannels: string[];
-    ignoredRoles: string[];
-    announceChannelId: string | undefined;
-}
-
 export interface LoggingConfig {
     level: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
     pretty: boolean;
     destination: 'stdout' | 'file' | 'both';
     file?: { path: string; maxSize: string; maxFiles: number };
+    defaultEvents: Record<string, boolean>;
+    availableEvents: string[];
 }
 
-export interface RemindersConfig { enabled: boolean; maxRemindersPerUser: number; defaultTimezone: string; }
+export interface RemindersConfig {
+    enabled: boolean;
+    maxRemindersPerUser: number;
+    defaultTimezone: string;
+    maxDuration: number;
+    checkInterval: number;
+}
 
-export interface PollsConfig { enabled: boolean; maxOptions: number; maxDurationHours: number; defaultDurationHours: number; }
+export interface PollsConfig { enabled: boolean; maxOptions: number; maxDurationHours: number; defaultDurationHours: number; maxDuration: number; }
 
 export interface IntegrationsConfig {
     youtube?: { apiKey: string };
@@ -544,6 +556,16 @@ export interface ApolloClientExtensions {
     health: HealthCheckInstance;
 }
 
+export interface ApolloClient extends Client<true> {
+    commands: Collection<string, unknown>;
+    config: ApolloConfig;
+    manager: PluginManager;
+    bus: EventBus;
+    stats: { commandsRan: number; messagesProcessed: number; startTime: number };
+    socketServer?: unknown;
+    apollo: ApolloClientExtensions;
+}
+
 // ============================================
 // Forward declarations for external types
 // ============================================
@@ -564,11 +586,13 @@ export interface QueueManager {
 }
 
 export interface QueueConfig {
-    name: string;
-    prefix: string;
+    enabled: boolean;
     redis: QueueRedisConfig;
-    defaultJobOptions: DefaultJobOptions;
-    serializer: JobSerializer;
+    prefix: string;
+    shard?: ShardConfig;
+    name?: string;
+    defaultJobOptions?: DefaultJobOptions;
+    serializer?: JobSerializer;
 }
 
 export interface RedisConnectionConfig {
@@ -639,16 +663,16 @@ export interface NSFWAnalyzeJobData { imageUrl: string; guildId: string; thresho
 export interface AnalyticsFlushJobData { guildId?: string; force?: boolean; }
 export interface ModerationActionJobData { guildId: string; userId: string; moderatorId: string; type: 'ban' | 'kick' | 'timeout' | 'warn' | 'mute' | 'unmute' | 'unban'; reason: string; duration?: number; deleteMessageSeconds?: number; }
 export interface WebhookDeliverJobData { webhookId: string; webhookToken: string; payload: Record<string, unknown>; retries?: number; }
-export interface EmailSendJobData { to: string; subject: string; html: string; text?: string; attachments?: Array<{ filename: string; content: Buffer | string; contentType?: string }>; }
+export interface EmailSendJobData { to: string; subject: string; html: string; text?: string; attachments?: { filename: string; content: Buffer | string; contentType?: string }[]; }
 export interface BackupCreateJobData { type: 'full' | 'incremental'; includeData: boolean; destination: string; }
 export interface CleanupExpiredJobData { type: 'reminders' | 'polls' | 'tickets' | 'warnings' | 'analytics'; olderThan: number; dryRun?: boolean; }
 
 export interface JobsOptions {}
-export interface Queue<T> {}
+export interface Queue<_T> {}
 export interface EventBus {}
 export interface PublishOptions {}
 export interface SubscribeOptions {}
 export interface Subscription {}
 export interface EventBusHealth {}
-export interface EventHandler<T> {}
+export interface EventHandler<_T> {}
 export interface DatabaseAdapter {}

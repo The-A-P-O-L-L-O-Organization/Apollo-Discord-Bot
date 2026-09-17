@@ -160,8 +160,8 @@ export const PluginRPCRegisterSchema = z.object({
     methods: z.array(z.object({
         name: z.string().min(1).max(100),
         description: z.string().optional(),
-        paramsSchema: z.record(z.unknown()).optional(),
-        resultSchema: z.record(z.unknown()).optional()
+        paramsSchema: z.record(z.string(), z.unknown()).optional(),
+        resultSchema: z.record(z.string(), z.unknown()).optional()
     }))
 });
 
@@ -201,7 +201,7 @@ export const AnalyticsTrackViolationSchema = z.object({
     userId: z.string(),
     type: z.string().min(1),
     action: z.string().min(1),
-    details: z.record(z.unknown()).optional()
+    details: z.record(z.string(), z.unknown()).optional()
 });
 
 // Moderation RPC schemas

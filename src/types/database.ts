@@ -36,6 +36,9 @@ export interface PoolConfig {
     createRetryIntervalMillis?: number;
 }
 
+// Re-export better-sqlite3 Database type
+export type { Database as BetterSQLite3Database } from 'better-sqlite3';
+
 export interface MigrationConfig {
     directory: string;
     tableName: string;
@@ -63,7 +66,7 @@ export interface Repository<T extends { id: string | number }> {
 export interface FindOptions {
     limit?: number;
     offset?: number;
-    orderBy?: Array<{ column: string; direction: 'asc' | 'desc' }>;
+    orderBy?: { column: string; direction: 'asc' | 'desc' }[];
     where?: Record<string, unknown>;
     whereRaw?: string;
     whereRawBindings?: unknown[];
@@ -134,9 +137,9 @@ export interface GetAllDataOptions {
 
 export interface DatabaseAdapter {
     getGuildData: <T>(options: GetDataOptions & { guildId: string }) => Promise<T | undefined>;
-    setGuildData: <T>(options: SetDataOptions & { guildId: string }) => Promise<void>;
+    setGuildData: (options: SetDataOptions & { guildId: string }) => Promise<void>;
     getUserData: <T>(options: GetDataOptions & { userId: string }) => Promise<T | undefined>;
-    setUserData: <T>(options: SetDataOptions & { userId: string }) => Promise<void>;
+    setUserData: (options: SetDataOptions & { userId: string }) => Promise<void>;
     getAllGuildData: <T>(key: string) => Promise<Map<string, T>>;
     getAllUserData: <T>(key: string) => Promise<Map<string, T>>;
     deleteGuildData: (guildId: string, key: string) => Promise<void>;
@@ -144,9 +147,7 @@ export interface DatabaseAdapter {
 }
 
 // Transaction types
-export interface TransactionCallback<T> {
-    (trx: Knex.Transaction): Promise<T>;
-}
+export type TransactionCallback<T> = (trx: Knex.Transaction) => Promise<T>;
 
 export interface DatabaseTransaction {
     commit: () => Promise<void>;
