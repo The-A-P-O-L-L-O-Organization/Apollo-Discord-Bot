@@ -2,14 +2,18 @@
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
-import { getUserData } from '../../../utils/db.ts';
+import { getUserData } from '../../../utils/db.js';
 
-interface WarningEntry {
+export interface WarningEntry {
     id: string;
     reason: string;
     moderatorTag?: string;
     timestamp: number;
     active?: boolean;
+    clearedBy?: string;
+    clearedByTag?: string;
+    clearedAt?: number;
+    clearReason?: string;
 }
 
 export default {
@@ -39,7 +43,7 @@ export default {
             const showInactive = interaction.options.getBoolean('show-inactive') ?? false;
 
             if (!user) {
-                return interaction.reply({
+                await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
                         title: '[ERROR] Missing User',
@@ -48,9 +52,10 @@ export default {
                     }],
                     flags: MessageFlags.Ephemeral
                 });
+                return;
             }
 
-            const allWarnings = (await getUserData('warnings', interaction.guild!.id, user.id)) as WarningEntry[] || [];
+            const allWarnings = ((await getUserData('warnings', interaction.guild!.id, user.id)) as unknown as WarningEntry[]) ?? [];
 
             const warnings = showInactive
                 ? allWarnings
@@ -91,7 +96,7 @@ export default {
             const displayWarnings = warnings.slice(-10).reverse();
 
             for (let i = 0; i < displayWarnings.length; i++) {
-                const warning = displayWarnings[i];
+                const warning = displayWarnings[i]!;
                 const status = warning.active === false ? '~~' : '';
                 const statusLabel = warning.active === false ? ' [CLEARED]' : '';
 

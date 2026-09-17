@@ -4,6 +4,7 @@ import { logger } from '../../../utils/logger.js';
 import type { TextChannel, Guild } from 'discord.js';
 import { EmbedBuilder, ChannelType } from 'discord.js';
 import { hasBreachedSLA, DEFAULT_SLA_THRESHOLDS, formatTime, getPriorityColor, getPriorityEmoji } from '../../../utils/slaTracker.js';
+import type { Ticket, SLAThresholds } from '../../../utils/slaTracker.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { config } from '../../../config/config.js';
 import { getGuildData, getAllGuildIds } from '../../../utils/db.js';
@@ -88,7 +89,7 @@ async function checkGuildTickets(client: any, guildId: string): Promise<void> {
     const slaThresholds = (ticketConfig['slaThresholds'] as Record<string, number>) || DEFAULT_SLA_THRESHOLDS;
 
     for (const ticket of openTickets) {
-        if (hasBreachedSLA(ticket, slaThresholds)) {
+        if (hasBreachedSLA(ticket as unknown as Ticket, slaThresholds as SLAThresholds)) {
             await handleSlaBreach(guild, ticket, slaThresholds, client);
         }
     }
@@ -205,7 +206,7 @@ async function handleSlaBreach(guild: Guild, ticket: Record<string, unknown>, sl
         await sendModLog(guild, {
             action: 'sla_breach',
             target: { id: ticket['userId'] as string, tag: `Ticket #${ticket['ticketNumber']}`, displayAvatarURL: () => null },
-            moderator: { tag: 'SLA Monitor', id: client.user.id, displayAvatarURL: () => client.user.displayAvatarURL() },
+            moderator: { tag: 'SLA Monitor', id: client.user.id },
             reason: `SLA breached for ticket #${ticket['ticketNumber']} (${priority} priority)`,
             extra: {
                 'Ticket Number': `#${ticket['ticketNumber']}`,

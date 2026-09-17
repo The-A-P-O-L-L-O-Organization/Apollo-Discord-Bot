@@ -1,8 +1,19 @@
-import type { ChatInputCommandInteraction } from 'discord.js';
+import type { ChatInputCommandInteraction, GuildMember, TextChannel } from 'discord.js';
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
+
+interface TransferTicketData {
+    userId: string;
+    channelId?: string;
+    ticketNumber?: number;
+    category?: string;
+    priority?: string;
+    assignedTo?: string[];
+    claimedBy?: string;
+    participants?: string[];
+}
 
 export default {
     name: 'tickettransfer',
@@ -32,54 +43,58 @@ export default {
             const note = interaction.options.getString('note') ?? 'No note provided';
 
             const ticketConfig = await getGuildData('tickets', guildId);
-            const openTickets = (ticketConfig['openTickets'] as Record<string, unknown>[]) || [];
-            const ticket = openTickets.find(t => t['channelId'] === channelId);
+            const openTickets = (ticketConfig['openTickets'] ?? []) as TransferTicketData[];
+            const ticket = openTickets.find(t => t.channelId === channelId);
 
             if (!ticket) {
-                return interaction.reply({
+                await interaction.reply({
                     content: 'This channel is not a ticket channel.',
                     flags: MessageFlags.Ephemeral
                 });
+                return;
             }
 
-            const member = interaction.member;
-            const isAssigned = ticket['assignedTo'] && (ticket['assignedTo'] as string[]).includes(interaction.user.id);
-            const isClaimed = ticket['claimedBy'] === interaction.user.id;
-            const hasSupport = ticketConfig['supportRoleId'] && member.roles.cache.has(ticketConfig['supportRoleId']);
+            const member = interaction.member as GuildMember;
+            const isAssigned = ticket.assignedTo?.includes(interaction.user.id) ?? false;
+            const isClaimed = ticket.claimedBy === interaction.user.id;
+            const hasSupport = ticketConfig['supportRoleId'] && member.roles.cache.has(ticketConfig['supportRoleId'] as string);
             const isAdmin = member.permissions.has(PermissionFlagsBits.Administrator);
 
             if (!isAssigned && !isClaimed && !hasSupport && !isAdmin) {
-                return interaction.reply({
+                await interaction.reply({
                     content: 'You do not have permission to transfer this ticket.',
                     flags: MessageFlags.Ephemeral
                 });
+                return;
             }
 
             if (transferUser.id === interaction.user.id) {
-                return interaction.reply({
+                await interaction.reply({
                     content: 'You cannot transfer a ticket to yourself.',
                     flags: MessageFlags.Ephemeral
                 });
+                return;
             }
 
-            const oldAssignees = [...((ticket['assignedTo'] as string[]) || [])];
+            const oldAssignees = [...(ticket.assignedTo ?? [])];
 
             await updateGuildData('tickets', guildId, (data: Record<string, unknown>) => {
-                const openTicketsLocal = (data['openTickets'] as Record<string, unknown>[]) || [];
-                const t = openTicketsLocal.find(x => x['channelId'] === channelId);
+                const openTicketsLocal = (data['openTickets'] as TransferTicketData[] ?? []);
+                const t = openTicketsLocal.find(x => x.channelId === channelId);
                 if (t) {
-                    t['assignedTo'] = [transferUser.id];
-                    t['claimedBy'] = transferUser.id;
-                    t['participants'] ??= [t['userId']];
-                    if (!(t['participants'] as string[]).includes(transferUser.id)) {
-                        (t['participants'] as string[]).push(transferUser.id);
+                    t.assignedTo = [transferUser.id];
+                    t.claimedBy = transferUser.id;
+                    t.participants ??= [t.userId];
+                    if (!t.participants.includes(transferUser.id)) {
+                        t.participants.push(transferUser.id);
                     }
                 }
+                data['openTickets'] = openTicketsLocal;
                 return data;
             });
 
             try {
-                await interaction.channel!.permissionOverwrites.edit(transferUser.id, {
+                await (interaction.channel as TextChannel).permissionOverwrites.edit(transferUser.id, {
                     ViewChannel: true,
                     SendMessages: true,
                     ReadMessageHistory: true,
@@ -109,12 +124,12 @@ export default {
                 const dmEmbed = new EmbedBuilder()
                     .setColor('#FFA500')
                     .setTitle('Ticket Transferred to You')
-                    .setDescription(`Ticket #${ticket['ticketNumber']} in **${interaction.guild.name}** has been transferred to you.`)
+                    .setDescription(`Ticket #${ticket.ticketNumber} in **${interaction.guild!.name}** has been transferred to you.`)
                     .addFields(
                         { name: 'Ticket', value: `<#${channelId}>`, inline: true },
                         { name: 'From', value: interaction.user.tag, inline: true },
-                        { name: 'Category', value: (ticket['category'] as string) || 'general', inline: true },
-                        { name: 'Priority', value: (ticket['priority'] as string) || 'medium', inline: true },
+                        { name: 'Category', value: ticket.category ?? 'general', inline: true },
+                        { name: 'Priority', value: ticket.priority ?? 'medium', inline: true },
                         { name: 'Note', value: note, inline: false }
                     )
                     .setTimestamp();
@@ -131,7 +146,7 @@ export default {
                     const dmEmbed = new EmbedBuilder()
                         .setColor('#FFA500')
                         .setTitle('Ticket Transferred')
-                        .setDescription(`Ticket #${ticket['ticketNumber']} in **${interaction.guild.name}** has been transferred to ${transferUser.tag}.`)
+                        .setDescription(`Ticket #${ticket.ticketNumber} in **${interaction.guild!.name}** has been transferred to ${transferUser.tag}.`)
                         .addFields(
                             { name: 'Transferred by', value: interaction.user.tag, inline: true },
                             { name: 'Note', value: note, inline: false }
@@ -143,7 +158,7 @@ export default {
                 }
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

@@ -3,20 +3,9 @@
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
-import { getUserData, setUserData } from '../../../utils/db.ts';
+import { getUserData, setUserData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
-
-interface WarningEntry {
-    id: string;
-    reason: string;
-    moderatorTag?: string;
-    timestamp: number;
-    active?: boolean;
-    clearedBy?: string;
-    clearedByTag?: string;
-    clearedAt?: number;
-    clearReason?: string;
-}
+import type { WarningEntry } from './warnings.js';
 
 export default {
     name: 'clearwarnings',
@@ -53,7 +42,7 @@ export default {
 
             // Check if user exists
             if (!user) {
-                return interaction.reply({
+                await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
                         title: '[ERROR] Missing User',
@@ -62,13 +51,14 @@ export default {
                     }],
                     flags: MessageFlags.Ephemeral
                 });
+                return;
             }
 
             // Get current warnings
-            const warnings = (await getUserData('warnings', interaction.guild!.id, user.id)) as WarningEntry[] || [];
+            const warnings = ((await getUserData('warnings', interaction.guild!.id, user.id)) as unknown as WarningEntry[]) ?? [];
 
             if (warnings.length === 0) {
-                return interaction.reply({
+                await interaction.reply({
                     embeds: [{
                         color: 0xFFFF00,
                         title: '[INFO] No Warnings',
@@ -77,6 +67,7 @@ export default {
                     }],
                     flags: MessageFlags.Ephemeral
                 });
+                return;
             }
 
             let clearedCount = 0;
@@ -87,7 +78,7 @@ export default {
                 const warningIndex = warnings.findIndex(w => w.id === warningId);
 
                 if (warningIndex === -1) {
-                    return interaction.reply({
+                    await interaction.reply({
                         embeds: [{
                             color: 0xFF0000,
                             title: '[ERROR] Warning Not Found',
@@ -100,12 +91,14 @@ export default {
                         }],
                         flags: MessageFlags.Ephemeral
                     });
+                    return;
                 }
 
                 // Mark warning as inactive instead of deleting (for history)
-                clearedWarning = warnings[warningIndex];
+                const found = warnings[warningIndex]!;
+                clearedWarning = found;
                 warnings[warningIndex] = {
-                    ...clearedWarning,
+                    ...found,
                     active: false,
                     clearedBy: interaction.user.id,
                     clearedByTag: interaction.user.tag,
@@ -121,7 +114,7 @@ export default {
                 const activeWarnings = warnings.filter(w => w.active !== false);
 
                 if (activeWarnings.length === 0) {
-                    return interaction.reply({
+                    await interaction.reply({
                         embeds: [{
                             color: 0xFFFF00,
                             title: '[INFO] No Active Warnings',
@@ -130,6 +123,7 @@ export default {
                         }],
                         flags: MessageFlags.Ephemeral
                     });
+                    return;
                 }
 
                 // Mark all as inactive
@@ -182,7 +176,7 @@ export default {
             }
 
             // Show remaining active warnings
-            const remainingActive = ((await getUserData('warnings', interaction.guild!.id, user.id)) as WarningEntry[] || [])
+            const remainingActive = (((await getUserData('warnings', interaction.guild!.id, user.id)) as unknown as WarningEntry[]) ?? [])
                 .filter(w => w.active !== false).length;
 
             embed.addFields({

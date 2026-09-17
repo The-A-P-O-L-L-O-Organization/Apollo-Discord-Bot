@@ -2,7 +2,7 @@
 // Handles fetching guild log config and sending log events
 
 import { EmbedBuilder } from 'discord.js';
-import type { Message, GuildMember, VoiceState, ColorResolvable } from 'discord.js';
+import type { Message, Guild, GuildMember, VoiceState, ColorResolvable } from 'discord.js';
 
 /**
  * Gets logging configuration for a guild
@@ -49,7 +49,7 @@ export async function isEventEnabled(guildId: string, eventName: string): Promis
  * @param guild - The Discord guild
  * @returns The logging channel or null
  */
-export async function getLogChannel(guild: { id: string; channels: { fetch: (id: string) => Promise<{ isTextBased: () => boolean; send: (options: { embeds: EmbedBuilder[] }) => Promise<void> } | null> } }): Promise<{ isTextBased: () => boolean; send: (options: { embeds: EmbedBuilder[] }) => Promise<void> } | null> {
+export async function getLogChannel(guild: Guild): Promise<{ isTextBased: () => boolean; send: (options: { embeds: EmbedBuilder[] }) => Promise<unknown> } | null> {
     const cfg = await getLoggingConfig(guild.id);
 
     if (!cfg.channelId) { return null; }
@@ -74,7 +74,7 @@ export async function getLogChannel(guild: { id: string; channels: { fetch: (id:
  * @param eventType - The type of event
  * @param embed - The embed to send
  */
-export async function logEvent(guild: { id: string; channels: { fetch: (id: string) => Promise<{ isTextBased: () => boolean; send: (options: { embeds: EmbedBuilder[] }) => Promise<void> } | null> } }, eventType: string, embed: EmbedBuilder): Promise<void> {
+export async function logEvent(guild: Guild, eventType: string, embed: EmbedBuilder): Promise<void> {
     if (!(await isEventEnabled(guild.id, eventType))) { return; }
 
     const logChannel = await getLogChannel(guild);

@@ -16,7 +16,7 @@ export const DEFAULT_SLA_THRESHOLDS = {
 export type SLAThresholds = typeof DEFAULT_SLA_THRESHOLDS;
 export type SLAPriority = keyof SLAThresholds;
 
-interface Ticket {
+export interface Ticket {
     id: string;
     priority: SLAPriority;
     createdAt: number;
@@ -164,19 +164,21 @@ export async function calculateSLAMetrics(guildId: string): Promise<SLAMetrics> 
     }
 
     Object.keys(metrics.byCategory).forEach(category => {
-        const times = (metrics.byCategory[category] as any).responseTimes ?? [];
+        const cat = metrics.byCategory[category]!;
+        const times = ((cat as unknown as { responseTimes?: number[] }).responseTimes) ?? [];
         if (times.length > 0) {
-            metrics.byCategory[category].avgResponseTime = times.reduce((a, b) => a + b, 0) / times.length;
+            cat.avgResponseTime = times.reduce((a: number, b: number) => a + b, 0) / times.length;
         }
-        delete (metrics.byCategory[category] as any).responseTimes;
+        delete (cat as unknown as { responseTimes?: number[] }).responseTimes;
     });
 
     Object.keys(metrics.byPriority).forEach(priority => {
-        const times = (metrics.byPriority[priority] as any).responseTimes ?? [];
+        const pri = metrics.byPriority[priority]!;
+        const times = ((pri as unknown as { responseTimes?: number[] }).responseTimes) ?? [];
         if (times.length > 0) {
-            metrics.byPriority[priority].avgResponseTime = times.reduce((a, b) => a + b, 0) / times.length;
+            pri.avgResponseTime = times.reduce((a: number, b: number) => a + b, 0) / times.length;
         }
-        delete (metrics.byPriority[priority] as any).responseTimes;
+        delete (pri as unknown as { responseTimes?: number[] }).responseTimes;
     });
 
     openTickets.forEach(ticket => {

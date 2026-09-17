@@ -194,7 +194,7 @@ async function handleViewCase(interaction: ChatInputCommandInteraction) {
     const caseId = interaction.options.getInteger('case-id')!;
 
     // Get case data
-    const caseData = await getGuildData('mod-cases', interaction.guild!.id) as GuildCaseData;
+    const caseData = await getGuildData('mod-cases', interaction.guild!.id) as unknown as GuildCaseData;
     const cases = caseData.cases || [];
     const caseInfo = cases.find(c => c.caseId === caseId);
 
@@ -268,7 +268,7 @@ async function handleSearchCases(interaction: ChatInputCommandInteraction) {
     const typeFilter = interaction.options.getString('type');
 
     // Get case data
-    const caseData = await getGuildData('mod-cases', interaction.guild!.id) as GuildCaseData;
+    const caseData = await getGuildData('mod-cases', interaction.guild!.id) as unknown as GuildCaseData;
     const cases = caseData.cases || [];
 
     // Filter cases for user
@@ -316,8 +316,8 @@ async function handleEditCase(interaction: ChatInputCommandInteraction) {
     const newReason = interaction.options.getString('reason')!;
 
     // Get and update case data
-    const result = await updateGuildData('mod-cases', interaction.guild!.id, (data: GuildCaseData) => {
-        const cases = data.cases || [];
+    const result = await updateGuildData('mod-cases', interaction.guild!.id, (data: Record<string, unknown>) => {
+        const cases = (data['cases'] as CaseData[] | undefined) ?? [];
         const caseInfo = cases.find(c => c.caseId === caseId);
 
         if (!caseInfo) {
@@ -338,6 +338,7 @@ async function handleEditCase(interaction: ChatInputCommandInteraction) {
         caseInfo.editedAt = Date.now();
         caseInfo.oldReason = oldReason;
 
+        data['cases'] = cases;
         return data;
     });
 
@@ -397,8 +398,8 @@ async function handleDeleteCase(interaction: ChatInputCommandInteraction) {
     const reason = interaction.options.getString('reason')!;
 
     // Get and update case data
-    const result = await updateGuildData('mod-cases', interaction.guild!.id, (data: GuildCaseData) => {
-        const cases = data.cases || [];
+    const result = await updateGuildData('mod-cases', interaction.guild!.id, (data: Record<string, unknown>) => {
+        const cases = (data['cases'] as CaseData[] | undefined) ?? [];
         const caseInfo = cases.find(c => c.caseId === caseId);
 
         if (!caseInfo) {
@@ -474,7 +475,7 @@ async function handleListCases(interaction: ChatInputCommandInteraction) {
     const limit = interaction.options.getInteger('limit') ?? 10;
 
     // Get case data
-    const caseData = await getGuildData('mod-cases', interaction.guild!.id) as GuildCaseData;
+    const caseData = await getGuildData('mod-cases', interaction.guild!.id) as unknown as GuildCaseData;
     const cases = caseData.cases || [];
 
     // Filter active cases
@@ -527,13 +528,13 @@ export async function createModCase(guildId: string, caseInfo: {
     reason: string;
     duration?: string | null;
 }): Promise<number> {
-    const data = await updateGuildData('mod-cases', guildId, (current: GuildCaseData) => {
-        if (!current.cases) { current.cases = []; }
-        if (!current.nextCaseId) { current.nextCaseId = 1; }
+    const data = await updateGuildData('mod-cases', guildId, (current: Record<string, unknown>) => {
+        const cases = (current['cases'] as CaseData[] | undefined) ?? [];
+        let nextCaseId = (current['nextCaseId'] as number | undefined) ?? 1;
 
-        const caseId = current.nextCaseId++;
+        const caseId = nextCaseId++;
 
-        current.cases.push({
+        cases.push({
             caseId,
             type: caseInfo.type,
             targetId: caseInfo.targetId,
@@ -546,8 +547,10 @@ export async function createModCase(guildId: string, caseInfo: {
             active: true
         });
 
+        current['cases'] = cases;
+        current['nextCaseId'] = nextCaseId;
         return current;
     });
 
-    return data['nextCaseId'] - 1;
+    return (data['nextCaseId'] as number) - 1;
 }

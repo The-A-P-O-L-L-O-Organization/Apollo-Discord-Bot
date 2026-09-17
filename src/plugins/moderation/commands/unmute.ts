@@ -37,7 +37,8 @@ export default {
                     description: 'Please specify a valid user to unmute.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             const member = await fetchMember(interaction.guild!, user.id);
@@ -49,7 +50,8 @@ export default {
                     description: 'This user is not a member of the server.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             if (!member.moderatable) {
@@ -59,7 +61,8 @@ export default {
                     description: 'I cannot unmute this user. They may have higher permissions than me.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             if (user.id === interaction.user.id) {
@@ -69,7 +72,8 @@ export default {
                     description: 'You cannot unmute yourself.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             if (!member.isCommunicationDisabled() && !member.roles.cache.some(role => role.name === 'Muted')) {
@@ -79,7 +83,8 @@ export default {
                     description: 'This user is not currently muted.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             try {
@@ -162,7 +167,7 @@ export default {
                 fields: [
                     {
                         name: '[ERROR] Details',
-                        value: error.message,
+                        value: (error as Error).message,
                         inline: true
                     }
                 ],

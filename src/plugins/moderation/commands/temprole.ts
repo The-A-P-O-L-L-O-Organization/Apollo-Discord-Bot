@@ -1,5 +1,5 @@
 // Temprole Command - Assign a temporary role that expires after a set duration
-import type { ChatInputCommandInteraction} from 'discord.js';
+import type { ChatInputCommandInteraction, Role} from 'discord.js';
 import { MessageFlags } from 'discord.js';
 import { PermissionsBitField } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
@@ -64,7 +64,7 @@ export default {
                 await handleList(interaction);
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {
@@ -82,7 +82,7 @@ async function handleAdd(interaction: ChatInputCommandInteraction) {
 
     const durationMs = parseDuration(durationStr);
     if (!durationMs) {
-        return interaction.reply({
+        await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
                 title: '[ERROR] Invalid Duration',
@@ -91,11 +91,12 @@ async function handleAdd(interaction: ChatInputCommandInteraction) {
             }],
             flags: MessageFlags.Ephemeral
         });
+        return;
     }
 
     const maxDuration = 30 * 24 * 60 * 60 * 1000;
     if (durationMs > maxDuration) {
-        return interaction.reply({
+        await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
                 title: '[ERROR] Duration Too Long',
@@ -104,12 +105,13 @@ async function handleAdd(interaction: ChatInputCommandInteraction) {
             }],
             flags: MessageFlags.Ephemeral
         });
+        return;
     }
 
     const member = await interaction.guild!.members.fetch(user!.id);
 
     if (role!.position >= interaction.guild!.members.me!.roles.highest.position) {
-        return interaction.reply({
+        await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
                 title: '[ERROR] Invalid Role',
@@ -118,9 +120,10 @@ async function handleAdd(interaction: ChatInputCommandInteraction) {
             }],
             flags: MessageFlags.Ephemeral
         });
+        return;
     }
 
-    await member.roles.add(role!, `Temporary role: ${reason}`);
+    await member.roles.add(role as Role, `Temporary role: ${reason}`);
 
     const tempRoleData: TempRoleData = {
         userId: user!.id,
@@ -134,8 +137,8 @@ async function handleAdd(interaction: ChatInputCommandInteraction) {
         assignedAt: Date.now()
     };
 
-    await updateGuildData('temp-roles', interaction.guild!.id, (data: Record<string, TempRoleData>) => {
-        data[user!.id] = tempRoleData;
+    await updateGuildData('temp-roles', interaction.guild!.id, (data: Record<string, unknown>) => {
+        (data as Record<string, TempRoleData>)[user!.id] = tempRoleData;
         return data;
     });
 
@@ -164,10 +167,10 @@ async function handleRemove(interaction: ChatInputCommandInteraction) {
     const member = await interaction.guild!.members.fetch(user!.id);
 
     if (member.roles.cache.has(role!.id)) {
-        await member.roles.remove(role!, 'Temporary role removed early');
+        await member.roles.remove(role as Role, 'Temporary role removed early');
 
-        await updateGuildData('temp-roles', interaction.guild!.id, (data: Record<string, TempRoleData>) => {
-            delete data[user!.id];
+        await updateGuildData('temp-roles', interaction.guild!.id, (data: Record<string, unknown>) => {
+            delete (data as Record<string, TempRoleData>)[user!.id];
             return data;
         });
 
@@ -180,7 +183,7 @@ async function handleRemove(interaction: ChatInputCommandInteraction) {
 
         await interaction.reply({ embeds: [successEmbed] });
     } else {
-        return interaction.reply({
+        await interaction.reply({
             embeds: [{
                 color: 0xFFA500,
                 title: '[INFO] No Temporary Role',
@@ -189,6 +192,7 @@ async function handleRemove(interaction: ChatInputCommandInteraction) {
             }],
             flags: MessageFlags.Ephemeral
         });
+        return;
     }
 }
 
@@ -196,7 +200,7 @@ async function handleList(interaction: ChatInputCommandInteraction) {
     const tempRoles = (await getGuildData('temp-roles', interaction.guild!.id)) as Record<string, TempRoleData> | null;
 
     if (!tempRoles || Object.keys(tempRoles).length === 0) {
-        return interaction.reply({
+        await interaction.reply({
             embeds: [{
                 color: 0xFFA500,
                 title: '[INFO] No Active Temporary Roles',
@@ -205,13 +209,14 @@ async function handleList(interaction: ChatInputCommandInteraction) {
             }],
             flags: MessageFlags.Ephemeral
         });
+        return;
     }
 
     const now = Date.now();
     const activeRoles = Object.values(tempRoles).filter(r => r.expiresAt > now);
 
     if (activeRoles.length === 0) {
-        return interaction.reply({
+        await interaction.reply({
             embeds: [{
                 color: 0xFFA500,
                 title: '[INFO] No Active Temporary Roles',
@@ -220,6 +225,7 @@ async function handleList(interaction: ChatInputCommandInteraction) {
             }],
             flags: MessageFlags.Ephemeral
         });
+        return;
     }
 
     const listEmbed = {
@@ -239,7 +245,7 @@ async function handleList(interaction: ChatInputCommandInteraction) {
 
 function parseDuration(str: string): number | null {
     const match = /^(\d+)([mhdw])$/i.exec(str);
-    if (!match) { return null; }
+    if (!match?.[1] || !match[2]) { return null; }
 
     const value = parseInt(match[1]);
     const unit = match[2].toLowerCase();

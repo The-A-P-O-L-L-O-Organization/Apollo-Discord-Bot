@@ -34,7 +34,7 @@ export async function getGuildData(store: string, guildId: string): Promise<Reco
     return (result as Record<string, unknown>) || {};
 }
 
-export async function setGuildData(store: string, guildId: string, data: Record<string, unknown>): Promise<void> {
+export async function setGuildData(store: string, guildId: string, data: unknown): Promise<void> {
     // Encrypt sensitive fields before storage
     const encryptedData = await encryptFields(data, SENSITIVE_GUILD_FIELDS);
     await _db('guild_store')
@@ -74,7 +74,7 @@ export async function getUserData(store: string, guildId: string, userId: string
     return (result as Record<string, unknown>) || undefined;
 }
 
-export async function setUserData(store: string, guildId: string, userId: string, data: Record<string, unknown>): Promise<void> {
+export async function setUserData(store: string, guildId: string, userId: string, data: unknown): Promise<void> {
     // Encrypt sensitive fields before storage
     const encryptedData = await encryptFields(data, SENSITIVE_USER_FIELDS);
     await _db('guild_user_store')

@@ -1,4 +1,4 @@
-import type { ButtonInteraction, GuildTextBasedChannel } from 'discord.js';
+import type { ButtonInteraction, FetchMessagesOptions, GuildMember, GuildTextBasedChannel, Message } from 'discord.js';
 import { EmbedBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { getGuildData, updateGuildData, generateId, writeToSubDir } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
@@ -35,19 +35,21 @@ async function handleCreateTicket(interaction: ButtonInteraction): Promise<void>
 
     const existingTicket = openTickets.find(t => t['userId'] === userId);
     if (existingTicket) {
-        return interaction.reply({
+        await interaction.reply({
             content: `You already have an open ticket: <#${existingTicket['channelId']}>`,
             flags: MessageFlags.Ephemeral
         });
+        return;
     }
 
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const botMember = interaction.guild!.members?.me;
     if (!botMember?.permissions?.has?.(PermissionFlagsBits.ManageChannels)) {
-        return interaction.editReply({
+        await interaction.editReply({
             content: 'I do not have permission to manage channels.'
         });
+        return;
     }
 
     let parent = null;
@@ -110,9 +112,10 @@ async function handleCreateTicket(interaction: ButtonInteraction): Promise<void>
         });
     } catch (error) {
         logger.error({ err: error, msg: '[ERROR] Failed to create ticket channel:' });
-        return interaction.editReply({
+        await interaction.editReply({
             content: 'Failed to create ticket channel. Please contact an administrator.'
         });
+        return;
     }
 
     const embed = new EmbedBuilder()
@@ -156,9 +159,10 @@ async function handleCreateTicket(interaction: ButtonInteraction): Promise<void>
         return data;
     });
 
-    return interaction.editReply({
+    await interaction.editReply({
         content: `Your ticket has been created: ${ticketChannel}`
     }).catch((err: Error) => logger.warn({ err, msg: '[WARN] Failed to delete message:' }));
+    return;
 }
 
 async function handleCloseTicket(interaction: ButtonInteraction): Promise<void> {
@@ -171,41 +175,43 @@ async function handleCloseTicket(interaction: ButtonInteraction): Promise<void> 
     const ticketIndex = openTickets.findIndex(t => t['channelId'] === channelId);
 
     if (ticketIndex === -1) {
-        return interaction.reply({
+        await interaction.reply({
             content: 'This channel is not a ticket channel.',
             flags: MessageFlags.Ephemeral
         });
+        return;
     }
 
-    const ticket = openTickets[ticketIndex];
+    const ticket = openTickets[ticketIndex]!;
 
-    const member = interaction.member;
+    const member = interaction.member as GuildMember;
     const isTicketOwner = ticket['userId'] === interaction.user.id;
-    const hasSupport = ticketConfig['supportRoleId'] && member.roles.cache.has(ticketConfig['supportRoleId']);
+    const hasSupport = ticketConfig['supportRoleId'] && member.roles.cache.has(ticketConfig['supportRoleId'] as string);
     const isAdmin = member.permissions.has(PermissionFlagsBits.Administrator);
 
     if (!isTicketOwner && !hasSupport && !isAdmin) {
-        return interaction.reply({
+        await interaction.reply({
             content: 'You do not have permission to close this ticket.',
             flags: MessageFlags.Ephemeral
         });
+        return;
     }
 
     await interaction.reply({
         content: 'Closing ticket and saving transcript...'
     });
 
-    let allMessages: any[] = [];
-    let lastMessageId = null;
+    let allMessages: Message[] = [];
+    let lastMessageId: string | null = null;
 
     try {
         while (true) {
-            const options: any = { limit: 100 };
+            const options: FetchMessagesOptions = { limit: 100 };
             if (lastMessageId) {
                 options.before = lastMessageId;
             }
 
-            const messages = await interaction.channel.messages.fetch(options);
+            const messages = await interaction.channel!.messages.fetch(options);
             if (messages.size === 0) { break; }
 
             allMessages = allMessages.concat(Array.from(messages.values()));
@@ -225,7 +231,7 @@ async function handleCloseTicket(interaction: ButtonInteraction): Promise<void> 
         ticketNumber: ticket['ticketNumber'],
         guildId,
         guildName: interaction.guild!.name,
-        channelName: interaction.channel!.name,
+        channelName: (interaction.channel as GuildTextBasedChannel).name,
         createdBy: {
             id: ticket['userId'],
             tag: ticketCreator?.tag ?? 'Unknown'

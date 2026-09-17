@@ -1,16 +1,10 @@
 // Strikes Command - View a user's strike history
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
-import { getUserData } from '../../../utils/db.ts';
+import { getUserData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
-interface StrikeEntry {
-    id: string;
-    reason: string;
-    moderatorTag: string;
-    timestamp: number;
-    active?: boolean;
-}
+import type { StrikeEntry } from './strike.js';
 
 export default {
     name: 'strikes',
@@ -32,7 +26,7 @@ export default {
             const user = interaction.options.getUser('user');
 
             if (!user) {
-                return interaction.reply({
+                await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
                         title: '[ERROR] Missing User',
@@ -41,13 +35,14 @@ export default {
                     }],
                     flags: MessageFlags.Ephemeral
                 });
+                return;
             }
 
-            const strikes = (await getUserData('strikes', interaction.guild!.id, user.id)) as StrikeEntry[] || [];
+            const strikes = ((await getUserData('strikes', interaction.guild!.id, user.id)) as unknown as StrikeEntry[]) ?? [];
             const activeStrikes = strikes.filter(s => s.active !== false);
 
             if (strikes.length === 0) {
-                return interaction.reply({
+                await interaction.reply({
                     embeds: [{
                         color: 0x00FF00,
                         title: '[INFO] No Strikes',
@@ -55,6 +50,7 @@ export default {
                         timestamp: new Date().toISOString()
                     }]
                 });
+                return;
             }
 
             const embed = new EmbedBuilder()
@@ -81,7 +77,7 @@ export default {
 
             await interaction.reply({ embeds: [embed] });
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

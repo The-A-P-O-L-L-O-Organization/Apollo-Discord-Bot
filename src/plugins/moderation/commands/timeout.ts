@@ -34,18 +34,20 @@ export default {
                     description: 'Please specify a valid user to timeout.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
-            const validation = validateDuration(durationStr);
-            if (!validation.valid) {
+            const validation = validateDuration(durationStr ?? '');
+            if (!validation.valid || validation.durationMs == null) {
                 const errorEmbed = {
                     color: 0xFF0000,
                     title: '[ERROR] Invalid Duration',
-                    description: validation.error,
+                    description: validation.error ?? 'Invalid duration.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             const durationMs = validation.durationMs;
@@ -58,7 +60,8 @@ export default {
                     description: 'This user is not in the server. Use /forceban to ban by ID.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             if (!member.moderatable) {
@@ -68,7 +71,8 @@ export default {
                     description: 'I cannot timeout this user. They may have higher permissions than me.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             if (user.id === interaction.user.id) {
@@ -78,7 +82,8 @@ export default {
                     description: 'You cannot timeout yourself.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             if (user.id === interaction.client.user.id) {
@@ -88,7 +93,8 @@ export default {
                     description: 'You cannot timeout the bot.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             const hierarchy = canModerate(interaction.guild!, interaction.member, member);
@@ -99,7 +105,8 @@ export default {
                     description: hierarchy.reason,
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             await member.timeout(durationMs, reason);
@@ -144,7 +151,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] User ${user.tag} was timed out by ${interaction.user.tag} for ${durationDisplay}. Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

@@ -4,7 +4,7 @@ import { MessageFlags } from 'discord.js';
 import { PermissionsBitField } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
-import { createModCase } from './case.ts';
+import { createModCase } from './case.js';
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 import { canModerate } from '../../../utils/moderation.js';
 import { formatDuration, validateDuration } from '../../../utils/duration.js';
@@ -50,19 +50,21 @@ export default {
                     description: 'Please provide a comma-separated list of user IDs.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             // Parse and validate duration
-            const validation = validateDuration(durationStr);
-            if (!validation.valid) {
+            const validation = validateDuration(durationStr ?? '');
+            if (!validation.valid || validation.durationMs == null) {
                 const errorEmbed = {
                     color: 0xFF0000,
                     title: '[ERROR] Invalid Duration',
-                    description: validation.error,
+                    description: validation.error ?? 'Invalid duration.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             const durationMs = validation.durationMs;
@@ -77,7 +79,8 @@ export default {
                     description: 'Please provide valid user IDs (17-19 digits each).',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             if (userIds.length > 50) {
@@ -87,7 +90,8 @@ export default {
                     description: 'Maximum 50 users per mass mute.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             // Check for self/bot
@@ -98,7 +102,8 @@ export default {
                     description: 'You cannot timeout yourself.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             if (userIds.includes(interaction.client.user.id)) {
@@ -108,7 +113,8 @@ export default {
                     description: 'You cannot timeout the bot.',
                     timestamp: new Date().toISOString()
                 };
-                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                return;
             }
 
             await interaction.deferReply({ flags: MessageFlags.Ephemeral });
@@ -137,7 +143,7 @@ export default {
 
                     const hierarchy = canModerate(interaction.guild!, interaction.member, member);
                     if (!hierarchy.ok) {
-                        results.failed.push({ userId, error: hierarchy.reason });
+                        results.failed.push({ userId, error: hierarchy.reason ?? 'Hierarchy check failed.' });
                         continue;
                     }
 
@@ -211,7 +217,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] Mass mute by ${interaction.user.tag}: ${results.success.length} success, ${results.failed.length} failed. Duration: ${durationDisplay}. Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

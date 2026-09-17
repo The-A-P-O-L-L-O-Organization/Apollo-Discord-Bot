@@ -7,6 +7,11 @@ import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/disc
 import { logger } from '../../../utils/logger.js';
 import { MessageFlags } from 'discord.js';
 
+interface CreateTicketData {
+    userId: string;
+    channelId?: string;
+}
+
 export default {
     name: 'ticket',
     description: 'Create a support ticket',
@@ -57,7 +62,8 @@ export default {
 
             const ticketConfig = await getGuildData('tickets', guildId);
 
-            const existingTicket = ticketConfig['openTickets']?.find(t => t.userId === userId);
+            const openTickets = (ticketConfig['openTickets'] ?? []) as CreateTicketData[];
+            const existingTicket = openTickets.find(t => t.userId === userId);
             if (existingTicket) {
                 await interaction.reply({
                     content: `You already have an open ticket: <#${existingTicket.channelId}>`,
@@ -66,7 +72,7 @@ export default {
                 return;
             }
 
-            if (!interaction.guild!.members.me.permissions.has(PermissionFlagsBits.ManageChannels)) {
+            if (!(interaction.guild!.members.me?.permissions.has(PermissionFlagsBits.ManageChannels) ?? false)) {
                 await interaction.reply({
                     content: 'I do not have permission to manage channels.',
                     flags: MessageFlags.Ephemeral
@@ -77,13 +83,13 @@ export default {
             let parent = null;
             if (ticketConfig['categoryId']) {
                 try {
-                    parent = await interaction.guild!.channels.fetch(ticketConfig['categoryId']);
+                    parent = await interaction.guild!.channels.fetch(ticketConfig['categoryId'] as string);
                 } catch {
                     // ignore
                 }
             }
 
-            const ticketNumber = (ticketConfig['totalTickets'] ?? 0) + 1;
+            const ticketNumber = ((ticketConfig['totalTickets'] as number | undefined) ?? 0) + 1;
             const sanitizedUsername = interaction.user.username.substring(0, 20);
             const channelName = `${config.tickets.channelPrefix}${ticketNumber}-${sanitizedUsername}`.toLowerCase().replace(/[^a-z0-9-]/g, '');
 
@@ -114,7 +120,7 @@ export default {
 
             if (ticketConfig['supportRoleId']) {
                 permissionOverwrites.push({
-                    id: ticketConfig['supportRoleId'],
+                    id: ticketConfig['supportRoleId'] as string,
                     allow: [
                         PermissionFlagsBits.ViewChannel,
                         PermissionFlagsBits.SendMessages,
@@ -178,8 +184,8 @@ export default {
 
             const ticketId = generateId();
             await updateGuildData('tickets', guildId, (data) => {
-                data['openTickets'] ??= [];
-                data['openTickets'].push({
+                const open = (data['openTickets'] as Record<string, unknown>[] ?? []);
+                open.push({
                     id: ticketId,
                     ticketNumber,
                     channelId: ticketChannel.id,
@@ -195,6 +201,7 @@ export default {
                     tags: [category, priority],
                     createdAt: Date.now()
                 });
+                data['openTickets'] = open;
                 data['totalTickets'] = ticketNumber;
                 return data;
             });
@@ -205,7 +212,7 @@ export default {
             });
 
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

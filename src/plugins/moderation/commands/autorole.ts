@@ -95,7 +95,7 @@ async function handleSetRole(interaction: ChatInputCommandInteraction): Promise<
     const role = interaction.options.getRole('role', true);
 
     // Check if bot can assign the role
-    if (role.position >= interaction.guild!.members.me.roles.highest.position) {
+    if (role.position >= interaction.guild!.members.me!.roles.highest.position) {
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,

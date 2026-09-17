@@ -17,6 +17,8 @@ interface TempbanData {
     bannedAt: number;
     duration?: string;
     reason?: string;
+    moderatorId?: string;
+    moderatorTag?: string;
 }
 
 interface TempbansData {

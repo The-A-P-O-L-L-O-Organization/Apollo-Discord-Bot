@@ -139,6 +139,8 @@ export interface TicketsConfig {
     maxTicketsPerUser: number;
     autoCloseAfterHours: number;
     transcriptEnabled: boolean;
+    channelPrefix: string;
+    welcomeMessage: string;
 }
 
 export interface LevelsConfig {

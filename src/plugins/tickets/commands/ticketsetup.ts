@@ -1,4 +1,4 @@
-import type { ChatInputCommandInteraction } from 'discord.js';
+import type { ChatInputCommandInteraction, TextChannel } from 'discord.js';
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
@@ -70,7 +70,7 @@ export default {
             const guildId = interaction.guild!.id;
 
             if (subcommand === 'panel') {
-                const channel = interaction.options.getChannel('channel')!;
+                const channel = interaction.options.getChannel('channel')! as TextChannel;
                 const title = interaction.options.getString('title') ?? 'Support Tickets';
                 const description = interaction.options.getString('description') ??
                 'Click the button below to create a support ticket.\n\nA staff member will assist you shortly.';
@@ -102,16 +102,18 @@ export default {
                         return data;
                     });
 
-                    return interaction.reply({
+                    await interaction.reply({
                         content: `Ticket panel created in ${channel}!`,
                         flags: MessageFlags.Ephemeral
                     });
+                    return;
                 } catch (error) {
                     logger.error({ err: error, msg: '[ERROR] Failed to create ticket panel:' });
-                    return interaction.reply({
+                    await interaction.reply({
                         content: 'Failed to create the ticket panel. Make sure I have permission to send messages in that channel.',
                         flags: MessageFlags.Ephemeral
                     });
+                    return;
                 }
 
             } else if (subcommand === 'category') {
@@ -122,10 +124,11 @@ export default {
                     return data;
                 });
 
-                return interaction.reply({
+                await interaction.reply({
                     content: `Ticket category set to **${category.name}**. New tickets will be created in this category.`,
                     flags: MessageFlags.Ephemeral
                 });
+                return;
 
             } else if (subcommand === 'supportrole') {
                 const role = interaction.options.getRole('role')!;
@@ -135,10 +138,11 @@ export default {
                     return data;
                 });
 
-                return interaction.reply({
+                await interaction.reply({
                     content: `Support role set to ${role}. Members with this role can see all tickets.`,
                     flags: MessageFlags.Ephemeral
                 });
+                return;
 
             } else if (subcommand === 'status') {
                 const ticketConfig = await getGuildData('tickets', guildId);
@@ -151,7 +155,7 @@ export default {
                 let categoryStatus = 'Not configured';
                 if (ticketConfig['categoryId']) {
                     try {
-                        const category = await interaction.guild!.channels.fetch(ticketConfig['categoryId']);
+                        const category = await interaction.guild!.channels.fetch(ticketConfig['categoryId'] as string);
                         if (category) {
                             categoryStatus = category.name;
                         }
@@ -163,7 +167,7 @@ export default {
                 let roleStatus = 'Not configured';
                 if (ticketConfig['supportRoleId']) {
                     try {
-                        const role = await interaction.guild!.roles.fetch(ticketConfig['supportRoleId']);
+                        const role = await interaction.guild!.roles.fetch(ticketConfig['supportRoleId'] as string);
                         if (role) {
                             roleStatus = role.name;
                         }
@@ -183,11 +187,11 @@ export default {
                     { name: 'Ticket Panel', value: panelStatus, inline: false }
                 );
 
-                return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
             }
 
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

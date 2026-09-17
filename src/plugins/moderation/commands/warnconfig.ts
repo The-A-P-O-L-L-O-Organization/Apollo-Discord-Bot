@@ -2,8 +2,8 @@
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
-import { getGuildData, setGuildData } from '../../../utils/db.ts';
-import { config } from '../../../config/config.ts';
+import { getGuildData, setGuildData } from '../../../utils/db.js';
+import { config } from '../../../config/config.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 interface WarningThresholds {
@@ -22,8 +22,12 @@ function parseDuration(str: string): number | null {
     const match = /^(\d+)([mhdw])$/i.exec(str);
     if (!match) {return null;}
 
-    const value = parseInt(match[1], 10);
-    const unit = match[2].toLowerCase();
+    const numPart = match[1];
+    const unitPart = match[2];
+    if (numPart === undefined || unitPart === undefined) {return null;}
+
+    const value = parseInt(numPart, 10);
+    const unit = unitPart.toLowerCase();
 
     const multipliers: Record<string, number> = {
         'm': 60000,
@@ -304,7 +308,7 @@ export default {
             }
 
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

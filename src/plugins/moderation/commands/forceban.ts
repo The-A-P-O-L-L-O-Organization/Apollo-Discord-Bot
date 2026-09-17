@@ -126,7 +126,7 @@ export default {
             await interaction.reply({ embeds: [successEmbed] });
 
             // Try to get user object for mod log
-            let targetUser = { id: userId, tag: userTag, displayAvatarURL: () => null };
+            let targetUser: { id: string; tag: string; displayAvatarURL(): string | null } = { id: userId, tag: userTag, displayAvatarURL: () => null };
             try {
                 targetUser = await interaction.client.users.fetch(userId);
             } catch {
@@ -147,7 +147,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] User ${userTag} (${userId}) was forcebanned by ${interaction.user.tag}. Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

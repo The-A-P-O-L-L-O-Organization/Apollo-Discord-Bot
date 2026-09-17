@@ -57,13 +57,13 @@ export default {
             const reportId = interaction.options.getString('report_id');
 
             const guildData = await getGuildData('reports', interaction.guild!.id);
-            const reports = (guildData as ReportsGuildData).entries || [];
+            const reports = (guildData as unknown as ReportsGuildData).entries ?? [];
 
             if (action === 'pending') {
                 const pending = reports.filter(r => r.status === 'pending');
 
                 if (pending.length === 0) {
-                    return interaction.reply({
+                    await interaction.reply({
                         embeds: [{
                             color: 0x00FF00,
                             title: '[INFO] No Pending Reports',
@@ -72,6 +72,7 @@ export default {
                         }],
                         flags: MessageFlags.Ephemeral
                     });
+                    return;
                 }
 
                 const embed = new EmbedBuilder()
@@ -97,7 +98,7 @@ export default {
 
             } else if (action === 'all') {
                 if (reports.length === 0) {
-                    return interaction.reply({
+                    await interaction.reply({
                         embeds: [{
                             color: 0x00FF00,
                             title: '[INFO] No Reports',
@@ -106,6 +107,7 @@ export default {
                         }],
                         flags: MessageFlags.Ephemeral
                     });
+                    return;
                 }
 
                 const pending = reports.filter(r => r.status === 'pending').length;
@@ -138,7 +140,7 @@ export default {
 
             } else if (action === 'view') {
                 if (!reportId) {
-                    return interaction.reply({
+                    await interaction.reply({
                         embeds: [{
                             color: 0xFF0000,
                             title: '[ERROR] Missing Report ID',
@@ -147,12 +149,13 @@ export default {
                         }],
                         flags: MessageFlags.Ephemeral
                     });
+                    return;
                 }
 
                 const report = reports.find(r => r.reportId === reportId);
 
                 if (!report) {
-                    return interaction.reply({
+                    await interaction.reply({
                         embeds: [{
                             color: 0xFF0000,
                             title: '[ERROR] Report Not Found',
@@ -161,6 +164,7 @@ export default {
                         }],
                         flags: MessageFlags.Ephemeral
                     });
+                    return;
                 }
 
                 const date = new Date(report.timestamp).toLocaleString();
@@ -182,7 +186,7 @@ export default {
 
             } else if (action === 'dismiss') {
                 if (!reportId) {
-                    return interaction.reply({
+                    await interaction.reply({
                         embeds: [{
                             color: 0xFF0000,
                             title: '[ERROR] Missing Report ID',
@@ -191,12 +195,13 @@ export default {
                         }],
                         flags: MessageFlags.Ephemeral
                     });
+                    return;
                 }
 
                 const reportIndex = reports.findIndex(r => r.reportId === reportId);
 
                 if (reportIndex === -1) {
-                    return interaction.reply({
+                    await interaction.reply({
                         embeds: [{
                             color: 0xFF0000,
                             title: '[ERROR] Report Not Found',
@@ -205,15 +210,16 @@ export default {
                         }],
                         flags: MessageFlags.Ephemeral
                     });
+                    return;
                 }
 
-                await updateGuildData('reports', interaction.guild!.id, (data: ReportsGuildData) => {
-                    if (!data.entries) { data.entries = []; }
-                    if (data.entries[reportIndex]) {
-                        data.entries[reportIndex].status = 'dismissed';
-                        data.entries[reportIndex].resolvedBy = interaction.user.id;
-                        data.entries[reportIndex].resolvedAt = Date.now();
-                    }
+                await updateGuildData('reports', interaction.guild!.id, (data: Record<string, unknown>) => {
+                    const entries = ((data as unknown as ReportsGuildData).entries ?? []) as ReportEntry[];
+                    const entry = entries[reportIndex]!;
+                    entry.status = 'dismissed';
+                    entry.resolvedBy = interaction.user.id;
+                    entry.resolvedAt = Date.now();
+                    (data as unknown as ReportsGuildData).entries = entries;
                     return data;
                 });
 
@@ -230,7 +236,7 @@ export default {
                 logger.info({ msg: `[REPORT] Report ${reportId} dismissed by ${interaction.user.tag}` });
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error);
+            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {
