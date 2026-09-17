@@ -1,7 +1,8 @@
 // Configuration types for Apollo Discord Bot
 // Mirrors src/config/config.js structure with explicit interfaces
 
-import type { ClientOptions, GatewayDispatchEvents } from 'discord.js';
+import type { ClientOptions } from 'discord.js';
+import type { DefaultJobOptions, JobSerializer } from './queue.js';
 
 export interface DiscordConfig {
     token: string;
@@ -54,9 +55,10 @@ export interface QueueConfig {
     enabled: boolean;
     redis: QueueRedisConfig;
     prefix: string;
-    shard?: {
-        queuePrefixBase: string;
-    };
+    shard?: ShardConfig;
+    name?: string;
+    defaultJobOptions?: DefaultJobOptions;
+    serializer?: JobSerializer;
 }
 
 export interface InterlinkConfig {
@@ -72,9 +74,13 @@ export interface InterlinkConfig {
 
 export interface ShardConfig {
     queuePrefixBase: string;
+    socketPathBase: string;
+    redisKeyPrefixBase: string;
 }
 
 export interface OperatorConfig {
+    agreed: boolean;
+    contact: string;
     requireAgreement: boolean;
     agreementUrl: string;
     agreementVersion: string;
@@ -133,6 +139,8 @@ export interface TicketsConfig {
     maxTicketsPerUser: number;
     autoCloseAfterHours: number;
     transcriptEnabled: boolean;
+    channelPrefix: string;
+    welcomeMessage: string;
 }
 
 export interface LevelsConfig {
@@ -140,10 +148,14 @@ export interface LevelsConfig {
     xpPerMessage: number;
     xpCooldownMs: number;
     xpPerMinuteVoice: number;
-    roles: Array<{
+    cooldown: number;
+    minXp: number;
+    maxXp: number;
+    announceLevelUp: boolean;
+    roles: {
         level: number;
         roleId: string;
-    }>;
+    }[];
     ignoredChannels: string[];
     ignoredRoles: string[];
     announceChannelId: string | undefined;
@@ -158,12 +170,16 @@ export interface LoggingConfig {
         maxSize: string;
         maxFiles: number;
     };
+    defaultEvents: Record<string, boolean>;
+    availableEvents: string[];
 }
 
 export interface RemindersConfig {
     enabled: boolean;
     maxRemindersPerUser: number;
     defaultTimezone: string;
+    maxDuration: number;
+    checkInterval: number;
 }
 
 export interface PollsConfig {
@@ -171,6 +187,7 @@ export interface PollsConfig {
     maxOptions: number;
     maxDurationHours: number;
     defaultDurationHours: number;
+    maxDuration: number;
 }
 
 export interface IntegrationsConfig {
@@ -190,6 +207,11 @@ export interface ReactionRolesConfig {
     enabled: boolean;
     maxRolesPerMessage: number;
     maxReactionRolesPerGuild: number;
+    dmOnRole: boolean;
+}
+
+export interface HealthConfig {
+    authToken: string | undefined;
 }
 
 export interface ApolloConfig {
@@ -210,10 +232,12 @@ export interface ApolloConfig {
     polls: PollsConfig;
     integrations: IntegrationsConfig;
     reactionRoles: ReactionRolesConfig;
+    health: HealthConfig;
     threshold: number;
     deleteMessages: boolean;
     warnOnDetection: boolean;
     env: 'development' | 'production' | 'test';
+    podId: string;
     activity: {
         name: string;
         type: string;
@@ -237,7 +261,7 @@ export interface ApolloConfig {
 
 // Type guard for config validation
 export function isApolloConfig(obj: unknown): obj is ApolloConfig {
-    if (!obj || typeof obj !== 'object') return false;
+    if (!obj || typeof obj !== 'object') {return false;}
     const config = obj as Record<string, unknown>;
     return (
         typeof config['discord'] === 'object' &&

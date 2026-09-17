@@ -1,0 +1,147 @@
+import type { ChatInputCommandInteraction} from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } from 'discord.js';
+import { setGuildData, getGuildData } from '../../../utils/db.js';
+import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+
+export default {
+    name: 'setlogchannel',
+    canQueue: false,
+    data: new SlashCommandBuilder()
+        .setName('setlogchannel')
+        .setDescription('Set the channel for server event logs')
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('set')
+                .setDescription('Set the logging channel')
+                .addChannelOption(option =>
+                    option
+                        .setName('channel')
+                        .setDescription('The channel to send logs to')
+                        .addChannelTypes(ChannelType.GuildText)
+                        .setRequired(true)
+                )
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('remove')
+                .setDescription('Remove the logging channel (disables logging)')
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('view')
+                .setDescription('View the current logging channel')
+        )
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+    category: 'admin',
+
+    async execute(interaction: ChatInputCommandInteraction) {
+        try {
+            try {
+                const subcommand = interaction.options.getSubcommand();
+                const guildId = interaction.guild!.id;
+
+                if (subcommand === 'set') {
+                    const channel = interaction.options.getChannel('channel');
+
+                    if (!channel || !('isTextBased' in channel) || !channel.isTextBased()) {
+                        return interaction.reply({
+                            content: 'Invalid channel.',
+                            flags: MessageFlags.Ephemeral
+                        });
+                    }
+
+                    const botMember = interaction.guild!.members.me;
+                    if (!botMember) {
+                        return interaction.reply({
+                            content: 'Could not fetch bot member.',
+                            flags: MessageFlags.Ephemeral
+                        });
+                    }
+                    const permissions = channel.permissionsFor(botMember);
+
+                    if (!permissions.has('SendMessages') || !permissions.has('EmbedLinks')) {
+                        return interaction.reply({
+                            content: `I don't have permission to send messages or embeds in ${channel}. Please grant me the required permissions.`,
+                            flags: MessageFlags.Ephemeral
+                        });
+                    }
+
+                    const existingConfig = await getGuildData('logging', guildId);
+                    const newConfig = {
+                        ...existingConfig,
+                        channelId: channel.id
+                    };
+
+                    await setGuildData('logging', guildId, newConfig);
+
+                    return interaction.reply({
+                        content: `Logging channel has been set to ${channel}.\n\nUse \`/logging\` to configure which events are logged.`,
+                        flags: MessageFlags.Ephemeral
+                    });
+
+                } else if (subcommand === 'remove') {
+                    const existingConfig = await getGuildData('logging', guildId) as Record<string, unknown> | null;
+
+                    if (!existingConfig?.['channelId']) {
+                        return interaction.reply({
+                            content: 'No logging channel is currently set.',
+                            flags: MessageFlags.Ephemeral
+                        });
+                    }
+
+                    const newConfig = {
+                        ...existingConfig,
+                        channelId: null
+                    };
+
+                    await setGuildData('logging', guildId, newConfig);
+
+                    return interaction.reply({
+                        content: 'Logging channel has been removed. Server event logging is now disabled.',
+                        flags: MessageFlags.Ephemeral
+                    });
+
+                } else if (subcommand === 'view') {
+                    const config = await getGuildData('logging', guildId) as Record<string, unknown> | null;
+
+                    if (!config?.['channelId']) {
+                        return interaction.reply({
+                            content: 'No logging channel is currently set.\n\nUse `/setlogchannel set` to configure one.',
+                            flags: MessageFlags.Ephemeral
+                        });
+                    }
+
+                    try {
+                        const channel = await interaction.guild!.channels.fetch(config['channelId'] as string);
+                        if (channel) {
+                            return interaction.reply({
+                                content: `Current logging channel: ${channel}\n\nUse \`/logging status\` to see which events are being logged.`,
+                                flags: MessageFlags.Ephemeral
+                            });
+                        }
+                    } catch {
+                        // Ignore errors
+                    }
+
+                    return interaction.reply({
+                        content: 'The configured logging channel no longer exists. Please set a new one with `/setlogchannel set`.',
+                        flags: MessageFlags.Ephemeral
+                    });
+                }
+            } catch (error) {
+                const userMessage = handleDiscordError(error);
+                if (userMessage) {
+                    await safeReply(interaction, userMessage);
+                }
+            }
+
+        } catch (error) {
+            const errorMessage = handleDiscordError(error) ?? 'An unexpected error occurred.';
+            if (interaction.replied || interaction.deferred) {
+                await safeFollowUp(interaction, errorMessage);
+            } else {
+                await safeReply(interaction, errorMessage);
+            }
+        }
+    }
+};

@@ -25,9 +25,9 @@ export interface EventBusMessage<T = unknown> {
     payload: T;
     source: EventSource;
     timestamp: number;
-    correlationId?: string;
-    guildId?: string;
-    shardId?: number;
+    correlationId: string | undefined;
+    guildId: string | undefined;
+    shardId: number | undefined;
 }
 
 export interface EventSource {
@@ -81,7 +81,7 @@ export interface SubscribeOptions {
 export interface Subscription {
     id: string;
     event: string;
-    filter?: EventFilter;
+    filter: EventFilter | undefined;
     priority: number;
     once: boolean;
     createdAt: number;
@@ -180,13 +180,13 @@ export interface SerializedInteraction {
         id: string;
         name: string;
         type: number;
-        options: Array<{
+        options: {
             name: string;
             type: number;
             value: unknown;
-            options?: Array<unknown>;
+            options?: unknown[];
             focused?: boolean;
-        }> | null;
+        }[] | null;
     } | null;
     token: string;
     version: number;
@@ -275,12 +275,12 @@ export interface SystemHealthEvent {
     eventLoop: {
         latency: number;
     };
-    shards: Array<{
+    shards: {
         id: number;
         status: string;
         latency: number;
         guilds: number;
-    }>;
+    }[];
     queues: Record<string, {
         waiting: number;
         active: number;

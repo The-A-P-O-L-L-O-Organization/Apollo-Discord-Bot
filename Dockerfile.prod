@@ -1,11 +1,11 @@
 # syntax=docker/dockerfile:1.4
-# Production Dockerfile for Apollo Discord Bot
-# Optimized multi-stage build with BuildKit cache mounts
+# Production Dockerfile for Apollo Discord Bot (TypeScript)
+# Multi-stage build: compile TS to dist/ in builder, ship dist/ only in runtime.
 
 # Stage 1: Build stage
 FROM node:26.7.0-alpine AS builder
 
-# Install build dependencies for better-sqlite3
+# Install build dependencies for better-sqlite3 native bindings
 RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
@@ -13,18 +13,28 @@ WORKDIR /app
 # Install pnpm via corepack
 RUN npm install -g corepack && corepack enable && corepack prepare pnpm@11 --activate
 
-# Copy package files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
+# Copy package files first for better layer caching
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* .npmrc* ./
 
-# Install dependencies with BuildKit cache mount (production only)
+# Install ALL dependencies (dev deps required for tsc + esbuild)
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --prefer-offline --prod
+    pnpm install --frozen-lockfile --prefer-offline
 
-# Copy source code
+# Copy TypeScript configs and source
+COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
 COPY bin ./bin
-COPY scripts/deploy-commands.js ./scripts/deploy-commands.js
+COPY scripts/generate-manifest.mjs ./scripts/generate-manifest.mjs
 COPY plugin-manifest.json ./
+
+# Compile gateway/worker/shard entries to dist/ with source maps
+RUN pnpm build
+
+# Bundle CLI entry to a single file
+RUN pnpm build:cli
+
+# Regenerate plugin-manifest.json from current sources
+RUN pnpm manifest
 
 # Stage 2: Production stage (minimal)
 FROM node:26.7.0-alpine
@@ -35,23 +45,21 @@ RUN apk add --no-cache libstdc++
 WORKDIR /app
 
 ENV NODE_ENV=production
-
-# Install pnpm via corepack (needed for `pnpm start` command)
-RUN npm install -g corepack && corepack enable && corepack prepare pnpm@11 --activate
+ENV NODE_OPTIONS=--enable-source-maps
 
 # Copy package files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* .npmrc* ./
 
-# Copy built artifacts from builder stage
+# Copy production node_modules from builder (native bindings built for alpine)
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/bin ./bin
-COPY --from=builder /app/src ./src
-COPY --from=builder /app/scripts/deploy-commands.js ./scripts/deploy-commands.js
+
+# Copy compiled output, CLI bundle, and regenerated manifest
+COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/plugin-manifest.json ./
 
 # Create directories for persistent data
 RUN mkdir -p /app/src/data /app/logs /app/data/plugins && \
-    ln -s /app/bin/apollo.js /usr/local/bin/apollo
+    ln -s /app/dist/bin/apollo.js /usr/local/bin/apollo
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
@@ -64,4 +72,4 @@ USER nodejs
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD node -e "require('http').get('http://localhost:9090/health', (r) => { if (r.statusCode !== 200) process.exit(1) }).on('error', () => process.exit(1))" || exit 1
 
-CMD ["pnpm", "start"]
+CMD ["node", "dist/index.js"]

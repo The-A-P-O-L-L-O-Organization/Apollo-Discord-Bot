@@ -10,7 +10,7 @@ export default defineConfig({
         environment: 'node',
         include: ['tests/**/*.test.{js,ts}'],
         exclude: ['tests/mocks/**', 'node_modules/**', 'dist/**'],
-        setupFiles: ['./tests/setup.js'],
+        setupFiles: ['./tests/setup.ts'],
         coverage: {
             provider: 'v8',
             reporter: ['text', 'json', 'html'],
@@ -29,11 +29,8 @@ export default defineConfig({
         teardownTimeout: 10000,
         isolate: true,
         pool: 'forks',
-        poolOptions: {
-            forks: {
-                singleFork: true
-            }
-        }
+        maxWorkers: 1,
+        fileParallelism: false
     },
     resolve: {
         alias: {
@@ -43,7 +40,8 @@ export default defineConfig({
             '@queue': path.resolve(__dirname, 'src/queue'),
             '@db': path.resolve(__dirname, 'src/db'),
             '@config': path.resolve(__dirname, 'src/config/config'),
-            '@types': path.resolve(__dirname, 'src/types')
+            '@types': path.resolve(__dirname, 'src/types'),
+            '@tests': path.resolve(__dirname, 'tests')
         }
     }
 });

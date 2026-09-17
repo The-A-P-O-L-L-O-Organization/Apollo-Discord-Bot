@@ -95,6 +95,10 @@ const config = {
         xpPerMessage: 20,
         xpCooldownMs: 60000,
         xpPerMinuteVoice: 10,
+        cooldown: 60000,
+        minXp: 15,
+        maxXp: 25,
+        announceLevelUp: true,
         roles: [],
         ignoredChannels: [],
         ignoredRoles: [],
@@ -109,29 +113,32 @@ const config = {
         supportRoles: [],
         maxTicketsPerUser: 5,
         autoCloseAfterHours: 72,
-        transcriptEnabled: true
+        transcriptEnabled: true,
+        channelPrefix: getEnv('TICKET_CHANNEL_PREFIX') ?? 'ticket-',
+        welcomeMessage: getEnv('TICKET_WELCOME_MESSAGE') ?? 'Thanks for opening a ticket! A staff member will be with you shortly.'
     },
 
     // Logging Settings
     logging: {
         level: 'info',
         pretty: true,
-        destination: 'stdout'
+        destination: 'stdout',
+        defaultEvents: {
+            messageDelete: false,
+            messageEdit: false,
+            memberJoin: false,
+            memberLeave: false,
+            roleChanges: false,
+            voiceChanges: false
+        },
+        availableEvents: ['messageDelete', 'messageEdit', 'memberJoin', 'memberLeave', 'roleChanges', 'voiceChanges']
     },
-
-    // Reminder Settings
-    reminders: {
-        enabled: true,
-        maxRemindersPerUser: 50,
-        defaultTimezone: 'UTC'
-    },
-
-    // Poll Settings
     polls: {
         enabled: true,
         maxOptions: 10,
         maxDurationHours: 168,
-        defaultDurationHours: 24
+        defaultDurationHours: 24,
+        maxDuration: 168 * 60 * 60 * 1000 // 7 days in ms
     },
 
     // Integration Settings
@@ -152,7 +159,8 @@ const config = {
     reactionRoles: {
         enabled: true,
         maxRolesPerMessage: 20,
-        maxReactionRolesPerGuild: 100
+        maxReactionRolesPerGuild: 100,
+        dmOnRole: false
     },
 
     // Command Prefix (for legacy commands if needed)
@@ -203,6 +211,11 @@ const config = {
         lazyConnect: undefined
     },
 
+    // Health check server
+    health: {
+        authToken: getEnv('HEALTH_AUTH_TOKEN')
+    },
+
     // Interlink (Cross-Bot Communication)
     interlink: {
         enabled: parseBoolSafe(getEnv('INTERLINK_ENABLED')),
@@ -233,13 +246,37 @@ const config = {
             lazyConnect: undefined
         },
         prefix: getEnv('QUEUE_PREFIX') ?? 'apollo',
+        name: getEnv('QUEUE_PREFIX') ?? 'apollo',
+        defaultJobOptions: {
+            attempts: 3,
+            backoff: { type: 'exponential' as const, delay: 1000 },
+            removeOnComplete: { age: 3600, count: 100 },
+            removeOnFail: { age: 86400, count: 50 }
+        },
+        serializer: {
+            serialize: () => Buffer.from(''),
+            deserialize: () => ({})
+        },
         shard: {
-            queuePrefixBase: 'apollo'
+            queuePrefixBase: getEnv('QUEUE_PREFIX') ?? 'apollo',
+            socketPathBase: '/tmp/apollo.sock',
+            redisKeyPrefixBase: 'apollo'
         }
+    },
+
+    // Reminders Configuration
+    reminders: {
+        enabled: parseBoolSafe(getEnv('REMINDERS_ENABLED')),
+        maxRemindersPerUser: parseIntSafe(getEnv('MAX_REMINDERS_PER_USER'), 10),
+        defaultTimezone: getEnv('DEFAULT_TIMEZONE') ?? 'UTC',
+        maxDuration: parseIntSafe(getEnv('MAX_REMINDER_DURATION'), 7 * 24 * 60 * 60 * 1000), // 7 days in ms
+        checkInterval: parseIntSafe(getEnv('REMINDERS_CHECK_INTERVAL'), 30000)
     },
 
     // Operator Agreement (required to start the bot)
     operator: {
+        agreed: false as boolean,
+        contact: getEnv('OPERATOR_CONTACT') ?? '',
         requireAgreement: true,
         agreementUrl: 'https://github.com/CodeMaster013/Apollo-Discord-Bot/blob/main/legal/TOS.md',
         agreementVersion: '1.0.0',
@@ -249,7 +286,9 @@ const config = {
 
     // Sharding Configuration
     shard: {
-        queuePrefixBase: 'apollo'
+        queuePrefixBase: getEnv('QUEUE_PREFIX') ?? 'apollo',
+        socketPathBase: '/tmp/apollo.sock',
+        redisKeyPrefixBase: 'apollo'
     },
 
     // NSFW Detection Settings
@@ -259,6 +298,7 @@ const config = {
 
     // Environment
     env: (getEnv('NODE_ENV') ?? 'development') as 'development' | 'production' | 'test',
+    podId: getEnv('POD_ID') ?? getEnv('HOSTNAME') ?? 'default',
     ENCRYPTION_KEY: getEnv('ENCRYPTION_KEY') ?? ''
 } satisfies ApolloConfig;
 
