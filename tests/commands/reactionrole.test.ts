@@ -15,8 +15,8 @@ import type { MockCommandInteraction, MockGuild, MockMessage, MockRole, MockText
 
 // Mock the db module
 vi.mock('../../src/utils/db.js', () => ({
-    getGuildData: vi.fn(),
-    setGuildData: vi.fn()
+    getGuildData: vi.fn().mockReturnValue({ roles: [] as Array<{ roleId: string; messageId: string }> }),
+    setGuildData: vi.fn().mockReturnValue({ roles: [] as Array<{ roleId: string; messageId: string }> })
 }));
 
 import { getGuildData, setGuildData } from '../../src/utils/db.js';

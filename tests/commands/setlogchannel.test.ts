@@ -14,8 +14,8 @@ import type { MockCommandInteraction, MockGuild, MockTextChannel } from '../mock
 
 // Mock the dataStore module
 vi.mock('../../src/utils/db.js', () => ({
-    getGuildData: vi.fn(),
-    setGuildData: vi.fn()
+    getGuildData: vi.fn().mockReturnValue({ channelId: '111222333' }),
+    setGuildData: vi.fn().mockReturnValue({ channelId: '111222333' })
 }));
 
 import { getGuildData, setGuildData } from '../../src/utils/db.js';
