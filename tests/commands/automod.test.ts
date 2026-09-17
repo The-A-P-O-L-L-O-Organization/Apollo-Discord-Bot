@@ -183,17 +183,17 @@ describe('Automod Command', () => {
             await automodCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
             expect(setGuildData).toHaveBeenCalled();
-            const setCall: [string, Record<string, unknown>[], ...unknown[]] = vi.mocked(setGuildData).mock.calls[0] as [string, Record<string, unknown>[], ...unknown[]];
+            const setCall = (vi.mocked(setGuildData).mock.calls[0] as unknown as [string, Record<string, unknown>[], ...unknown[]])!;
             expect(setCall[2]['bannedWords']).toContain('badword');
         });
 
         it('should convert word to lowercase', async() => {
             mockInteraction.options.getString.mockReturnValue('BadWord');
-            vi.mocked(getGuildData).mockResolvedValue({ bannedWords: [] });
+            vi.mocked(getGuildData).mockResolvedValue({ bannedWords: [] as string[] });
 
             await automodCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
-            const setCall = vi.mocked(setGuildData).mock.calls[0]!;
+            const setCall = (vi.mocked(setGuildData).mock.calls[0] as unknown as [string, Record<string, unknown>[], ...unknown[]])!;
             expect(setCall[2]['bannedWords']).toContain('badword');
         });
 
