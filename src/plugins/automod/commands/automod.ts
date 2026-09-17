@@ -2,7 +2,7 @@
 // Configure automatic moderation settings per server
 import { logger } from '../../../utils/logger.js';
 
-import type { ChatInputCommandInteraction } from 'discord.js';
+import type { ChatInputCommandInteraction, FetchMessagesOptions, GuildTextBasedChannel } from 'discord.js';
 import { PermissionsBitField, EmbedBuilder, ChannelType, MessageFlags, SlashCommandBuilder } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
@@ -249,21 +249,21 @@ export default {
 async function getAutomodConfig(guildId: string): Promise<AutomodConfig> {
     const guildConfig = await getGuildData('automod', guildId);
     return {
-        enabled: guildConfig['enabled'] ?? config.automod.enabled,
-        bannedWords: guildConfig['bannedWords'] ?? [],
-        filterInvites: guildConfig['filterInvites'] ?? config.automod.filterInvites,
-        filterLinks: guildConfig['filterLinks'] ?? config.automod.filterLinks,
-        filterPhishingLinks: guildConfig['filterPhishingLinks'] ?? config.automod.filterPhishingLinks,
-        raidDetection: guildConfig['raidDetection'] ?? config.automod.raidDetection,
-        maxMentions: guildConfig['maxMentions'] ?? config.automod.maxMentions,
-        maxCapsPercent: guildConfig['maxCapsPercent'] ?? config.automod.maxCapsPercent,
-        minAccountAge: guildConfig['minAccountAge'] ?? config.automod.minAccountAge,
-        spamThreshold: guildConfig['spamThreshold'] ?? config.automod.spamThreshold,
-        spamInterval: guildConfig['spamInterval'] ?? config.automod.spamInterval,
-        aiModeration: guildConfig['aiModeration'] ?? config.automod.aiModeration,
-        nsfwFilter: guildConfig['nsfwFilter'] ?? config.automod.nsfwFilter,
-        exemptChannels: guildConfig['exemptChannels'] ?? [],
-        exemptRoles: guildConfig['exemptRoles'] ?? []
+        enabled: (guildConfig['enabled'] as boolean) ?? config.automod.enabled,
+        bannedWords: (guildConfig['bannedWords'] as string[]) ?? [],
+        filterInvites: (guildConfig['filterInvites'] as boolean) ?? config.automod.filterInvites,
+        filterLinks: (guildConfig['filterLinks'] as boolean) ?? config.automod.filterLinks,
+        filterPhishingLinks: (guildConfig['filterPhishingLinks'] as boolean) ?? config.automod.filterPhishingLinks,
+        raidDetection: (guildConfig['raidDetection'] as boolean) ?? config.automod.raidDetection,
+        maxMentions: (guildConfig['maxMentions'] as number) ?? config.automod.maxMentions,
+        maxCapsPercent: (guildConfig['maxCapsPercent'] as number) ?? config.automod.maxCapsPercent,
+        minAccountAge: (guildConfig['minAccountAge'] as number) ?? config.automod.minAccountAge,
+        spamThreshold: (guildConfig['spamThreshold'] as number) ?? config.automod.spamThreshold,
+        spamInterval: (guildConfig['spamInterval'] as number) ?? config.automod.spamInterval,
+        aiModeration: (guildConfig['aiModeration'] as boolean) ?? config.automod.aiModeration,
+        nsfwFilter: (guildConfig['nsfwFilter'] as boolean) ?? config.automod.nsfwFilter,
+        exemptChannels: (guildConfig['exemptChannels'] as string[]) ?? [],
+        exemptRoles: (guildConfig['exemptRoles'] as string[]) ?? []
     };
 }
 
@@ -335,9 +335,10 @@ async function handleAddWord(interaction: ChatInputCommandInteraction) {
     const word = interaction.options.getString('word', true).toLowerCase();
     const guildConfig = await getGuildData('automod', interaction.guild!.id);
 
-    guildConfig['bannedWords'] ??= [];
+    const bannedWords = guildConfig['bannedWords'] as string[] ?? [];
+    guildConfig['bannedWords'] = bannedWords;
 
-    if (guildConfig['bannedWords'].includes(word)) {
+    if (bannedWords.includes(word)) {
         return interaction.reply({
             embeds: [{
                 color: 0xFFFF00,
@@ -349,14 +350,14 @@ async function handleAddWord(interaction: ChatInputCommandInteraction) {
         });
     }
 
-    guildConfig['bannedWords'].push(word);
+    bannedWords.push(word);
     await setGuildData('automod', interaction.guild!.id, guildConfig);
 
     const embed = new EmbedBuilder()
         .setColor('#00FF00')
         .setTitle('Word Added')
         .setDescription(`Added \`${word}\` to the banned words list.`)
-        .addFields({ name: 'Total Banned Words', value: `${guildConfig['bannedWords'].length}` })
+        .addFields({ name: 'Total Banned Words', value: `${bannedWords.length}` })
         .setTimestamp();
 
     await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
@@ -367,7 +368,9 @@ async function handleRemoveWord(interaction: ChatInputCommandInteraction) {
     const word = interaction.options.getString('word', true).toLowerCase();
     const guildConfig = await getGuildData('automod', interaction.guild!.id);
 
-    if (!guildConfig['bannedWords']?.includes(word)) {
+    const bannedWords = guildConfig['bannedWords'] as string[] ?? [];
+
+    if (!bannedWords.includes(word)) {
         return interaction.reply({
             embeds: [{
                 color: 0xFF0000,
@@ -379,14 +382,14 @@ async function handleRemoveWord(interaction: ChatInputCommandInteraction) {
         });
     }
 
-    guildConfig['bannedWords'] = guildConfig['bannedWords'].filter(w => w !== word);
+    guildConfig['bannedWords'] = bannedWords.filter((w: string) => w !== word);
     await setGuildData('automod', interaction.guild!.id, guildConfig);
 
     const embed = new EmbedBuilder()
         .setColor('#00FF00')
         .setTitle('Word Removed')
         .setDescription(`Removed \`${word}\` from the banned words list.`)
-        .addFields({ name: 'Total Banned Words', value: `${guildConfig['bannedWords'].length}` })
+        .addFields({ name: 'Total Banned Words', value: `${(guildConfig['bannedWords'] as string[]).length}` })
         .setTimestamp();
 
     await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
@@ -500,10 +503,11 @@ async function handleExemptChannel(interaction: ChatInputCommandInteraction) {
     const action = interaction.options.getString('action', true);
 
     const guildConfig = await getGuildData('automod', interaction.guild!.id);
-    guildConfig['exemptChannels'] ??= [];
+    const exemptChannels = guildConfig['exemptChannels'] as string[] ?? [];
+    guildConfig['exemptChannels'] = exemptChannels;
 
     if (action === 'add') {
-        if (guildConfig['exemptChannels'].includes(channel.id)) {
+        if (exemptChannels.includes(channel.id)) {
             return interaction.reply({
                 embeds: [{
                     color: 0xFFFF00,
@@ -515,7 +519,7 @@ async function handleExemptChannel(interaction: ChatInputCommandInteraction) {
             });
         }
 
-        guildConfig['exemptChannels'].push(channel.id);
+        exemptChannels.push(channel.id);
         await setGuildData('automod', interaction.guild!.id, guildConfig);
 
         await interaction.reply({
@@ -527,7 +531,7 @@ async function handleExemptChannel(interaction: ChatInputCommandInteraction) {
             }]
         });
     } else {
-        if (!guildConfig['exemptChannels'].includes(channel.id)) {
+        if (!exemptChannels.includes(channel.id)) {
             return interaction.reply({
                 embeds: [{
                     color: 0xFFFF00,
@@ -539,7 +543,7 @@ async function handleExemptChannel(interaction: ChatInputCommandInteraction) {
             });
         }
 
-        guildConfig['exemptChannels'] = guildConfig['exemptChannels'].filter(id => id !== channel.id);
+        guildConfig['exemptChannels'] = exemptChannels.filter((id: string) => id !== channel.id);
         await setGuildData('automod', interaction.guild!.id, guildConfig);
 
         await interaction.reply({
@@ -558,10 +562,11 @@ async function handleExemptRole(interaction: ChatInputCommandInteraction) {
     const action = interaction.options.getString('action', true);
 
     const guildConfig = await getGuildData('automod', interaction.guild!.id);
-    guildConfig['exemptRoles'] ??= [];
+    const exemptRoles = guildConfig['exemptRoles'] as string[] ?? [];
+    guildConfig['exemptRoles'] = exemptRoles;
 
     if (action === 'add') {
-        if (guildConfig['exemptRoles'].includes(role.id)) {
+        if (exemptRoles.includes(role.id)) {
             return interaction.reply({
                 embeds: [{
                     color: 0xFFFF00,
@@ -573,7 +578,7 @@ async function handleExemptRole(interaction: ChatInputCommandInteraction) {
             });
         }
 
-        guildConfig['exemptRoles'].push(role.id);
+        exemptRoles.push(role.id);
         await setGuildData('automod', interaction.guild!.id, guildConfig);
 
         await interaction.reply({
@@ -585,7 +590,7 @@ async function handleExemptRole(interaction: ChatInputCommandInteraction) {
             }]
         });
     } else {
-        if (!guildConfig['exemptRoles'].includes(role.id)) {
+        if (!exemptRoles.includes(role.id)) {
             return interaction.reply({
                 embeds: [{
                     color: 0xFFFF00,
@@ -597,7 +602,7 @@ async function handleExemptRole(interaction: ChatInputCommandInteraction) {
             });
         }
 
-        guildConfig['exemptRoles'] = guildConfig['exemptRoles'].filter(id => id !== role.id);
+        guildConfig['exemptRoles'] = exemptRoles.filter((id: string) => id !== role.id);
         await setGuildData('automod', interaction.guild!.id, guildConfig);
 
         await interaction.reply({
@@ -613,7 +618,7 @@ async function handleExemptRole(interaction: ChatInputCommandInteraction) {
 
 async function handleScan(interaction: ChatInputCommandInteraction) {
     try {
-        const channel = interaction.options.getChannel('channel', true);
+        const channel = interaction.options.getChannel('channel', true) as GuildTextBasedChannel;
         const limit = interaction.options.getInteger('limit') ?? 100;
         const user = interaction.options.getUser('user');
         const deleteEnabled = interaction.options.getBoolean('delete') ?? false;
@@ -655,17 +660,15 @@ async function handleScan(interaction: ChatInputCommandInteraction) {
         let messagesScanned = 0;
         let nsfwFound = 0;
         let messagesDeleted = 0;
-        let lastId = null;
+        let lastId: string | null = null;
         const batchSize = 100; // Discord API limit per request
 
         // Fetch and scan messages in batches
         while (messagesScanned < limit) {
             const remaining = limit - messagesScanned;
             const fetchCount = Math.min(batchSize, remaining);
-            const options = {
-                limit: fetchCount,
-                before: lastId
-            };
+            const options: FetchMessagesOptions = { limit: fetchCount };
+            if (lastId) { options.before = lastId; }
 
             const messages = await channel.messages.fetch(options);
             if (messages.size === 0) { break; }

@@ -1,6 +1,7 @@
 // NSFW Detection Utility
 // Scans image attachments for NSFW content using TensorFlow.js
 import { logger } from '../utils/logger.js';
+import type { Attachment, Collection } from 'discord.js';
 import type { SafeFetchResult } from './safeFetch.js';
 import { safeFetch } from './safeFetch.js';
 import { getGuildData } from './db.js';
@@ -142,11 +143,8 @@ export function isImageNsfw(predictions: Record<string, number> | null, threshol
 }
 
 interface MessageLike {
-    channel: { nsfw: boolean };
-    attachments: {
-        filter(fn: (att: any) => boolean): Map<string, { contentType: string | undefined; url: string; name: string }>;
-        size: number;
-    };
+    channel: { id: string; nsfw?: boolean };
+    attachments: Collection<string, Attachment>;
 }
 
 /**
@@ -249,8 +247,8 @@ export function formatNsfwPredictions(predictions: Record<string, number>): stri
             return `${category}: ${percentage}%`;
         })
         .sort((a, b) => {
-            const aVal = parseInt(a.split(': ')[1]);
-            const bVal = parseInt(b.split(': ')[1]);
+            const aVal = parseInt(a.split(': ')[1] ?? '');
+            const bVal = parseInt(b.split(': ')[1] ?? '');
             return bVal - aVal;
         })
         .join('\n');
