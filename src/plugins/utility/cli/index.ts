@@ -44,7 +44,7 @@ const commands: CLICommand[] = [
                 execute: async (args) => {
                     const data = await getGuildData('tags', args['guild'] as string);
                     const tag = data?.[(args['name'] as string).toLowerCase()] as Record<string, unknown> | undefined;
-                    if (!tag) {return { success: false, message: `Tag "${args['name']}" not found` };}
+                    if (!tag) {return { success: false, message: `Tag "${args['name'] as string}" not found` };}
                     return { name: tag['name'], content: tag['content'], createdBy: tag['createdByTag'] };
                 }
             },

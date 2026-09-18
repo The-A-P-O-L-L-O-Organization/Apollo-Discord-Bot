@@ -81,7 +81,7 @@ export default {
             const successEmbed = {
                 color: 0x00FF00,
                 title: duration === 0 ? '[SUCCESS] Slowmode Disabled' : '[SUCCESS] Slowmode Enabled',
-                description: `Slowmode has been ${duration === 0 ? 'disabled' : 'set'} for ${textChannel}.`,
+                description: `Slowmode has been ${duration === 0 ? 'disabled' : 'set'} for <#${textChannel.id}>.`,
                 fields: [
                     { name: '[INFO] Moderator', value: interaction.user.tag, inline: true },
                     { name: '[INFO] Duration', value: durationText, inline: true },

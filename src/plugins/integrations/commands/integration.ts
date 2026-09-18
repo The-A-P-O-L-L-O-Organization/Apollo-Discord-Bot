@@ -1,4 +1,5 @@
 import { PermissionFlagsBits, MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction } from 'discord.js';
 import { getData, setData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
@@ -60,7 +61,7 @@ export default {
         }
     ],
 
-    async execute(interaction: any): Promise<void> {
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
             const subcommand = interaction.options.getSubcommand();
 

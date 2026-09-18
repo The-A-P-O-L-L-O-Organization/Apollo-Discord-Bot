@@ -74,7 +74,7 @@ export default {
 
                 if (staffTickets.length === 0) {
                     await interaction.editReply({
-                        content: `No closed tickets found for ${user}.`
+                        content: `No closed tickets found for <@${user.id}>.`
                     });
                     return;
                 }
@@ -83,7 +83,7 @@ export default {
 
                 if (ratedTickets.length === 0) {
                     await interaction.editReply({
-                        content: `${user} has handled ${staffTickets.length} ticket(s), but none have been rated yet.`
+                        content: `<@${user.id}> has handled ${staffTickets.length} ticket(s), but none have been rated yet.`
                     });
                     return;
                 }

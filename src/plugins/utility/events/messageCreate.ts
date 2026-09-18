@@ -27,7 +27,7 @@ export default {
                 const embed = new EmbedBuilder()
                     .setColor(0x3498DB)
                     .setTitle('[LEVEL UP]')
-                    .setDescription(`${message.author} reached level **${data.level}**!`)
+                    .setDescription(`<@${message.author.id}> reached level **${data.level}**!`)
                     .setTimestamp();
 
                 // @ts-expect-error - channel.send exists on text-based channels

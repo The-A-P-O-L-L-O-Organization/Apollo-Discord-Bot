@@ -214,7 +214,7 @@ export default {
                 }
 
                 await updateGuildData('reports', interaction.guild!.id, (data: Record<string, unknown>) => {
-                    const entries = ((data as unknown as ReportsGuildData).entries ?? []) as ReportEntry[];
+                    const entries = ((data as unknown as ReportsGuildData).entries ?? []);
                     const entry = entries[reportIndex]!;
                     entry.status = 'dismissed';
                     entry.resolvedBy = interaction.user.id;

@@ -71,7 +71,7 @@ export default {
                 const reportEmbed = new EmbedBuilder()
                     .setColor('#FFA500')
                     .setTitle('[!] Message Reported')
-                    .setDescription(`A message has been reported by ${interaction.user}`)
+                    .setDescription(`A message has been reported by <@${interaction.user.id}>`)
                     .addFields(
                         {
                             name: 'Reported Message Author',

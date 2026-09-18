@@ -42,7 +42,7 @@ export async function validatePostgresPoolMax(
 
     try {
         const result = await testPool.query('SHOW max_connections');
-        const maxConnections = parseInt(result.rows[0].max_connections, 10);
+        const maxConnections = parseInt(result.rows[0].max_connections as string, 10);
         const poolMax = poolConfig.max;
         const threshold = Math.floor(maxConnections * 0.8);
 

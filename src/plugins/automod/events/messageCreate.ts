@@ -64,7 +64,7 @@ async function handleViolation(message: Message, type: string, reason: string, c
     const warningEmbed = new EmbedBuilder()
         .setColor('#FFA500')
         .setTitle('[!] Automod Warning')
-        .setDescription(`${message.author}, your message was flagged by automod.`)
+        .setDescription(`<@${message.author.id}>, your message was flagged by automod.`)
         .addFields(
             { name: 'Reason', value: reason, inline: true },
             { name: 'Total Warnings', value: `${warningCount}`, inline: true }

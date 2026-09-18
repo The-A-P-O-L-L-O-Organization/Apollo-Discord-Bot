@@ -36,7 +36,7 @@ async function handleCreateTicket(interaction: ButtonInteraction): Promise<void>
     const existingTicket = openTickets.find(t => t['userId'] === userId);
     if (existingTicket) {
         await interaction.reply({
-            content: `You already have an open ticket: <#${existingTicket['channelId']}>`,
+            content: `You already have an open ticket: <#${existingTicket['channelId'] as string}>`,
             flags: MessageFlags.Ephemeral
         });
         return;
@@ -123,7 +123,7 @@ async function handleCreateTicket(interaction: ButtonInteraction): Promise<void>
         .setTitle(`Ticket #${ticketNumber}`)
         .setDescription(config.tickets.welcomeMessage)
         .addFields(
-            { name: 'Created by', value: `${interaction.user}`, inline: true },
+            { name: 'Created by', value: `<@${interaction.user.id}>`, inline: true },
             { name: 'Ticket ID', value: `#${ticketNumber}`, inline: true }
         )
         .setTimestamp()
@@ -138,7 +138,7 @@ async function handleCreateTicket(interaction: ButtonInteraction): Promise<void>
         );
 
     await ticketChannel.send({
-        content: `${interaction.user} ${ticketConfig['supportRoleId'] ? `<@&${ticketConfig['supportRoleId']}>` : ''}`,
+        content: `<@${interaction.user.id}> ${ticketConfig['supportRoleId'] ? `<@&${ticketConfig['supportRoleId'] as string}>` : ''}`,
         embeds: [embed],
         components: [row]
     });
@@ -160,7 +160,7 @@ async function handleCreateTicket(interaction: ButtonInteraction): Promise<void>
     });
 
     await interaction.editReply({
-        content: `Your ticket has been created: ${ticketChannel}`
+        content: `Your ticket has been created: <#${ticketChannel.id}>`
     }).catch((err: Error) => logger.warn({ err, msg: '[WARN] Failed to delete message:' }));
     return;
 }
@@ -264,7 +264,7 @@ async function handleCloseTicket(interaction: ButtonInteraction): Promise<void> 
         }))
     };
 
-    const filename = `ticket-${ticket['ticketNumber']}-${guildId}-${Date.now()}.json`;
+    const filename = `ticket-${ticket['ticketNumber'] as number}-${guildId}-${Date.now()}.json`;
     writeToSubDir('transcripts', filename, transcript);
 
     await updateGuildData('tickets', guildId, (data: Record<string, unknown>) => {
@@ -295,7 +295,7 @@ async function handleCloseTicket(interaction: ButtonInteraction): Promise<void> 
         const dmEmbed = new EmbedBuilder()
             .setColor('#FF6B6B')
             .setTitle('Ticket Closed')
-            .setDescription(`Your ticket #${ticket['ticketNumber']} in **${interaction.guild!.name}** has been closed.`)
+            .setDescription(`Your ticket #${ticket['ticketNumber'] as number} in **${interaction.guild!.name}** has been closed.`)
             .addFields(
                 { name: 'Closed by', value: interaction.user.tag, inline: true }
             )

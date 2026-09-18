@@ -25,16 +25,18 @@ export default function createRoutes({ registry, messageBus, redis, config }: {
 
     router.post('/message', authMiddleware, replayMiddleware, async (req: any, res: any) => {
         try {
-            const envelope = req.body;
+            const envelope = req.body as { type?: unknown; protocol?: unknown; id?: unknown } | undefined;
             if (!envelope?.type || !envelope.protocol) {
                 return res.status(400).json({ error: 'Invalid message envelope' });
             }
-            if (envelope.protocol !== 'interlink') {
-                return res.status(400).json({ error: `Unsupported protocol: ${envelope.protocol}` });
+            const protocol = envelope.protocol as string;
+            const messageType = envelope.type as string;
+            if (protocol !== 'interlink') {
+                return res.status(400).json({ error: `Unsupported protocol: ${protocol}` });
             }
             const validTypes = ['ping', 'pong', 'command', 'event', 'custom'];
-            if (!validTypes.includes(envelope.type)) {
-                return res.status(400).json({ error: `Unknown message type: ${envelope.type}` });
+            if (!validTypes.includes(messageType)) {
+                return res.status(400).json({ error: `Unknown message type: ${messageType}` });
             }
 
             let responseEnvelope = null;
@@ -47,7 +49,7 @@ export default function createRoutes({ registry, messageBus, redis, config }: {
             }
             res.json({ status: 'accepted', id: envelope.id });
         } catch (err: any) {
-            logger.error('[Interlink:Routes] Error handling message:', err.message);
+            logger.error({ err: err as Error, msg: '[Interlink:Routes] Error handling message' });
             res.status(500).json({ error: 'Internal server error' });
         }
     });

@@ -183,7 +183,7 @@ export default {
                     message = await textChannel.messages.fetch(messageId!) as { react: (emoji: string) => Promise<void>; url: string };
                 } catch {
                     return interaction.reply({
-                        content: `Could not find a message with ID \`${messageId}\` in ${channel}.`,
+                        content: `Could not find a message with ID \`${messageId}\` in <#${channel.id}>.`,
                         flags: MessageFlags.Ephemeral
                     });
                 }
@@ -229,7 +229,7 @@ export default {
                 await setGuildData('reactionroles', guildId, reactionRoles);
 
                 return interaction.reply({
-                    content: `Reaction role added! Users who react with ${emoji.display} on [this message](${message.url}) will receive the ${role} role.`,
+                    content: `Reaction role added! Users who react with ${emoji.display} on [this message](${message.url}) will receive the <@&${role.id}> role.`,
                     flags: MessageFlags.Ephemeral
                 });
 
@@ -304,7 +304,7 @@ export default {
 
                 const grouped: Record<string, { channelId: string; messageId: string; roles: ReactionRole[] }> = {};
                 for (const rr of rolesArray) {
-                    const key = `${rr['channelId']}-${rr['messageId']}`;
+                    const key = `${rr['channelId'] as string}-${rr['messageId'] as string}`;
                     grouped[key] ??= {
                         channelId: rr['channelId'] as string,
                         messageId: rr['messageId'] as string,

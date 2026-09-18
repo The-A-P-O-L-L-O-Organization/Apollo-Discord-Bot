@@ -42,18 +42,21 @@ export class ReplayProtection {
 
 export function createReplayProtectionMiddleware(replayProtection: ReplayProtection) {
     return async (req: any, res: any, next: any) => {
-        const envelope = req.body;
-        const senderId = req.interlinkBot?.name;
+        const envelope = req.body as { nonce?: unknown; timestamp?: unknown } | undefined;
+        const senderId = req.interlinkBot?.name as string | undefined;
 
         if (!senderId || !envelope) {
             return res.status(400).json({ error: 'Invalid request' });
         }
 
-        if (!envelope.nonce || !envelope.timestamp) {
+        const nonce = envelope.nonce as string | undefined;
+        const timestamp = envelope.timestamp as number | undefined;
+
+        if (!nonce || !timestamp) {
             return res.status(400).json({ error: 'Missing nonce or timestamp' });
         }
 
-        const result = await replayProtection.checkAndStore(senderId, envelope.nonce, envelope.timestamp);
+        const result = await replayProtection.checkAndStore(senderId, nonce, timestamp);
 
         if (!result.allowed) {
             return res.status(409).json({ error: result.reason });

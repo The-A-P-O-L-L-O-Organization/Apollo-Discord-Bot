@@ -6,6 +6,7 @@ export default {
     name: 'guildCreate',
     once: false,
     async execute(guild: any, client: any) {
+        const guildId = guild.id as string;
         try {
             logger.info(`[SUCCESS] Bot joined new server: ${guild.name} (${guild.id})`);
             logger.info(`[INFO] Server has ${guild.memberCount} members`);
@@ -25,7 +26,7 @@ export default {
                 exemptRoles: []
             };
 
-            await setGuildData('automod', guild.id, automodDefaults);
+            await setGuildData('automod', guildId, automodDefaults);
             logger.info('[SUCCESS] Initialized automod settings');
 
             // Initialize default logging settings
@@ -34,7 +35,7 @@ export default {
                 events: { ...config.logging.defaultEvents }
             };
 
-            await setGuildData('logging', guild.id, loggingDefaults);
+            await setGuildData('logging', guildId, loggingDefaults);
             logger.info('[SUCCESS] Initialized logging settings');
 
             // Initialize warning system settings
@@ -43,19 +44,19 @@ export default {
                 muteDuration: config.warnings.muteDuration
             };
 
-            await setGuildData('warnings-config', guild.id, warningDefaults);
+            await setGuildData('warnings-config', guildId, warningDefaults);
             logger.info('[SUCCESS] Initialized warning settings');
 
             // Initialize empty blacklist
-            await setGuildData('blacklist', guild.id, { entries: {} });
+            await setGuildData('blacklist', guildId, { entries: {} });
             logger.info('[SUCCESS] Initialized blacklist');
 
             // Initialize empty reaction roles
-            await setGuildData('reactionroles', guild.id, { roles: [] });
+            await setGuildData('reactionroles', guildId, { roles: [] });
             logger.info('[SUCCESS] Initialized reaction roles');
 
             // Initialize empty ticket system
-            await setGuildData('tickets', guild.id, {
+            await setGuildData('tickets', guildId, {
                 categoryId: null,
                 supportRoleId: null,
                 panelMessageId: null,
@@ -66,7 +67,7 @@ export default {
             logger.info('[SUCCESS] Initialized ticket system');
 
             // Initialize empty polls storage
-            await setGuildData('polls', guild.id, { active: [] });
+            await setGuildData('polls', guildId, { active: [] });
             logger.info('[SUCCESS] Initialized polls');
 
             logger.info(`[SUCCESS] Completed initialization for ${guild.name}`);

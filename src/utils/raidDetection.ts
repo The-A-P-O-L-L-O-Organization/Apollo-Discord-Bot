@@ -274,7 +274,7 @@ export async function handleRaidDetected(guild: Guild, member: GuildMember): Pro
         }).filter(Boolean) as {userId: string; username: string; timestamp: number; accountAge: number}[];
 
         const lastAlertKey = `${RAID_KEY_PREFIX}${guild.id}:lastalert`;
-        const lastAlert = parseInt(await redis.get(lastAlertKey) ?? '0', 10);
+        const lastAlert = parseInt((await redis.get(lastAlertKey) as string | null) ?? '0', 10);
 
         if (now - lastAlert < DEFAULT_RAID_THRESHOLDS.alertCooldown) {
             return; // Don't spam alerts

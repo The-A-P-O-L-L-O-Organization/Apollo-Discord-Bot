@@ -2,7 +2,6 @@
 // Scans image attachments for NSFW content using TensorFlow.js
 import { logger } from '../utils/logger.js';
 import type { Attachment, Collection } from 'discord.js';
-import type { SafeFetchResult } from './safeFetch.js';
 import { safeFetch } from './safeFetch.js';
 import { getGuildData } from './db.js';
 import { createQueue } from '../queue/queue.js';
@@ -80,7 +79,7 @@ async function downloadImage(url: string): Promise<Buffer> {
         maxBytes: 10 * 1024 * 1024,
         timeoutMs: 10000,
         skipDnsCheck: true
-    }) as SafeFetchResult;
+    });
     return result.buffer;
 }
 

@@ -135,7 +135,7 @@ async function handleSetRole(interaction: ChatInputCommandInteraction): Promise<
     const successEmbed = {
         color: 0x00FF00,
         title: '[SUCCESS] Auto-Role Set',
-        description: `New members will automatically receive the ${role} role.`,
+        description: `New members will automatically receive the <@&${role.id}> role.`,
         fields: [
             {
                 name: '[INFO] Role',
@@ -257,7 +257,7 @@ async function handleView(interaction: ChatInputCommandInteraction): Promise<voi
         fields: [
             {
                 name: '[INFO] Role',
-                value: role ? `${role}` : (config.roleName ?? 'Unknown'),
+                value: role ? `<@&${role.id}>` : (config.roleName ?? 'Unknown'),
                 inline: true
             },
             {

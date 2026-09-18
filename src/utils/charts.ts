@@ -155,7 +155,7 @@ export function createTable(data: Record<string, unknown>[], columns: string[]):
     }
 
     const rows = data.map(item => {
-        return columns.map(col => String(item[col] ?? '').substring(0, 15)).join(' │ ');
+        return columns.map(col => String((item[col] as string | number | undefined) ?? '').substring(0, 15)).join(' │ ');
     });
 
     const header = columns.map(col => col.substring(0, 15)).join(' │ ');

@@ -93,9 +93,9 @@ export default class RemoteInteraction {
                     return `https://cdn.discordapp.com/embed/avatars/${parseInt(data['userDiscriminator'] as string || '0') % 5}.png`;
                 }
                 const ext = _opts.dynamic && (data['userAvatar'] as string).startsWith('a_') ? 'gif' : (_opts.format ?? 'png');
-                return `https://cdn.discordapp.com/avatars/${data['userId']}/${data['userAvatar']}.${ext}?size=${_opts.size ?? 512}`;
+                return `https://cdn.discordapp.com/avatars/${data['userId'] as string}/${data['userAvatar'] as string}.${ext}?size=${_opts.size ?? 512}`;
             },
-            toString: () => `<@${data['userId']}>`
+            toString: () => `<@${data['userId'] as string}>`
         };
 
         this.member = {
@@ -242,7 +242,7 @@ class RemoteOptions {
 
     constructor(optionsData: { name: string; type: number; value: unknown; focused?: boolean; options?: unknown[] }[] = [], resolved: Record<string, unknown> | null = null) {
         this._data = optionsData || [];
-        this._resolved = resolved as RemoteOptions['_resolved'];
+        this._resolved = resolved;
         this.data = this._data;
     }
 
@@ -271,7 +271,7 @@ class RemoteOptions {
         const resolvedUser = this._resolved?.users?.[opt.value as string];
         const resolvedMember = this._resolved?.members?.[opt.value as string];
         if (resolvedUser) {
-            return { ...resolvedUser as Record<string, unknown>, ...resolvedMember!, roles: { cache: new Collection() } };
+            return { ...resolvedUser, ...resolvedMember!, roles: { cache: new Collection() } };
         }
         return { id: opt.value };
     }

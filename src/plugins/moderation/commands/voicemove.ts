@@ -1,5 +1,5 @@
 // Voice Move Command - Move a user to a different voice channel
-import type { ChatInputCommandInteraction, VoiceChannel} from 'discord.js';
+import type { ChatInputCommandInteraction, VoiceChannel } from 'discord.js';
 import { PermissionFlagsBits, ChannelType, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
@@ -23,6 +23,7 @@ export default {
     async execute(interaction: ChatInputCommandInteraction) {
         try {
             const user = interaction.options.getUser('user');
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
             const targetChannel = interaction.options.getChannel('channel') as VoiceChannel | null;
             const reason = interaction.options.getString('reason') ?? 'No reason provided';
 

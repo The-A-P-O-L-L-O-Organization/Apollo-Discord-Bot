@@ -72,7 +72,7 @@ export async function getGuildData(store: string, guildId: string): Promise<Reco
             .select('data')
             .where({ store, guild_id: guildId })
             .first();
-        try { return row ? JSON.parse(row.data) : {}; } catch { return {}; }
+        try { return row ? JSON.parse(row.data as string) : {}; } catch { return {}; }
     }
     const { db } = await getAdapter() as unknown as { db: unknown };
     const stmt = (db as { prepare: (sql: string) => { get: (store: string, guildId: string) => { data?: string } } }).prepare('SELECT data FROM guild_store WHERE store = ? AND guild_id = ?');

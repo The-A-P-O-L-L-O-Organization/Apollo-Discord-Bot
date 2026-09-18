@@ -66,7 +66,7 @@ export default {
 
             if (ticket.participants.includes(addUser.id)) {
                 await interaction.reply({
-                    content: `${addUser} is already in this ticket.`,
+                    content: `<@${addUser.id}> is already in this ticket.`,
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -102,15 +102,15 @@ export default {
             const embed = new EmbedBuilder()
                 .setColor('#3498DB')
                 .setTitle('User Added to Ticket')
-                .setDescription(`${addUser} has been added to this ticket.`)
+                .setDescription(`<@${addUser.id}> has been added to this ticket.`)
                 .addFields(
-                    { name: 'Added by', value: `${interaction.user}`, inline: true },
-                    { name: 'User', value: `${addUser}`, inline: true }
+                    { name: 'Added by', value: `<@${interaction.user.id}>`, inline: true },
+                    { name: 'User', value: `<@${addUser.id}>`, inline: true }
                 )
                 .setTimestamp();
 
             await interaction.reply({
-                content: `${addUser}`,
+                content: `<@${addUser.id}>`,
                 embeds: [embed]
             });
 

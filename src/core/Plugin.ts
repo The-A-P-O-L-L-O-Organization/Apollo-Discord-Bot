@@ -71,7 +71,7 @@ export abstract class Plugin<C extends CommandModule = CommandModule, _E extends
 
     static readonly dependencies: string[] = [];
     static readonly version: string = '1.0.0';
-    static get description(): string { return ''; }
+    static readonly description: string = '';
     static get capabilities(): PluginCapability[] { return []; }
     static get requiredIntents(): number[] { return []; }
     static get requiredPartials(): string[] { return []; }
@@ -101,11 +101,12 @@ export abstract class Plugin<C extends CommandModule = CommandModule, _E extends
                 const filePath = path.join(cmdDir, file);
                 const url = pathToFileURL(filePath).href + (process.env['NODE_ENV'] === 'development' ? '?t=' + Date.now() : '');
                 const mod = await import(url);
-                if (mod.default?.name) {
-                    mod.default.pluginId = pluginId;
-                    this.commands.set(mod.default.name, mod.default);
+                const commandModule = mod.default as C | undefined;
+                if (commandModule?.name) {
+                    commandModule.pluginId = pluginId;
+                    this.commands.set(commandModule.name, commandModule);
                     if (this.client.commands) {
-                        this.client.commands.set(mod.default.name, mod.default);
+                        this.client.commands.set(commandModule.name, commandModule);
                     }
                 }
             } catch (err) {

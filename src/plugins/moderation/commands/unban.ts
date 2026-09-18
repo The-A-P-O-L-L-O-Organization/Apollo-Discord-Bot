@@ -75,7 +75,7 @@ export default {
 
             await removeTempban(interaction.guild!.id, userId);
 
-            const caseId = createModCase(interaction.guild!.id, {
+            const caseId = await createModCase(interaction.guild!.id, {
                 type: 'unban',
                 targetId: userId,
                 targetTag: `User ID: ${userId}`,

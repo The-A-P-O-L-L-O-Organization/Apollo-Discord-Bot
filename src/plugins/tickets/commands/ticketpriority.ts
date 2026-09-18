@@ -101,7 +101,7 @@ export default {
                 .setTitle('Ticket Priority Updated')
                 .setDescription(`Priority changed from **${getPriorityEmoji(oldPriority)} ${oldPriority.toUpperCase()}** to **${getPriorityEmoji(newPriority)} ${newPriority.toUpperCase()}**`)
                 .addFields(
-                    { name: 'Updated by', value: `${interaction.user}`, inline: true },
+                    { name: 'Updated by', value: `<@${interaction.user.id}>`, inline: true },
                     { name: 'New Priority', value: `${getPriorityEmoji(newPriority)} ${newPriority.charAt(0).toUpperCase() + newPriority.slice(1)}`, inline: true }
                 )
                 .setTimestamp();

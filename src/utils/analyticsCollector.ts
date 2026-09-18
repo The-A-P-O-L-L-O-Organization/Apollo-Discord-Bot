@@ -689,7 +689,7 @@ export async function getMemberGrowthStats(guildId: string, days = 30): Promise<
         }
     }
 
-    return growth.sort((a, b) => String(a['date'] ?? '').localeCompare(String(b['date'] ?? '')));
+    return growth.sort((a, b) => String((a['date'] as string | undefined) ?? '').localeCompare(String((b['date'] as string | undefined) ?? '')));
 }
 
 /**

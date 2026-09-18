@@ -61,7 +61,7 @@ export default {
 
                     if (!permissions.has('SendMessages') || !permissions.has('EmbedLinks')) {
                         return interaction.reply({
-                            content: `I don't have permission to send messages or embeds in ${channel}. Please grant me the required permissions.`,
+                            content: `I don't have permission to send messages or embeds in <#${channel.id}>. Please grant me the required permissions.`,
                             flags: MessageFlags.Ephemeral
                         });
                     }
@@ -75,7 +75,7 @@ export default {
                     await setGuildData('logging', guildId, newConfig);
 
                     return interaction.reply({
-                        content: `Logging channel has been set to ${channel}.\n\nUse \`/logging\` to configure which events are logged.`,
+                        content: `Logging channel has been set to <#${channel.id}>.\n\nUse \`/logging\` to configure which events are logged.`,
                         flags: MessageFlags.Ephemeral
                     });
 
@@ -115,7 +115,7 @@ export default {
                         const channel = await interaction.guild!.channels.fetch(config['channelId'] as string);
                         if (channel) {
                             return interaction.reply({
-                                content: `Current logging channel: ${channel}\n\nUse \`/logging status\` to see which events are being logged.`,
+                                content: `Current logging channel: <#${channel.id}>\n\nUse \`/logging status\` to see which events are being logged.`,
                                 flags: MessageFlags.Ephemeral
                             });
                         }

@@ -107,16 +107,16 @@ export default {
             const embed = new EmbedBuilder()
                 .setColor('#FFA500')
                 .setTitle('Ticket Transferred')
-                .setDescription(`This ticket has been transferred to ${transferUser}.`)
+                .setDescription(`This ticket has been transferred to <@${transferUser.id}>.`)
                 .addFields(
-                    { name: 'Transferred by', value: `${interaction.user}`, inline: true },
-                    { name: 'New assignee', value: `${transferUser}`, inline: true },
+                    { name: 'Transferred by', value: `<@${interaction.user.id}>`, inline: true },
+                    { name: 'New assignee', value: `<@${transferUser.id}>`, inline: true },
                     { name: 'Note', value: note, inline: false }
                 )
                 .setTimestamp();
 
             await interaction.reply({
-                content: `${transferUser}`,
+                content: `<@${transferUser.id}>`,
                 embeds: [embed]
             });
 

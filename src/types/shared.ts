@@ -570,7 +570,7 @@ export interface ApolloClient extends Client<true> {
 // Forward declarations for external types
 // ============================================
 export interface QueueManager {
-    getQueue: <T extends JobName>(name: T) => Queue<QueueJobDataMap[T]> | null;
+    getQueue: <T extends JobName>(name: T) => Queue<QueueJobDataMap[T]>;
     createQueue: <T extends JobName>(name: T, config?: Partial<QueueConfig>) => Promise<Queue<QueueJobDataMap[T]>>;
     closeQueue: (name: string) => Promise<void>;
     closeAll: () => Promise<void>;

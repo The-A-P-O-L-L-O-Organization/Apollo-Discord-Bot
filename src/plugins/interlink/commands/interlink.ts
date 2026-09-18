@@ -6,6 +6,7 @@ import { isOwner, getOwnerIds } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
 import { MessageFlags } from 'discord.js';
+import type { ChatInputCommandInteraction } from 'discord.js';
 
 const SEND_CONFIG = { requestTimeout: 5000, maxRetries: 3 };
 
@@ -94,7 +95,7 @@ export default {
         }
     ],
 
-    async execute(interaction: any) {
+    async execute(interaction: ChatInputCommandInteraction) {
         try {
             await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
@@ -149,7 +150,7 @@ export default {
         }
     },
 
-    async _list(interaction: any) {
+    async _list(interaction: ChatInputCommandInteraction) {
         const bots = await createRegistry().list();
         if (bots.length === 0) {
             return interaction.editReply({
@@ -161,7 +162,7 @@ export default {
             });
         }
 
-        const lines = bots.map((bot: any) => {
+        const lines = bots.map((bot) => {
             const status = bot.is_active ? 'Active' : 'Inactive';
             const redis = bot.supports_redis ? ' +Redis' : '';
             const lastSeen = bot.last_seen_at ? `\n  Last seen: ${new Date(bot.last_seen_at).toLocaleString()}` : '';
@@ -177,7 +178,7 @@ export default {
         });
     },
 
-    async _register(interaction: any) {
+    async _register(interaction: ChatInputCommandInteraction) {
         const name = interaction.options.getString('name', true).trim();
         const webhookUrl = interaction.options.getString('webhook-url', true).trim();
         const description = interaction.options.getString('description')?.trim() ?? '';
@@ -232,7 +233,7 @@ export default {
         }
     },
 
-    async _remove(interaction: any) {
+    async _remove(interaction: ChatInputCommandInteraction) {
         const name = interaction.options.getString('name', true).trim();
         const existing = await createRegistry().get(name);
 
@@ -249,7 +250,7 @@ export default {
         });
     },
 
-    async _send(interaction: any) {
+    async _send(interaction: ChatInputCommandInteraction) {
         const name = interaction.options.getString('name', true).trim();
         const type = interaction.options.getString('type', true);
         const payloadStr = interaction.options.getString('payload', true);
@@ -287,7 +288,7 @@ export default {
         });
     },
 
-    async _broadcast(interaction: any) {
+    async _broadcast(interaction: ChatInputCommandInteraction) {
         const type = interaction.options.getString('type', true);
         const payloadStr = interaction.options.getString('payload', true);
 
@@ -312,7 +313,7 @@ export default {
         });
     },
 
-    async _rotateKey(interaction: any) {
+    async _rotateKey(interaction: ChatInputCommandInteraction) {
         const name = interaction.options.getString('name', true).trim();
         const existing = await createRegistry().get(name);
 
@@ -352,7 +353,7 @@ export default {
         }
     },
 
-    async _override(interaction: any) {
+    async _override(interaction: ChatInputCommandInteraction) {
         const registry = createRegistry();
         const bots = await registry.list();
         const active = bots.filter((b: any) => b.is_active);

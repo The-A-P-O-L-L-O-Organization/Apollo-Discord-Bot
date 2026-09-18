@@ -6,7 +6,7 @@ import { formatTwitchNotification, formatYoutubeNotification, formatRssNotificat
 import type { Client } from '../types/shared.js';
 import type { TextChannel } from 'discord.js';
 
-interface IntegrationConfig {
+export interface IntegrationConfig {
     twitchClientId: string;
     twitchClientSecret: string;
     youtubeApiKey: string;

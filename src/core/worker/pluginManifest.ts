@@ -48,5 +48,7 @@ export async function parsePluginManifest({ dir, readFile: readFileImpl = readFi
         throw new Error('Plugin manifest must declare "capabilities".');
     }
     const capabilities = normalizeCapabilities(manifest['capabilities']);
-    return { id: String(manifest['id']), name: String(manifest['name'] ?? manifest['id']), capabilities };
+    const manifestId = manifest['id'] as string;
+    const manifestName = (manifest['name'] ?? manifest['id']) as string;
+    return { id: manifestId, name: manifestName, capabilities };
 }

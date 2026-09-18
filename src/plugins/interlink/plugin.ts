@@ -1,4 +1,5 @@
 import Plugin from '../../core/Plugin.js';
+import type { TypedClient } from '../../core/Plugin.js';
 import { interlinkConfig } from './config.js';
 import { getDb } from '../../db/knex.js';
 import BotRegistry from './registry.js';
@@ -39,7 +40,7 @@ export default class InterlinkPlugin extends Plugin {
     private _redisTransport: RedisTransport | null = null;
     private _eventUnsubscribers: (() => void)[] = [];
 
-    constructor(client: any, manager: PluginManagerRef) {
+    constructor(client: TypedClient, manager: PluginManagerRef) {
         super(client, manager);
         this.logger = createLogger({ component: 'plugin:interlink' });
         this._redisTransport = null;

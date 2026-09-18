@@ -337,7 +337,8 @@ function buildTagEmbed(embedData: Record<string, unknown>): Record<string, unkno
     };
 
     if (embedData['color']) {
-        const colorStr = String(embedData['color']).replace('#', '');
+        const colorValue = embedData['color'] as string | number;
+        const colorStr = String(colorValue).replace('#', '');
         embed['color'] = /^[0-9a-fA-F]{6}$/.test(colorStr) ? parseInt(colorStr, 16) : embedData['color'];
     }
 
@@ -350,11 +351,11 @@ function buildTagEmbed(embedData: Record<string, unknown>): Record<string, unkno
     }
 
     if (embedData['footer']) {
-        embed['footer'] = { text: String(embedData['footer']) };
+        embed['footer'] = { text: embedData['footer'] as string };
     }
 
     if (embedData['author']) {
-        embed['author'] = { name: String(embedData['author']) };
+        embed['author'] = { name: embedData['author'] as string };
     }
 
     // Clean up undefined properties

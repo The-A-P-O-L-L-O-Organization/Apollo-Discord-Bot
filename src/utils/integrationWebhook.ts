@@ -46,7 +46,7 @@ export async function startWebhookServer(port: number, secret: string, discordCl
                 res.end(JSON.stringify({ error: 'Body too large' }));
                 return;
             }
-            chunks.push(chunk);
+            chunks.push(chunk as Buffer);
         }
         const body = Buffer.concat(chunks).toString('utf-8');
 
