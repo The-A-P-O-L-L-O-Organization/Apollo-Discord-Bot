@@ -86,7 +86,7 @@ export function requireOwner(interaction: Interaction, options: { ephemeral?: bo
  * @param {string} [options.customMessage] - Custom denial message
  * @returns {Function} Wrapped execute function
  */
-export function withOwnerCheck(executeFn: Function, options: { ephemeral?: boolean; customMessage?: string } = {}): (interaction: ChatInputCommandInteraction, ...args: unknown[]) => Promise<unknown> {
+export function withOwnerCheck(executeFn: (interaction: ChatInputCommandInteraction, ...args: unknown[]) => Promise<unknown>, options: { ephemeral?: boolean; customMessage?: string } = {}): (interaction: ChatInputCommandInteraction, ...args: unknown[]) => Promise<unknown> {
     return async (interaction: ChatInputCommandInteraction, ...args: unknown[]) => {
         const denial = await requireOwner(interaction, options);
         if (denial) {

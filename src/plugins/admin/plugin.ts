@@ -10,8 +10,8 @@ export default class AdminPlugin extends Plugin {
     }
 
     static override get id() { return 'admin'; }
-    static override get version() { return '1.0.0'; }
-    static override get dependencies() { return []; }
+    static override readonly version = '1.0.0';
+    static override readonly dependencies: string[] = [];
 
     override async onEnable() {
         await this._loadCommands();

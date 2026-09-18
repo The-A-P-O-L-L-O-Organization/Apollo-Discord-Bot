@@ -148,8 +148,8 @@ export default class RemoteInteraction {
     }
 
     get replied() { return this._replied; }
-    get deferred() { return this._deferred; }
     set replied(v: boolean) { this._replied = v; }
+    get deferred() { return this._deferred; }
     set deferred(v: boolean) { this._deferred = v; }
 
     async reply(options: Record<string, unknown>): Promise<void> {
@@ -271,7 +271,7 @@ class RemoteOptions {
         const resolvedUser = this._resolved?.users?.[opt.value as string];
         const resolvedMember = this._resolved?.members?.[opt.value as string];
         if (resolvedUser) {
-            return { ...resolvedUser as Record<string, unknown>, ...resolvedMember as Record<string, unknown>, roles: { cache: new Collection() } };
+            return { ...resolvedUser as Record<string, unknown>, ...resolvedMember!, roles: { cache: new Collection() } };
         }
         return { id: opt.value };
     }
@@ -311,8 +311,8 @@ class RemoteGuild {
         this.bans = new RemoteGuildBans(id, api);
     }
 
-    get memberCount(): number { return 0; }
-    get ownerId(): string | null { return null; }
+    readonly memberCount: number = 0;
+    readonly ownerId: string | null = null;
 
     get me(): { id: string; permissions: { has: () => boolean }; roles: { cache: Collection<string, { id: string }>; highest: { position: number } } } {
         return {

@@ -1,5 +1,5 @@
 import type { UserContextMenuCommandInteraction} from 'discord.js';
-import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, MessageFlags } from 'discord.js';
+import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, MessageFlags, ContextMenuCommandBuilder, ApplicationCommandType } from 'discord.js';
 import { getData, updateGuildData } from '../../../utils/db.js';
 import { isOwner } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
@@ -17,9 +17,9 @@ interface GlobalBlacklistData {
 }
 
 export default {
-    data: new (require('discord.js').ContextMenuCommandBuilder)()
+    data: new ContextMenuCommandBuilder()
         .setName('Global Ban')
-        .setType(require('discord.js').ApplicationCommandType.User)
+        .setType(ApplicationCommandType.User)
         .setDMPermission(true),
     name: 'Global Ban',
     type: 2,

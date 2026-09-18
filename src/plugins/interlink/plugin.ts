@@ -8,7 +8,6 @@ import InterlinkServer from './server.js';
 import { createLogger } from '../../utils/logger.js';
 import { config } from '../../config/config.js';
 import type { EventBusImpl } from '../../core/EventBus.js';
-import type { BotRecord, CreateBotData, CreatedBot, RotatedKey } from './registry.js';
 
 // Type definitions for Interlink components
 interface Envelope {
@@ -21,35 +20,6 @@ interface Envelope {
     timestamp: number;
     nonce: string;
     payload: unknown;
-}
-
-interface SendResult {
-    success: boolean;
-    status?: number;
-    error?: string;
-}
-
-interface BroadcastResult {
-    name: string;
-    success: boolean;
-    status?: number;
-    error?: string;
-}
-
-interface InterlinkConfig {
-    enabled: boolean;
-    httpPort: number;
-    redis: RedisConfig;
-    forwardEvents: string[];
-    requestTimeout?: number;
-    maxRetries?: number;
-}
-
-interface RedisConfig {
-    host?: string;
-    port?: number;
-    password?: string;
-    channelPrefix?: string;
 }
 
 interface PluginManagerRef {

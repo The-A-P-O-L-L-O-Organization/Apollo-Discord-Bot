@@ -53,8 +53,9 @@ async function loadPollsFromDatabase(): Promise<void> {
     try {
         const data = await getData('polls');
         if (data && typeof data === 'object') {
-            const totalPolls = Object.values(data).reduce((sum, guildData: any) => {
-                return sum + (guildData.active ? guildData.active.length : 0);
+            const totalPolls = Object.values(data).reduce((sum: number, guildData: unknown) => {
+                const active = (guildData as { active?: unknown[] } | null)?.active;
+                return sum + (active ? active.length : 0);
             }, 0);
             logger.info({ msg: `[INFO] Loaded ${totalPolls} polls from database` });
         }

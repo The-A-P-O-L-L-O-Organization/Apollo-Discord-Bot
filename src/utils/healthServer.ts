@@ -8,6 +8,7 @@ import { getLockRedis } from './lock.js';
 import { getDb as getKnex } from '../db/knex.js';
 import { config } from '../config/config.js';
 import type { Client } from 'discord.js';
+import { Status } from 'discord.js';
 
 let healthServer: Server | null = null;
 let isReady = false;
@@ -80,7 +81,7 @@ async function checkDatabase(): Promise<boolean> {
  * @returns {boolean}
  */
 function checkDiscord(client: Client): boolean {
-    return !!client && client.isReady() && client.ws.status === 0;
+    return !!client && client.isReady() && client.ws.status === Status.Ready;
 }
 
 interface HealthCheckResult {

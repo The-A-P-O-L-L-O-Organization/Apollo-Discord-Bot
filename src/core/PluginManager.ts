@@ -432,7 +432,6 @@ export default class PluginManager {
     async installPlugin(id: string): Promise<void> {
         if (this.plugins.has(id)) { throw new Error(`Plugin ${id} is already loaded`); }
 
-        // @ts-ignore - JS file not yet migrated
         const { default: PluginRegistry } = await import('./PluginRegistry.js');
         const pluginsConfig = this.client.config.plugins as { registryFile?: string; paths?: { installed?: string }; enabled: string[] };
         const registry = new PluginRegistry(
@@ -442,7 +441,6 @@ export default class PluginManager {
         const entry = registry.get(id);
         if (!entry) { throw new Error(`Plugin ${id} not found in registry`); }
 
-        // @ts-ignore - JS file not yet migrated
         const { downloadAndExtractPlugin, validatePluginDirectory } = await import('./pluginDownloader.js');
 
         const destDir = path.join(
