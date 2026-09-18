@@ -50,15 +50,15 @@ export default {
             const everyoneRole = interaction.guild!.roles.everyone;
 
             // Get current permissions for @everyone in this channel
-            const currentPermissions = channel!.permissionOverwrites.cache.get(everyoneRole.id);
+            const currentPermissions = channel.permissionOverwrites.cache.get(everyoneRole.id);
 
             // Check if channel is already locked
             const lockdownData = (await getGuildData('channel-lockdowns', interaction.guild!.id));
-            if (lockdownData[channel!.id]) {
+            if (lockdownData[channel.id]) {
                 const errorEmbed = {
                     color: 0xFF0000,
                     title: '[ERROR] Channel Already Locked',
-                    description: `${channel} is already in lockdown mode.`,
+                    description: `<#${channel.id}> is already in lockdown mode.`,
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -77,14 +77,14 @@ export default {
             };
 
             // Lock the channel
-            await channel!.permissionOverwrites.edit(everyoneRole, {
+            await channel.permissionOverwrites.edit(everyoneRole, {
                 SendMessages: false,
                 AddReactions: false
             }, { reason: `Lockdown by ${interaction.user.tag}: ${reason}` });
 
             // Save lockdown info to database
-            lockdownData[channel!.id] = {
-                channelId: channel!.id,
+            lockdownData[channel.id] = {
+                channelId: channel.id,
                 originalPermissions: originalPermissions,
                 lockedBy: interaction.user.id,
                 lockedByTag: interaction.user.tag,
@@ -97,7 +97,7 @@ export default {
             const successEmbed = {
                 color: 0x00FF00,
                 title: '[SUCCESS] Channel Locked',
-                description: `${channel} has been locked down.`,
+                description: `<#${channel.id}> has been locked down.`,
                 fields: [
                     {
                         name: '[INFO] Moderator',
@@ -111,7 +111,7 @@ export default {
                     },
                     {
                         name: '[INFO] Channel ID',
-                        value: channel!.id,
+                        value: channel.id,
                         inline: true
                     }
                 ],
@@ -135,7 +135,7 @@ export default {
                     ],
                     timestamp: new Date().toISOString()
                 };
-                await channel!.send({ embeds: [lockNotice] });
+                await channel.send({ embeds: [lockNotice] });
             } catch (err) {
                 logger.info({ msg: '[WARNING] Could not send lock notice to channel:', err: (err as Error).message });
             }
@@ -143,16 +143,16 @@ export default {
             // Send mod log
             await sendModLog(interaction.guild!, {
                 action: 'lockdown',
-                target: { tag: `#${channel!.name}`, id: channel!.id, displayAvatarURL: () => null },
+                target: { tag: `#${channel.name}`, id: channel.id, displayAvatarURL: () => null },
                 moderator: interaction.user,
                 reason: reason,
                 extra: {
-                    'Channel': `<#${channel!.id}>`
+                    'Channel': `<#${channel.id}>`
                 }
             });
 
             // Log the action
-            logger.info({ msg: `[MODERATION] Channel ${channel!.name} was locked by ${interaction.user.tag}. Reason: ${reason}` });
+            logger.info({ msg: `[MODERATION] Channel ${channel.name} was locked by ${interaction.user.tag}. Reason: ${reason}` });
         } catch (error) {
             const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {

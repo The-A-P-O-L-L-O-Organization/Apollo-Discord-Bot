@@ -95,7 +95,7 @@ export default {
                     fields: [{ name: '[INFO] Reason', value: reason, inline: false }],
                     timestamp: new Date().toISOString()
                 };
-            await channel.send({ embeds: [unlockNotice] });
+                await channel.send({ embeds: [unlockNotice] });
             } catch (err) {
                 logger.info({ msg: '[WARNING] Could not send unlock notice to channel:', err: (err as Error).message });
             }

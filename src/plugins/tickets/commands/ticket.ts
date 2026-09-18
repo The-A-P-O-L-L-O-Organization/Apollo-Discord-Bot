@@ -153,7 +153,7 @@ export default {
                 .setTitle(`${getPriorityEmoji(priority)} Ticket #${ticketNumber}`)
                 .setDescription(config.tickets.welcomeMessage)
                 .addFields(
-                    { name: 'Created by', value: `${interaction.user}`, inline: true },
+                    { name: 'Created by', value: `<@${interaction.user.id}>`, inline: true },
                     { name: 'Ticket ID', value: `#${ticketNumber}`, inline: true },
                     { name: 'Category', value: category.charAt(0).toUpperCase() + category.slice(1), inline: true },
                     { name: 'Priority', value: `${getPriorityEmoji(priority)} ${priority.charAt(0).toUpperCase() + priority.slice(1)}`, inline: true },
@@ -177,7 +177,7 @@ export default {
                 );
 
             await ticketChannel.send({
-                content: `${interaction.user} ${ticketConfig['supportRoleId'] ? `<@&${ticketConfig['supportRoleId']}>` : ''}`,
+                content: `<@${interaction.user.id}> ${ticketConfig['supportRoleId'] ? `<@&${ticketConfig['supportRoleId'] as string}>` : ''}`,
                 embeds: [embed],
                 components: [row]
             });
@@ -207,7 +207,7 @@ export default {
             });
 
             await interaction.reply({
-                content: `Your ticket has been created: ${ticketChannel}`,
+                content: `Your ticket has been created: <#${ticketChannel.id}>`,
                 flags: MessageFlags.Ephemeral
             });
 

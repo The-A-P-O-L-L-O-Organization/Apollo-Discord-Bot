@@ -27,7 +27,7 @@ export function extractKeyPrefix(rawKey: string): string {
 
 export function createAuthMiddleware(registry: any) {
     return async (req: any, res: any, next: any) => {
-        const header = req.headers.authorization;
+        const header = req.headers.authorization as string | undefined;
         if (!header?.startsWith('Bearer ')) {
             return res.status(401).json({ error: 'Missing or invalid Authorization header' });
         }
@@ -40,7 +40,7 @@ export function createAuthMiddleware(registry: any) {
         if (!bot) {
             return res.status(401).json({ error: 'Unknown API key' });
         }
-        const valid = await validateApiKey(rawKey, bot.api_key_hash);
+        const valid = await validateApiKey(rawKey, bot.api_key_hash as string);
         if (!valid) {
             return res.status(401).json({ error: 'Invalid API key' });
         }

@@ -70,6 +70,7 @@ export default {
             const guildId = interaction.guild!.id;
 
             if (subcommand === 'panel') {
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
                 const channel = interaction.options.getChannel('channel')! as TextChannel;
                 const title = interaction.options.getString('title') ?? 'Support Tickets';
                 const description = interaction.options.getString('description') ??
@@ -103,7 +104,7 @@ export default {
                     });
 
                     await interaction.reply({
-                        content: `Ticket panel created in ${channel}!`,
+                        content: `Ticket panel created in <#${channel.id}>!`,
                         flags: MessageFlags.Ephemeral
                     });
                     return;
@@ -139,7 +140,7 @@ export default {
                 });
 
                 await interaction.reply({
-                    content: `Support role set to ${role}. Members with this role can see all tickets.`,
+                    content: `Support role set to <@&${role.id}>. Members with this role can see all tickets.`,
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -178,7 +179,7 @@ export default {
 
                 let panelStatus = 'Not created';
                 if (ticketConfig['panelMessageId'] && ticketConfig['panelChannelId']) {
-                    panelStatus = `[Jump to panel](https://discord.com/channels/${guildId}/${ticketConfig['panelChannelId']}/${ticketConfig['panelMessageId']})`;
+                    panelStatus = `[Jump to panel](https://discord.com/channels/${guildId}/${ticketConfig['panelChannelId'] as string}/${ticketConfig['panelMessageId'] as string})`;
                 }
 
                 embed.addFields(

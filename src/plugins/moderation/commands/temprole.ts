@@ -145,7 +145,7 @@ async function handleAdd(interaction: ChatInputCommandInteraction) {
     const successEmbed = {
         color: 0x00FF00,
         title: '[SUCCESS] Temporary Role Assigned',
-        description: `${user!.tag} has been assigned ${role} for ${durationStr}.`,
+        description: `${user!.tag} has been assigned <@&${role!.id}> for ${durationStr}.`,
         fields: [
             { name: '[INFO] User', value: user!.tag, inline: true },
             { name: '[INFO] Role', value: role!.name, inline: true },
@@ -177,7 +177,7 @@ async function handleRemove(interaction: ChatInputCommandInteraction) {
         const successEmbed = {
             color: 0x00FF00,
             title: '[SUCCESS] Temporary Role Removed',
-            description: `${role} has been removed from ${user!.tag}.`,
+            description: `<@&${role!.id}> has been removed from ${user!.tag}.`,
             timestamp: new Date().toISOString()
         };
 
@@ -187,7 +187,7 @@ async function handleRemove(interaction: ChatInputCommandInteraction) {
             embeds: [{
                 color: 0xFFA500,
                 title: '[INFO] No Temporary Role',
-                description: `${user!.tag} does not have ${role} assigned.`,
+                description: `${user!.tag} does not have <@&${role!.id}> assigned.`,
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral

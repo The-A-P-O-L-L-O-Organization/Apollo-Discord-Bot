@@ -80,7 +80,7 @@ function verifyJobData(payload: Record<string, unknown>): boolean {
     }
 
     // Nonce deduplication (in-memory; for production use Redis SET with TTL)
-    const nonceKey = `${String(nonce)}:${String(timestamp)}`;
+    const nonceKey = `${nonce as string}:${timestamp as number}`;
     if (nonceStore.has(nonceKey)) {
         logger.warn('[HMAC] Duplicate nonce — rejecting job');
         return false;
@@ -181,7 +181,7 @@ export default function register(): void {
             await commandModule.execute(interaction);
 
             logger.info({ msg: `[Worker] /${String(data['commandName'])} completed` });
-            recordCommand(String(data['commandName']), String(data['guildId'] ?? 'unknown'), 'success');
+            recordCommand(String(data['commandName']), String((data['guildId'] as string) ?? 'unknown'), 'success');
             recordCommandDuration(String(data['commandName']), Date.now() - startTime);
             return { status: 'completed', commandName: data['commandName'] };
         } catch (error) {
@@ -201,7 +201,7 @@ export default function register(): void {
                 logger.error({ err: e as Error, msg: '[Worker] Failed to send error response' });
             }
 
-            recordCommand(String(data['commandName']), String(data['guildId'] ?? 'unknown'), 'error');
+            recordCommand(String(data['commandName']), String((data['guildId'] as string) ?? 'unknown'), 'error');
             recordError('command_execution', String(data['commandName']));
             return { status: 'error', error: (error as Error).message };
         }
@@ -234,7 +234,7 @@ async function importCommandModule(commandName: string, pluginId: string | null)
                     }
                     const mod = await import(url.href);
                     if (mod?.default?.execute) {
-                        commandModuleCache.set(cacheKey, mod.default);
+                        commandModuleCache.set(cacheKey, mod.default as { execute: (_interaction: unknown) => Promise<unknown> });
                         return mod.default;
                     }
                 } catch (err) {
@@ -260,7 +260,7 @@ async function importCommandModule(commandName: string, pluginId: string | null)
                         }
                         const mod = await import(url.href);
                         if (mod?.default?.execute) {
-                            commandModuleCache.set(cacheKey, mod.default);
+                            commandModuleCache.set(cacheKey, mod.default as { execute: (_interaction: unknown) => Promise<unknown> });
                             return mod.default;
                         }
                     } catch {}

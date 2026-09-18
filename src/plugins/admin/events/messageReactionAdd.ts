@@ -21,7 +21,7 @@ export default {
         if (!reaction.message.guild) { return; }
 
         const guild = reaction.message.guild;
-        const guildId = guild.id;
+        const guildId = guild.id as string;
         const messageId = reaction.message.id;
 
         const emojiIdentifier = reaction.emoji.id

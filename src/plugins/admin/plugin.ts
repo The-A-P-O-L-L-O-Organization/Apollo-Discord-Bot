@@ -1,10 +1,12 @@
 import { Plugin } from '../../core/Plugin.js';
+import type PluginManager from '../../core/PluginManager.js';
+import type { Client } from 'discord.js';
 import { createLogger } from '../../utils/logger.js';
 
 export default class AdminPlugin extends Plugin {
     public declare logger: ReturnType<typeof createLogger>;
 
-    constructor(client: any, manager: any) {
+    constructor(client: Client, manager: PluginManager) {
         super(client, manager);
         this.logger = createLogger({ component: 'plugin:admin' });
     }

@@ -100,7 +100,7 @@ export default {
             trackModAction(interaction.guild!.id, interaction.client.user.id, 'forceban');
             await flushAnalyticsCritical();
 
-            const caseId = createModCase(interaction.guild!.id, {
+            const caseId = await createModCase(interaction.guild!.id, {
                 type: 'forceban',
                 targetId: userId,
                 targetTag: userTag,

@@ -63,7 +63,7 @@ export default {
 
             if (ticket.assignedTo.includes(assignUser.id)) {
                 await interaction.reply({
-                    content: `${assignUser} is already assigned to this ticket.`,
+                    content: `<@${assignUser.id}> is already assigned to this ticket.`,
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -98,15 +98,15 @@ export default {
             const embed = new EmbedBuilder()
                 .setColor('#00FF00')
                 .setTitle('Ticket Assigned')
-                .setDescription(`${assignUser} has been assigned to this ticket.`)
+                .setDescription(`<@${assignUser.id}> has been assigned to this ticket.`)
                 .addFields(
-                    { name: 'Assigned by', value: `${interaction.user}`, inline: true },
-                    { name: 'Assigned to', value: `${assignUser}`, inline: true }
+                    { name: 'Assigned by', value: `<@${interaction.user.id}>`, inline: true },
+                    { name: 'Assigned to', value: `<@${assignUser.id}>`, inline: true }
                 )
                 .setTimestamp();
 
             await interaction.reply({
-                content: `${assignUser}`,
+                content: `<@${assignUser.id}>`,
                 embeds: [embed]
             });
 

@@ -309,7 +309,7 @@ export default class PluginManager {
             if (existsSync(manifestPath)) {
                 const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
                 const relPath = relative(process.cwd(), pluginPath).split(sep).join('/');
-                const expectedHash = manifest[relPath];
+                const expectedHash = manifest[relPath] as string | undefined;
                 if (expectedHash) {
                     verifyPluginFile(pluginPath, expectedHash);
                 }

@@ -43,7 +43,7 @@ export async function runChild({ pluginDir, env, processLike = process as unknow
     const pending = new Map<string, (result: { ok: boolean; error?: string; [key: string]: unknown }) => void>();
 
     const host: ChildHost = {
-        allowedCapabilities: new Set(JSON.parse(env['PLUGIN_CAPABILITIES'] ?? '[]')),
+        allowedCapabilities: new Set<string>(JSON.parse(env['PLUGIN_CAPABILITIES'] ?? '[]') as string[]),
         async call(capability: string, payload: unknown) {
             if (!this.allowedCapabilities.has(capability)) {
                 return { ok: false, error: `Capability '${capability}' is not granted.` };
@@ -118,7 +118,7 @@ if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) 
     runChild({ pluginDir, env: process.env }).then(child => {
         process.on('message', (msg) => { void child.handleMessage(msg as RPCMessage); });
     }).catch(err => {
-        logger.error('[WORKER] Failed to start:', err);
+        logger.error({ err: err as Error, msg: '[WORKER] Failed to start' });
         process.exit(1);
     });
 }

@@ -40,9 +40,9 @@ const module: CLIModule = {
             description: 'Enable automod for a guild',
             options: [],
             execute: async (args: any) => {
-                const cfg = await getGuildData('automod', args.guild);
+                const cfg = await getGuildData('automod', (args.guild as string));
                 cfg['enabled'] = true;
-                await setGuildData('automod', args.guild, cfg);
+                await setGuildData('automod', (args.guild as string), cfg);
                 return { success: true, message: 'Automod enabled' };
             }
         },
@@ -51,9 +51,9 @@ const module: CLIModule = {
             description: 'Disable automod for a guild',
             options: [],
             execute: async (args: any) => {
-                const cfg = await getGuildData('automod', args.guild);
+                const cfg = await getGuildData('automod', (args.guild as string));
                 cfg['enabled'] = false;
-                await setGuildData('automod', args.guild, cfg);
+                await setGuildData('automod', (args.guild as string), cfg);
                 return { success: true, message: 'Automod disabled' };
             }
         },
@@ -62,7 +62,7 @@ const module: CLIModule = {
             description: 'View automod configuration',
             options: [],
             execute: async (args: any) => {
-                const cfg = await getAutomodConfig(args.guild);
+                const cfg = await getAutomodConfig((args.guild as string));
                 return {
                     enabled: cfg.enabled,
                     bannedWordCount: cfg.bannedWords.length,
@@ -83,7 +83,7 @@ const module: CLIModule = {
             description: 'List all banned words',
             options: [],
             execute: async (args: any) => {
-                const cfg = await getAutomodConfig(args.guild);
+                const cfg = await getAutomodConfig((args.guild as string));
                 return { count: cfg.bannedWords.length, words: cfg.bannedWords };
             }
         },
@@ -94,14 +94,14 @@ const module: CLIModule = {
                 { name: 'word', description: 'The word to ban', required: true }
             ],
             execute: async (args: any) => {
-                const word = args.word.toLowerCase();
-                const guildConfig = (await getGuildData('automod', args.guild)) as Record<string, any>;
+                const word = (args.word as string).toLowerCase();
+                const guildConfig = (await getGuildData('automod', (args.guild as string))) as Record<string, any>;
                 guildConfig['bannedWords'] ??= [];
                 if (guildConfig['bannedWords'].includes(word)) {
                     return { success: false, message: `"${word}" is already banned` };
                 }
                 guildConfig['bannedWords'].push(word);
-                await setGuildData('automod', args.guild, guildConfig);
+                await setGuildData('automod', (args.guild as string), guildConfig);
                 return { success: true, message: `"${word}" added to banned words`, total: guildConfig['bannedWords'].length };
             }
         },
@@ -112,13 +112,13 @@ const module: CLIModule = {
                 { name: 'word', description: 'The word to unban', required: true }
             ],
             execute: async (args: any) => {
-                const word = args.word.toLowerCase();
-                const guildConfig = (await getGuildData('automod', args.guild)) as Record<string, any>;
+                const word = (args.word as string).toLowerCase();
+                const guildConfig = (await getGuildData('automod', (args.guild as string))) as Record<string, any>;
                 if (!guildConfig['bannedWords']?.includes(word)) {
                     return { success: false, message: `"${word}" is not in the banned list` };
                 }
                 guildConfig['bannedWords'] = guildConfig['bannedWords'].filter((w: string) => w !== word);
-                await setGuildData('automod', args.guild, guildConfig);
+                await setGuildData('automod', (args.guild as string), guildConfig);
                 return { success: true, message: `"${word}" removed from banned words`, total: guildConfig['bannedWords'].length };
             }
         },
@@ -135,20 +135,20 @@ const module: CLIModule = {
                 { name: 'value', description: 'The value to set', required: true }
             ],
             execute: async (args: any) => {
-                const cfg = (await getGuildData('automod', args.guild)) as Record<string, any>;
+                const cfg = (await getGuildData('automod', (args.guild as string))) as Record<string, any>;
                 const booleanSettings = ['filterInvites', 'filterLinks'];
                 const numberSettings = ['maxMentions', 'maxCapsPercent', 'minAccountAge', 'spamThreshold', 'spamInterval'];
                 let value;
-                if (booleanSettings.includes(args.setting)) {
-                    value = args.value.toLowerCase() === 'true' || args.value === '1';
-                } else if (numberSettings.includes(args.setting)) {
-                    value = parseInt(args.value);
+                if (booleanSettings.includes(args.setting as string)) {
+                    value = (args.value as string).toLowerCase() === 'true' || args.value === '1';
+                } else if (numberSettings.includes(args.setting as string)) {
+                    value = parseInt(args.value as string);
                     if (isNaN(value)) {return { success: false, message: `"${args.value}" is not a valid number` };}
                 } else {
                     value = args.value;
                 }
                 cfg[args.setting] = value;
-                await setGuildData('automod', args.guild, cfg);
+                await setGuildData('automod', (args.guild as string), cfg);
                 return { success: true, message: `${args.setting} set to ${value}` };
             }
         },
@@ -160,7 +160,7 @@ const module: CLIModule = {
                 { name: 'action', description: 'add or remove', required: true, choices: ['add', 'remove'] }
             ],
             execute: async (args: any) => {
-                const guildConfig = (await getGuildData('automod', args.guild)) as Record<string, any>;
+                const guildConfig = (await getGuildData('automod', (args.guild as string))) as Record<string, any>;
                 guildConfig['exemptChannels'] ??= [];
                 if (args.action === 'add') {
                     if (guildConfig['exemptChannels'].includes(args.channel)) {
@@ -170,7 +170,7 @@ const module: CLIModule = {
                 } else {
                     guildConfig['exemptChannels'] = guildConfig['exemptChannels'].filter((id: string) => id !== args.channel);
                 }
-                await setGuildData('automod', args.guild, guildConfig);
+                await setGuildData('automod', (args.guild as string), guildConfig);
                 return { success: true, message: `Channel ${args.action === 'add' ? 'added to' : 'removed from'} exemptions` };
             }
         },
@@ -182,7 +182,7 @@ const module: CLIModule = {
                 { name: 'action', description: 'add or remove', required: true, choices: ['add', 'remove'] }
             ],
             execute: async (args: any) => {
-                const guildConfig = (await getGuildData('automod', args.guild)) as Record<string, any>;
+                const guildConfig = (await getGuildData('automod', (args.guild as string))) as Record<string, any>;
                 guildConfig['exemptRoles'] ??= [];
                 if (args.action === 'add') {
                     if (guildConfig['exemptRoles'].includes(args.role)) {
@@ -192,7 +192,7 @@ const module: CLIModule = {
                 } else {
                     guildConfig['exemptRoles'] = guildConfig['exemptRoles'].filter((id: string) => id !== args.role);
                 }
-                await setGuildData('automod', args.guild, guildConfig);
+                await setGuildData('automod', (args.guild as string), guildConfig);
                 return { success: true, message: `Role ${args.action === 'add' ? 'added to' : 'removed from'} exemptions` };
             }
         }

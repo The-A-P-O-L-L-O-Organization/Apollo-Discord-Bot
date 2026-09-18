@@ -81,7 +81,7 @@ async function checkGuildTickets(client: any, guildId: string): Promise<void> {
         return;
     }
 
-    const guild = client.guilds.cache.get(guildId);
+    const guild = client.guilds.cache.get(guildId) as Guild | undefined;
     if (!guild) {
         return;
     }
@@ -148,14 +148,14 @@ async function handleSlaBreach(guild: Guild, ticket: Record<string, unknown>, sl
     // Create breach alert embed
     const alertEmbed = new EmbedBuilder()
         .setColor(getPriorityColor(priority))
-        .setTitle(`${getPriorityEmoji(priority)} SLA BREACH - Ticket #${ticket['ticketNumber']}`)
-        .setDescription(`Ticket **#${ticket['ticketNumber']}** has breached its SLA response time.`)
+        .setTitle(`${getPriorityEmoji(priority)} SLA BREACH - Ticket #${ticket['ticketNumber'] as number}`)
+        .setDescription(`Ticket **#${ticket['ticketNumber'] as number}** has breached its SLA response time.`)
         .addFields(
             { name: 'Priority', value: `${getPriorityEmoji(priority)} ${priority.toUpperCase()}`, inline: true },
             { name: 'SLA Threshold', value: formatTime(threshold), inline: true },
             { name: 'Time Elapsed', value: formatTime(elapsed), inline: true },
             { name: 'Category', value: (ticket['category'] as string) || 'general', inline: true },
-            { name: 'Created By', value: `<@${ticket['userId']}>`, inline: true },
+            { name: 'Created By', value: `<@${ticket['userId'] as string}>`, inline: true },
             { name: 'Created At', value: `<t:${Math.floor((ticket['createdAt'] as number) / 1000)}:R>`, inline: true }
         )
         .setTimestamp()
@@ -172,7 +172,7 @@ async function handleSlaBreach(guild: Guild, ticket: Record<string, unknown>, sl
             let content = '';
             const ticketConfig = await getGuildData('tickets', guild.id);
             if (ticketConfig['supportRoleId']) {
-                content = `<@&${ticketConfig['supportRoleId']}>`;
+                content = `<@&${ticketConfig['supportRoleId'] as string}>`;
             }
 
             await modChannel.send({ content, embeds: [alertEmbed] });
@@ -205,11 +205,11 @@ async function handleSlaBreach(guild: Guild, ticket: Record<string, unknown>, sl
     try {
         await sendModLog(guild, {
             action: 'sla_breach',
-            target: { id: ticket['userId'] as string, tag: `Ticket #${ticket['ticketNumber']}`, displayAvatarURL: () => null },
+            target: { id: ticket['userId'] as string, tag: `Ticket #${ticket['ticketNumber'] as number}`, displayAvatarURL: () => null },
             moderator: { tag: 'SLA Monitor', id: client.user.id },
-            reason: `SLA breached for ticket #${ticket['ticketNumber']} (${priority} priority)`,
+            reason: `SLA breached for ticket #${ticket['ticketNumber'] as number} (${priority} priority)`,
             extra: {
-                'Ticket Number': `#${ticket['ticketNumber']}`,
+                'Ticket Number': `#${ticket['ticketNumber'] as number}`,
                 'Priority': priority,
                 'Category': (ticket['category']) ?? 'general',
                 'SLA Threshold': formatTime(threshold),
@@ -222,7 +222,7 @@ async function handleSlaBreach(guild: Guild, ticket: Record<string, unknown>, sl
         logger.error({ err: error, msg: '[SLA] Failed to log SLA breach:' });
     }
 
-    logger.info({ msg: `[SLA] Breach alert sent for ticket #${ticket['ticketNumber']} in ${guild.name}` });
+    logger.info({ msg: `[SLA] Breach alert sent for ticket #${ticket['ticketNumber'] as number} in ${guild.name}` });
 }
 
 /**

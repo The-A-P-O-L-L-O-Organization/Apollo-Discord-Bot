@@ -184,7 +184,7 @@ export default {
             trackModAction(interaction.guild!.id, interaction.client.user.id, 'mute');
             await flushAnalyticsCritical();
 
-            const caseId = createModCase(interaction.guild!.id, {
+            const caseId = await createModCase(interaction.guild!.id, {
                 type: 'mute',
                 targetId: user.id,
                 targetTag: user.tag,

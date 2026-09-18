@@ -122,7 +122,7 @@ export default {
             const activeWarnings = userWarnings.filter(w => w.active !== false);
             const warningCount = activeWarnings.length;
 
-            const caseId = createModCase(interaction.guild!.id, {
+            const caseId = await createModCase(interaction.guild!.id, {
                 type: 'warn',
                 targetId: user.id,
                 targetTag: user.tag,

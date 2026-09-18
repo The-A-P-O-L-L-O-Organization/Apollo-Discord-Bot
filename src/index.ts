@@ -117,7 +117,8 @@ async function onClientReady(): Promise<void> {
                     return out;
                 }
             }
-            return String(arg);
+            const primitive = arg as string | number | boolean;
+            return String(primitive);
         });
     }
 

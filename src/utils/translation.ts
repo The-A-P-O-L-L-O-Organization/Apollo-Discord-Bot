@@ -164,7 +164,7 @@ export class TranslationService {
                 if (translateResponse.status === 403) {
                     throw new Error('Translation API authentication failed. Check your API key.');
                 }
-                throw new Error(`Translation failed: ${errorData['error'] ?? translateResponse.statusText}`);
+                throw new Error(`Translation failed: ${(errorData['error'] as string | undefined) ?? translateResponse.statusText}`);
             }
 
             const result = await translateResponse.json() as { translatedText: string };

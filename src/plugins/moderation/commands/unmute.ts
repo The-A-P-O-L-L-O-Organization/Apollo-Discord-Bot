@@ -105,7 +105,7 @@ export default {
 
             const savedRoles = await getUserData('muted-roles', interaction.guild!.id, user.id);
             if (savedRoles?.['roles'] && Array.isArray(savedRoles['roles'])) {
-                const rolesToRestore = savedRoles['roles'].filter(roleId => {
+                const rolesToRestore = savedRoles['roles'].filter((roleId: string) => {
                     const role = interaction.guild!.roles.cache.get(roleId);
                     return role && roleId !== interaction.guild!.id && role.name !== 'Muted';
                 });

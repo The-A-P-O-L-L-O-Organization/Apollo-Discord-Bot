@@ -1,4 +1,6 @@
 import { Plugin } from '../../core/Plugin.js';
+import type PluginManager from '../../core/PluginManager.js';
+import type { Client } from 'discord.js';
 import { initReminderScheduler, stopReminderScheduler } from '../../utils/reminderScheduler.js';
 import { initPollScheduler, stopPollScheduler } from '../../utils/pollScheduler.js';
 import { initAnalyticsCollector, stopAnalyticsCollector } from '../../utils/analyticsCollector.js';
@@ -9,7 +11,7 @@ import type { ParsedMarkdown } from '../../utils/markdownParser.js';
 export default class UtilityPlugin extends Plugin {
     public declare logger: ReturnType<typeof createLogger>;
 
-    constructor(client: any, manager: any) {
+    constructor(client: Client, manager: PluginManager) {
         super(client, manager);
         this.logger = createLogger({ component: 'plugin:utility' });
     }
@@ -87,16 +89,27 @@ export default class UtilityPlugin extends Plugin {
             const fs = await import('fs');
             const path = await import('path');
 
-            const channel = _client.channels.cache.get(args.channel);
-            if (!channel) { throw new Error(`Channel ${args.channel} not found`); }
-            if (!channel.isTextBased()) { throw new Error(`Channel ${args.channel} is not a text channel`); }
+            const channelId = args.channel as string;
+            const file = args.file as string | undefined;
+            const title = args.title as string | undefined;
+            const description = args.description as string | undefined;
+            const color = args.color as string | undefined;
+            const image = args.image as string | undefined;
+            const thumbnail = args.thumbnail as string | undefined;
+            const footer = args.footer as string | undefined;
+            const author = args.author as string | undefined;
+            const url = args.url as string | undefined;
+
+            const channel = _client.channels.cache.get(channelId);
+            if (!channel) { throw new Error(`Channel ${channelId} not found`); }
+            if (!channel.isTextBased()) { throw new Error(`Channel ${channelId} is not a text channel`); }
 
             const embed = new EmbedBuilder();
 
             let parsed: ParsedMarkdown | Record<string, unknown> = {};
-            if (args.file) {
+            if (file) {
                 const DATA_ROOT = path.resolve(process.cwd(), 'data');
-                const targetPath = path.resolve(DATA_ROOT, args.file);
+                const targetPath = path.resolve(DATA_ROOT, file);
                 if (!targetPath.startsWith(DATA_ROOT + path.sep)) {
                     throw new Error('File path must be within the data directory.');
                 }
@@ -104,32 +117,32 @@ export default class UtilityPlugin extends Plugin {
                 try {
                     content = fs.readFileSync(targetPath, 'utf-8');
                 } catch {
-                    throw new Error(`Could not read file: ${args.file}`);
+                    throw new Error(`Could not read file: ${file}`);
                 }
                 if (!content.trim()) { throw new Error('The file is empty'); }
-                parsed = parseMarkdownToEmbed(content, args.file, {
-                    title: args.title,
-                    description: args.description
+                parsed = parseMarkdownToEmbed(content, file, {
+                    title,
+                    description
                 });
             }
 
-            if (parsed.title && !args.title) { embed.setTitle(parsed.title as string); } else if (args.title) { embed.setTitle(args.title); }
+            if (parsed.title && !title) { embed.setTitle(parsed.title as string); } else if (title) { embed.setTitle(title); }
 
-            if (parsed.description && !args.description) { embed.setDescription(parsed.description as string); } else if (args.description) { embed.setDescription(args.description); }
+            if (parsed.description && !description) { embed.setDescription(parsed.description as string); } else if (description) { embed.setDescription(description); }
 
-            if (args.color) {
+            if (color) {
                 const hexRegex = /^#?([0-9A-Fa-f]{6})$/;
-                const match = args.color.match(hexRegex);
+                const match = hexRegex.exec(color);
                 if (match) { embed.setColor(`#${match[1]}`); } else { throw new Error('Invalid hex color format'); }
             } else {
                 embed.setColor('#3498DB');
             }
 
-            if (args.image) { embed.setImage(args.image); }
-            if (args.thumbnail) { embed.setThumbnail(args.thumbnail); }
-            if (args.footer) { embed.setFooter({ text: args.footer }); } else if (parsed.footer) { embed.setFooter(parsed.footer as { text: string }); }
-            if (args.author) { embed.setAuthor({ name: args.author }); }
-            if (args.url) { embed.setURL(args.url); }
+            if (image) { embed.setImage(image); }
+            if (thumbnail) { embed.setThumbnail(thumbnail); }
+            if (footer) { embed.setFooter({ text: footer }); } else if (parsed.footer) { embed.setFooter(parsed.footer as { text: string }); }
+            if (author) { embed.setAuthor({ name: author }); }
+            if (url) { embed.setURL(url); }
             if (args.timestamp === 'true' || args.timestamp === true) { embed.setTimestamp(); }
 
             if (parsed.fields) {

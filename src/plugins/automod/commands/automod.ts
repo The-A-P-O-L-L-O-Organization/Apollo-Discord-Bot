@@ -512,7 +512,7 @@ async function handleExemptChannel(interaction: ChatInputCommandInteraction) {
                 embeds: [{
                     color: 0xFFFF00,
                     title: 'Already Exempt',
-                    description: `${channel} is already exempt from automod.`,
+                    description: `<#${channel.id}> is already exempt from automod.`,
                     timestamp: new Date().toISOString()
                 }],
                 flags: MessageFlags.Ephemeral
@@ -526,7 +526,7 @@ async function handleExemptChannel(interaction: ChatInputCommandInteraction) {
             embeds: [{
                 color: 0x00FF00,
                 title: 'Channel Exempted',
-                description: `${channel} is now exempt from automod.`,
+                description: `<#${channel.id}> is now exempt from automod.`,
                 timestamp: new Date().toISOString()
             }]
         });
@@ -536,7 +536,7 @@ async function handleExemptChannel(interaction: ChatInputCommandInteraction) {
                 embeds: [{
                     color: 0xFFFF00,
                     title: 'Not Exempt',
-                    description: `${channel} is not currently exempt.`,
+                    description: `<#${channel.id}> is not currently exempt.`,
                     timestamp: new Date().toISOString()
                 }],
                 flags: MessageFlags.Ephemeral
@@ -550,7 +550,7 @@ async function handleExemptChannel(interaction: ChatInputCommandInteraction) {
             embeds: [{
                 color: 0x00FF00,
                 title: 'Exemption Removed',
-                description: `${channel} is no longer exempt from automod.`,
+                description: `<#${channel.id}> is no longer exempt from automod.`,
                 timestamp: new Date().toISOString()
             }]
         });
@@ -571,7 +571,7 @@ async function handleExemptRole(interaction: ChatInputCommandInteraction) {
                 embeds: [{
                     color: 0xFFFF00,
                     title: 'Already Exempt',
-                    description: `${role} is already exempt from automod.`,
+                    description: `<@&${role.id}> is already exempt from automod.`,
                     timestamp: new Date().toISOString()
                 }],
                 flags: MessageFlags.Ephemeral
@@ -585,7 +585,7 @@ async function handleExemptRole(interaction: ChatInputCommandInteraction) {
             embeds: [{
                 color: 0x00FF00,
                 title: 'Role Exempted',
-                description: `${role} is now exempt from automod.`,
+                description: `<@&${role.id}> is now exempt from automod.`,
                 timestamp: new Date().toISOString()
             }]
         });
@@ -595,7 +595,7 @@ async function handleExemptRole(interaction: ChatInputCommandInteraction) {
                 embeds: [{
                     color: 0xFFFF00,
                     title: 'Not Exempt',
-                    description: `${role} is not currently exempt.`,
+                    description: `<@&${role.id}> is not currently exempt.`,
                     timestamp: new Date().toISOString()
                 }],
                 flags: MessageFlags.Ephemeral
@@ -609,7 +609,7 @@ async function handleExemptRole(interaction: ChatInputCommandInteraction) {
             embeds: [{
                 color: 0x00FF00,
                 title: 'Exemption Removed',
-                description: `${role} is no longer exempt from automod.`,
+                description: `<@&${role.id}> is no longer exempt from automod.`,
                 timestamp: new Date().toISOString()
             }]
         });
@@ -709,7 +709,7 @@ async function handleScan(interaction: ChatInputCommandInteraction) {
                         embeds: [{
                             color: 0x0099FF,
                             title: 'NSFW Scan Progress',
-                            description: `Scanning messages in ${channel}...`,
+                            description: `Scanning messages in <#${channel.id}>...`,
                             fields: [
                                 { name: 'Messages Scanned', value: `${messagesScanned}/${limit}`, inline: true },
                                 { name: 'NSFW Detected', value: `${nsfwFound}`, inline: true },
@@ -739,7 +739,7 @@ async function handleScan(interaction: ChatInputCommandInteraction) {
         const embed = new EmbedBuilder()
             .setColor(nsfwFound > 0 ? '#FF0000' : '#00FF00')
             .setTitle('NSFW Scan Complete')
-            .setDescription(`Finished scanning ${messagesScanned} messages in ${channel}`)
+            .setDescription(`Finished scanning ${messagesScanned} messages in <#${channel.id}>`)
             .addFields(
                 { name: 'NSFW Content Detected', value: `${nsfwFound}`, inline: true },
                 { name: 'Messages Deleted', value: `${messagesDeleted}`, inline: true },

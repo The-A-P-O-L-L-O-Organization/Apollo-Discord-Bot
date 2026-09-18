@@ -63,7 +63,8 @@ export async function run(argv: string[], commandMap: CommandMap): Promise<strin
 
     for (const opt of (resolved.command.options ?? [])) {
         const value = args[opt.name];
-        if (opt.choices && value !== undefined && !opt.choices.includes(String(value))) {
+        const strValue = value as string | number | undefined;
+        if (opt.choices && strValue !== undefined && !opt.choices.includes(String(strValue))) {
             return formatError(`--${opt.name} must be one of: ${opt.choices.join(', ')}`);
         }
     }

@@ -93,7 +93,7 @@ export class DistributedRateLimiter {
                 remaining: result[2]
             };
         } catch (err: any) {
-            logger.error('[RATELIMIT] Redis error, allowing request:', err.message);
+            logger.error({ err: err as Error, msg: '[RATELIMIT] Redis error, allowing request' });
             // Fail open - allow request on Redis error
             return { allowed: true, retryAfter: 0, remaining: this.limit };
         }
@@ -134,7 +134,7 @@ export class DistributedRateLimiter {
         const oldest = await redis.zrange(fullKey, 0, 0, 'WITHSCORES');
         let resetAt = now + this.windowMs;
         if (oldest.length > 0) {
-            resetAt = parseInt(oldest[1], 10) + this.windowMs;
+            resetAt = parseInt(oldest[1] as string, 10) + this.windowMs;
         }
 
         return {
@@ -208,7 +208,7 @@ export class MemoryRateLimiter {
  * @param {Object} options - Rate limiter options
  * @returns {Promise<DistributedRateLimiter|MemoryRateLimiter>}
  */
-export async function createRateLimiter(options: any = {}): Promise<any> {
+export async function createRateLimiter(options: { limit?: number; windowMs?: number; prefix?: string; maxKeys?: number } = {}): Promise<any> {
     const redis = await getRateLimitRedis();
     if (redis) {
         return new DistributedRateLimiter(options);

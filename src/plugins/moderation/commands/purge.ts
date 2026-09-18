@@ -69,7 +69,7 @@ export default {
             }
 
             const botUser = interaction.client.user;
-            const channelPerms = manageableChannel.permissionsFor(botUser!);
+            const channelPerms = manageableChannel.permissionsFor(botUser);
             if (!channelPerms?.has(PermissionsBitField.Flags.ManageMessages)) {
                 const errorEmbed = {
                     color: 0xFF0000,

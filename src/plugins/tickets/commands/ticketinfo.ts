@@ -80,7 +80,7 @@ export default {
 
             const creatorUser = await interaction.client.users.fetch(ticket.userId).catch(() => null);
             embed.addFields(
-                { name: 'Creator', value: creatorUser ? `${creatorUser} (${creatorUser.tag})` : `<@${ticket.userId}>`, inline: true },
+                { name: 'Creator', value: creatorUser ? `<@${creatorUser.id}> (${creatorUser.tag})` : `<@${ticket.userId}>`, inline: true },
                 { name: 'Status', value: status.charAt(0).toUpperCase() + status.slice(1), inline: true },
                 { name: 'Priority', value: `${getPriorityEmoji(priority)} ${priority.charAt(0).toUpperCase() + priority.slice(1)}`, inline: true },
                 { name: 'Category', value: category.charAt(0).toUpperCase() + category.slice(1), inline: true },
@@ -99,7 +99,7 @@ export default {
                 const claimedUser = await interaction.client.users.fetch(ticket.claimedBy).catch(() => null);
                 embed.addFields({
                     name: 'Claimed By',
-                    value: claimedUser ? `${claimedUser} (${claimedUser.tag})` : `<@${ticket.claimedBy}>`,
+                    value: claimedUser ? `<@${claimedUser.id}> (${claimedUser.tag})` : `<@${ticket.claimedBy}>`,
                     inline: true
                 });
             }

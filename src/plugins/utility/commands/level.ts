@@ -42,7 +42,7 @@ export default {
             const levelEmbed = new EmbedBuilder()
                 .setColor(0x3498DB)
                 .setTitle(`[LEVEL] ${user.tag}`)
-                .setDescription(`${user}'s level and experience`)
+                .setDescription(`<@${user.id}>'s level and experience`)
                 .addFields(
                     { name: '[INFO] Level', value: `**${typedLevelData.level}**`, inline: true },
                     { name: '[INFO] XP', value: `**${formatNumber(typedLevelData.xp)}** / ${formatNumber(xpForNextLevel)}`, inline: true },

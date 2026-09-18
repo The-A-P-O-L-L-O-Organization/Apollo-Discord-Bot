@@ -125,7 +125,7 @@ export default {
             await flushAnalyticsCritical();
 
             // Create mod case
-            const caseId = createModCase(interaction.guild!.id, {
+            const caseId = await createModCase(interaction.guild!.id, {
                 type: 'ban',
                 targetId: user.id,
                 targetTag: user.tag,

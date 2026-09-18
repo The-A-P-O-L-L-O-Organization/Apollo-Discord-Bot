@@ -275,6 +275,7 @@ const config = {
 
     // Operator Agreement (required to start the bot)
     operator: {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
         agreed: false as boolean,
         contact: getEnv('OPERATOR_CONTACT') ?? '',
         requireAgreement: true,

@@ -31,14 +31,14 @@ export function formatTable(headers: string[], rows: unknown[][]): string {
     }
 
     const colWidths = headers.map((h, i) => {
-        const maxData = rows.reduce((max, row) => Math.max(max, String(row[i] ?? '').length), 0);
+        const maxData = rows.reduce((max, row) => Math.max(max, String((row[i] as string | number | undefined) ?? '').length), 0);
         return Math.max(h.length, maxData);
     });
 
     const headerLine = color(colors.cyan, headers.map((h, i) => h.padEnd(colWidths[i]!)).join('  '));
     const separator = color(colors.dim, colWidths.map((w) => '—'.repeat(w)).join('  '));
     const dataLines = rows.map((row) =>
-        row.map((cell, i) => String(cell ?? '').padEnd(colWidths[i]!)).join('  ')
+        row.map((cell, i) => String((cell as string | number | undefined) ?? '').padEnd(colWidths[i]!)).join('  ')
     );
 
     return [headerLine, separator, ...dataLines].join('\n');

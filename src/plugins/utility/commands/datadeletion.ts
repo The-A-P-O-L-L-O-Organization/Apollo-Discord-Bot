@@ -73,7 +73,7 @@ export async function deleteUserData(userId: string): Promise<{ total: number; b
         for (const { guildId } of allGuildData) {
             const userData = await getUserData(store, guildId, userId);
             if (userData !== undefined && userData !== null) {
-                await setUserData(store, guildId, userId, null as unknown as Record<string, unknown>);
+                await setUserData(store, guildId, userId, null);
                 byCategory[store] = (byCategory[store] ?? 0) + 1;
                 total += 1;
             }
