@@ -22,9 +22,9 @@ vi.mock('bcryptjs', () => ({
 }));
 
 describe('Interlink Routes', () => {
-    let app;
-    let mockRegistry;
-    let mockMessageBus;
+    let app: any;
+    let mockRegistry: any;
+    let mockMessageBus: any;
 
     beforeAll(async () => {
         mockRegistry = {
@@ -106,7 +106,7 @@ describe('Interlink Routes', () => {
             api_key_hash: '$2a$10$hash'
         });
 
-        mockMessageBus.handleIncomingMessage.mockImplementation((envelope, cb) => {
+        mockMessageBus.handleIncomingMessage.mockImplementation((envelope: any, cb: any) => {
             cb({
                 protocol: 'interlink',
                 version: '1',

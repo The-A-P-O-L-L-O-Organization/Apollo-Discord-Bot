@@ -34,8 +34,9 @@ export default {
                 return;
             }
 
-            const lockdownData = (await getGuildData('channel-lockdowns', interaction.guild!.id));
-            const lockInfo: { originalPermissions: { SendMessages: boolean | null; AddReactions: boolean | null }; lockedByTag: string; lockedAt: number; reason: string } | undefined = lockdownData[channel.id];
+            interface LockInfo { originalPermissions: { SendMessages: boolean | null; AddReactions: boolean | null }; lockedByTag: string; lockedAt: number; reason: string }
+            const lockdownData = (await getGuildData('channel-lockdowns', interaction.guild!.id)) as Record<string, LockInfo | undefined>;
+            const lockInfo: LockInfo | undefined = lockdownData[channel.id];
 
             if (!lockInfo) {
                 const errorEmbed = {

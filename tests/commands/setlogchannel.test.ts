@@ -86,7 +86,7 @@ describe('SetLogChannel Command', () => {
             await setLogChannelCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
             expect(setGuildData).toHaveBeenCalled();
-            const setCall = vi.mocked(setGuildData).mock.calls[0]!;
+            const setCall = (vi.mocked(setGuildData).mock.calls[0] as unknown as [string, string, Record<string, unknown>])!;
             expect(setCall[2]['channelId']).toBe('111222333');
         });
 
@@ -125,7 +125,7 @@ describe('SetLogChannel Command', () => {
 
             await setLogChannelCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
-            const setCall = vi.mocked(setGuildData).mock.calls[0]!;
+            const setCall = (vi.mocked(setGuildData).mock.calls[0] as unknown as [string, string, Record<string, unknown>])!;
             expect(setCall[2]['events']).toEqual({ messageDelete: true });
             expect(setCall[2]['channelId']).toBe('111222333');
         });
@@ -142,7 +142,7 @@ describe('SetLogChannel Command', () => {
             await setLogChannelCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
             expect(setGuildData).toHaveBeenCalled();
-            const setCall = vi.mocked(setGuildData).mock.calls[0]!;
+            const setCall = (vi.mocked(setGuildData).mock.calls[0] as unknown as [string, string, Record<string, unknown>])!;
             expect(setCall[2]['channelId']).toBeNull();
         });
 

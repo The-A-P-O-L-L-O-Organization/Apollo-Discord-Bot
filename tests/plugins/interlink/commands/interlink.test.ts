@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, vi } from 'vitest';
 
 describe('Interlink Commands', () => {
-    let cmd;
+    let cmd: any;
 
     beforeAll(async () => {
         cmd = (await import('../../../../src/plugins/interlink/commands/interlink.js')).default;
@@ -15,17 +15,17 @@ describe('Interlink Commands', () => {
 
     it('should have subcommands list, register, remove, send, broadcast, rotate-key', () => {
         const subcommands = (cmd.options.filter((o: { type: number }) => o.type === 1));
-        const names = subcommands.map(s => s.name)!.sort();
+        const names = subcommands.map((s: any) => s.name)!.sort();
         expect(names).toEqual(['broadcast', 'list', 'override', 'register', 'remove', 'rotate-key', 'send']);
     });
 
     it('should have register subcommand with required name and webhook-url', () => {
-        const register = cmd.options.find(o => o.name === 'register');
+        const register = cmd.options.find((o: any) => o.name === 'register');
         expect(register).toBeDefined();
-        const nameOpt = register.options.find(o => o.name === 'name');
+        const nameOpt = register.options.find((o: any) => o.name === 'name');
         expect(nameOpt).toBeDefined();
         expect(nameOpt!.required).toBe(true);
-        const webhookOpt = register.options.find(o => o.name === 'webhook-url');
+        const webhookOpt = register.options.find((o: any) => o.name === 'webhook-url');
         expect(webhookOpt).toBeDefined();
         expect(webhookOpt!.required).toBe(true);
     });
@@ -42,7 +42,7 @@ describe('Interlink Commands', () => {
         await cmd.execute(interaction);
         expect(interaction.deferReply).toHaveBeenCalled();
         expect(interaction.editReply).toHaveBeenCalled();
-        expect(interaction.editReply.mock.calls[0][0].embeds[0].color).toBe(0xFF0000);
+        expect(interaction.editReply.mock.calls[0]![0]!.embeds[0].color).toBe(0xFF0000);
         delete process.env['OWNER_IDS'];
     });
 });

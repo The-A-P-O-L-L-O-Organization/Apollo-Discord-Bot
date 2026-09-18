@@ -186,7 +186,7 @@ describe('MessageCreate Event', () => {
             }
         });
         
-        mockClient = createMockClient();
+        mockClient = createMockClient() as unknown as Client;
         
         const mockMember = createMockMember({
             kickable: true,
@@ -201,7 +201,7 @@ describe('MessageCreate Event', () => {
             channel: mockChannel as unknown as MockMessageOptions['channel'],
             member: mockMember,
             deletable: true
-        });
+        }) as unknown as Message;
         
         automodConfig = {
             enabled: true,

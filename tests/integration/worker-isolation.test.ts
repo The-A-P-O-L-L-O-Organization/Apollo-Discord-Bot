@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { fork } from 'node:child_process';
+import type { ChildProcess } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequest } from '../../src/core/worker/rpc.js';
@@ -9,8 +10,8 @@ const childEntry = join(__dirname, '../fixtures/worker-plugins/child-entry.ts');
 const fixtureDir = join(__dirname, '../fixtures/worker-plugins/demo');
 
 describe('worker isolation integration', () => {
-    let child;
-    let pending;
+    let child: ChildProcess;
+    let pending: Map<string, (value: unknown) => void>;
 
     beforeAll(async() => {
         child = fork(childEntry, [], {
@@ -24,10 +25,11 @@ describe('worker isolation integration', () => {
             stdio: ['inherit', 'inherit', 'inherit', 'ipc']
         });
         pending = new Map();
-        child.on('message', (msg) => {
-            if (pending.has(msg.correlationId)) {
-                pending.get(msg.correlationId)(msg.result);
-                pending.delete(msg.correlationId);
+        child.on('message', (msg: unknown) => {
+            const m = msg as { correlationId?: unknown; result?: unknown };
+            if (typeof m.correlationId === 'string' && pending.has(m.correlationId)) {
+                pending.get(m.correlationId)!(m.result);
+                pending.delete(m.correlationId);
             }
         });
         await new Promise((resolve, reject) => {
@@ -40,7 +42,7 @@ describe('worker isolation integration', () => {
         child.kill();
     });
 
-    function rpc(method, payload) {
+    function rpc(method: string, payload: unknown): Promise<any> {
         const req = createRequest('demo', method, payload);
         return new Promise((resolve) => {
             pending.set(req.correlationId, resolve);

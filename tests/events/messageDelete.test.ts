@@ -46,7 +46,7 @@ describe('MessageDelete Event', () => {
             guild: mockGuild as unknown as MockMessageOptions['guild'],
             channel: createMockChannel({ id: '111222333', name: 'general' }) as unknown as MockMessageOptions['channel'],
             partial: false
-        });
+        }) as unknown as Message;
         
         mockClient = createMockClient();
     });

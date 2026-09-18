@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, vi } from 'vitest';
 
 describe('Interlink Redis', () => {
-    let RedisTransport;
+    let RedisTransport: any;
 
     beforeAll(async () => {
         RedisTransport = (await import('../../../src/plugins/interlink/redis.js')).default;

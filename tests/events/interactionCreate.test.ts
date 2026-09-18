@@ -119,7 +119,7 @@ describe('InteractionCreate Event', () => {
             users: {
                 fetch: vi.fn().mockResolvedValue(createMockUser({ tag: 'TestUser#0001' }))
             }
-        });
+        }) as unknown as Client;
         
         const mockMember = createMockMember({
             permissions: {

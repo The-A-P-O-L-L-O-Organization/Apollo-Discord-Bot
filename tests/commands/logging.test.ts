@@ -81,7 +81,7 @@ describe('Logging Command', () => {
             await loggingCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
             expect(setGuildData).toHaveBeenCalled();
-            const setCall = vi.mocked(setGuildData).mock.calls[0]!;
+            const setCall = (vi.mocked(setGuildData).mock.calls[0] as unknown as [string, string, Record<string, unknown>])!;
             expect((setCall[2]['events'] as unknown as LoggingEvents).messageDelete).toBe(true);
         });
 
@@ -91,7 +91,7 @@ describe('Logging Command', () => {
             await loggingCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
             expect(setGuildData).toHaveBeenCalled();
-            const setCall = vi.mocked(setGuildData).mock.calls[0]!;
+            const setCall = (vi.mocked(setGuildData).mock.calls[0] as unknown as [string, string, Record<string, unknown>])!;
             const events = (setCall[2]['events'] as unknown as LoggingEvents);
             
             expect(events.messageDelete).toBe(true);
@@ -127,7 +127,7 @@ describe('Logging Command', () => {
             await loggingCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
             expect(setGuildData).toHaveBeenCalled();
-            const setCall = vi.mocked(setGuildData).mock.calls[0]!;
+            const setCall = (vi.mocked(setGuildData).mock.calls[0] as unknown as [string, string, Record<string, unknown>])!;
             expect((setCall[2]['events'] as unknown as LoggingEvents).messageDelete).toBe(false);
         });
 
@@ -137,7 +137,7 @@ describe('Logging Command', () => {
             await loggingCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
             expect(setGuildData).toHaveBeenCalled();
-            const setCall = vi.mocked(setGuildData).mock.calls[0]!;
+            const setCall = (vi.mocked(setGuildData).mock.calls[0] as unknown as [string, string, Record<string, unknown>])!;
             const events = (setCall[2]['events'] as unknown as LoggingEvents);
             
             expect(events.messageDelete).toBe(false);

@@ -61,14 +61,14 @@ describe('integrationClients', () => {
             const { checkYoutubeUploads } = await import('../../src/utils/integrationClients.js');
             const result = await checkYoutubeUploads('UC123', { youtubeApiKey: 'key' });
             expect(result).toHaveLength(2);
-            expect(result[0]).toEqual({ title: 'Video 1', description: 'Desc', thumbnail: 'thumb.jpg', videoId: 'vid1', publishedAt: undefined });
+            expect(result![0]).toEqual({ title: 'Video 1', description: 'Desc', thumbnail: 'thumb.jpg', videoId: 'vid1', publishedAt: undefined });
         });
     });
 
     describe('checkRssFeed', () => {
         it('returns null when fetch fails', async() => {
             const { safeFetch } = await import('../../src/utils/safeFetch.js');
-            safeFetch.mockRejectedValue(new Error('Network error'));
+            vi.mocked(safeFetch).mockRejectedValue(new Error('Network error'));
             const { checkRssFeed } = await import('../../src/utils/integrationClients.js');
             const result = await checkRssFeed('https://example.com/feed.xml');
             expect(result).toBeNull();
@@ -88,7 +88,7 @@ describe('integrationClients', () => {
             </channel>
           </rss>`;
             const { safeFetch } = await import('../../src/utils/safeFetch.js');
-            safeFetch.mockResolvedValue({ buffer: Buffer.from(xml, 'utf8'), contentType: 'application/rss+xml', finalUrl: 'https://example.com/feed.xml' });
+            vi.mocked(safeFetch).mockResolvedValue({ buffer: Buffer.from(xml, 'utf8'), contentType: 'application/rss+xml', finalUrl: 'https://example.com/feed.xml' });
             const { checkRssFeed } = await import('../../src/utils/integrationClients.js');
             const result = await checkRssFeed('https://example.com/feed.xml');
             expect(result).toEqual({
@@ -114,7 +114,7 @@ describe('integrationClients', () => {
             </entry>
           </feed>`;
             const { safeFetch } = await import('../../src/utils/safeFetch.js');
-            safeFetch.mockResolvedValue({ buffer: Buffer.from(xml, 'utf8'), contentType: 'application/atom+xml', finalUrl: 'https://example.com/atom.xml' });
+            vi.mocked(safeFetch).mockResolvedValue({ buffer: Buffer.from(xml, 'utf8'), contentType: 'application/atom+xml', finalUrl: 'https://example.com/atom.xml' });
             const { checkRssFeed } = await import('../../src/utils/integrationClients.js');
             const result = await checkRssFeed('https://example.com/atom.xml');
             expect(result).toEqual({

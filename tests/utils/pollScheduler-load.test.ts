@@ -2,6 +2,7 @@
 // Tests for loading polls from database on startup
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import type { Client } from 'discord.js';
 
 // Mock dependencies
 vi.mock('../../src/utils/db.js', () => ({
@@ -63,13 +64,13 @@ describe('Poll Scheduler Database Loading', () => {
             }
         };
         
-        getData.mockResolvedValue(mockPolls);
+        vi.mocked(getData).mockResolvedValue(mockPolls);
         
         // Import and initialize
         const { initPollScheduler, stopPollScheduler } = 
             await import('../../src/utils/pollScheduler.js');
         
-        const client = { guilds: {}, channels: {} };
+        const client = { guilds: {}, channels: {} } as unknown as Client;
         initPollScheduler(client);
         
         // Wait for initialization
@@ -85,12 +86,12 @@ describe('Poll Scheduler Database Loading', () => {
         const { getData } = await import('../../src/utils/db.js');
         
         // Mock empty database
-        getData.mockResolvedValue({});
+        vi.mocked(getData).mockResolvedValue({});
         
         const { initPollScheduler, stopPollScheduler } = 
             await import('../../src/utils/pollScheduler.js');
         
-        const client = {};
+        const client = {} as unknown as Client;
         initPollScheduler(client);
         
         await new Promise(r => setTimeout(r, 50));
@@ -105,12 +106,12 @@ describe('Poll Scheduler Database Loading', () => {
         
         // Mock database error
         const error = new Error('Database connection failed');
-        getData.mockRejectedValue(error);
+        vi.mocked(getData).mockRejectedValue(error);
         
         const { initPollScheduler, stopPollScheduler } = 
             await import('../../src/utils/pollScheduler.js');
         
-        const client = {};
+        const client = {} as unknown as Client;
         
         // Should not throw
         expect(() => {
