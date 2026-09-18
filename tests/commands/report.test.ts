@@ -265,7 +265,8 @@ describe('Report Handler', () => {
 
         // Mock logging config
         vi.mocked(getLoggingConfig).mockResolvedValue({
-            channelId: 'logchannel123'
+            channelId: 'logchannel123',
+            events: {}
         });
     });
 
@@ -399,7 +400,7 @@ describe('Report Handler', () => {
         });
 
         it('should handle missing logging channel', async() => {
-            vi.mocked(getLoggingConfig).mockResolvedValue(null);
+            vi.mocked(getLoggingConfig).mockResolvedValue({ channelId: null, events: {} });
 
             await handleReportSubmission(interaction as unknown as Parameters<typeof handleReportSubmission>[0], client);
 
