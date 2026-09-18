@@ -12,8 +12,8 @@ import {
 } from '../mocks/discord.js';
 import type { MockGuildOptions, MockMemberOptions } from '../mocks/discord.js';
 
-// Mock the logger module
-vi.mock('../../src/utils/logger.js', () => ({
+// Mock the guildLogging module
+vi.mock('../../src/utils/guildLogging.js', () => ({
     logEvent: vi.fn().mockResolvedValue(undefined),
     createMemberJoinEmbed: vi.fn().mockReturnValue({ toJSON: () => ({}) })
 }));
@@ -47,7 +47,7 @@ vi.mock('../../src/utils/analyticsCollector.js', () => ({
     trackMemberChange: vi.fn()
 }));
 
-import * as mockedLogger from '../../src/utils/logger.js';
+import * as mockedLogger from '../../src/utils/guildLogging.js';
 
 const { logEvent, createMemberJoinEmbed } = mockedLogger as unknown as {
     logEvent: ReturnType<typeof vi.fn>;

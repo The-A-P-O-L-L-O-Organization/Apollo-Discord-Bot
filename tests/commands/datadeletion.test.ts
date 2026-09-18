@@ -36,6 +36,9 @@ describe('Data Deletion Command', () => {
         }) as unknown as MockCommandInteraction;
 
         mockInteraction.awaitMessageComponent = vi.fn();
+        mockInteraction.fetchReply = vi.fn().mockImplementation(async() => ({
+            awaitMessageComponent: (...args: unknown[]) => (mockInteraction.awaitMessageComponent as unknown as (...a: unknown[]) => Promise<unknown>)(...args)
+        }));
     });
 
     describe('Command Metadata', () => {

@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequest } from '../../src/core/worker/rpc.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const childEntry = join(__dirname, '../fixtures/worker-plugins/child-entry.js');
+const childEntry = join(__dirname, '../fixtures/worker-plugins/child-entry.ts');
 const fixtureDir = join(__dirname, '../fixtures/worker-plugins/demo');
 
 describe('worker isolation integration', () => {
@@ -14,6 +14,7 @@ describe('worker isolation integration', () => {
 
     beforeAll(async() => {
         child = fork(childEntry, [], {
+            execArgv: ['--import', 'tsx'],
             env: {
                 ...process.env,
                 PLUGIN_ID: 'demo',

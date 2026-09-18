@@ -550,7 +550,9 @@ describe('Analytics Command', () => {
             interaction.options.getSubcommand.mockReturnValue('user');
             interaction.options.getUser.mockReturnValue(null);
 
-            await expect(analyticsCommand.execute(interaction as unknown as ChatInputCommandInteraction)).rejects.toThrow();
+            await analyticsCommand.execute(interaction as unknown as ChatInputCommandInteraction);
+
+            expect(interaction.editReply).toHaveBeenCalledWith({ content: 'User not found.' });
         });
     });
 });

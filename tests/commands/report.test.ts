@@ -15,19 +15,29 @@ vi.mock('../../src/utils/modLog.js', () => ({
 
 // Mock the logger utility
 vi.mock('../../src/utils/logger.js', () => ({
-    getLoggingConfig: vi.fn(),
     logger: {
         error: vi.fn(),
         info: vi.fn()
     }
 }));
 
+// Mock guildLogging (source of getLoggingConfig)
+vi.mock('../../src/utils/guildLogging.js', () => ({
+    getLoggingConfig: vi.fn()
+}));
+
+// Mock analytics collector (flushAnalyticsCritical)
+vi.mock('../../src/utils/analyticsCollector.js', () => ({
+    flushAnalyticsCritical: vi.fn().mockResolvedValue(undefined)
+}));
+
 import { updateGuildData, generateId } from '../../src/utils/db.js';
+import { getLoggingConfig } from '../../src/utils/guildLogging.js';
 import * as mockedLogger from '../../src/utils/logger.js';
 import type { MessageContextMenuCommandInteraction } from 'discord.js';
 
 type ReportMockFn = ReturnType<typeof vi.fn>;
-const { getLoggingConfig, logger } = mockedLogger as unknown as { getLoggingConfig: ReportMockFn; logger: { error: ReportMockFn; info: ReportMockFn } };
+const { logger } = mockedLogger as unknown as { logger: { error: ReportMockFn; info: ReportMockFn } };
 interface ReportAuthor { id: string; tag: string; displayAvatarURL: ReportMockFn; }
 interface ReportMessage { id: string; content: string | null; author: ReportAuthor; reference?: { messageId: string }; }
 interface ReportChannel { id: string; name: string; messages: { fetch: ReportMockFn }; }
