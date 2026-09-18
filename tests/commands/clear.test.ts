@@ -138,8 +138,9 @@ describe('Clear Command', () => {
             expect(channel.bulkDelete).toHaveBeenCalledWith(mockFetched, true);
             expect(sendModLog).toHaveBeenCalledWith(guild, {
                 action: 'clear',
-                target: { tag: '#general', id: '123456789' },
+                target: { tag: '#general', id: '123456789', displayAvatarURL: expect.any(Function) },
                 moderator: user,
+                reason: '5 message(s) cleared',
                 extra: {
                     'Channel': '<#123456789>',
                     'Messages Deleted': '5'

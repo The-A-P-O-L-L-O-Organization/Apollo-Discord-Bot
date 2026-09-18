@@ -172,7 +172,7 @@ describe('CloseTicket Command', () => {
             
             expect(saveTranscripts).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    ticketNumber: 1,
+                    ticketNumber: '1',
                     guildId: mockGuild.id
                 })
             );
