@@ -1,5 +1,4 @@
 import { fork, type ForkOptions, type ChildProcess } from 'node:child_process';
-// @ts-ignore - securityLog.js not migrated yet
 import { logSecurityEvent } from '../../utils/securityLog.js';
 import type { RPCMessage } from './rpc.js';
 
@@ -111,7 +110,7 @@ export class WorkerHost {
         const child = this._fork(childEntry, [], {
             env,
             stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
-            // @ts-ignore - resourceLimits is valid for fork in Node.js
+            // @ts-expect-error - resourceLimits is valid at runtime for fork in Node.js but missing from ForkOptions types
             resourceLimits: {
                 maxOldGenerationSizeMb,
                 maxYoungGenerationSizeMb,

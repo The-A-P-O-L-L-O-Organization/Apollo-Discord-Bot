@@ -36,8 +36,8 @@ export function parseMarkdownToEmbed(content: string, filename: string, existing
     const preamble: string[] = [];
     let inPreamble = true;
 
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i] ?? '';
+    for (const rawLine of lines) {
+        const line = rawLine ?? '';
         const h1Match = /^# (.+)/.exec(line);
         const h2Match = /^#{2,3} (.+)/.exec(line);
 

@@ -35,13 +35,13 @@ export default {
             }
 
             const lockdownData = (await getGuildData('channel-lockdowns', interaction.guild!.id));
-            const lockInfo = lockdownData[channel!.id] as { originalPermissions: { SendMessages: boolean | null; AddReactions: boolean | null }; lockedByTag: string; lockedAt: number; reason: string } | undefined;
+            const lockInfo: { originalPermissions: { SendMessages: boolean | null; AddReactions: boolean | null }; lockedByTag: string; lockedAt: number; reason: string } | undefined = lockdownData[channel.id];
 
             if (!lockInfo) {
                 const errorEmbed = {
                     color: 0xFF0000,
                     title: '[ERROR] Channel Not Locked',
-                    description: `${channel} is not currently in lockdown mode.`,
+                    description: `${channel.name} is not currently in lockdown mode.`,
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -52,19 +52,19 @@ export default {
 
             const restorePermissions: PermissionOverwriteOptions = {};
             if (lockInfo.originalPermissions.SendMessages !== null) {
-                restorePermissions['SendMessages'] = lockInfo.originalPermissions.SendMessages;
+                restorePermissions.SendMessages = lockInfo.originalPermissions.SendMessages;
             }
             if (lockInfo.originalPermissions.AddReactions !== null) {
-                restorePermissions['AddReactions'] = lockInfo.originalPermissions.AddReactions;
+                restorePermissions.AddReactions = lockInfo.originalPermissions.AddReactions;
             }
 
             if (Object.keys(restorePermissions).length === 0) {
-                await channel!.permissionOverwrites.delete(everyoneRole, `Unlock by ${interaction.user.tag}: ${reason}`);
+                await channel.permissionOverwrites.delete(everyoneRole, `Unlock by ${interaction.user.tag}: ${reason}`);
             } else {
-                await channel!.permissionOverwrites.edit(everyoneRole, restorePermissions, { reason: `Unlock by ${interaction.user.tag}: ${reason}` });
+                await channel.permissionOverwrites.edit(everyoneRole, restorePermissions, { reason: `Unlock by ${interaction.user.tag}: ${reason}` });
             }
 
-            delete lockdownData[channel!.id];
+            delete lockdownData[channel.id];
             await setGuildData('channel-lockdowns', interaction.guild!.id, lockdownData);
 
             const duration = Date.now() - lockInfo.lockedAt;
@@ -74,7 +74,7 @@ export default {
             const successEmbed = {
                 color: 0x00FF00,
                 title: '[SUCCESS] Channel Unlocked',
-                description: `${channel} has been unlocked.`,
+                description: `${channel.name} has been unlocked.`,
                 fields: [
                     { name: '[INFO] Moderator', value: interaction.user.tag, inline: true },
                     { name: '[INFO] Locked By', value: lockInfo.lockedByTag, inline: true },
@@ -95,20 +95,20 @@ export default {
                     fields: [{ name: '[INFO] Reason', value: reason, inline: false }],
                     timestamp: new Date().toISOString()
                 };
-                await channel!.send({ embeds: [unlockNotice] });
+            await channel.send({ embeds: [unlockNotice] });
             } catch (err) {
                 logger.info({ msg: '[WARNING] Could not send unlock notice to channel:', err: (err as Error).message });
             }
 
             await sendModLog(interaction.guild!, {
                 action: 'unlock',
-                target: { tag: `#${channel!.name}`, id: channel!.id, displayAvatarURL: () => null },
+                target: { tag: `#${channel.name}`, id: channel.id, displayAvatarURL: () => null },
                 moderator: interaction.user,
                 reason: reason,
-                extra: { 'Channel': `<#${channel!.id}>`, 'Duration': durationText }
+                extra: { 'Channel': `<#${channel.id}>`, 'Duration': durationText }
             });
 
-            logger.info({ msg: `[MODERATION] Channel ${channel!.name} was unlocked by ${interaction.user.tag}. Reason: ${reason}` });
+            logger.info({ msg: `[MODERATION] Channel ${channel.name} was unlocked by ${interaction.user.tag}. Reason: ${reason}` });
         } catch (error) {
             const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {

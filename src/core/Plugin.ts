@@ -69,8 +69,8 @@ export abstract class Plugin<C extends CommandModule = CommandModule, _E extends
         throw new Error(`Plugin class "${this.name}" must override static get id()`);
     }
 
-    static get dependencies(): string[] { return []; }
-    static get version(): string { return '1.0.0'; }
+    static readonly dependencies: string[] = [];
+    static readonly version: string = '1.0.0';
     static get description(): string { return ''; }
     static get capabilities(): PluginCapability[] { return []; }
     static get requiredIntents(): number[] { return []; }

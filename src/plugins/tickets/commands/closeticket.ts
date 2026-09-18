@@ -155,7 +155,7 @@ export default {
                     ticketNumber: ticket.ticketNumber,
                     userId: ticket.userId,
                     closedBy: interaction.user.id,
-                reason: ticket.reason ?? reason,
+                    reason: ticket.reason ?? reason,
                     closeReason: reason,
                     createdAt: ticket.createdAt,
                     closedAt: Date.now(),

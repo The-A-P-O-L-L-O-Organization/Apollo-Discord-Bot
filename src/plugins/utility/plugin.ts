@@ -15,8 +15,8 @@ export default class UtilityPlugin extends Plugin {
     }
 
     static override get id() { return 'utility'; }
-    static override get version() { return '1.0.0'; }
-    static override get dependencies() { return []; }
+    static override readonly version = '1.0.0';
+    static override readonly dependencies: string[] = [];
 
     override async onEnable() {
         await this._loadCommands();
@@ -84,8 +84,8 @@ export default class UtilityPlugin extends Plugin {
         this.manager.registerSocketHandler('utility.embed', async (_client: any, args: any) => {
             const { EmbedBuilder } = await import('discord.js');
             const { parseMarkdownToEmbed } = await import('../../utils/markdownParser.js');
-            const { readFileSync } = await import('fs');
-            const { resolve, sep } = await import('path');
+            const fs = await import('fs');
+            const path = await import('path');
 
             const channel = _client.channels.cache.get(args.channel);
             if (!channel) { throw new Error(`Channel ${args.channel} not found`); }
@@ -95,14 +95,14 @@ export default class UtilityPlugin extends Plugin {
 
             let parsed: ParsedMarkdown | Record<string, unknown> = {};
             if (args.file) {
-                const DATA_ROOT = resolve(process.cwd(), 'data');
-                const targetPath = resolve(DATA_ROOT, args.file);
-                if (!targetPath.startsWith(DATA_ROOT + sep)) {
+                const DATA_ROOT = path.resolve(process.cwd(), 'data');
+                const targetPath = path.resolve(DATA_ROOT, args.file);
+                if (!targetPath.startsWith(DATA_ROOT + path.sep)) {
                     throw new Error('File path must be within the data directory.');
                 }
                 let content;
                 try {
-                    content = readFileSync(targetPath, 'utf-8');
+                    content = fs.readFileSync(targetPath, 'utf-8');
                 } catch {
                     throw new Error(`Could not read file: ${args.file}`);
                 }
@@ -113,9 +113,9 @@ export default class UtilityPlugin extends Plugin {
                 });
             }
 
-            if (parsed['title'] && !args.title) { embed.setTitle(parsed['title'] as string); } else if (args.title) { embed.setTitle(args.title); }
+            if (parsed.title && !args.title) { embed.setTitle(parsed.title as string); } else if (args.title) { embed.setTitle(args.title); }
 
-            if (parsed['description'] && !args.description) { embed.setDescription(parsed['description'] as string); } else if (args.description) { embed.setDescription(args.description); }
+            if (parsed.description && !args.description) { embed.setDescription(parsed.description as string); } else if (args.description) { embed.setDescription(args.description); }
 
             if (args.color) {
                 const hexRegex = /^#?([0-9A-Fa-f]{6})$/;
@@ -127,13 +127,13 @@ export default class UtilityPlugin extends Plugin {
 
             if (args.image) { embed.setImage(args.image); }
             if (args.thumbnail) { embed.setThumbnail(args.thumbnail); }
-            if (args.footer) { embed.setFooter({ text: args.footer }); } else if (parsed['footer']) { embed.setFooter(parsed['footer'] as any); }
+            if (args.footer) { embed.setFooter({ text: args.footer }); } else if (parsed.footer) { embed.setFooter(parsed.footer as { text: string }); }
             if (args.author) { embed.setAuthor({ name: args.author }); }
             if (args.url) { embed.setURL(args.url); }
             if (args.timestamp === 'true' || args.timestamp === true) { embed.setTimestamp(); }
 
-            if (parsed['fields']) {
-                for (const field of parsed['fields'] as any[]) {
+            if (parsed.fields) {
+                for (const field of parsed.fields as { name: string; value: string }[]) {
                     embed.addFields(field);
                 }
             }

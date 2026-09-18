@@ -233,7 +233,7 @@ export function isEncrypted(value: string): boolean {
  * @param {string[]} fields - Field names to encrypt
  * @returns {Promise<Object|Array|*>} Object with encrypted fields, or original value if not a plain object
  */
-export async function encryptFields(obj: Record<string, unknown> | unknown[] | unknown, fields: string[]): Promise<Record<string, unknown> | unknown[] | unknown> {
+export async function encryptFields(obj: unknown, fields: string[]): Promise<unknown> {
     // Only process plain objects (not arrays, null, or primitives)
     if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
         return obj;
@@ -254,7 +254,7 @@ export async function encryptFields(obj: Record<string, unknown> | unknown[] | u
  * @param {string[]} fields - Field names to decrypt
  * @returns {Promise<Object|Array|*>} Object with decrypted fields, or original value if not a plain object
  */
-export async function decryptFields(obj: Record<string, unknown> | unknown[] | unknown, fields: string[]): Promise<Record<string, unknown> | unknown[] | unknown> {
+export async function decryptFields(obj: unknown, fields: string[]): Promise<unknown> {
     // Only process plain objects (not arrays, null, or primitives)
     if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
         return obj;

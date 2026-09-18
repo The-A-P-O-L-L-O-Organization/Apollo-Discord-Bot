@@ -1,5 +1,5 @@
 import type { ChatInputCommandInteraction, GuildChannel, CategoryChannel} from 'discord.js';
-import { EmbedBuilder, MessageFlags, TextChannel, VoiceChannel, StageChannel, ThreadChannel } from 'discord.js';
+import { EmbedBuilder, MessageFlags, TextChannel, VoiceChannel, StageChannel, ThreadChannel, VideoQualityMode } from 'discord.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 function isTextChannel(channel: unknown): channel is TextChannel {
@@ -117,7 +117,7 @@ export default {
 
             // Add video quality for stage/voice
             if ((isVoiceChannel(channel) || isStageChannel(channel)) && channel.videoQualityMode) {
-                const quality = channel.videoQualityMode === 1 ? 'Auto' : '720p';
+                const quality = channel.videoQualityMode === VideoQualityMode.Auto ? 'Auto' : '720p';
                 channelInfo.push({
                     name: '[INFO] Video Quality',
                     value: quality,

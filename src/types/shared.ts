@@ -2,7 +2,7 @@
 // This module has NO dependencies on other local type modules to avoid circular imports
 
 import type { Client, Interaction, AutocompleteInteraction, ChatInputCommandInteraction, CommandInteraction, ButtonInteraction, SelectMenuInteraction, ContextMenuCommandInteraction, Collection, SlashCommandBuilder, RESTPostAPIChatInputApplicationCommandsJSONBody, ClientOptions } from 'discord.js';
-import type { WarningThresholds, WarningsConfig, TicketsConfig, LevelsConfig, HealthConfig } from './config.js';
+import type { WarningsConfig, TicketsConfig, LevelsConfig, HealthConfig } from './config.js';
 
 // ============================================
 // Discord.js common types (re-exported for convenience)
@@ -667,12 +667,12 @@ export interface EmailSendJobData { to: string; subject: string; html: string; t
 export interface BackupCreateJobData { type: 'full' | 'incremental'; includeData: boolean; destination: string; }
 export interface CleanupExpiredJobData { type: 'reminders' | 'polls' | 'tickets' | 'warnings' | 'analytics'; olderThan: number; dryRun?: boolean; }
 
-export interface JobsOptions {}
-export interface Queue<_T> {}
-export interface EventBus {}
-export interface PublishOptions {}
-export interface SubscribeOptions {}
-export interface Subscription {}
-export interface EventBusHealth {}
-export interface EventHandler<_T> {}
-export interface DatabaseAdapter {}
+export type JobsOptions = unknown;
+export type Queue<_T = unknown> = unknown;
+export type EventBus = unknown;
+export type PublishOptions = unknown;
+export type SubscribeOptions = unknown;
+export type Subscription = unknown;
+export type EventBusHealth = unknown;
+export type EventHandler<_T = unknown> = unknown;
+export type DatabaseAdapter = unknown;

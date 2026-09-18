@@ -69,7 +69,7 @@ client.stats = {
 };
 
 const bus = new EventBus();
-const pluginManager = new PluginManager(client as unknown as import('./core/PluginManager.js').TypedClient, bus);
+const pluginManager = new PluginManager(client as unknown as TypedClient, bus);
 
 client.manager = pluginManager;
 client.bus = bus;
