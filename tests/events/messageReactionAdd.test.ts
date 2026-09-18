@@ -104,7 +104,7 @@ describe('MessageReactionAdd Event', () => {
         const mockMessage = createMockMessage({
             id: '777888999',
             guild: mockGuild as unknown as MockMessageOptions['guild']
-        });
+        }) as unknown as Message;
 
         reactionFetchMock = vi.fn().mockResolvedValue({});
         mockReaction = {
@@ -117,7 +117,7 @@ describe('MessageReactionAdd Event', () => {
             fetch: reactionFetchMock
         };
         
-        mockClient = createMockClient();
+        mockClient = createMockClient() as unknown as Client;
         
         reactionRolesConfig = {
             roles: [

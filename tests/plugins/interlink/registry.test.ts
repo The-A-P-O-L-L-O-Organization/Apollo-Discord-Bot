@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 describe('Interlink Registry', () => {
-    let Registry;
-    let registry;
-    let db;
+    let Registry: any;
+    let registry: any;
+    let db: any;
 
     beforeAll(async () => {
         const knex = (await import('knex')).default;
@@ -12,7 +12,7 @@ describe('Interlink Registry', () => {
             connection: { filename: ':memory:' },
             useNullAsDefault: true as const
         });
-        await db.schema.createTable('interlink_bots', (table) => {
+        await db.schema.createTable('interlink_bots', (table: any) => {
             table.text('id').primary();
             table.text('name').notNullable().unique();
             table.text('description').defaultTo('');

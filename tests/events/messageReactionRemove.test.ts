@@ -76,7 +76,7 @@ describe('MessageReactionRemove Event', () => {
             message: createMockMessage({
                 id: '777888999',
                 guild: mockGuild as unknown as MockMessageOptions['guild']
-            }),
+            }) as unknown as Message,
             partial: false,
             fetch: reactionFetchMock
         };

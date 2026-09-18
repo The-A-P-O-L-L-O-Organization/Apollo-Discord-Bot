@@ -109,9 +109,9 @@ describe('ReactionRole Command', () => {
             expect(mockMessage.react).toHaveBeenCalledWith('👍');
             expect(setGuildData).toHaveBeenCalled();
             
-            const setCall = vi.mocked(setGuildData).mock.calls[0]!;
-            expect((setCall[2]!['roles'] as unknown as Array<{ roleId: string; messageId: string }>)).toHaveLength(1);
-            expect((setCall[2]!['roles'] as unknown as Array<{ roleId: string; messageId: string }>)[0]!.roleId).toBe(mockRole.id);
+            const setCall = (vi.mocked(setGuildData).mock.calls[0] as unknown as [string, string, Record<string, unknown>])!;
+            expect((setCall[2]['roles'] as unknown as Array<{ roleId: string; messageId: string }>)).toHaveLength(1);
+            expect((setCall[2]['roles'] as unknown as Array<{ roleId: string; messageId: string }>)[0]!.roleId).toBe(mockRole.id);
         });
 
         it('should reply with success message', async() => {
@@ -188,9 +188,9 @@ describe('ReactionRole Command', () => {
 
             await reactionRoleCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
-            const setCall = vi.mocked(setGuildData).mock.calls[0]!;
-            expect((setCall[2]!['roles'] as unknown as Array<{ roleId: string; messageId: string }>)).toHaveLength(1);
-            expect((setCall[2]!['roles'] as unknown as Array<{ roleId: string; messageId: string }>)[0]!.roleId).toBe(mockRole.id);
+            const setCall = (vi.mocked(setGuildData).mock.calls[0] as unknown as [string, string, Record<string, unknown>])!;
+            expect((setCall[2]['roles'] as unknown as Array<{ roleId: string; messageId: string }>)).toHaveLength(1);
+            expect((setCall[2]['roles'] as unknown as Array<{ roleId: string; messageId: string }>)[0]!.roleId).toBe(mockRole.id);
         });
     });
 
@@ -217,8 +217,8 @@ describe('ReactionRole Command', () => {
             await reactionRoleCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
             expect(setGuildData).toHaveBeenCalled();
-            const setCall = vi.mocked(setGuildData).mock.calls[0]!;
-            expect((setCall[2]!['roles'] as unknown as Array<{ roleId: string; messageId: string }>)).toHaveLength(0);
+            const setCall = (vi.mocked(setGuildData).mock.calls[0] as unknown as [string, string, Record<string, unknown>])!;
+            expect((setCall[2]['roles'] as unknown as Array<{ roleId: string; messageId: string }>)).toHaveLength(0);
         });
 
         it('should handle no reaction roles configured', async() => {
@@ -296,9 +296,9 @@ describe('ReactionRole Command', () => {
             await reactionRoleCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
             expect(setGuildData).toHaveBeenCalled();
-            const setCall = vi.mocked(setGuildData).mock.calls[0]!;
-            expect((setCall[2]!['roles'] as unknown as Array<{ roleId: string; messageId: string }>)).toHaveLength(1);
-            expect((setCall[2]!['roles'] as unknown as Array<{ roleId: string; messageId: string }>)[0]!.messageId).toBe('999999999');
+            const setCall = (vi.mocked(setGuildData).mock.calls[0] as unknown as [string, string, Record<string, unknown>])!;
+            expect((setCall[2]['roles'] as unknown as Array<{ roleId: string; messageId: string }>)).toHaveLength(1);
+            expect((setCall[2]['roles'] as unknown as Array<{ roleId: string; messageId: string }>)[0]!.messageId).toBe('999999999');
         });
 
         it('should reply with count of cleared roles', async() => {

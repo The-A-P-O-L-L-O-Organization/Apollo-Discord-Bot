@@ -47,7 +47,7 @@ describe('integrationWebhook', () => {
             };
             const result = await handleGithubEvent('push', payload);
             expect(result).not.toBeNull();
-            expect(result.embeds[0].title).toContain('owner/repo');
+            expect(result!.embeds[0]!.title).toContain('owner/repo');
         });
 
         it('returns formatted notification for pull_request event', async() => {
@@ -59,7 +59,7 @@ describe('integrationWebhook', () => {
             };
             const result = await handleGithubEvent('pull_request', payload);
             expect(result).not.toBeNull();
-            expect(result.embeds[0].title).toContain('#1');
+            expect(result!.embeds[0]!.title).toContain('#1');
         });
 
         it('returns formatted notification for issues event', async() => {
@@ -71,7 +71,7 @@ describe('integrationWebhook', () => {
             };
             const result = await handleGithubEvent('issues', payload);
             expect(result).not.toBeNull();
-            expect(result.embeds[0].title).toContain('#42');
+            expect(result!.embeds[0]!.title).toContain('#42');
         });
     });
 });

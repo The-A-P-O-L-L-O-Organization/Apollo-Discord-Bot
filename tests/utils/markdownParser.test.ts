@@ -15,10 +15,10 @@ describe('parseMarkdownToEmbed', () => {
     it('turns ## headings into field names', () => {
         const result = parseMarkdownToEmbed('## Section 1\n\nContent 1\n\n## Section 2\n\nContent 2', 'test.md');
         expect(result.fields!).toHaveLength(2);
-        expect(result.fields![0].name).toBe('Section 1');
-        expect(result.fields![0].value).toBe('Content 1');
-        expect(result.fields![1].name).toBe('Section 2');
-        expect(result.fields![1].value).toBe('Content 2');
+        expect(result.fields![0]!.name).toBe('Section 1');
+        expect(result.fields![0]!.value).toBe('Content 1');
+        expect(result.fields![1]!.name).toBe('Section 2');
+        expect(result.fields![1]!.value).toBe('Content 2');
     });
 
     it('uses text before first heading as description', () => {
@@ -34,8 +34,8 @@ describe('parseMarkdownToEmbed', () => {
     it('truncates field values at 1024 chars', () => {
         const long = 'A'.repeat(1050);
         const result = parseMarkdownToEmbed(`## Section\n\n${long}`, 'test.md');
-        expect(result.fields![0].value.length).toBe(1024);
-        expect(result.fields![0].value.endsWith('\u2026')).toBe(true);
+        expect(result.fields![0]!.value.length).toBe(1024);
+        expect(result.fields![0]!.value.endsWith('\u2026')).toBe(true);
     });
 
     it('limits to 25 fields', () => {
@@ -65,27 +65,27 @@ describe('parseMarkdownToEmbed', () => {
     it('preserves code blocks, bold, italic in field values', () => {
         const md = '## Usage\n\nRun `npm start` with **care** and *focus*.';
         const result = parseMarkdownToEmbed(md, 'test.md');
-        expect(result.fields![0].value).toContain('`npm start`');
-        expect(result.fields![0].value).toContain('**care**');
-        expect(result.fields![0].value).toContain('*focus*');
+        expect(result.fields![0]!.value).toContain('`npm start`');
+        expect(result.fields![0]!.value).toContain('**care**');
+        expect(result.fields![0]!.value).toContain('*focus*');
     });
 
     it('truncates title to 256 chars', () => {
         const longTitle = 'A'.repeat(300);
         const result = parseMarkdownToEmbed(`# ${longTitle}`, 'test.md');
-        expect(result.title.length).toBe(256);
-        expect(result.title.endsWith('\u2026')).toBe(true);
+        expect(result.title!.length).toBe(256);
+        expect(result.title!.endsWith('\u2026')).toBe(true);
     });
 
     it('truncates description to 4096 chars', () => {
         const longDesc = 'B'.repeat(5000);
         const result = parseMarkdownToEmbed(longDesc, 'test.md');
-        expect(result.description.length).toBe(4096);
-        expect(result.description.endsWith('\u2026')).toBe(true);
+        expect(result.description!.length).toBe(4096);
+        expect(result.description!.endsWith('\u2026')).toBe(true);
     });
 
     it('handles ### headings as fields', () => {
         const result = parseMarkdownToEmbed('### Sub Section\n\nContent here', 'test.md');
-        expect(result.fields![0].name).toBe('Sub Section');
+        expect(result.fields![0]!.name).toBe('Sub Section');
     });
 });

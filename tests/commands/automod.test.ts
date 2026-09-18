@@ -183,7 +183,7 @@ describe('Automod Command', () => {
             await automodCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
             expect(setGuildData).toHaveBeenCalled();
-            const setCall = (vi.mocked(setGuildData).mock.calls[0] as unknown as [string, Record<string, unknown>[], ...unknown[]])!;
+            const setCall = (vi.mocked(setGuildData).mock.calls[0] as unknown as [string, string, Record<string, unknown>])!;
             expect(setCall[2]['bannedWords']).toContain('badword');
         });
 
@@ -193,7 +193,7 @@ describe('Automod Command', () => {
 
             await automodCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
-            const setCall = (vi.mocked(setGuildData).mock.calls[0] as unknown as [string, Record<string, unknown>[], ...unknown[]])!;
+            const setCall = (vi.mocked(setGuildData).mock.calls[0] as unknown as [string, string, Record<string, unknown>])!;
             expect(setCall[2]['bannedWords']).toContain('badword');
         });
 
@@ -221,7 +221,7 @@ describe('Automod Command', () => {
             await automodCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
             expect(setGuildData).toHaveBeenCalled();
-            const setCall = vi.mocked(setGuildData).mock.calls[0]!;
+            const setCall = (vi.mocked(setGuildData).mock.calls[0] as unknown as [string, string, Record<string, unknown>])!;
             expect(setCall[2]['bannedWords']).not.toContain('badword');
         });
 
@@ -339,7 +339,7 @@ describe('Automod Command', () => {
             await automodCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
             expect(setGuildData).toHaveBeenCalled();
-            const setCall = vi.mocked(setGuildData).mock.calls[0]!;
+            const setCall = (vi.mocked(setGuildData).mock.calls[0] as unknown as [string, string, Record<string, unknown>])!;
             expect(setCall[2]['exemptChannels']).toContain(mockChannel.id);
         });
 
@@ -350,7 +350,7 @@ describe('Automod Command', () => {
             await automodCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
             expect(setGuildData).toHaveBeenCalled();
-            const setCall = vi.mocked(setGuildData).mock.calls[0]!;
+            const setCall = (vi.mocked(setGuildData).mock.calls[0] as unknown as [string, string, Record<string, unknown>])!;
             expect(setCall[2]['exemptChannels']).not.toContain(mockChannel.id);
         });
 
@@ -382,7 +382,7 @@ describe('Automod Command', () => {
             await automodCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
             expect(setGuildData).toHaveBeenCalled();
-            const setCall = vi.mocked(setGuildData).mock.calls[0]!;
+            const setCall = (vi.mocked(setGuildData).mock.calls[0] as unknown as [string, string, Record<string, unknown>])!;
             expect(setCall[2]['exemptRoles']).toContain(mockRole.id);
         });
 
@@ -393,7 +393,7 @@ describe('Automod Command', () => {
             await automodCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
             expect(setGuildData).toHaveBeenCalled();
-            const setCall = vi.mocked(setGuildData).mock.calls[0]!;
+            const setCall = (vi.mocked(setGuildData).mock.calls[0] as unknown as [string, string, Record<string, unknown>])!;
             expect(setCall[2]['exemptRoles']).not.toContain(mockRole.id);
         });
     });

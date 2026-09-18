@@ -55,7 +55,7 @@ describe('MessageUpdate Event', () => {
             guild: mockGuild as unknown as MockMessageOptions['guild'],
             channel: mockChannel as unknown as MockMessageOptions['channel'],
             partial: false
-        });
+        }) as unknown as Message;
         oldMessage.fetch = vi.fn().mockResolvedValue(oldMessage) as unknown as Message['fetch'];
 
         newMessage = createMockMessage({
@@ -66,7 +66,7 @@ describe('MessageUpdate Event', () => {
             channel: mockChannel as unknown as MockMessageOptions['channel'],
             url: 'https://discord.com/channels/987654321/111222333/777888999',
             partial: false
-        });
+        }) as unknown as Message;
         newMessage.fetch = vi.fn().mockResolvedValue(newMessage) as unknown as Message['fetch'];
     });
 

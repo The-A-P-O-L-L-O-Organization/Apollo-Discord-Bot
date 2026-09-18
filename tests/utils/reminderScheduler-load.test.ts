@@ -2,6 +2,7 @@
 // Tests for loading reminders from database on startup
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import type { Client } from 'discord.js';
 
 // Mock dependencies
 vi.mock('../../src/utils/db.js', () => ({
@@ -54,13 +55,13 @@ describe('Reminder Scheduler Database Loading', () => {
             ]
         };
         
-        getData.mockResolvedValue(mockReminders);
+        vi.mocked(getData).mockResolvedValue(mockReminders);
         
         // Import and initialize
         const { initReminderScheduler, stopReminderScheduler, getUserReminders } = 
             await import('../../src/utils/reminderScheduler.js');
         
-        const client = { users: {}, channels: {} };
+        const client = { users: {}, channels: {} } as unknown as Client;
         await initReminderScheduler(client);
         
         // Wait for initialization
@@ -80,12 +81,12 @@ describe('Reminder Scheduler Database Loading', () => {
         const { getData } = await import('../../src/utils/db.js');
         
         // Mock empty database
-        getData.mockResolvedValue({ reminders: [] });
+        vi.mocked(getData).mockResolvedValue({ reminders: [] });
         
         const { initReminderScheduler, stopReminderScheduler, getUserReminders } = 
             await import('../../src/utils/reminderScheduler.js');
         
-        const client = {};
+        const client = {} as unknown as Client;
         await initReminderScheduler(client);
         
         await new Promise(r => setTimeout(r, 50));
@@ -102,12 +103,12 @@ describe('Reminder Scheduler Database Loading', () => {
         
         // Mock database error
         const error = new Error('Database connection failed');
-        getData.mockRejectedValue(error);
+        vi.mocked(getData).mockRejectedValue(error);
         
         const { initReminderScheduler, stopReminderScheduler } = 
             await import('../../src/utils/reminderScheduler.js');
         
-        const client = {};
+        const client = {} as unknown as Client;
         
         // Should not throw
         await expect(async() => {

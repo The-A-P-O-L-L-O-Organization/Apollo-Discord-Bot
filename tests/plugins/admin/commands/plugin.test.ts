@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, beforeAll, vi } from 'vitest';
 
 describe('Plugin management command', () => {
-  let pluginCommand;
-  let accessControl;
+  let pluginCommand: any;
+  let accessControl: any;
 
   beforeAll(async () => {
     pluginCommand = (await import('../../../../src/plugins/admin/commands/plugin.js')).default;
@@ -19,9 +19,9 @@ describe('Plugin management command', () => {
   });
 
   it('should have subcommands', () => {
-    const subcommands = pluginCommand.options.filter(o => o.type === 1);
+    const subcommands = pluginCommand.options.filter((o: any) => o.type === 1);
     expect(subcommands.length).toBeGreaterThanOrEqual(8);
-    const names = subcommands.map(s => s.name);
+    const names = subcommands.map((s: any) => s.name);
     expect(names).toContain('list');
     expect(names).toContain('enable');
     expect(names).toContain('disable');
@@ -48,7 +48,7 @@ describe('Plugin management command', () => {
   });
 
   describe('plugin install confirmation', () => {
-    function makeInteraction(confirmValue) {
+    function makeInteraction(confirmValue: any) {
       const installPlugin = vi.fn().mockResolvedValue({});
       return {
         user: { id: 'owner' },
@@ -68,7 +68,7 @@ describe('Plugin management command', () => {
       const interaction = makeInteraction(false);
       await pluginCommand.execute(interaction);
       expect(interaction.client.manager.installPlugin).not.toHaveBeenCalled();
-      const reply = interaction.editReply.mock.calls[0][0];
+      const reply = interaction.editReply.mock.calls[0]![0]!;
       expect(reply.embeds[0].title).toContain('Confirm');
     });
 
@@ -96,7 +96,7 @@ describe('Plugin management command', () => {
     };
     await pluginCommand.execute(interaction);
     expect(installPlugin).not.toHaveBeenCalled();
-    const reply = interaction.editReply.mock.calls[0][0];
+    const reply = interaction.editReply.mock.calls[0]![0]!;
     expect(reply.embeds[0].title).toContain('Access Denied');
   });
 });

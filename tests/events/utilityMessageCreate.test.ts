@@ -72,7 +72,7 @@ describe('Utility MessageCreate Event', () => {
             channel: mockChannel as unknown as MockMessageOptions['channel'],
             member: mockMember as unknown as MockMessageOptions['member'],
             deletable: true
-        });
+        }) as unknown as Message;
         
         levelsConfig = {
             enabled: true,

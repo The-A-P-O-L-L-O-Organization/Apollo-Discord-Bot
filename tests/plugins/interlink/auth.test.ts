@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, vi } from 'vitest';
 
 describe('Interlink Auth', () => {
-    let auth: { generateApiKey: () => { rawKey: string; hash: string; prefix: string } };
+    let auth: typeof import('../../../src/plugins/interlink/auth.js');
 
     beforeAll(async () => {
         auth = await import('../../../src/plugins/interlink/auth.js');
@@ -57,10 +57,10 @@ describe('Interlink Auth', () => {
     });
 
     describe('createAuthMiddleware', () => {
-        let registry;
-        let middleware;
-        let req;
-        let res;
+        let registry: any;
+        let middleware: any;
+        let req: any;
+        let res: any;
 
         beforeEach(() => {
             registry = { findByApiKeyPrefix: vi.fn() };

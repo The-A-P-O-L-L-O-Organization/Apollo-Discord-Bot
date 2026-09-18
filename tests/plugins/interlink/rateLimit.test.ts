@@ -11,13 +11,11 @@ import {
     RateLimiter,
     createRateLimiter
 } from '../../../src/plugins/interlink/rateLimit.js';
-import { getRedis, closeAll, removeRedis } from '../../../src/utils/redis.js';
-import { closeLockRedis } from '../../../src/utils/lock.js';
 
 describe('Rate Limiter', () => {
     const testNames = new Set();
 
-    function getTestName(base) {
+    function getTestName(base: string) {
         const name = `${base}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         testNames.add(name);
         return name;
@@ -32,7 +30,7 @@ describe('Rate Limiter', () => {
     });
 
     describe('MemoryRateLimiter', () => {
-        let limiter;
+        let limiter: any;
 
         beforeEach(() => {
             limiter = new MemoryRateLimiter({ limit: 5, windowMs: 1000 });

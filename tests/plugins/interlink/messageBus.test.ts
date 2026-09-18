@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, vi } from 'vitest';
 
 describe('Interlink MessageBus', () => {
-    let MessageBus;
+    let MessageBus: any;
 
     beforeAll(async () => {
         MessageBus = (await import('../../../src/plugins/interlink/messageBus.js')).default;
@@ -80,10 +80,10 @@ describe('Interlink MessageBus', () => {
 
     it('should respond to ping with pong via callback', async () => {
         const bus = new MessageBus({ config: {} });
-        let responseSent = null;
+        let responseSent: any = null;
         const envelope = bus.createEnvelope('ping', 'apollo', {});
 
-        await bus.handleIncomingMessage(envelope, (envelope) => {
+        await bus.handleIncomingMessage(envelope, (envelope: any) => {
             responseSent = envelope;
         });
 

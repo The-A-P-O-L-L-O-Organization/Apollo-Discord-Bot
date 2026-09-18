@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import type { Client } from 'discord.js';
 
 vi.mock('../../src/utils/lock.js', () => ({
     getLockRedis: vi.fn().mockResolvedValue({}),
@@ -17,7 +18,7 @@ describe('Reminder scheduler with lock', () => {
     it('should call withLock on each check cycle', async() => {
         const { initReminderScheduler, stopReminderScheduler } =
       await import('../../src/utils/reminderScheduler.js');
-        const client = {};
+        const client = {} as unknown as Client;
         await initReminderScheduler(client);
 
         await new Promise((r) => setTimeout(r, 100));

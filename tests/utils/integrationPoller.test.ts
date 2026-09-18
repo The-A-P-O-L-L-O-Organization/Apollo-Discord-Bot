@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { Client } from 'discord.js';
 
 vi.mock('../../src/utils/db.js', () => ({
     getData: vi.fn(),
@@ -16,7 +17,7 @@ describe('integrationPoller', () => {
         const mockClient = { channels: { cache: { get: vi.fn() } } };
         const mockConfig = { integrations: { pollInterval: { twitch: 60000, youtube: 60000, rss: 120000 }, twitchClientId: '', twitchClientSecret: '', youtubeApiKey: '' } };
 
-        poller.initIntegrationPoller(mockClient, mockConfig);
+        poller.initIntegrationPoller(mockClient as unknown as Client, mockConfig);
         expect(vi.getTimerCount()).toBeGreaterThanOrEqual(3);
 
         poller.stopIntegrationPoller();
