@@ -4,7 +4,7 @@ import type { BotRecord } from './registry.js';
 
 const VALID_TYPES = new Set(['ping', 'pong', 'command', 'event', 'custom']);
 
-interface Envelope {
+export interface Envelope {
     protocol: string;
     version: string;
     type: string;
@@ -16,13 +16,13 @@ interface Envelope {
     payload: unknown;
 }
 
-interface SendResult {
+export interface SendResult {
     success: boolean;
     status?: number;
     error?: string;
 }
 
-interface BroadcastResult {
+export interface BroadcastResult {
     name: string;
     success: boolean;
     status?: number;

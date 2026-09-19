@@ -4,14 +4,20 @@ import { logger } from '../../utils/logger.js';
 import { config } from '../../config/config.js';
 import { getLockRedis } from '../../utils/lock.js';
 import { LRUCache } from '../../utils/lruCache.js';
+import type { Redis } from 'ioredis';
 
 const RATE_LIMIT_PREFIX = 'apollo:ratelimit:';
+
+interface RateLimitBucket {
+    count: number;
+    resetAt: number;
+}
 
 /**
  * Gets Redis client for rate limiting
  * @returns {Promise<Redis|null>} Redis client or null if unavailable
  */
-async function getRateLimitRedis(): Promise<any> {
+async function getRateLimitRedis(): Promise<Redis | null> {
     if (!config.queue?.enabled) { return null; }
     return getLockRedis();
 }
@@ -86,13 +92,13 @@ export class DistributedRateLimiter {
         `;
 
         try {
-            const result = await redis.eval(script, 1, fullKey, now, windowStart, this.limit, this.windowMs);
+            const result = (await redis.eval(script, 1, fullKey, now, windowStart, this.limit, this.windowMs)) as [number, number, number];
             return {
                 allowed: result[0] === 1,
                 retryAfter: result[1],
                 remaining: result[2]
             };
-        } catch (err: any) {
+        } catch (err: unknown) {
             logger.error({ err: err as Error, msg: '[RATELIMIT] Redis error, allowing request' });
             // Fail open - allow request on Redis error
             return { allowed: true, retryAfter: 0, remaining: this.limit };
@@ -131,10 +137,10 @@ export class DistributedRateLimiter {
         const count = await redis.zcard(fullKey);
 
         // Get oldest entry for reset time
-        const oldest = await redis.zrange(fullKey, 0, 0, 'WITHSCORES');
+        const oldest = await redis.zrange(fullKey, 0, '0', 'WITHSCORES');
         let resetAt = now + this.windowMs;
         if (oldest.length > 0) {
-            resetAt = parseInt(oldest[1] as string, 10) + this.windowMs;
+            resetAt = parseInt(oldest[1]!, 10) + this.windowMs;
         }
 
         return {
@@ -153,7 +159,7 @@ export class MemoryRateLimiter {
     limit: number;
     windowMs: number;
     maxKeys: number;
-    buckets: any;
+    buckets: LRUCache<string, RateLimitBucket>;
 
     constructor({ limit = 60, windowMs = 60000, maxKeys = 10000 } = {}) {
         this.limit = limit;
@@ -162,7 +168,7 @@ export class MemoryRateLimiter {
         // Use O(1) LRU cache for buckets
         this.buckets = new LRUCache({
             maxSize: maxKeys,
-            onEvict: (_key: string, _bucket: any) => {
+            onEvict: (_key: string, _bucket: RateLimitBucket) => {
                 // Optional: log eviction for monitoring
             }
         });
@@ -208,7 +214,7 @@ export class MemoryRateLimiter {
  * @param {Object} options - Rate limiter options
  * @returns {Promise<DistributedRateLimiter|MemoryRateLimiter>}
  */
-export async function createRateLimiter(options: { limit?: number; windowMs?: number; prefix?: string; maxKeys?: number } = {}): Promise<any> {
+export async function createRateLimiter(options: { limit?: number; windowMs?: number; prefix?: string; maxKeys?: number } = {}): Promise<DistributedRateLimiter | MemoryRateLimiter> {
     const redis = await getRateLimitRedis();
     if (redis) {
         return new DistributedRateLimiter(options);

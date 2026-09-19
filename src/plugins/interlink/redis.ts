@@ -1,18 +1,19 @@
 import { createRedisClient, closeRedisClient } from '../../utils/redis.js';
 import { logger } from '../../utils/logger.js';
 import type { Redis as RedisType } from 'ioredis';
+import type { Envelope } from './messageBus.js';
 
 export default class RedisTransport {
     channelPrefix: string;
     _messageChannel: string;
     _responseChannelPrefix: string;
-    _config: any;
+    _config: { channelPrefix?: string };
     _pub: RedisType | null;
     _sub: RedisType | null;
-    _messageHandler: any;
+    _messageHandler: ((data: unknown) => void) | null;
     isConnected: boolean;
 
-    constructor(config: any) {
+    constructor(config: { channelPrefix?: string }) {
         this.channelPrefix = config.channelPrefix ?? 'apollo:interlink';
         this._messageChannel = `${this.channelPrefix}:message`;
         this._responseChannelPrefix = `${this.channelPrefix}:response`;
@@ -27,7 +28,7 @@ export default class RedisTransport {
         return `${this._responseChannelPrefix}:${botId}`;
     }
 
-    async connect(onMessage: (data: any) => void): Promise<void> {
+    async connect(onMessage: (data: unknown) => void): Promise<void> {
         this._pub = createRedisClient('interlink-pub');
         this._sub = createRedisClient('interlink-sub');
         await this._pub.connect();
@@ -43,9 +44,9 @@ export default class RedisTransport {
         this._sub.on('message', (channel: string, message: string) => {
             if (channel === this._messageChannel && this._messageHandler) {
                 try {
-                    const data = JSON.parse(message);
+                    const data: unknown = JSON.parse(message);
                     this._messageHandler(data);
-                } catch (err: any) {
+                } catch (err: unknown) {
                     logger.error({ err: err as Error, msg: '[Interlink:Redis] Failed to parse message' });
                 }
             }
@@ -54,10 +55,10 @@ export default class RedisTransport {
         this.isConnected = true;
     }
 
-    publishResponse(botId: string, envelope: any): void {
+    publishResponse(botId: string, envelope: Envelope): void {
         if (!this._pub) { return; }
         const channel = this._responseChannel(botId);
-        this._pub.publish(channel, JSON.stringify(envelope)).catch((err: any) => {
+        this._pub.publish(channel, JSON.stringify(envelope)).catch((err: unknown) => {
             logger.error({ err: err as Error, msg: '[Interlink:Redis] Failed to publish response' });
         });
     }

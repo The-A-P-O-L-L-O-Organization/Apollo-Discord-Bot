@@ -27,49 +27,49 @@ export default class ModerationPlugin extends Plugin {
     }
 
     _registerSocketHandlers(): void {
-        this.manager.registerSocketHandler('moderation.ban', async (client: any, args: any) => {
-            const guild = client.guilds.cache.get(args.guild);
-            if (!guild) {throw new Error(`Guild ${args.guild} not found`);}
-            await guild.members.ban(args.user, { reason: args.reason });
-            return { success: true, message: `Banned user ${args.user}` };
+        this.manager.registerSocketHandler('moderation.ban', async (client: any, args: Record<string, unknown>) => {
+            const guild = client.guilds.cache.get(args['guild']);
+            if (!guild) {throw new Error(`Guild ${args['guild'] as string} not found`);}
+            await guild.members.ban(args['user'], { reason: args['reason'] as string });
+            return { success: true, message: `Banned user ${args['user'] as string}` };
         });
 
-        this.manager.registerSocketHandler('moderation.kick', async (client: any, args: any) => {
-            const guild = client.guilds.cache.get(args.guild);
-            if (!guild) {throw new Error(`Guild ${args.guild} not found`);}
-            const member = await guild.members.fetch(args.user).catch(() => null);
-            if (!member) {throw new Error(`User ${args.user} not found in guild`);}
-            await member.kick(args.reason);
-            return { success: true, message: `Kicked user ${args.user}` };
+        this.manager.registerSocketHandler('moderation.kick', async (client: any, args: Record<string, unknown>) => {
+            const guild = client.guilds.cache.get(args['guild']);
+            if (!guild) {throw new Error(`Guild ${args['guild'] as string} not found`);}
+            const member = await guild.members.fetch(args['user']).catch(() => null);
+            if (!member) {throw new Error(`User ${args['user'] as string} not found in guild`);}
+            await member.kick(args['reason']);
+            return { success: true, message: `Kicked user ${args['user'] as string}` };
         });
 
-        this.manager.registerSocketHandler('moderation.mute', async (client: any, args: any) => {
-            const guild = client.guilds.cache.get(args.guild);
-            if (!guild) {throw new Error(`Guild ${args.guild} not found`);}
-            const member = await guild.members.fetch(args.user).catch(() => null);
-            if (!member) {throw new Error(`User ${args.user} not found in guild`);}
+        this.manager.registerSocketHandler('moderation.mute', async (client: any, args: Record<string, unknown>) => {
+            const guild = client.guilds.cache.get(args['guild']);
+            if (!guild) {throw new Error(`Guild ${args['guild'] as string} not found`);}
+            const member = await guild.members.fetch(args['user']).catch(() => null);
+            if (!member) {throw new Error(`User ${args['user'] as string} not found in guild`);}
             const muteRole = guild.roles.cache.find((r: any) => r.name === 'Muted');
             if (!muteRole) {throw new Error('Muted role not found');}
             await member.roles.add(muteRole);
-            return { success: true, message: `Muted user ${args.user}` };
+            return { success: true, message: `Muted user ${args['user'] as string}` };
         });
 
-        this.manager.registerSocketHandler('moderation.warn', (_client: any, args: any) => {
-            return Promise.resolve({ success: true, message: `Warned user ${args.user}: ${args.reason}` });
+        this.manager.registerSocketHandler('moderation.warn', (_client: any, args: Record<string, unknown>) => {
+            return Promise.resolve({ success: true, message: `Warned user ${args['user'] as string}: ${args['reason'] as string}` });
         });
 
-        this.manager.registerSocketHandler('moderation.clear', (client: any, args: any) => {
-            const guild = client.guilds.cache.get(args.guild);
-            if (!guild) {throw new Error(`Guild ${args.guild} not found`);}
-            return Promise.resolve({ success: true, message: `Cleared ${args.count} messages` });
+        this.manager.registerSocketHandler('moderation.clear', (client: any, args: Record<string, unknown>) => {
+            const guild = client.guilds.cache.get(args['guild']);
+            if (!guild) {throw new Error(`Guild ${args['guild'] as string} not found`);}
+            return Promise.resolve({ success: true, message: `Cleared ${args['count'] as string} messages` });
         });
 
-        this.manager.registerSocketHandler('moderation.slowmode', (_client: any, args: any) => {
-            return Promise.resolve({ success: true, message: `Slowmode set to ${args.seconds}s` });
+        this.manager.registerSocketHandler('moderation.slowmode', (_client: any, args: Record<string, unknown>) => {
+            return Promise.resolve({ success: true, message: `Slowmode set to ${args['seconds'] as string}s` });
         });
 
-        this.manager.registerSocketHandler('moderation.lockdown', (_client: any, args: any) => {
-            return Promise.resolve({ success: true, message: `Channel ${args.action ?? 'lockdown'} completed` });
+        this.manager.registerSocketHandler('moderation.lockdown', (_client: any, args: Record<string, unknown>) => {
+            return Promise.resolve({ success: true, message: `Channel ${args['action'] as string ?? 'lockdown'} completed` });
         });
     }
 }

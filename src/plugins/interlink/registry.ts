@@ -56,16 +56,16 @@ export default class BotRegistry {
     }
 
     async get(name: string): Promise<BotRecord | null> {
-        const row = await this._db('interlink_bots')
+        const row = (await this._db('interlink_bots')
             .where({ name })
-            .first();
+            .first()) as BotRecord | undefined;
         return row ?? null;
     }
 
     async getById(id: string): Promise<BotRecord | null> {
-        const row = await this._db('interlink_bots')
+        const row = (await this._db('interlink_bots')
             .where({ id })
-            .first();
+            .first()) as BotRecord | undefined;
         return row ?? null;
     }
 
@@ -100,9 +100,9 @@ export default class BotRegistry {
     }
 
     async findByApiKeyPrefix(prefix: string): Promise<BotRecord | null> {
-        const row = await this._db('interlink_bots')
+        const row = (await this._db('interlink_bots')
             .where({ api_key_prefix: prefix })
-            .first();
+            .first()) as BotRecord | undefined;
         return row ?? null;
     }
 

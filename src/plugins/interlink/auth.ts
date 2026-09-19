@@ -1,5 +1,8 @@
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
+import type { NextFunction, Request, Response } from 'express';
+import type BotRegistry from './registry.js';
+import type { BotRecord } from './registry.js';
 
 const KEY_BYTES = 32;
 const KEY_PREFIX_LEN = 8;
@@ -25,9 +28,13 @@ export function extractKeyPrefix(rawKey: string): string {
     return rawKey.slice(0, KEY_PREFIX_LEN);
 }
 
-export function createAuthMiddleware(registry: any) {
-    return async (req: any, res: any, next: any) => {
-        const header = req.headers.authorization as string | undefined;
+export interface AuthenticatedRequest extends Request {
+    interlinkBot?: BotRecord;
+}
+
+export function createAuthMiddleware(registry: BotRegistry) {
+    return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+        const header = req.headers.authorization;
         if (!header?.startsWith('Bearer ')) {
             return res.status(401).json({ error: 'Missing or invalid Authorization header' });
         }
@@ -40,7 +47,7 @@ export function createAuthMiddleware(registry: any) {
         if (!bot) {
             return res.status(401).json({ error: 'Unknown API key' });
         }
-        const valid = await validateApiKey(rawKey, bot.api_key_hash as string);
+        const valid = await validateApiKey(rawKey, bot.api_key_hash);
         if (!valid) {
             return res.status(401).json({ error: 'Invalid API key' });
         }

@@ -25,7 +25,7 @@ interface Envelope {
 
 interface PluginManagerRef {
     bus: EventBusImpl;
-    registerSocketHandler(namespace: string, handler: (...args: any[]) => Promise<any>): void;
+    registerSocketHandler(namespace: string, handler: (...args: unknown[]) => Promise<unknown>): void;
 }
 
 export default class InterlinkPlugin extends Plugin {
@@ -75,7 +75,7 @@ export default class InterlinkPlugin extends Plugin {
             try {
                 this._redisTransport = new RedisTransport(interlinkConfig.redis);
                 await this._redisTransport.connect((envelope: unknown) => {
-                    this._messageBus.handleIncomingMessage(envelope as Envelope);
+                    void this._messageBus.handleIncomingMessage(envelope as Envelope);
                 });
                 this.logger.info('[Interlink] Redis transport connected');
             } catch (err) {
