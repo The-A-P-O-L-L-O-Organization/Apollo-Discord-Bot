@@ -1,6 +1,6 @@
 // Metrics Utility
 // Prometheus metrics for monitoring and observability
-import { Registry, Counter, Gauge, Histogram, collectDefaultMetrics } from 'prom-client';
+import { Registry, Counter, Gauge, Histogram, collectDefaultMetrics } from '@prometheus-io/client';
 import { config } from '../config/config.js';
 
 export const register = new Registry();

@@ -16,3 +16,4 @@ overrides:
   qs: ^6.16.0
 minimumReleaseAgeExclude:
   - bullmq@6.1.1
+  - dotenv@18.0.1
