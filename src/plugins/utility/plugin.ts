@@ -52,7 +52,7 @@ export default class UtilityPlugin extends Plugin {
     _registerSocketHandlers() {
         this.manager.registerSocketHandler('utility.serverinfo', (_client: any, args: any) => {
             const guild = _client.guilds.cache.get(args.guild);
-            if (!guild) { throw new Error(`Guild ${args.guild} not found`); }
+            if (!guild) { throw new Error(`Guild ${args.guild as string} not found`); }
             return Promise.resolve({
                 name: guild.name,
                 id: guild.id,
@@ -66,7 +66,7 @@ export default class UtilityPlugin extends Plugin {
 
         this.manager.registerSocketHandler('utility.userinfo', async (_client: any, args: any) => {
             const guild = _client.guilds.cache.get(args.guild);
-            if (!guild) { throw new Error(`Guild ${args.guild} not found`); }
+            if (!guild) { throw new Error(`Guild ${args.guild as string} not found`); }
             const member = await guild.members.fetch(args.user).catch(() => null);
             if (!member) { throw new Error(`User ${args.user} not found in guild`); }
             return {

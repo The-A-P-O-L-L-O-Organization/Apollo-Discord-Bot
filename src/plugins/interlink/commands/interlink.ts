@@ -1,7 +1,7 @@
 import { getDb } from '../../../db/knex.js';
 import BotRegistry from '../registry.js';
 import MessageBus from '../messageBus.js';
-import { safeError } from '../../../utils/safeError.js';
+import type { BroadcastResult } from '../messageBus.js';import { safeError } from '../../../utils/safeError.js';
 import { isOwner, getOwnerIds } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
@@ -130,7 +130,7 @@ export default {
                 default:
                     return interaction.editReply({ embeds: [{ color: 0xFF0000, title: '[ERROR] Unknown subcommand' }] });
                 }
-            } catch (err: any) {
+            } catch (err: unknown) {
                 return interaction.editReply({
                     embeds: [{
                         color: 0xFF0000,
@@ -140,7 +140,7 @@ export default {
                 });
             }
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
@@ -223,9 +223,9 @@ export default {
             await interaction.user.send({
                 content: `**[WARNING] API Key for ${name} (shown once):**\n\`\`\`${result.rawKey}\`\`\`\nStore this securely. It will not be shown again.`
             });
-        } catch (dmError: any) {
+        } catch (dmError: unknown) {
             // Fallback to ephemeral followUp if DM fails
-            logger.warn(`[INTERLINK] Failed to DM API key to ${interaction.user.tag}, falling back to ephemeral message: ${dmError.message}`);
+            logger.warn(`[INTERLINK] Failed to DM API key to ${interaction.user.tag}, falling back to ephemeral message: ${dmError instanceof Error ? dmError.message : 'unknown error'}`);
             await interaction.followUp({
                 content: `**[WARNING] API Key for ${name} (shown once):**\n\`\`\`${result.rawKey}\`\`\`\nStore this securely. It will not be shown again.`,
                 flags: MessageFlags.Ephemeral
@@ -262,7 +262,7 @@ export default {
             });
         }
 
-        let payload: any;
+        let payload: unknown;
         try { payload = JSON.parse(payloadStr); } catch {
             return interaction.editReply({
                 embeds: [{ color: 0xFF0000, title: '[ERROR] Invalid JSON', description: 'payload must be a valid JSON string.' }]
@@ -292,7 +292,7 @@ export default {
         const type = interaction.options.getString('type', true);
         const payloadStr = interaction.options.getString('payload', true);
 
-        let payload: any;
+        let payload: unknown;
         try { payload = JSON.parse(payloadStr); } catch {
             return interaction.editReply({
                 embeds: [{ color: 0xFF0000, title: '[ERROR] Invalid JSON', description: 'payload must be a valid JSON string.' }]
@@ -301,8 +301,8 @@ export default {
 
         const bus = createBus();
         const results = await bus.broadcast(type, payload);
-        const success = results.filter((r: any) => r.success).length;
-        const failed = results.filter((r: any) => !r.success).length;
+        const success = results.filter((r: BroadcastResult) => r.success).length;
+        const failed = results.filter((r: BroadcastResult) => !r.success).length;
 
         return interaction.editReply({
             embeds: [{
@@ -343,9 +343,9 @@ export default {
             await interaction.user.send({
                 content: `**[WARNING] New API Key for ${name} (shown once):**\n\`\`\`${rawKey}\`\`\`\nStore this securely. The old key is no longer valid.`
             });
-        } catch (dmError: any) {
+        } catch (dmError: unknown) {
             // Fallback to ephemeral followUp if DM fails
-            logger.warn(`[INTERLINK] Failed to DM API key to ${interaction.user.tag}, falling back to ephemeral message: ${dmError.message}`);
+            logger.warn(`[INTERLINK] Failed to DM API key to ${interaction.user.tag}, falling back to ephemeral message: ${dmError instanceof Error ? dmError.message : 'unknown error'}`);
             await interaction.followUp({
                 content: `**[WARNING] New API Key for ${name} (shown once):**\n\`\`\`${rawKey}\`\`\`\nStore this securely. The old key is no longer valid.`,
                 flags: MessageFlags.Ephemeral
@@ -356,7 +356,7 @@ export default {
     async _override(interaction: ChatInputCommandInteraction) {
         const registry = createRegistry();
         const bots = await registry.list();
-        const active = bots.filter((b: any) => b.is_active);
+        const active = bots.filter((b) => b.is_active);
 
         if (active.length === 0) {
             return interaction.editReply({
@@ -380,10 +380,10 @@ export default {
             userId
         });
 
-        const success = results.filter((r: any) => r.success).length;
-        const failed = results.filter((r: any) => !r.success).length;
+        const success = results.filter((r: BroadcastResult) => r.success).length;
+        const failed = results.filter((r: BroadcastResult) => !r.success).length;
 
-        const lines = results.map((r: any) =>
+        const lines = results.map((r: BroadcastResult) =>
             `**${r.name}:** ${r.success ? 'Override activated' : `Failed: ${r.error}`}`
         );
 

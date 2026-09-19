@@ -33,10 +33,10 @@ describe('Interlink Routes', () => {
         mockMessageBus = {
             handleIncomingMessage: vi.fn()
         };
-        const mockRedis = {
+        const mockRedis: any = {
             set: vi.fn().mockResolvedValue('OK')
         };
-        const mockConfig = {
+        const mockConfig: any = {
             interlink: {
                 replayWindowMs: 5 * 60 * 1000,
                 nonceTtlMs: 10 * 60 * 1000
@@ -153,10 +153,10 @@ describe('Interlink Routes', () => {
     });
 
     it('should return 429 when rate limit is exceeded', async() => {
-        const mockRedis = {
+        const mockRedis: any = {
             set: vi.fn().mockResolvedValue('OK')
         };
-        const mockConfig = {
+        const mockConfig: any = {
             interlink: {
                 replayWindowMs: 5 * 60 * 1000,
                 nonceTtlMs: 10 * 60 * 1000
@@ -167,10 +167,10 @@ describe('Interlink Routes', () => {
         server._rateLimiter.windowMs = 60000;
         await server.start(0);
         try {
-            const res = await request(server._server).get('/api/v1/health');
+            const res = await request(server._server as any).get('/api/v1/health');
             expect(res.status).toBe(200);
 
-            const res2 = await request(server._server).get('/api/v1/health');
+            const res2 = await request(server._server as any).get('/api/v1/health');
             expect(res2.status).toBe(429);
             expect(res2.body.error).toBe('Too many requests');
             expect(res2.headers['retry-after']).toBeTruthy();
