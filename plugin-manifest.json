@@ -30,7 +30,7 @@
   "src/plugins/automod/commands/codemap.md": "9c8e407430fc9068282a59177e36cbde47a0c12780d20dd43b310f8e3066e2de",
   "src/plugins/automod/commands/scanMessage.ts": "f184195175370293b5795878eb21a32b3950e9d9c55cc832010a89bcc9ba3990",
   "src/plugins/automod/events/codemap.md": "3b31e90fce34d72c2cc6cbe8add5858abb3bd23499180067ef2c2f8e8824b8db",
-  "src/plugins/automod/events/messageCreate.ts": "fae0e6be8a53101c2a0e759fc6ce1cafc8d560c1cb3e9601e34192197c8e099b",
+  "src/plugins/automod/events/messageCreate.ts": "82bd8f8c67c3cf2bb6c49d6d0c4fbe91589fe0489bb721202f84beafcf0007b7",
   "src/plugins/automod/plugin.ts": "9cada89f02e7bf096d0b21c8bcf3ea5aed5136e9f4155c5732700138e09afecb",
   "src/plugins/codemap.md": "ef3a1825b61c1cd072c81aadf78756e1315b045999dadae305712d845a4e13b5",
   "src/plugins/integrations/cli/codemap.md": "6f454ed18932977858a5aa79e8803b3ee735be46d1712c3d8d2410fcb94a16dc",
