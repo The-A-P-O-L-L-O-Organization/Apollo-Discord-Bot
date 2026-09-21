@@ -264,7 +264,7 @@ jobs:
           TEST_MODEL_PATH: ./models/nsfw_model.onnx
 
       - name: Run nsfw-server unit tests
-        run: cargo test -p nsfw-server --lib
+        run: cargo test -p nsfw-server
         working-directory: .
         env:
           TEST_MODEL_PATH: ./models/nsfw_model.onnx
