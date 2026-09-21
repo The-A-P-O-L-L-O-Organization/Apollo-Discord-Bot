@@ -97,6 +97,9 @@ jobs:
         with:
           version: v1.50.0
 
+      - name: Install protobuf-compiler
+        run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
+
       - name: Install protoc-gen-ts_proto
         run: |
           npm install -g ts-proto@2.12.4
@@ -217,6 +220,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
+      - name: Install protobuf-compiler
+        run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
+
       - name: Build Rust workspace (release)
         run: cargo build --release --workspace
         working-directory: .
@@ -247,6 +253,9 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
+
+      - name: Install protobuf-compiler
+        run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
 
       - name: Run Rust tests (excluding nsfw-server integration tests)
         run: cargo test --workspace --exclude nsfw-server
