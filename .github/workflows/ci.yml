@@ -19,7 +19,7 @@ permissions:
 env:
   NODE_VERSION: "26"
   PNPM_VERSION: "11"
-  RUST_VERSION: "1.85"
+  RUST_VERSION: "1.88"
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE26: true
 
 jobs:
