@@ -99,7 +99,7 @@ jobs:
 
       - name: Install protoc-gen-ts_proto
         run: |
-          npm install -g @bufbuild/protoc-gen-ts-proto@2.15.0
+          npm install -g ts-proto@2.12.4
           echo "$HOME/.npm/bin" >> $GITHUB_PATH
         # Using npm to install ts-proto plugin globally
 
