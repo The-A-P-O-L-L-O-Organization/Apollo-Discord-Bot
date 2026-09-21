@@ -39,6 +39,9 @@ coverage/
 # Bot Data (user data, transcripts, etc.)
 data/
 
+# Models
+models/*.onnx
+
 # Documentation
 docs/
 

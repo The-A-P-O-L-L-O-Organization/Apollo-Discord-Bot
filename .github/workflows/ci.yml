@@ -19,6 +19,7 @@ permissions:
 env:
   NODE_VERSION: "26"
   PNPM_VERSION: "11"
+  RUST_VERSION: "1.85"
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE26: true
 
 jobs:
@@ -71,6 +72,34 @@ jobs:
             **/node_modules
             ~/.pnpm-store
           key: ${{ steps.cache-key.outputs.key }}
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@1.85.0
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: rustfmt, clippy
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@3edfce9056124e459a23f683a21433670d47daca
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install buf
+        uses: bufbuild/buf-setup-action@main
+        with:
+          version: v1.50.0
+
+      - name: Generate protobuf code
+        run: buf generate
+        working-directory: .
 
   lint:
     name: Lint
@@ -155,6 +184,76 @@ jobs:
             coverage/
           retention-days: 7
 
+  rust-build:
+    name: Rust Build
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@1.85.0
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: rustfmt, clippy
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@3edfce9056124e459a23f683a21433670d47daca
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Build Rust workspace (release)
+        run: cargo build --release --workspace
+        working-directory: .
+
+  rust-test:
+    name: Rust Tests
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@1.85.0
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: rustfmt, clippy
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@3edfce9056124e459a23f683a21433670d47daca
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Run Rust tests (excluding nsfw-server integration tests)
+        run: cargo test --workspace --exclude nsfw-server
+        working-directory: .
+        env:
+          TEST_MODEL_PATH: ./models/nsfw_model.onnx
+
+      - name: Run nsfw-server unit tests
+        run: cargo test -p nsfw-server --lib
+        working-directory: .
+        env:
+          TEST_MODEL_PATH: ./models/nsfw_model.onnx
+
   audit:
     name: Security Audit
     runs-on: ubuntu-latest
@@ -222,12 +321,12 @@ jobs:
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [lint, test, audit, manifest-check]
+    needs: [lint, test, rust-build, rust-test, audit, manifest-check]
     if: always()
     steps:
       - name: Check CI status
         run: |
-          if [[ "${{ needs.test.result }}" == "failure" ]]; then
+          if [[ "${{ needs.test.result }}" == "failure" ]] || [[ "${{ needs.rust-build.result }}" == "failure" ]] || [[ "${{ needs.rust-test.result }}" == "failure" ]]; then
             echo "Tests failed"
             exit 1
           fi

@@ -17,6 +17,14 @@ function getEnv(key: string): string | undefined {
     return process.env[key];
 }
 
+// NSFW feature flag configuration
+const nsfwConfig = {
+    useRust: parseBoolSafe(getEnv('NSFW_USE_RUST')),
+    grpcAddr: getEnv('NSFW_GRPC_ADDR') ?? 'localhost:50051',
+    threshold: parseIntSafe(getEnv('NSFW_THRESHOLD'), 60) / 100,
+    rustTimeoutMs: parseIntSafe(getEnv('NSFW_RUST_TIMEOUT_MS'), 5000)
+};
+
 const config = {
     // Discord Bot Token - Get from https://discord.com/developers/applications
     discord: {
@@ -292,8 +300,11 @@ const config = {
         redisKeyPrefixBase: 'apollo'
     },
 
-    // NSFW Detection Settings
-    threshold: 0.6,
+    // NSFW Feature Flags
+    nsfw: nsfwConfig,
+
+    // NSFW Detection Settings (legacy, kept for backward compatibility)
+    threshold: nsfwConfig.threshold,
     deleteMessages: true,
     warnOnDetection: true,
 

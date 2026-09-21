@@ -129,6 +129,40 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # ── NSFW Detection Worker ────────────────────────────────────────────
+  nsfw-worker:
+    build:
+      context: .
+      dockerfile: crates/nsfw-server/Dockerfile
+      target: runtime
+    image: apollo-nsfw-worker:latest
+    profiles: [multi]
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NSFW_MODEL_PATH: /models/nsfw_model.onnx
+      RUST_LOG: info
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://localhost:4318}
+      NSFW_GRPC_ADDR: "[::]:50051"
+      NSFW_THRESHOLD: "0.6"
+    volumes:
+      - ./models:/models:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "grpc_health_probe", "-addr=localhost:50051"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 networks:
   default:
     external: true

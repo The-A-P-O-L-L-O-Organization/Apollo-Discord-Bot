@@ -214,6 +214,13 @@ export interface HealthConfig {
     authToken: string | undefined;
 }
 
+export interface NsfwConfig {
+    useRust: boolean;
+    grpcAddr: string;
+    threshold: number;
+    rustTimeoutMs: number;
+}
+
 export interface ApolloConfig {
     discord: DiscordConfig;
     database: DatabaseConfig;
@@ -233,6 +240,7 @@ export interface ApolloConfig {
     integrations: IntegrationsConfig;
     reactionRoles: ReactionRolesConfig;
     health: HealthConfig;
+    nsfw: NsfwConfig;
     threshold: number;
     deleteMessages: boolean;
     warnOnDetection: boolean;
@@ -281,6 +289,8 @@ export function isApolloConfig(obj: unknown): obj is ApolloConfig {
         typeof config['polls'] === 'object' &&
         typeof config['integrations'] === 'object' &&
         typeof config['reactionRoles'] === 'object' &&
+        typeof config['health'] === 'object' &&
+        typeof config['nsfw'] === 'object' &&
         typeof config['threshold'] === 'number' &&
         typeof config['deleteMessages'] === 'boolean' &&
         typeof config['warnOnDetection'] === 'boolean' &&

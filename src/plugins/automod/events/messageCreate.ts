@@ -246,7 +246,7 @@ export default {
         // NSFW detection for attachments
         if (automodConfig.nsfwFilter && message.attachments.size > 0) {
             try {
-                if (config.queue?.enabled && isNsfwDetectionAvailable()) {
+                if (config.queue?.enabled && (await isNsfwDetectionAvailable())) {
                     // Queue NSFW analysis for worker
                     for (const attachment of message.attachments.values()) {
                         if (attachment.contentType?.startsWith('image/') || attachment.contentType?.startsWith('video/')) {
