@@ -1,0 +1,24 @@
+[package]
+name = "nsfw-server"
+version = "0.1.0"
+edition = "2021"
+description = "NSFW detection gRPC server with ONNX Runtime"
+
+[[bin]]
+name = "nsfw-server"
+path = "src/main.rs"
+
+[dependencies]
+nsfw-proto = { path = "../nsfw-proto" }
+ort = { version = "2.0.0-rc.13", features = ["download-binaries"] }
+tokio = { workspace = true }
+tonic = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+clap = { workspace = true }
+anyhow = { workspace = true }
+image = { workspace = true }
+ndarray = { workspace = true }
+reqwest = { workspace = true }
+thiserror = { workspace = true }
+num_cpus = { workspace = true }

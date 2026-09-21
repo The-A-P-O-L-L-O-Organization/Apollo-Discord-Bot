@@ -1,0 +1,17 @@
+[package]
+name = "nsfw-proto"
+version = "0.1.0"
+edition = "2021"
+description = "Protobuf definitions for NSFW detection gRPC service"
+categories = ["network-programming", "api"]
+license = "GPL-3.0-or-later"
+
+[build-dependencies]
+prost-build = "0.12"
+tonic-build = "0.10"
+
+[dependencies]
+prost = { version = "0.12", features = ["derive"] }
+tonic = { version = "0.10", features = ["transport", "tls", "codegen"] }
+bytes = "1"
+thiserror = "1"

@@ -6,6 +6,7 @@ allowBuilds:
   core-js: true
   esbuild: true
   msgpackr-extract: true
+  protobufjs: true
 enablePrePostScripts: true
 overrides:
   glob: 11.1.0
