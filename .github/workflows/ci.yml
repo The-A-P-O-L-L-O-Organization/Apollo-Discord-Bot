@@ -93,9 +93,11 @@ jobs:
             ${{ runner.os }}-cargo-
 
       - name: Install buf
-        uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99
-        with:
-          version: v1.50.0
+        run: |
+          BUF_VERSION="v1.50.0"
+          sudo curl -sSL -o /usr/local/bin/buf "https://github.com/bufbuild/buf/releases/download/${BUF_VERSION}/buf-Linux-x86_64"
+          sudo chmod +x /usr/local/bin/buf
+          buf --version
 
       - name: Install protobuf-compiler
         run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
