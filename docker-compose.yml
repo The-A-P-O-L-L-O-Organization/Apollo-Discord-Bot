@@ -91,6 +91,8 @@ services:
       QUEUE_ENABLED: "true"
       RUN_MODE: gateway
       NODE_OPTIONS: --enable-source-maps
+      INTERLINK_GRPC_ADDR: http://interlink:50052
+      INTERLINK_AUTH_KEY: ${INTERLINK_AUTH_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -116,6 +118,8 @@ services:
       QUEUE_ENABLED: "true"
       RUN_MODE: worker
       NODE_OPTIONS: --enable-source-maps
+      INTERLINK_GRPC_ADDR: http://interlink:50052
+      INTERLINK_AUTH_KEY: ${INTERLINK_AUTH_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -157,6 +161,43 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── Interlink Bot-to-Bot RPC (Go ConnectRPC, h2c) ────────────────────
+  interlink:
+    build:
+      context: services/interlink
+      dockerfile: Dockerfile
+    image: apollo-interlink:latest
+    profiles: [multi]
+    restart: unless-stopped
+    environment:
+      INTERLINK_GRPC_ADDR: "[::]:50052"
+      INTERLINK_REDIS_URL: redis://:${REDIS_PASSWORD:-apollo-dev}@redis:6379
+      INTERLINK_AUTH_KEY: ${INTERLINK_AUTH_KEY:-}
+      INTERLINK_RATE_LIMIT: "100"
+      INTERLINK_BURST: "200"
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      LOG_LEVEL: info
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+    # No healthcheck: distroless runtime has no shell/wget, and
+    # grpc_health_probe is inapplicable (server does not implement
+    # grpc.health.v1.Health; it exposes plain HTTP /healthz instead).
+    # Probe http://interlink:50052/healthz externally (orchestrator,
+    # gateway liveness, or k8s httpGet probe).
     logging:
       driver: "json-file"
       options:

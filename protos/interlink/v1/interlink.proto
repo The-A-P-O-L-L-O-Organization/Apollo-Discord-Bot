@@ -1,0 +1,90 @@
+syntax = "proto3";
+package interlink.v1;
+
+option go_package = "github.com/apollo-bot/interlink/gen/go/interlink/v1;interlinkv1";
+
+service InterlinkService {
+  rpc Send(Envelope) returns (SendResponse);
+  rpc Subscribe(SubscribeRequest) returns (stream Envelope);
+  rpc Connect(stream Envelope) returns (stream Envelope);
+  rpc RegisterBot(RegisterBotRequest) returns (RegisterBotResponse);
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+  rpc UnregisterBot(UnregisterBotRequest) returns (UnregisterBotResponse);
+  rpc ListBots(ListBotsRequest) returns (ListBotsResponse);
+  rpc GetBotInfo(GetBotInfoRequest) returns (BotInfo);
+}
+
+message Envelope {
+  string protocol = 1;
+  string version = 2;
+  string type = 3;
+  string source = 4;
+  string target = 5;
+  string id = 6;
+  int64 timestamp = 7;
+  string nonce = 8;
+  bytes payload = 9;
+  map<string, string> metadata = 10;
+}
+
+message SendResponse {
+  bool accepted = 1;
+  string message_id = 2;
+  string error = 3;
+}
+
+message SubscribeRequest {
+  string bot_id = 1;
+  repeated string message_types = 2;
+}
+
+message RegisterBotRequest {
+  string bot_id = 1;
+  string public_key = 2;
+  string endpoint = 3;
+  map<string, string> capabilities = 4;
+  int32 max_concurrent_streams = 5;
+}
+
+message RegisterBotResponse {
+  bool success = 1;
+  string bot_id = 2;
+  string error = 3;
+}
+
+message HeartbeatRequest {
+  string bot_id = 1;
+  int64 timestamp = 2;
+}
+
+message HeartbeatResponse {
+  bool alive = 1;
+  int64 server_time = 2;
+}
+
+message UnregisterBotRequest {
+  string bot_id = 1;
+}
+
+message UnregisterBotResponse {
+  bool success = 1;
+}
+
+message ListBotsRequest {}
+
+message ListBotsResponse {
+  repeated BotInfo bots = 1;
+}
+
+message GetBotInfoRequest {
+  string bot_id = 1;
+}
+
+message BotInfo {
+  string bot_id = 1;
+  string endpoint = 2;
+  map<string, string> capabilities = 3;
+  int64 registered_at = 4;
+  int64 last_heartbeat = 5;
+  bool online = 6;
+}

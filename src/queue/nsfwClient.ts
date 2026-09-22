@@ -168,12 +168,14 @@ export async function analyzeImageGrpc(
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
         try {
-            const request: AnalyzeRequest = {
-                imageData: new Uint8Array(0),
-                imageUrl,
+            // Use proto field names (snake_case) for dynamic grpc-js client
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const request: any = {
+                image_data: new Uint8Array(0),
+                image_url: imageUrl,
                 threshold,
-                guildId,
-                userId
+                guild_id: guildId,
+                user_id: userId
             };
 
             const response = await new Promise<AnalyzeResponse>((resolve, reject) => {

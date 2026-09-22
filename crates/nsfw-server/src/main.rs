@@ -14,7 +14,7 @@ use nsfw_proto::v1::nsfw_service_server::NsfwServiceServer;
 #[derive(Parser, Debug)]
 #[command(name = "nsfw-server", version, about = "NSFW Detection gRPC Server")]
 struct Args {
-    #[arg(long, env = "NSFW_GRPC_ADDR", default_value = "[::1]:50051")]
+    #[arg(long, env = "NSFW_GRPC_ADDR", default_value = "0.0.0.0:50051")]
     grpc_addr: SocketAddr,
     
     #[arg(long, env = "NSFW_MODEL_PATH", default_value = "./models/nsfw.onnx")]

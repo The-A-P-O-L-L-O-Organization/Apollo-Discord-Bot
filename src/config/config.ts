@@ -224,12 +224,12 @@ const config = {
         authToken: getEnv('HEALTH_AUTH_TOKEN')
     },
 
-    // Interlink (Cross-Bot Communication)
+    // Interlink (Cross-Bot Communication via ConnectRPC Go service)
     interlink: {
         enabled: parseBoolSafe(getEnv('INTERLINK_ENABLED')),
-        host: getEnv('INTERLINK_BIND_HOST') ?? '127.0.0.1',
-        port: parseIntSafe(getEnv('INTERLINK_HTTP_PORT'), 3456),
-        authToken: getEnv('INTERLINK_AUTH_TOKEN'),
+        grpcAddress: getEnv('INTERLINK_GRPC_ADDR') ?? 'http://localhost:50052',
+        authKey: getEnv('INTERLINK_AUTH_KEY') ?? '',
+        publicKey: getEnv('INTERLINK_PUBLIC_KEY') ?? '',
         rateLimit: {
             windowMs: 60000,
             maxRequests: 100

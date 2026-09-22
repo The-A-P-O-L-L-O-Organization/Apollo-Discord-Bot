@@ -11,7 +11,7 @@ import { analyzeImageGrpc, healthCheckGrpc, isRustWorkerAvailable, resetCircuitB
 import type { AnalyzeResponse, HealthCheckResponse } from '../../src/generated/nsfw/nsfw/v1/nsfw.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = resolve(__dirname, '../../..');
+const PROJECT_ROOT = resolve(__dirname, '../..');
 const RUST_SERVER_BINARY = join(PROJECT_ROOT, 'target/release/nsfw-server');
 const TEST_MODEL_PATH = process.env['TEST_MODEL_PATH'];
 
@@ -72,7 +72,7 @@ describe('NSFW Rust Service Integration', () => {
         // Set environment variables for the server
         const serverEnv = {
             ...process.env,
-            NSFW_GRPC_ADDR: '[::1]:50051',
+            NSFW_GRPC_ADDR: '127.0.0.1:50051',
             NSFW_MODEL_PATH: TEST_MODEL_PATH!,
             NSFW_THRESHOLD: '0.6',
             RUST_LOG: 'info'
