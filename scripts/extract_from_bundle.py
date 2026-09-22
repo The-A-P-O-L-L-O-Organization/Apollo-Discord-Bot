@@ -186,7 +186,8 @@ def extract_weights(model_data, bundle_path, output_dir):
                 import struct
                 float_values = []
                 for b in weight_data:
-                    float_val = (b - quant_min) * quant_scale
+                    # TFJS affine dequantization: value = min + q * scale
+                    float_val = quant_min + b * quant_scale
                     float_values.append(float_val)
                 # Pack as float32
                 weight_data = struct.pack(f'{num_elements}f', *float_values)

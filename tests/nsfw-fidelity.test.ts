@@ -1,27 +1,30 @@
 // NSFW Rust Service Fidelity Test
-// Compares Rust ONNX model predictions against TFJS baseline reference values
+// Compares Rust ONNX model predictions against the TF/Keras oracle baseline.
+//
+// Reference values were measured with scripts/nsfw_tf_oracle.py, which
+// rebuilds the NSFWJS Keras model from models/nsfwjs_tfjs (same code path
+// as the ONNX conversion) and applies the EXACT NSFWJS preprocessing from
+// src/core.ts infer(): uint8 decode -> float -> /255 -> bilinear resize
+// with align_corners=true -> NHWC batch. The Rust server implements the
+// same math (see crates/nsfw-server/src/model.rs), so agreement validates
+// genuine model parity, not self-consistency.
 
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { analyzeImageGrpc, healthCheckGrpc, resetCircuitBreaker, isRustWorkerAvailable } from '../src/queue/nsfwClient.js';
-import { createServer } from 'node:http';
+import { createServer, type Server } from 'node:http';
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-// Use same test images as integration test (Wikimedia URLs that serve direct images)
-const TEST_IMAGES = {
-    // PNG transparency demo - complex image, should be SFW
-    safe: 'https://upload.wikimedia.org/wikipedia/commons/4/47/PNG_transparency_demonstration_1.png',
-    // Red square - simple solid color, should be SFW
-    testPattern: 'https://upload.wikimedia.org/wikipedia/commons/0/0b/Red_square.svg',
-};
+const FIXTURE_DIR = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'nsfw');
+const FIXTURE_BASE_URL = 'http://127.0.0.1:34567';
 
-// Reference predictions from TFJS model baseline
-// These are expected outputs from the original NSFWJS model at threshold 0.6
+// Reference predictions measured with scripts/nsfw_tf_oracle.py.
+// Class labels: Drawing, Hentai, Neutral, Porn, Sexy
 interface ReferencePrediction {
     name: string;
-    url: string;
+    file: string;
     expectedIsNsfw: boolean;
-    // Class labels: Drawing, Hentai, Neutral, Porn, Sexy
     expectedPredictions: Record<string, number>;
     threshold: number;
     maxConfidenceTolerance: number;
@@ -30,30 +33,45 @@ interface ReferencePrediction {
 
 const REFERENCE_PREDICTIONS: ReferencePrediction[] = [
     {
-        name: 'PNG Transparency Demo (Safe)',
-        url: TEST_IMAGES.safe,
+        name: 'Photo Collage (SFW)',
+        file: 'png-transparency-demo.png',
         expectedIsNsfw: false,
-        expectedPredictions: { 
-            Drawing: 0.01, 
-            Hentai: 0.01, 
-            Neutral: 0.95, 
-            Porn: 0.02, 
-            Sexy: 0.01 
+        expectedPredictions: {
+            Drawing: 0.6459,
+            Hentai: 0.0043,
+            Neutral: 0.3489,
+            Porn: 0.0005,
+            Sexy: 0.0004,
         },
         threshold: 0.6,
         maxConfidenceTolerance: 0.05,
         perClassTolerance: 0.1,
     },
     {
-        name: 'Red Square (Safe)',
-        url: TEST_IMAGES.testPattern,
+        name: 'Solid Black 300x300',
+        file: 'solid-black-300.png',
         expectedIsNsfw: false,
-        expectedPredictions: { 
-            Drawing: 0.02, 
-            Hentai: 0.01, 
-            Neutral: 0.94, 
-            Porn: 0.02, 
-            Sexy: 0.01 
+        expectedPredictions: {
+            Drawing: 0.7885,
+            Hentai: 0.0262,
+            Neutral: 0.1732,
+            Porn: 0.0100,
+            Sexy: 0.0021,
+        },
+        threshold: 0.6,
+        maxConfidenceTolerance: 0.05,
+        perClassTolerance: 0.1,
+    },
+    {
+        name: 'Solid White 300x300',
+        file: 'solid-white-300.png',
+        expectedIsNsfw: false,
+        expectedPredictions: {
+            Drawing: 0.7653,
+            Hentai: 0.0276,
+            Neutral: 0.1917,
+            Porn: 0.0129,
+            Sexy: 0.0026,
         },
         threshold: 0.6,
         maxConfidenceTolerance: 0.05,
@@ -61,16 +79,20 @@ const REFERENCE_PREDICTIONS: ReferencePrediction[] = [
     },
 ];
 
-const FIXTURE_BASE_URL = 'http://localhost:34567';
-let fixtureServer: ReturnType<typeof createServer> | null = null;
-let serverReady = false;
+const MIME: Record<string, string> = { '.png': 'image/png', '.jpg': 'image/jpeg' };
+
+let fixtureServer: Server | null = null;
 let shouldSkip = false;
+
+function fixtureUrl(file: string): string {
+    return `${FIXTURE_BASE_URL}/${file}`;
+}
 
 describe('NSFW Rust Service Fidelity Test', () => {
     beforeAll(async () => {
         // Check if model path is set
         shouldSkip = !process.env['TEST_MODEL_PATH'];
-        
+
         if (shouldSkip) {
             console.log('[NSFW Fidelity] Skipping: TEST_MODEL_PATH not set. Set TEST_MODEL_PATH=/path/to/nsfw.onnx to run fidelity tests.');
             return;
@@ -93,11 +115,31 @@ describe('NSFW Rust Service Fidelity Test', () => {
             shouldSkip = true;
             return;
         }
+
+        // Serve local fixtures over HTTP so the server fetches deterministic bytes.
+        fixtureServer = createServer((req, res) => {
+            const file = (req.url ?? '/').replace(/^\//, '');
+            try {
+                const data = readFileSync(join(FIXTURE_DIR, file));
+                const ext = file.slice(file.lastIndexOf('.'));
+                res.writeHead(200, { 'Content-Type': MIME[ext] ?? 'application/octet-stream' });
+                res.end(data);
+            } catch {
+                res.writeHead(404);
+                res.end('not found');
+            }
+        });
+        await new Promise<void>((resolve) => {
+            fixtureServer?.listen(34567, '127.0.0.1', () => resolve());
+        });
     });
 
     afterAll(async () => {
         if (fixtureServer) {
-            fixtureServer.close();
+            await new Promise<void>((resolve) => {
+                fixtureServer?.close(() => resolve());
+            });
+            fixtureServer = null;
         }
     });
 
@@ -127,7 +169,7 @@ describe('NSFW Rust Service Fidelity Test', () => {
             if (shouldSkip) return expect(true).toBe(true);
 
             const response = await analyzeImageGrpc(
-                TEST_IMAGES.safe,
+                fixtureUrl('png-transparency-demo.png'),
                 0.6,
                 'test-guild',
                 'test-user'
@@ -141,7 +183,7 @@ describe('NSFW Rust Service Fidelity Test', () => {
             expect(typeof response.inferenceMs).toBe('string');
             expect(parseInt(response.inferenceMs, 10)).toBeGreaterThan(0);
             expect(Object.keys(response.predictions).length).toBe(5); // 5 NSFWJS classes
-            
+
             // Verify all 5 class labels present
             const expectedClasses = ['Drawing', 'Hentai', 'Neutral', 'Porn', 'Sexy'];
             for (const cls of expectedClasses) {
@@ -153,13 +195,13 @@ describe('NSFW Rust Service Fidelity Test', () => {
         });
     });
 
-    describe('Model Fidelity vs TFJS Baseline', () => {
-        it('should match TFJS predictions within tolerance', async () => {
+    describe('Model Fidelity vs TF Oracle Baseline', () => {
+        it('should match TF oracle predictions within tolerance', async () => {
             if (shouldSkip) return expect(true).toBe(true);
 
             for (const ref of REFERENCE_PREDICTIONS) {
                 const response = await analyzeImageGrpc(
-                    ref.url,
+                    fixtureUrl(ref.file),
                     ref.threshold,
                     'test-guild',
                     'test-user'
@@ -175,7 +217,8 @@ describe('NSFW Rust Service Fidelity Test', () => {
 
                 // Verify per-class predictions within tolerance
                 for (const [cls, expectedConf] of Object.entries(ref.expectedPredictions)) {
-                    const actualConf = response.predictions[cls];
+                    const actualConf: number = response.predictions[cls] ?? -1;
+                    expect(actualConf).toBeGreaterThanOrEqual(0);
                     const classDiff = Math.abs(actualConf - expectedConf);
                     expect(classDiff).toBeLessThanOrEqual(ref.perClassTolerance);
                 }
@@ -193,7 +236,7 @@ describe('NSFW Rust Service Fidelity Test', () => {
 
             for (const ref of REFERENCE_PREDICTIONS) {
                 const response = await analyzeImageGrpc(
-                    ref.url,
+                    fixtureUrl(ref.file),
                     ref.threshold,
                     'test-guild',
                     'test-user'
@@ -211,7 +254,7 @@ describe('NSFW Rust Service Fidelity Test', () => {
                 }
 
                 // Softmax sum should be approximately 1.0 (allow small numerical error)
-                const sum = Object.values(response.predictions).reduce((a, b) => a + b, 0);
+                const sum: number = Object.values(response.predictions).reduce((a: number, b: number) => a + b, 0);
                 expect(sum).toBeCloseTo(1.0, 1); // Within 0.1
             }
         });
@@ -223,14 +266,14 @@ describe('NSFW Rust Service Fidelity Test', () => {
 
             // Test with a potentially ambiguous image
             const lowThreshold = await analyzeImageGrpc(
-                TEST_IMAGES.safe,
+                fixtureUrl('png-transparency-demo.png'),
                 0.3,  // Low threshold - more sensitive
                 'test-guild',
                 'test-user'
             );
 
             const highThreshold = await analyzeImageGrpc(
-                TEST_IMAGES.safe,
+                fixtureUrl('png-transparency-demo.png'),
                 0.9,  // High threshold - less sensitive
                 'test-guild',
                 'test-user'
@@ -238,8 +281,12 @@ describe('NSFW Rust Service Fidelity Test', () => {
 
             // Lower threshold should be more likely to classify as NSFW
             // (or at least not less likely)
-            expect(lowThreshold.isNsfw).toBe(true) || expect(highThreshold.isNsfw).toBe(false);
-            
+            if (lowThreshold.isNsfw) {
+                expect(lowThreshold.isNsfw).toBe(true);
+            } else {
+                expect(highThreshold.isNsfw).toBe(false);
+            }
+
             // Max confidence should be same (threshold doesn't change predictions, only classification)
             expect(Math.abs(lowThreshold.maxConfidence - highThreshold.maxConfidence)).toBeLessThan(0.01);
         });

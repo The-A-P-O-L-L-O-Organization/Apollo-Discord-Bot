@@ -62,9 +62,14 @@ def load_tfjs_weights(weights_manifest, model_dir):
     return weights
 
 
-def convert_tfjs_to_onnx(tfjs_model_dir, output_path):
-    """Convert TFJS model to ONNX directly."""
-    
+def rebuild_keras_model(tfjs_model_dir):
+    """Rebuild the NSFWJS Keras model from a TFJS model directory.
+
+    Returns the compiled model in inference mode. Shared by the ONNX
+    conversion and the TF-oracle baseline script so both use identical
+    weights and preprocessing assumptions.
+    """
+
     # Step 1: Load model topology
     model_json_path = os.path.join(tfjs_model_dir, 'model.json')
     with open(model_json_path, 'r') as f:
@@ -288,6 +293,14 @@ def convert_tfjs_to_onnx(tfjs_model_dir, output_path):
             output = model(dummy_input, training=False)
         print(f"After stabilization: {output.numpy()[0]}")
     
+    # Model is rebuilt and verified; hand off to the caller.
+    return model
+
+
+def convert_tfjs_to_onnx(tfjs_model_dir, output_path):
+    """Convert TFJS model to ONNX directly."""
+    model = rebuild_keras_model(tfjs_model_dir)
+
     # Step 5: Save as SavedModel (Keras 3 compatible)
     saved_model_dir = os.path.join(os.path.dirname(output_path), "nsfw_saved_model")
     if os.path.exists(saved_model_dir):
