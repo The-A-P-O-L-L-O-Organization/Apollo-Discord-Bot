@@ -27,13 +27,12 @@ Implements a modular configuration pattern using a single exported `config` obje
    - Plugin manager reads `config.plugins` for enabled plugin list and directories.
    - Database adapter uses `config.database` for connection type and parameters.
    - Queue system reads `config.queue` for Redis connection and job processing.
-   - Interlink HTTP server uses `config.interlink` for port and Redis prefix.
+    - Interlink ConnectRPC client uses `config.interlink` for Go service address and shared auth key.
    - Sharding logic reads `config.shard` for leader election and task distribution.
    - Operator agreement validated via `config.operator.agreed`.
 7. Security startup checks validate production requirements:
    - `APOLLO_SOCKET_TOKEN` required in production (startupChecks.validateSocketToken)
-   - `REDIS_PASSWORD` required in production (startupChecks.validateRedisAuth)
-   - `config.interlink.bindHost` cannot be 0.0.0.0 in production (startupChecks.validateInterlinkBind)
+    - `REDIS_PASSWORD` required in production (startupChecks.validateRedisAuth)
    - `QUEUE_HMAC_SECRET` required for job signing in production
    - `ENCRYPTION_KEY` supports comma-separated rotation keys
 

@@ -465,9 +465,9 @@ export interface QueueRedisConfig extends RedisConfig {
 
 export interface InterlinkConfig {
     enabled: boolean;
-    host: string;
-    port: number;
-    authToken: string | undefined;
+    grpcAddress: string;
+    authKey: string;
+    publicKey: string;
     rateLimit: { windowMs: number; maxRequests: number } | undefined;
 }
 

@@ -1,6 +1,7 @@
 packages:
   - bot
 allowBuilds:
+  '@bufbuild/buf': true
   '@tensorflow/tfjs-node': true
   better-sqlite3: true
   core-js: true

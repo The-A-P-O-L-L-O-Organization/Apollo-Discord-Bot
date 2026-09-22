@@ -179,20 +179,3 @@ export async function validateRedisAuth(): Promise<void> {
         await redis.quit();
     }
 }
-
-export async function validateInterlinkBind(): Promise<void> {
-    const isProduction = process.env['NODE_ENV'] === 'production';
-    const { config } = await import('../config/config.js');
-
-    const interlinkConfig = config.interlink as unknown as { enabled: boolean; bindHost: string };
-    if (isProduction && interlinkConfig.enabled && interlinkConfig.bindHost === '0.0.0.0') {
-        throw new Error(
-            '[FATAL] INTERLINK_BIND_HOST=0.0.0.0 is not allowed in production. ' +
-            'Set INTERLINK_BIND_HOST=127.0.0.1 or a specific private IP in your .env file.'
-        );
-    }
-
-    if (interlinkConfig.enabled && interlinkConfig.bindHost !== '127.0.0.1' && interlinkConfig.bindHost !== '::1') {
-        logger.warn(`[WARN] Interlink binding to ${interlinkConfig.bindHost} — ensure this is intentional and firewalled.`);
-    }
-}

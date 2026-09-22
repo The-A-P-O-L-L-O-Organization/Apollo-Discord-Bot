@@ -1,21 +1,21 @@
-import { getDb } from '../../../db/knex.js';
-import BotRegistry from '../registry.js';
-import MessageBus from '../messageBus.js';
-import type { BroadcastResult } from '../messageBus.js';import { safeError } from '../../../utils/safeError.js';
+import { randomUUID } from 'node:crypto';
+import { getInterlinkClient, generateNonce } from '../connectClient.js';
+import { config } from '../../../config/config.js';
+import { safeError } from '../../../utils/safeError.js';
 import { isOwner, getOwnerIds } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
 import { MessageFlags } from 'discord.js';
 import type { ChatInputCommandInteraction } from 'discord.js';
 
-const SEND_CONFIG = { requestTimeout: 5000, maxRetries: 3 };
-
-function createRegistry() {
-    return new BotRegistry(getDb());
+function selfBotId(): string {
+    return config.discord.clientId || 'apollo';
 }
 
-function createBus() {
-    return new MessageBus({ registry: createRegistry(), auth: null, redis: null, config: SEND_CONFIG, eventBus: null });
+function encodePayload(payload: unknown): Uint8Array<ArrayBuffer> {
+    if (payload instanceof Uint8Array) { return Uint8Array.from(payload); }
+    if (typeof payload === 'string') { return new TextEncoder().encode(payload); }
+    return new TextEncoder().encode(JSON.stringify(payload ?? null));
 }
 
 export default {
@@ -151,7 +151,8 @@ export default {
     },
 
     async _list(interaction: ChatInputCommandInteraction) {
-        const bots = await createRegistry().list();
+        const response = await getInterlinkClient().listBots();
+        const bots = response.bots;
         if (bots.length === 0) {
             return interaction.editReply({
                 embeds: [{
@@ -163,10 +164,10 @@ export default {
         }
 
         const lines = bots.map((bot) => {
-            const status = bot.is_active ? 'Active' : 'Inactive';
-            const redis = bot.supports_redis ? ' +Redis' : '';
-            const lastSeen = bot.last_seen_at ? `\n  Last seen: ${new Date(bot.last_seen_at).toLocaleString()}` : '';
-            return `**${bot.name}**${lastSeen}\n  Status: ${status}${redis}\n  Key prefix: \`${bot.api_key_prefix}\``;
+            const status = bot.online ? 'Online' : 'Offline';
+            const lastSeen = bot.lastHeartbeat !== BigInt(0) ? `\n  Last heartbeat: ${new Date(Number(bot.lastHeartbeat)).toLocaleString()}` : '';
+            const endpoint = bot.endpoint ? `\n  Endpoint: ${bot.endpoint}` : '';
+            return `**${bot.botId}**${lastSeen}${endpoint}\n  Status: ${status}`;
         });
 
         return interaction.editReply({
@@ -190,60 +191,58 @@ export default {
             });
         }
 
-        const existing = await createRegistry().get(name);
-        if (existing) {
+        const client = getInterlinkClient();
+        try {
+            await client.getBotInfo(name);
             return interaction.editReply({
                 embeds: [{ color: 0xFFA500, title: '[WARNING] Already Registered', description: `Bot "${name}" is already registered.` }]
             });
+        } catch {
+            // Not found — proceed with registration.
         }
 
-        const result = await createRegistry().create({ name, webhookUrl, description, supportsRedis });
+        const result = await client.registerBot({
+            botId: name,
+            publicKey: config.interlink.publicKey,
+            endpoint: webhookUrl,
+            capabilities: description ? { description } : {},
+            maxConcurrentStreams: 100
+        });
 
-        await interaction.editReply({
+        if (!result.success) {
+            return interaction.editReply({
+                embeds: [{ color: 0xFF0000, title: '[ERROR] Registration Failed', description: result.error || `Could not register bot "${name}".` }]
+            });
+        }
+
+        return interaction.editReply({
             embeds: [{
                 color: 0x00FF00,
                 title: '[SUCCESS] Bot Registered',
                 description: [
                     `**Name:** ${name}`,
-                    `**Webhook:** ${webhookUrl}`,
-                    `**Redis:** ${supportsRedis ? 'Yes' : 'No'}`,
+                    `**Endpoint:** ${webhookUrl}`,
+                    supportsRedis ? '**Note:** Redis transport retired; bots communicate via the ConnectRPC Go service.' : '',
                     '',
-                    'API key sent via DM.'
-                ].join('\n'),
-                fields: [{
-                    name: 'Key Prefix',
-                    value: `\`${result.api_key_prefix}\``,
-                    inline: true
-                }]
+                    'Authentication uses the shared INTERLINK_AUTH_KEY trust domain (no per-bot key).'
+                ].filter(Boolean).join('\n')
             }]
         });
-
-        // Send API key via DM instead of followUp to avoid exposure in channel logs
-        try {
-            await interaction.user.send({
-                content: `**[WARNING] API Key for ${name} (shown once):**\n\`\`\`${result.rawKey}\`\`\`\nStore this securely. It will not be shown again.`
-            });
-        } catch (dmError: unknown) {
-            // Fallback to ephemeral followUp if DM fails
-            logger.warn(`[INTERLINK] Failed to DM API key to ${interaction.user.tag}, falling back to ephemeral message: ${dmError instanceof Error ? dmError.message : 'unknown error'}`);
-            await interaction.followUp({
-                content: `**[WARNING] API Key for ${name} (shown once):**\n\`\`\`${result.rawKey}\`\`\`\nStore this securely. It will not be shown again.`,
-                flags: MessageFlags.Ephemeral
-            });
-        }
     },
 
     async _remove(interaction: ChatInputCommandInteraction) {
         const name = interaction.options.getString('name', true).trim();
-        const existing = await createRegistry().get(name);
+        const client = getInterlinkClient();
 
-        if (!existing) {
+        try {
+            await client.getBotInfo(name);
+        } catch {
             return interaction.editReply({
                 embeds: [{ color: 0xFFA500, title: '[WARNING] Not Found', description: `No bot registered as "${name}".` }]
             });
         }
 
-        await createRegistry().remove(name);
+        await client.unregisterBot(name);
 
         return interaction.editReply({
             embeds: [{ color: 0x00FF00, title: '[SUCCESS] Bot Removed', description: `Bot "${name}" has been removed from the registry.` }]
@@ -255,8 +254,10 @@ export default {
         const type = interaction.options.getString('type', true);
         const payloadStr = interaction.options.getString('payload', true);
 
-        const existing = await createRegistry().get(name);
-        if (!existing) {
+        const client = getInterlinkClient();
+        try {
+            await client.getBotInfo(name);
+        } catch {
             return interaction.editReply({
                 embeds: [{ color: 0xFFA500, title: '[WARNING] Not Found', description: `No bot registered as "${name}".` }]
             });
@@ -269,11 +270,20 @@ export default {
             });
         }
 
-        const bus = createBus();
-        const result = await bus.send(name, type, payload);
+        const result = await client.send({
+            protocol: 'apollo.interlink.v1',
+            version: '1.0',
+            type,
+            source: selfBotId(),
+            target: name,
+            id: randomUUID(),
+            timestamp: BigInt(Date.now()),
+            nonce: generateNonce(),
+            payload: encodePayload(payload)
+        });
 
-        const success = result?.success ?? false;
-        const error = result?.error ?? 'Unknown error';
+        const success = result.accepted;
+        const error = result.error || 'Unknown error';
 
         return interaction.editReply({
             embeds: [{
@@ -282,7 +292,7 @@ export default {
                 description: [
                     `**Target:** ${name}`,
                     `**Type:** ${type}`,
-                    `**Result:** ${success ? 'Delivered' : error}`
+                    `**Result:** ${success ? 'Accepted (at-most-once delivery)' : error}`
                 ].join('\n')
             }]
         });
@@ -299,68 +309,62 @@ export default {
             });
         }
 
-        const bus = createBus();
-        const results = await bus.broadcast(type, payload);
-        const success = results.filter((r: BroadcastResult) => r.success).length;
-        const failed = results.filter((r: BroadcastResult) => !r.success).length;
+        const listing = await getInterlinkClient().listBots();
+        const targets = listing.bots.filter((b) => b.online && b.botId !== selfBotId());
 
+        if (targets.length === 0) {
+            return interaction.editReply({
+                embeds: [{ color: 0xFFA500, title: '[WARNING] No Bots', description: 'No online registered bots to broadcast to.' }]
+            });
+        }
+
+        const result = await getInterlinkClient().send({
+            protocol: 'apollo.interlink.v1',
+            version: '1.0',
+            type,
+            source: selfBotId(),
+            target: '*',
+            id: randomUUID(),
+            timestamp: BigInt(Date.now()),
+            nonce: generateNonce(),
+            payload: encodePayload(payload)
+        });
+
+        const success = result.accepted;
         return interaction.editReply({
             embeds: [{
-                color: failed === 0 ? 0x00FF00 : 0xFFA500,
+                color: success ? 0x00FF00 : 0xFF0000,
                 title: '[INFO] Broadcast Complete',
-                description: `Sent to ${results.length} active bot(s).\n[OK] ${success} succeeded\n[ERROR] ${failed} failed`
+                description: success
+                    ? `Broadcast accepted for ${targets.length} online bot(s) (at-most-once delivery).`
+                    : `Broadcast rejected: ${result.error || 'Unknown error'}`
             }]
         });
     },
 
     async _rotateKey(interaction: ChatInputCommandInteraction) {
         const name = interaction.options.getString('name', true).trim();
-        const existing = await createRegistry().get(name);
-
-        if (!existing) {
-            return interaction.editReply({
-                embeds: [{ color: 0xFFA500, title: '[WARNING] Not Found', description: `No bot registered as "${name}".` }]
-            });
-        }
-
-        const { rawKey } = await createRegistry().rotateKey(name);
-
-        await interaction.editReply({
+        logger.warn(`[INTERLINK] rotate-key requested for ${name}: per-bot API keys retired with the Express stack`);
+        return interaction.editReply({
             embeds: [{
-                color: 0x00FF00,
-                title: '[SUCCESS] API Key Rotated',
+                color: 0xFFA500,
+                title: '[WARNING] Key Rotation Retired',
                 description: [
-                    `**Bot:** ${name}`,
-                    '',
-                    'New API key sent via DM.'
-                ].join('\n'),
-                fields: [{ name: 'New Key Prefix', value: `\`${rawKey.slice(0, 8)}\``, inline: true }]
+                    `Per-bot API keys were retired with the Express stack; bot "${name}" has no key to rotate.`,
+                    'Interlink now authenticates via the shared INTERLINK_AUTH_KEY trust domain.',
+                    'To rotate: generate a new secret, set it on every bot plus the Go service, and restart.'
+                ].join('\n')
             }]
         });
-
-        // Send API key via DM instead of followUp to avoid exposure in channel logs
-        try {
-            await interaction.user.send({
-                content: `**[WARNING] New API Key for ${name} (shown once):**\n\`\`\`${rawKey}\`\`\`\nStore this securely. The old key is no longer valid.`
-            });
-        } catch (dmError: unknown) {
-            // Fallback to ephemeral followUp if DM fails
-            logger.warn(`[INTERLINK] Failed to DM API key to ${interaction.user.tag}, falling back to ephemeral message: ${dmError instanceof Error ? dmError.message : 'unknown error'}`);
-            await interaction.followUp({
-                content: `**[WARNING] New API Key for ${name} (shown once):**\n\`\`\`${rawKey}\`\`\`\nStore this securely. The old key is no longer valid.`,
-                flags: MessageFlags.Ephemeral
-            });
-        }
     },
 
     async _override(interaction: ChatInputCommandInteraction) {
-        const registry = createRegistry();
-        const bots = await registry.list();
-        const active = bots.filter((b) => b.is_active);
+        const listing = await getInterlinkClient().listBots();
+        const active = listing.bots.filter((b) => b.online && b.botId !== selfBotId());
 
         if (active.length === 0) {
             return interaction.editReply({
-                embeds: [{ color: 0xFFA500, title: '[WARNING] No Bots', description: 'No active registered bots to override.' }]
+                embeds: [{ color: 0xFFA500, title: '[WARNING] No Bots', description: 'No online registered bots to override.' }]
             });
         }
 
@@ -373,29 +377,33 @@ export default {
             });
         }
 
-        const bus = createBus();
-        const results = await bus.broadcast('command', {
-            command: 'override',
-            action: 'activate',
-            userId
+        const result = await getInterlinkClient().send({
+            protocol: 'apollo.interlink.v1',
+            version: '1.0',
+            type: 'command',
+            source: selfBotId(),
+            target: '*',
+            id: randomUUID(),
+            timestamp: BigInt(Date.now()),
+            nonce: generateNonce(),
+            payload: encodePayload({ command: 'override', action: 'activate', userId })
         });
 
-        const success = results.filter((r: BroadcastResult) => r.success).length;
-        const failed = results.filter((r: BroadcastResult) => !r.success).length;
+        if (!result.accepted) {
+            return interaction.editReply({
+                embeds: [{ color: 0xFF0000, title: '[ERROR] Override Failed', description: result.error || 'Broadcast rejected by the Interlink service.' }]
+            });
+        }
 
-        const lines = results.map((r: BroadcastResult) =>
-            `**${r.name}:** ${r.success ? 'Override activated' : `Failed: ${r.error}`}`
-        );
+        const lines = active.map((b) => `**${b.botId}:** Override broadcast accepted`);
 
         return interaction.editReply({
             embeds: [{
-                color: failed === 0 ? 0x00FF00 : 0xFFA500,
+                color: 0x00FF00,
                 title: '[INFO] Override Broadcast Complete',
                 description: [
                     `Target user: \`${userId}\``,
-                    `Sent to ${results.length} active bot(s).`,
-                    `${success} succeeded`,
-                    failed > 0 ? `${failed} failed` : '',
+                    `Sent to ${active.length} online bot(s) (at-most-once delivery).`,
                     '',
                     ...lines
                 ].filter(Boolean).join('\n')
