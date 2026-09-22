@@ -194,7 +194,15 @@ export async function analyzeImageGrpc(
             });
 
             recordSuccess();
-            return response;
+            // Normalize response keys: the dynamic grpc-js client (keepCase)
+            // returns proto snake_case names; normalize to camelCase.
+            const raw = response as unknown as Record<string, unknown>;
+            return {
+                isNsfw: Boolean(raw['isNsfw'] ?? raw['is_nsfw'] ?? false),
+                predictions: (raw['predictions'] ?? {}) as Record<string, number>,
+                maxConfidence: Number(raw['maxConfidence'] ?? raw['max_confidence'] ?? 0),
+                inferenceMs: String(raw['inferenceMs'] ?? raw['inference_ms'] ?? '0')
+            };
         } catch (error) {
             lastError = error;
 
@@ -264,7 +272,13 @@ export async function healthCheckGrpc(): Promise<HealthCheckResponse> {
             if (error) {
                 reject(error instanceof Error ? error : new Error((error as { message?: string }).message ?? 'Unknown gRPC error'));
             } else {
-                resolve(response);
+                // Normalize response keys (see analyzeImageGrpc).
+                const raw = response as unknown as Record<string, unknown>;
+                resolve({
+                    healthy: Boolean(raw['healthy'] ?? false),
+                    modelVersion: String(raw['modelVersion'] ?? raw['model_version'] ?? ''),
+                    uptimeMs: String(raw['uptimeMs'] ?? raw['uptime_ms'] ?? '0')
+                });
             }
         });
     });
