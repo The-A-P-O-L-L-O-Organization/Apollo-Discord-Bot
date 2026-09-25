@@ -3,6 +3,7 @@ import type { ChatInputCommandInteraction} from 'discord.js';
 import { PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface AutoRoleConfig {
     roleId?: string | null;
@@ -57,6 +58,8 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const subcommand = interaction.options.getSubcommand();
 
@@ -74,11 +77,11 @@ export default {
 
             const errorEmbed = {
                 color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred while configuring auto-role.',
+                title: t('autorole.commandFailedTitle'),
+                description: t('autorole.anErrorOccurredWhileConfiguring'),
                 fields: [
                     {
-                        name: '[ERROR] Details',
+                        name: t('autorole.errorDetails'),
                         value: (error as Error).message,
                         inline: true
                     }
@@ -92,6 +95,8 @@ export default {
 };
 
 async function handleSetRole(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+    const t = i18n.getFixedT(resolved, 'moderation');
     const role = interaction.options.getRole('role', true);
 
     // Check if bot can assign the role
@@ -99,8 +104,8 @@ async function handleSetRole(interaction: ChatInputCommandInteraction): Promise<
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
-                title: '[ERROR] Invalid Role',
-                description: 'I cannot assign roles that are higher than or equal to my highest role.',
+                title: t('autorole.errorInvalidRole'),
+                description: t('autorole.iCannotAssignRolesThat'),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -113,8 +118,8 @@ async function handleSetRole(interaction: ChatInputCommandInteraction): Promise<
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
-                title: '[ERROR] Invalid Role',
-                description: 'You cannot set @everyone as the auto-role.',
+                title: t('autorole.errorInvalidRole2'),
+                description: t('autorole.youCannotSetEveryoneAs'),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -134,16 +139,16 @@ async function handleSetRole(interaction: ChatInputCommandInteraction): Promise<
 
     const successEmbed = {
         color: 0x00FF00,
-        title: '[SUCCESS] Auto-Role Set',
-        description: `New members will automatically receive the <@&${role.id}> role.`,
+        title: t('autorole.successAutoRoleSet'),
+        description: t('autorole.newMembersWillAutomaticallyReceive', { roleId: role.id }),
         fields: [
             {
-                name: '[INFO] Role',
+                name: t('autorole.infoRole'),
                 value: role.name,
                 inline: true
             },
             {
-                name: '[INFO] Status',
+                name: t('autorole.infoStatus'),
                 value: config.enabled ? 'Enabled' : 'Disabled',
                 inline: true
             }
@@ -157,14 +162,16 @@ async function handleSetRole(interaction: ChatInputCommandInteraction): Promise<
 }
 
 async function handleRemoveRole(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+    const t = i18n.getFixedT(resolved, 'moderation');
     const config = (await getGuildData('autorole', interaction.guild!.id)) as AutoRoleConfig | undefined;
 
     if (!config?.roleId) {
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
-                title: '[ERROR] No Auto-Role',
-                description: 'There is no auto-role configured.',
+                title: t('autorole.errorNoAutoRole'),
+                description: t('autorole.thereIsNoAutoRole'),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -180,8 +187,8 @@ async function handleRemoveRole(interaction: ChatInputCommandInteraction): Promi
 
     const successEmbed = {
         color: 0x00FF00,
-        title: '[SUCCESS] Auto-Role Removed',
-        description: 'Auto-role has been removed.',
+        title: t('autorole.successAutoRoleRemoved'),
+        description: t('autorole.autoRoleHasBeenRemoved'),
         timestamp: new Date().toISOString()
     };
 
@@ -191,6 +198,8 @@ async function handleRemoveRole(interaction: ChatInputCommandInteraction): Promi
 }
 
 async function handleToggle(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+    const t = i18n.getFixedT(resolved, 'moderation');
     const enabled = interaction.options.getBoolean('enabled', true);
 
     const config = (await getGuildData('autorole', interaction.guild!.id)) as AutoRoleConfig || {};
@@ -199,8 +208,8 @@ async function handleToggle(interaction: ChatInputCommandInteraction): Promise<v
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
-                title: '[ERROR] No Auto-Role',
-                description: 'Please set an auto-role first.',
+                title: t('autorole.errorNoAutoRole2'),
+                description: t('autorole.pleaseSetAnAutoRole'),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -213,16 +222,16 @@ async function handleToggle(interaction: ChatInputCommandInteraction): Promise<v
 
     const successEmbed = {
         color: 0x00FF00,
-        title: '[SUCCESS] Auto-Role Updated',
-        description: `Auto-role has been ${enabled ? 'enabled' : 'disabled'}.`,
+        title: t('autorole.successAutoRoleUpdated'),
+        description: t('autorole.autoRoleHasBeenValue', { value: enabled ? 'enabled' : 'disabled' }),
         fields: [
             {
-                name: '[INFO] Role',
-                value: config.roleName ?? 'Unknown',
+                name: t('autorole.infoRole2'),
+                value: config.roleName ?? t('autorole.unknown'),
                 inline: true
             },
             {
-                name: '[INFO] Status',
+                name: t('autorole.infoStatus2'),
                 value: enabled ? 'Enabled' : 'Disabled',
                 inline: true
             }
@@ -234,13 +243,15 @@ async function handleToggle(interaction: ChatInputCommandInteraction): Promise<v
 }
 
 async function handleView(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+    const t = i18n.getFixedT(resolved, 'moderation');
     const config = (await getGuildData('autorole', interaction.guild!.id)) as AutoRoleConfig | undefined;
 
     if (!config?.roleId) {
         await interaction.reply({
             embeds: [{
                 color: 0xFFA500,
-                title: '[INFO] Auto-Role Not Configured',
+                title: t('autorole.infoAutoRoleNotConfigured'),
                 description: 'Use `/autorole set` to configure auto-role.',
                 timestamp: new Date().toISOString()
             }],
@@ -253,20 +264,20 @@ async function handleView(interaction: ChatInputCommandInteraction): Promise<voi
 
     const viewEmbed = {
         color: 0x3498DB,
-        title: '[AUTOROLE] Configuration',
+        title: t('autorole.autoroleConfiguration'),
         fields: [
             {
-                name: '[INFO] Role',
-                value: role ? `<@&${role.id}>` : (config.roleName ?? 'Unknown'),
+                name: t('autorole.infoRole3'),
+                value: role ? `<@&${role.id}>` : (config.roleName ?? t('autorole.unknown2')),
                 inline: true
             },
             {
-                name: '[INFO] Status',
+                name: t('autorole.infoStatus3'),
                 value: config.enabled ? 'Enabled' : 'Disabled',
                 inline: true
             },
             {
-                name: '[INFO] Members Assigned',
+                name: t('autorole.infoMembersAssigned'),
                 value: role ? `${role.members.size} member(s)` : 'N/A',
                 inline: true
             }

@@ -2,6 +2,7 @@ import type { ChatInputCommandInteraction } from 'discord.js';
 import { PermissionsBitField, EmbedBuilder, MessageFlags } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface GiveawayData {
     messageId: string;
@@ -103,6 +104,12 @@ export default {
 };
 
 async function handleCreate(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolvedLocale = await i18n.resolveLocale({
+        locale: interaction.locale ?? null,
+        guildLocale: interaction.guildLocale ?? null,
+        guildId: interaction.guildId ?? null
+    });
+    const t = i18n.getFixedT(resolvedLocale, 'utility');
     const prize = interaction.options.getString('prize', true);
     const durationStr = interaction.options.getString('duration', true);
     const winners = interaction.options.getInteger('winners') ?? 1;
@@ -113,8 +120,8 @@ async function handleCreate(interaction: ChatInputCommandInteraction): Promise<v
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
-                title: '[ERROR] Invalid Duration',
-                description: 'Use format like 1h, 30m, 1d, 7d',
+                title: t('giveaway.invalidTitle'),
+                description: t('giveaway.badDuration'),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -127,14 +134,14 @@ async function handleCreate(interaction: ChatInputCommandInteraction): Promise<v
     // Create giveaway message
     const giveawayEmbed = new EmbedBuilder()
         .setColor(0x9B59B6)
-        .setTitle('GIVEAWAY')
-        .setDescription(`**Prize:** ${prize}`)
+        .setTitle(t('giveaway.title'))
+        .setDescription(t('giveaway.prize', { prize }))
         .addFields(
-            { name: 'Hosted by', value: interaction.user.toString(), inline: true },
-            { name: 'Ends', value: `<t:${Math.floor(endTime / 1000)}:R>`, inline: true },
-            { name: 'Winners', value: `${winners}`, inline: true }
+            { name: t('giveaway.hostedBy'), value: interaction.user.toString(), inline: true },
+            { name: t('giveaway.ends'), value: `<t:${Math.floor(endTime / 1000)}:R>`, inline: true },
+            { name: t('giveaway.winners'), value: `${winners}`, inline: true }
         )
-        .setFooter({ text: 'Click the button to enter!' })
+        .setFooter({ text: t('giveaway.enter') })
         .setTimestamp();
 
     const message = await interaction.reply({
@@ -167,16 +174,16 @@ async function handleCreate(interaction: ChatInputCommandInteraction): Promise<v
 
     const successEmbed = {
         color: 0x00FF00,
-        title: '[SUCCESS] Giveaway Created',
-        description: `Giveaway for **${prize}** has been created!`,
+        title: t('giveaway.createdTitle'),
+        description: t('giveaway.createdDesc', { prize }),
         fields: [
             {
-                name: '[INFO] Message ID',
+                name: t('giveaway.messageId'),
                 value: message.id,
                 inline: true
             },
             {
-                name: '[INFO] Ends',
+                name: t('giveaway.ends'),
                 value: `<t:${Math.floor(endTime / 1000)}:R>`,
                 inline: true
             }
@@ -188,6 +195,12 @@ async function handleCreate(interaction: ChatInputCommandInteraction): Promise<v
 }
 
 async function handleEnd(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolvedLocale = await i18n.resolveLocale({
+        locale: interaction.locale ?? null,
+        guildLocale: interaction.guildLocale ?? null,
+        guildId: interaction.guildId ?? null
+    });
+    const t = i18n.getFixedT(resolvedLocale, 'utility');
     const messageId = interaction.options.getString('message_id', true);
 
     const giveawayData = await getGuildData('giveaways', interaction.guild!.id) as GiveawayStore | undefined;
@@ -197,8 +210,8 @@ async function handleEnd(interaction: ChatInputCommandInteraction): Promise<void
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
-                title: '[ERROR] Giveaway Not Found',
-                description: 'No active giveaway found with that ID.',
+                title: t('giveaway.notFoundTitle'),
+                description: t('giveaway.notFound'),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -209,8 +222,8 @@ async function handleEnd(interaction: ChatInputCommandInteraction): Promise<void
     // End the giveaway (simplified - would need full implementation)
     const successEmbed = {
         color: 0x00FF00,
-        title: '[SUCCESS] Giveaway Ended',
-        description: 'Giveaway ended! Use reroll to pick new winners.',
+        title: t('giveaway.endedTitle'),
+        description: t('giveaway.endedDesc'),
         timestamp: new Date().toISOString()
     };
 
@@ -218,10 +231,16 @@ async function handleEnd(interaction: ChatInputCommandInteraction): Promise<void
 }
 
 async function handleReroll(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolvedLocale = await i18n.resolveLocale({
+        locale: interaction.locale ?? null,
+        guildLocale: interaction.guildLocale ?? null,
+        guildId: interaction.guildId ?? null
+    });
+    const t = i18n.getFixedT(resolvedLocale, 'utility');
     const successEmbed = {
         color: 0x00FF00,
-        title: '[SUCCESS] Giveaway Rerolled',
-        description: 'New winner(s) have been selected!',
+        title: t('giveaway.rerolledTitle'),
+        description: t('giveaway.rerolledDesc'),
         timestamp: new Date().toISOString()
     };
 

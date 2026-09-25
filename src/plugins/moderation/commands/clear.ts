@@ -2,6 +2,7 @@ import type { ChatInputCommandInteraction} from 'discord.js';
 import { PermissionsBitField, MessageFlags, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { safeError } from '../../../utils/safeError.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface ClearCommand {
     name: string;
@@ -47,6 +48,8 @@ const clearCommand: ClearCommand = {
     ],
 
     async execute(interaction: ChatInputCommandInteraction) {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const channel = interaction.channel;
             const amount = interaction.options.getInteger('amount');
@@ -56,8 +59,8 @@ const clearCommand: ClearCommand = {
                 await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Invalid Channel',
-                        description: 'Messages can only be cleared in text channels.'
+                        title: t('clear.errorInvalidChannel'),
+                        description: t('clear.messagesCanOnlyBeCleared')
                     }],
                     flags: MessageFlags.Ephemeral
                 });
@@ -77,7 +80,7 @@ const clearCommand: ClearCommand = {
             await interaction.reply({
                 embeds: [{
                     color: 0xFF0000,
-                    title: '[ERROR] Command Failed',
+                    title: t('clear.commandFailedTitle'),
                     description: safeError(error)
                 }],
                 flags: MessageFlags.Ephemeral

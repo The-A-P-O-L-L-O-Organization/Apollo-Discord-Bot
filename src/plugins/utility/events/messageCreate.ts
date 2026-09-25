@@ -2,6 +2,7 @@ import type { Message } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { EmbedBuilder } from 'discord.js';
 import { getLevelsConfig, isOnCooldown, awardXp } from '../../../utils/xp.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'messageCreate',
@@ -24,10 +25,16 @@ export default {
             const { data, leveledUp } = await awardXp(message.guild.id, message.author.id, amount);
 
             if (leveledUp && cfg.announceLevelUp) {
+                const resolvedLocale = await i18n.resolveLocale({
+                    locale: null,
+                    guildLocale: message.guild.preferredLocale ?? null,
+                    guildId: message.guild.id
+                });
+                const t = i18n.getFixedT(resolvedLocale, 'utility');
                 const embed = new EmbedBuilder()
                     .setColor(0x3498DB)
-                    .setTitle('[LEVEL UP]')
-                    .setDescription(`<@${message.author.id}> reached level **${data.level}**!`)
+                    .setTitle(t('levelup.title'))
+                    .setDescription(t('levelup.description', { mention: `<@${message.author.id}>`, level: data.level }))
                     .setTimestamp();
 
                 // @ts-expect-error - channel.send exists on text-based channels

@@ -6,6 +6,7 @@ import { getUserData, appendToUserArray, generateId, getGuildData } from '../../
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { canModerate } from '../../../utils/moderation.js';
 import { safeError } from '../../../utils/safeError.js';
+import { i18n } from '../../../i18n/index.js';
 
 export interface StrikeEntry {
     id: string;
@@ -45,6 +46,8 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const user = interaction.options.getUser('user');
             const reason = interaction.options.getString('reason', true);
@@ -53,8 +56,8 @@ export default {
                 await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Missing User',
-                        description: 'Please specify a valid user to strike.',
+                        title: t('strike.missingUserTitle'),
+                        description: t('strike.missingUserDescription'),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -66,8 +69,8 @@ export default {
                 await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Invalid Target',
-                        description: 'You cannot strike bots.',
+                        title: t('strike.errorInvalidTarget'),
+                        description: t('strike.botProtectionDescription'),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -79,8 +82,8 @@ export default {
                 await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Self Action',
-                        description: 'You cannot strike yourself.',
+                        title: t('strike.selfActionTitle'),
+                        description: t('strike.selfActionDescription'),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -94,8 +97,8 @@ export default {
                 await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Member Not Found',
-                        description: 'This user is not a member of the server.',
+                        title: t('strike.memberNotFoundTitle'),
+                        description: t('strike.memberNotFoundDescription'),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -107,7 +110,7 @@ export default {
             if (!hierarchy.ok) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Hierarchy Check Failed',
+                    title: t('strike.hierarchyTitle'),
                     description: hierarchy.reason,
                     timestamp: new Date().toISOString()
                 };
@@ -139,15 +142,15 @@ export default {
             try {
                 const dmEmbed = new EmbedBuilder()
                     .setColor('#FF0000')
-                    .setTitle(`[!] Strike Issued in ${interaction.guild!.name}`)
-                    .setDescription('You have been issued a **strike** by a moderator.')
+                    .setTitle(t('strike.strikeIssuedInServer', { server: interaction.guild!.name }))
+                    .setDescription(t('strike.youHaveBeenIssuedA'))
                     .addFields(
-                        { name: 'Reason', value: reason, inline: false },
-                        { name: 'Total Strikes', value: `${strikeCount}/${threshold}`, inline: true },
-                        { name: 'Strike ID', value: strike.id, inline: true }
+                        { name: t('strike.reason'), value: reason, inline: false },
+                        { name: t('strike.totalStrikes'), value: t('strike.countThreshold', { count: strikeCount, threshold: threshold }), inline: true },
+                        { name: t('strike.strikeId'), value: strike.id, inline: true }
                     )
                     .setTimestamp()
-                    .setFooter({ text: `${threshold - strikeCount} strike(s) remaining before ban` });
+                    .setFooter({ text: t('strike.countStrikeSRemainingBefore', { count: threshold - strikeCount }) });
 
                 await user.send({ embeds: [dmEmbed] });
                 dmSent = true;
@@ -179,28 +182,28 @@ export default {
 
             const successEmbed = new EmbedBuilder()
                 .setColor('#FF0000')
-                .setTitle('[SUCCESS] Strike Issued')
-                .setDescription(`${user.tag} has been issued a strike.`)
+                .setTitle(t('strike.successStrikeIssued'))
+                .setDescription(t('strike.userHasBeenIssuedA', { user: user.tag }))
                 .addFields(
-                    { name: 'User', value: `${user.tag} (${user.id})`, inline: true },
-                    { name: 'Moderator', value: interaction.user.tag, inline: true },
-                    { name: 'Reason', value: reason, inline: false },
-                    { name: 'Total Strikes', value: `${strikeCount}/${threshold}`, inline: true },
-                    { name: 'Strike ID', value: strike.id, inline: true },
-                    { name: 'DM Sent', value: dmSent ? 'Yes' : 'No', inline: true }
+                    { name: t('strike.user'), value: t('strike.userValue', { user: user.tag, value: user.id }), inline: true },
+                    { name: t('strike.moderator'), value: interaction.user.tag, inline: true },
+                    { name: t('strike.reason2'), value: reason, inline: false },
+                    { name: t('strike.totalStrikes2'), value: t('strike.countThreshold2', { count: strikeCount, threshold: threshold }), inline: true },
+                    { name: t('strike.strikeId2'), value: strike.id, inline: true },
+                    { name: t('strike.dmSent'), value: dmSent ? 'Yes' : 'No', inline: true }
                 )
                 .setTimestamp();
 
             if (autoPunishment) {
                 successEmbed.addFields({
-                    name: '[!] Auto-Punishment Applied',
-                    value: `User has been **${autoPunishment}** for reaching ${strikeCount} strikes.`,
+                    name: t('strike.autoPunishmentApplied'),
+                    value: t('strike.userHasBeenValueFor', { value: autoPunishment, count: strikeCount }),
                     inline: false
                 });
             } else {
                 successEmbed.addFields({
-                    name: 'Remaining',
-                    value: `${threshold - strikeCount} strike(s) until ban`,
+                    name: t('strike.remaining'),
+                    value: t('strike.countStrikeSUntilBan', { count: threshold - strikeCount }),
                     inline: false
                 });
             }
@@ -224,9 +227,9 @@ export default {
         } catch (error) {
             const errorEmbed = {
                 color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred while issuing the strike.',
-                fields: [{ name: 'Error', value: safeError(error), inline: true }],
+                title: t('strike.commandFailedTitle'),
+                description: t('strike.anErrorOccurredWhileIssuing'),
+                fields: [{ name: t('strike.error'), value: safeError(error), inline: true }],
                 timestamp: new Date().toISOString()
             };
 

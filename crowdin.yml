@@ -1,0 +1,7 @@
+preserve_hierarchy: true
+
+files:
+  - source: /src/i18n/dictionaries/en-US/common.json
+    translation: /src/i18n/dictionaries/%locale%/common.json
+  - source: /src/plugins/**/en-US/*.json
+    translation: /src/plugins/**/%locale%/%original_file_name%

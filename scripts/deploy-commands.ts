@@ -6,6 +6,7 @@ import { readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { logger } from '../src/utils/logger.js';
+import { buildLocalizedPayload, checkCommandLocales, type CommandInput } from '../src/i18n/commandPayload.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -22,6 +23,7 @@ interface DeployOptions {
     dryRun: boolean;
     clear: boolean;
     json: boolean;
+    checkLocales: boolean;
     help: boolean;
 }
 
@@ -40,6 +42,7 @@ function parseArgs(): DeployOptions {
         dryRun: false,
         clear: false,
         json: false,
+        checkLocales: false,
         help: false
     };
 
@@ -60,6 +63,9 @@ function parseArgs(): DeployOptions {
             break;
         case '--json':
             options.json = true;
+            break;
+        case '--check-locales':
+            options.checkLocales = true;
             break;
         case '--help':
         case '-h':
@@ -84,6 +90,7 @@ function printHelp(): void {
     logger.info('  --dry-run        Print commands without deploying');
     logger.info('  --clear          Delete all commands (guild or global)');
     logger.info('  --json           Output JSON array of deployed commands');
+    logger.info('  --check-locales  Validate command localization coverage and exit');
     logger.info('  --help, -h       Show this help message');
     logger.info('\nEnvironment variables:');
     logger.info('  DISCORD_TOKEN    Bot token (required)');
@@ -154,21 +161,11 @@ async function loadCommands(): Promise<CommandData[]> {
                     const command = await import(pathToFileURL(filePath).href) as RawCommandModule;
 
                     if (command.default) {
-                        let commandData: CommandData | undefined;
-                        if (command.default.data) {
-                            commandData = command.default.data.toJSON();
-                        } else if (command.default.name) {
-                            const isContextMenu = command.default.type === 2 || command.default.type === 3;
-                            commandData = {
-                                name: command.default.name,
-                                description: isContextMenu ? undefined : (command.default.description || 'No description'),
-                                type: command.default.type || 1,
-                                options: command.default.options || []
-                            };
-                        } else {
+                        const payload = buildLocalizedPayload(command.default as unknown as CommandInput, join(pluginsDir, plugin));
+                        if (typeof payload['name'] !== 'string') {
                             continue;
                         }
-                        commands.push(commandData);
+                        commands.push(payload as unknown as CommandData);
                     }
                 }
             } catch {
@@ -278,6 +275,15 @@ async function main(): Promise<void> {
     }
 
     const commands = await loadCommands();
+
+    if (options.checkLocales) {
+        const localeWarnings = checkCommandLocales(commands as unknown as Record<string, unknown>[]);
+        for (const warning of localeWarnings) {
+            logger.warn(`[WARN] ${warning}`);
+        }
+        logger.info(`[INFO] Checked ${commands.length} commands, ${localeWarnings.length} locale warnings`);
+        process.exit(localeWarnings.length > 0 ? EXIT_CODES.VALIDATION_ERROR : EXIT_CODES.SUCCESS);
+    }
 
     const warnings = validateCommands(commands);
     if (warnings.length > 0) {

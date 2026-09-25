@@ -1,5 +1,6 @@
 import type { Client } from 'discord.js';
 import { logger } from '../utils/logger.js';
+import { i18n } from '../i18n/index.js';
 import type { CommandModule, EventHandlerModule } from '../types/plugin.js';
 import type { BasePlugin, PluginCapability, PluginInstance, PluginCommand, PluginEvent, CLICommand } from '../types/shared.js';
 import type { EventBusImpl } from './EventBus.js';
@@ -87,6 +88,8 @@ export abstract class Plugin<C extends CommandModule = CommandModule, _E extends
 
     async _loadCommands(): Promise<void> {
         if (!this._dir) { return; }
+        const pluginId = (this.constructor as typeof Plugin).id;
+        await i18n.loadNamespaces(pluginId);
         const { readdirSync } = await import('fs');
         const path = await import('path');
         const { pathToFileURL } = await import('url');
@@ -95,7 +98,6 @@ export abstract class Plugin<C extends CommandModule = CommandModule, _E extends
         let files: string[];
         try { files = readdirSync(cmdDir).filter(f => f.endsWith('.ts') || f.endsWith('.js')); } catch { return; }
 
-        const pluginId = (this.constructor as typeof Plugin).id;
         for (const file of files) {
             try {
                 const filePath = path.join(cmdDir, file);

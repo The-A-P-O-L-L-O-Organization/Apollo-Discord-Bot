@@ -7,6 +7,7 @@ import { exportAnalytics, cleanupExport, getAnalyticsSummary } from '../../../ut
 import { getGuildData, getUserData } from '../../../utils/db.js';
 import { readFileSync } from 'fs';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface MemberGrowthData {
     date: string;
@@ -160,6 +161,12 @@ export default {
 async function handleServerStats(interaction: ChatInputCommandInteraction): Promise<void> {
     await interaction.deferReply();
 
+    const resolvedLocale = await i18n.resolveLocale({
+        locale: interaction.locale ?? null,
+        guildLocale: interaction.guildLocale ?? null,
+        guildId: interaction.guildId ?? null
+    });
+    const t = i18n.getFixedT(resolvedLocale, 'utility');
     const days = interaction.options.getInteger('days') ?? 7;
     const guildId = interaction.guild!.id;
 
@@ -172,37 +179,37 @@ async function handleServerStats(interaction: ChatInputCommandInteraction): Prom
 
     const embed = new EmbedBuilder()
         .setColor('#3498DB')
-        .setTitle(`Statistics Server Analytics - Last ${days} Days`)
-        .setDescription(`Comprehensive statistics for **${interaction.guild!.name}**`)
+        .setTitle(t('analytics.serverTitle', { days }))
+        .setDescription(t('analytics.serverDesc', { name: interaction.guild!.name }))
         .addFields(
             {
-                name: 'Chart Activity Overview',
+                name: t('analytics.activityOverview'),
                 value: [
-                    `**Commands Run:** ${formatNumber(summary.commands)}`,
-                    `**Messages Sent:** ${formatNumber(summary.messages)}`,
-                    `**Automod Actions:** ${formatNumber(summary.violations)}`,
-                    `**Mod Actions:** ${formatNumber(summary.modActions)}`
+                    t('analytics.commandsRun', { count: formatNumber(summary.commands) }),
+                    t('analytics.messagesSent', { count: formatNumber(summary.messages) }),
+                    t('analytics.automodActions', { count: formatNumber(summary.violations) }),
+                    t('analytics.modActions', { count: formatNumber(summary.modActions) })
                 ].join('\n'),
                 inline: true
             },
             {
-                name: '👥 Member Statistics',
+                name: t('analytics.memberStats'),
                 value: [
-                    `**Current Members:** ${formatNumber(summary.currentMembers)}`,
-                    `**New Joins:** ${formatNumber(summary.memberJoins)}`,
-                    `**Members Left:** ${formatNumber(summary.memberLeaves)}`,
-                    `**Net Growth:** ${summary.netGrowth >= 0 ? '+' : ''}${formatNumber(summary.netGrowth)}`
+                    t('analytics.currentMembers', { count: formatNumber(summary.currentMembers) }),
+                    t('analytics.newJoins', { count: formatNumber(summary.memberJoins) }),
+                    t('analytics.membersLeft', { count: formatNumber(summary.memberLeaves) }),
+                    t('analytics.netGrowth', { count: `${summary.netGrowth >= 0 ? '+' : ''}${formatNumber(summary.netGrowth)}` })
                 ].join('\n'),
                 inline: true
             }
         )
         .setTimestamp()
-        .setFooter({ text: `Data from ${memberGrowth[0]?.date ?? 'N/A'} to ${memberGrowth[memberGrowth.length - 1]?.date ?? 'N/A'}` });
+        .setFooter({ text: t('analytics.dataFrom', { from: memberGrowth[0]?.date ?? t('analytics.na'), to: memberGrowth[memberGrowth.length - 1]?.date ?? t('analytics.na') }) });
 
     // Add member growth trend if we have data
     if (memberCounts.length > 0) {
         embed.addFields({
-            name: 'Statistics Member Growth Trend',
+            name: t('analytics.growthTrend'),
             value: `\`\`\`${createSparkline(memberCounts)}\`\`\``,
             inline: false
         });
@@ -217,8 +224,8 @@ async function handleServerStats(interaction: ChatInputCommandInteraction): Prom
         }).join('\n');
 
         embed.addFields({
-            name: '📅 Recent Daily Changes',
-            value: breakdown || 'No data',
+            name: t('analytics.recentChanges'),
+            value: breakdown || t('analytics.noData'),
             inline: false
         });
     }
@@ -232,45 +239,51 @@ async function handleServerStats(interaction: ChatInputCommandInteraction): Prom
 async function handleCommandStats(interaction: ChatInputCommandInteraction): Promise<void> {
     await interaction.deferReply();
 
+    const resolvedLocale = await i18n.resolveLocale({
+        locale: interaction.locale ?? null,
+        guildLocale: interaction.guildLocale ?? null,
+        guildId: interaction.guildId ?? null
+    });
+    const t = i18n.getFixedT(resolvedLocale, 'utility');
     const days = interaction.options.getInteger('days') ?? 7;
     const guildId = interaction.guild!.id;
 
     const stats = await getCommandStats(guildId, days);
+    const topCommands = stats.byCommand.slice(0, 10);
+    const totalCommands = stats.byCommand.reduce((sum, c) => sum + c.count, 0);
 
     const embed = new EmbedBuilder()
         .setColor('#9B59B6')
-        .setTitle(`⚙️ Command Usage - Last ${days} Days`)
-        .setDescription('Most used commands and active users');
+        .setTitle(t('analytics.commandsTitle', { days }))
+        .setDescription(t('analytics.commandsDesc', { count: formatNumber(totalCommands), unique: stats.byCommand.length }));
 
     // Top commands
     if (stats.byCommand.length > 0) {
-        const topCommands = stats.byCommand.slice(0, 10);
         const chartData = topCommands.map(c => ({
             label: c.name,
             value: c.count
         }));
 
         embed.addFields({
-            name: '🏆 Top Commands',
+            name: t('analytics.topCommands'),
             value: `\`\`\`\n${createBarChart(chartData, 15)}\n\`\`\``,
             inline: false
         });
 
         // Total commands
-        const totalCommands = stats.byCommand.reduce((sum, c) => sum + c.count, 0);
         embed.addFields({
-            name: 'Statistics Statistics',
+            name: t('analytics.statsHeader'),
             value: [
-                `**Total Commands:** ${formatNumber(totalCommands)}`,
-                `**Unique Commands:** ${stats.byCommand.length}`,
-                `**Average per Day:** ${Math.round(totalCommands / days)}`
+                t('analytics.totalCommands', { count: formatNumber(totalCommands) }),
+                t('analytics.uniqueCommands', { count: stats.byCommand.length }),
+                t('analytics.avgPerDay', { count: Math.round(totalCommands / days) })
             ].join('\n'),
             inline: true
         });
     } else {
         embed.addFields({
-            name: 'Statistics Command Usage',
-            value: 'No command data available for this period.',
+            name: t('analytics.cmdUsage'),
+            value: t('analytics.noCommandData', { days }),
             inline: false
         });
     }
@@ -281,14 +294,14 @@ async function handleCommandStats(interaction: ChatInputCommandInteraction): Pro
         const userLines = await Promise.all(topUsers.map(async (u, i) => {
             try {
                 const user = await interaction.client.users.fetch(u.userId);
-                return `${i + 1}. ${user.tag} - ${u.count} commands`;
+                return `${i + 1}. ${user.tag} - ${t('analytics.commandsSuffix', { count: u.count })}`;
             } catch {
-                return `${i + 1}. Unknown User - ${u.count} commands`;
+                return `${i + 1}. ${t('analytics.unknownUser')} - ${t('analytics.commandsSuffix', { count: u.count })}`;
             }
         }));
 
         embed.addFields({
-            name: '👤 Most Active Users',
+            name: t('analytics.activeUsers'),
             value: userLines.join('\n'),
             inline: false
         });
@@ -304,26 +317,32 @@ async function handleCommandStats(interaction: ChatInputCommandInteraction): Pro
 async function handleActivityStats(interaction: ChatInputCommandInteraction): Promise<void> {
     await interaction.deferReply();
 
+    const resolvedLocale = await i18n.resolveLocale({
+        locale: interaction.locale ?? null,
+        guildLocale: interaction.guildLocale ?? null,
+        guildId: interaction.guildId ?? null
+    });
+    const t = i18n.getFixedT(resolvedLocale, 'utility');
     const days = interaction.options.getInteger('days') ?? 7;
     const guildId = interaction.guild!.id;
 
     const stats = await getMessageStats(guildId, days);
 
-    const embed = new EmbedBuilder()
-        .setColor('#2ECC71')
-        .setTitle(`Messages Message Activity - Last ${days} Days`)
-        .setDescription('Message statistics by channel and user');
-
     // Total messages
     const totalMessages = stats.byChannel.reduce((sum, c) => sum + c.count, 0);
 
+    const embed = new EmbedBuilder()
+        .setColor('#2ECC71')
+        .setTitle(t('analytics.activityTitle', { days }))
+        .setDescription(t('analytics.activityDesc', { messages: formatNumber(totalMessages), active: stats.byUser.length }));
+
     embed.addFields({
-        name: 'Statistics Overview',
+        name: t('analytics.overview'),
         value: [
-            `**Total Messages:** ${formatNumber(totalMessages)}`,
-            `**Messages per Day:** ${Math.round(totalMessages / days)}`,
-            `**Active Channels:** ${stats.byChannel.length}`,
-            `**Active Users:** ${stats.byUser.length}`
+            t('analytics.totalMessages', { count: formatNumber(totalMessages) }),
+            t('analytics.perDay', { count: Math.round(totalMessages / days) }),
+            t('analytics.activeChannelsCount', { count: stats.byChannel.length }),
+            t('analytics.activeUsersCount', { count: stats.byUser.length })
         ].join('\n'),
         inline: false
     });
@@ -334,11 +353,11 @@ async function handleActivityStats(interaction: ChatInputCommandInteraction): Pr
         const channelLines = topChannels.map((c, i) => {
             const channel = interaction.guild!.channels.cache.get(c.channelId);
             const percentage = (c.count / totalMessages * 100).toFixed(1);
-            return `${i + 1}. ${channel ? `#${channel.name}` : 'Unknown'} - ${formatNumber(c.count)} (${percentage}%)`;
+            return `${i + 1}. ${channel ? `#${channel.name}` : t('analytics.unknown')} - ${formatNumber(c.count)} (${percentage}%)`;
         });
 
         embed.addFields({
-            name: 'Channel Most Active Channels',
+            name: t('analytics.topChannels'),
             value: channelLines.join('\n'),
             inline: false
         });
@@ -353,12 +372,12 @@ async function handleActivityStats(interaction: ChatInputCommandInteraction): Pr
                 const percentage = (u.count / totalMessages * 100).toFixed(1);
                 return `${i + 1}. ${user.tag} - ${formatNumber(u.count)} (${percentage}%)`;
             } catch {
-                return `${i + 1}. Unknown - ${formatNumber(u.count)}`;
+                return `${i + 1}. ${t('analytics.unknown')} - ${formatNumber(u.count)}`;
             }
         }));
 
         embed.addFields({
-            name: '👥 Most Active Users',
+            name: t('analytics.activeUsers'),
             value: userLines.join('\n'),
             inline: false
         });
@@ -374,7 +393,7 @@ async function handleActivityStats(interaction: ChatInputCommandInteraction): Pr
 
         if (hourlyData.length > 0) {
             embed.addFields({
-                name: '⏰ Activity Pattern (Last 24 Hours)',
+                name: t('analytics.pattern'),
                 value: `\`\`\`\n${createBarChart(hourlyData.slice(-12), 10)}\n\`\`\``,
                 inline: false
             });
@@ -391,6 +410,12 @@ async function handleActivityStats(interaction: ChatInputCommandInteraction): Pr
 async function handleModerationStats(interaction: ChatInputCommandInteraction): Promise<void> {
     await interaction.deferReply();
 
+    const resolvedLocale = await i18n.resolveLocale({
+        locale: interaction.locale ?? null,
+        guildLocale: interaction.guildLocale ?? null,
+        guildId: interaction.guildId ?? null
+    });
+    const t = i18n.getFixedT(resolvedLocale, 'utility');
     const days = interaction.options.getInteger('days') ?? 30;
     const guildId = interaction.guild!.id;
 
@@ -400,8 +425,8 @@ async function handleModerationStats(interaction: ChatInputCommandInteraction): 
 
     const embed = new EmbedBuilder()
         .setColor('#E74C3C')
-        .setTitle(`🛡️ Moderation Analytics - Last ${days} Days`)
-        .setDescription('Moderation team performance and statistics');
+        .setTitle(t('analytics.moderationTitle', { days }))
+        .setDescription(t('analytics.moderationDesc'));
 
     // Mod action overview
     if (modStats.byAction.length > 0) {
@@ -413,24 +438,24 @@ async function handleModerationStats(interaction: ChatInputCommandInteraction): 
         }));
 
         embed.addFields({
-            name: 'Statistics Actions by Type',
+            name: t('analytics.actionsByType'),
             value: `\`\`\`\n${createBarChart(actionLines, 15)}\n\`\`\``,
             inline: false
         });
 
         embed.addFields({
-            name: 'Chart Overview',
+            name: t('analytics.overview'),
             value: [
-                `**Total Actions:** ${formatNumber(totalActions)}`,
-                `**Actions per Day:** ${Math.round(totalActions / days)}`,
-                `**Active Moderators:** ${modStats.byModerator.length}`
+                t('analytics.totalActions', { count: formatNumber(totalActions) }),
+                t('analytics.actionsPerDay', { count: Math.round(totalActions / days) }),
+                t('analytics.activeMods', { count: modStats.byModerator.length })
             ].join('\n'),
             inline: true
         });
     } else {
         embed.addFields({
-            name: 'Statistics Moderator Actions',
-            value: 'No moderation actions recorded for this period.',
+            name: t('analytics.modActionsHeader'),
+            value: t('analytics.noModActions'),
             inline: false
         });
     }
@@ -441,14 +466,14 @@ async function handleModerationStats(interaction: ChatInputCommandInteraction): 
         const modLines = await Promise.all(topMods.map(async (m, i) => {
             try {
                 const user = await interaction.client.users.fetch(m.moderatorId);
-                return `${i + 1}. ${user.tag} - ${m.count} actions`;
+                return `${i + 1}. ${user.tag} - ${t('analytics.modActionsSuffix', { count: m.count })}`;
             } catch {
-                return `${i + 1}. Unknown - ${m.count} actions`;
+                return `${i + 1}. ${t('analytics.unknown')} - ${t('analytics.modActionsSuffix', { count: m.count })}`;
             }
         }));
 
         embed.addFields({
-            name: '👮 Most Active Moderators',
+            name: t('analytics.topMods'),
             value: modLines.join('\n'),
             inline: false
         });
@@ -462,7 +487,7 @@ async function handleModerationStats(interaction: ChatInputCommandInteraction): 
         }));
 
         embed.addFields({
-            name: '[WARNING] Automod Violations',
+            name: t('analytics.violations'),
             value: `\`\`\`\n${createBarChart(violationLines, 12)}\n\`\`\``,
             inline: false
         });
@@ -482,11 +507,11 @@ async function handleModerationStats(interaction: ChatInputCommandInteraction): 
             const avgResolution = resolutionTimes.reduce((a, b) => a + b, 0) / resolutionTimes.length;
 
             embed.addFields({
-                name: '🎫 Ticket Statistics',
+                name: t('analytics.ticketStats'),
                 value: [
-                    `**Tickets Closed:** ${recentClosed.length}`,
-                    `**Avg Resolution Time:** ${formatDuration(avgResolution)}`,
-                    `**Currently Open:** ${(ticketData['openTickets'] as unknown[] | undefined)?.length ?? 0}`
+                    t('analytics.ticketsClosed', { count: recentClosed.length }),
+                    t('analytics.avgResolution', { time: formatDuration(avgResolution) }),
+                    t('analytics.openNow', { count: (ticketData['openTickets'] as unknown[] | undefined)?.length ?? 0 })
                 ].join('\n'),
                 inline: true
             });
@@ -502,11 +527,11 @@ async function handleModerationStats(interaction: ChatInputCommandInteraction): 
         const automodWarnings = recentWarnings.filter(w => w.automod);
 
         embed.addFields({
-            name: '[WARNING] Warnings',
+            name: t('analytics.warnings'),
             value: [
-                `**Total Issued:** ${recentWarnings.length}`,
-                `**Automod:** ${automodWarnings.length}`,
-                `**Manual:** ${recentWarnings.length - automodWarnings.length}`
+                t('analytics.totalIssued', { count: recentWarnings.length }),
+                t('analytics.automod', { count: automodWarnings.length }),
+                t('analytics.manual', { count: recentWarnings.length - automodWarnings.length })
             ].join('\n'),
             inline: true
         });
@@ -522,9 +547,15 @@ async function handleModerationStats(interaction: ChatInputCommandInteraction): 
 async function handleUserStats(interaction: ChatInputCommandInteraction): Promise<void> {
     await interaction.deferReply();
 
+    const resolvedLocale = await i18n.resolveLocale({
+        locale: interaction.locale ?? null,
+        guildLocale: interaction.guildLocale ?? null,
+        guildId: interaction.guildId ?? null
+    });
+    const t = i18n.getFixedT(resolvedLocale, 'utility');
     const user = interaction.options.getUser('target');
     if (!user) {
-        await interaction.editReply({ content: 'User not found.' });
+        await interaction.editReply({ content: t('analytics.userNotFound') });
         return;
     }
     const days = interaction.options.getInteger('days') ?? 30;
@@ -551,34 +582,34 @@ async function handleUserStats(interaction: ChatInputCommandInteraction): Promis
 
     const embed = new EmbedBuilder()
         .setColor('#3498DB')
-        .setTitle(`Statistics User Analytics - ${user.tag}`)
-        .setDescription(`Statistics for the last ${days} days`)
+        .setTitle(t('analytics.userTitle', { tag: user.tag }))
+        .setDescription(t('analytics.userDesc', { days }))
         .setThumbnail(user.displayAvatarURL({ extension: 'png', size: 256 }))
         .addFields(
             {
-                name: '⚙️ Command Usage',
+                name: t('analytics.cmdUsage'),
                 value: [
-                    `**Commands Run:** ${formatNumber(commandCount)}`,
-                    `**Server Rank:** ${commandRank > 0 ? `#${commandRank}` : 'N/A'}`,
-                    `**Average per Day:** ${Math.round(commandCount / days)}`
+                    t('analytics.commandsRun', { count: formatNumber(commandCount) }),
+                    t('analytics.serverRank', { rank: commandRank > 0 ? `#${commandRank}` : t('analytics.na') }),
+                    t('analytics.avgPerDay', { count: Math.round(commandCount / days) })
                 ].join('\n'),
                 inline: true
             },
             {
-                name: 'Messages Message Activity',
+                name: t('analytics.msgActivity'),
                 value: [
-                    `**Messages Sent:** ${formatNumber(messageCount)}`,
-                    `**Server Rank:** ${messageRank > 0 ? `#${messageRank}` : 'N/A'}`,
-                    `**Average per Day:** ${Math.round(messageCount / days)}`
+                    t('analytics.messagesSent', { count: formatNumber(messageCount) }),
+                    t('analytics.serverRank', { rank: messageRank > 0 ? `#${messageRank}` : t('analytics.na') }),
+                    t('analytics.avgPerDay', { count: Math.round(messageCount / days) })
                 ].join('\n'),
                 inline: true
             },
             {
-                name: '[WARNING] Warnings',
+                name: t('analytics.warnings'),
                 value: [
-                    `**Active Warnings:** ${activeWarnings.length}`,
-                    `**Recent Warnings:** ${recentWarnings.length}`,
-                    `**Total All-Time:** ${warnings.length}`
+                    t('analytics.activeWarnings', { count: activeWarnings.length }),
+                    t('analytics.recentWarnings', { count: recentWarnings.length }),
+                    t('analytics.allTime', { count: warnings.length })
                 ].join('\n'),
                 inline: true
             }
@@ -595,6 +626,12 @@ async function handleUserStats(interaction: ChatInputCommandInteraction): Promis
 async function handleExport(interaction: ChatInputCommandInteraction): Promise<void> {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
+    const resolvedLocale = await i18n.resolveLocale({
+        locale: interaction.locale ?? null,
+        guildLocale: interaction.guildLocale ?? null,
+        guildId: interaction.guildId ?? null
+    });
+    const t = i18n.getFixedT(resolvedLocale, 'utility');
     const format = interaction.options.getString('format', true);
     const days = interaction.options.getInteger('days') ?? 30;
     const guildId = interaction.guild!.id;
@@ -611,7 +648,7 @@ async function handleExport(interaction: ChatInputCommandInteraction): Promise<v
         const attachment = new AttachmentBuilder(fileData, { name: result.filename });
 
         await interaction.editReply({
-            content: `[OK] Analytics exported successfully!\n**Format:** ${format.toUpperCase()}\n**Period:** Last ${days} days\n**Size:** ${(result.size / 1024).toFixed(2)} KB`,
+            content: t('analytics.exportOk', { format: format.toUpperCase(), days, size: (result.size / 1024).toFixed(2) }),
             files: [attachment]
         });
 
@@ -623,7 +660,7 @@ async function handleExport(interaction: ChatInputCommandInteraction): Promise<v
     } catch (error) {
         logger.error({ err: error, msg: '[ERROR] Analytics export failed:' });
         await interaction.editReply({
-            content: '[ERROR] Failed to export analytics. Please try again later.'
+            content: t('analytics.exportFail')
         });
     }
 }

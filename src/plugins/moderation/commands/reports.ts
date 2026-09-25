@@ -4,6 +4,7 @@ import { EmbedBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface ReportEntry {
     reportId: string;
@@ -52,6 +53,8 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction) {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const action = interaction.options.getString('action');
             const reportId = interaction.options.getString('report_id');
@@ -66,8 +69,8 @@ export default {
                     await interaction.reply({
                         embeds: [{
                             color: 0x00FF00,
-                            title: '[INFO] No Pending Reports',
-                            description: 'There are no pending reports.',
+                            title: t('reports.infoNoPendingReports'),
+                            description: t('reports.thereAreNoPendingReports'),
                             timestamp: new Date().toISOString()
                         }],
                         flags: MessageFlags.Ephemeral
@@ -77,21 +80,21 @@ export default {
 
                 const embed = new EmbedBuilder()
                     .setColor('#FFA500')
-                    .setTitle('Pending Reports')
-                    .setDescription(`Found ${pending.length} pending report(s)`)
+                    .setTitle(t('reports.pendingReports'))
+                    .setDescription(t('reports.foundCountPendingReportS', { count: pending.length }))
                     .setTimestamp();
 
                 pending.slice(0, 10).forEach((report, index) => {
                     const date = new Date(report.timestamp).toLocaleString();
                     embed.addFields({
-                        name: `Report #${index + 1} - ID: ${report.reportId}`,
+                        name: t('reports.reportValueIdReportid', { value: index + 1, reportId: report.reportId }),
                         value: `**Author:** ${report.authorTag} (\`${report.authorId}\`)\n**Reporter:** ${report.reporterTag}\n**Channel:** <#${report.channelId}>\n**Date:** ${date}\n**Status:** ${report.status}`,
                         inline: false
                     });
                 });
 
                 if (pending.length > 10) {
-                    embed.setFooter({ text: `Showing 10 of ${pending.length} reports` });
+                    embed.setFooter({ text: t('reports.showingOfCountReports', { count: pending.length }) });
                 }
 
                 await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
@@ -101,8 +104,8 @@ export default {
                     await interaction.reply({
                         embeds: [{
                             color: 0x00FF00,
-                            title: '[INFO] No Reports',
-                            description: 'There are no reports in this server.',
+                            title: t('reports.infoNoReports'),
+                            description: t('reports.thereAreNoReportsIn'),
                             timestamp: new Date().toISOString()
                         }],
                         flags: MessageFlags.Ephemeral
@@ -111,29 +114,29 @@ export default {
                 }
 
                 const pending = reports.filter(r => r.status === 'pending').length;
-                const resolved = reports.filter(r => r.status !== 'pending').length;
+                const resolvedCount = reports.filter(r => r.status !== 'pending').length;
 
                 const embed = new EmbedBuilder()
                     .setColor('#3498DB')
-                    .setTitle('All Reports')
-                    .setDescription(`Total: ${reports.length} reports`)
+                    .setTitle(t('reports.allReports'))
+                    .setDescription(t('reports.totalCountReports', { count: reports.length }))
                     .addFields(
-                        { name: 'Pending', value: `${pending}`, inline: true },
-                        { name: 'Resolved', value: `${resolved}`, inline: true }
+                        { name: t('reports.pending'), value: t('reports.count', { count: pending }), inline: true },
+                        { name: t('reports.resolved'), value: t('reports.count2', { count: resolvedCount }), inline: true }
                     )
                     .setTimestamp();
 
                 reports.slice(-10).reverse().forEach((report, _index) => {
                     const date = new Date(report.timestamp).toLocaleString();
                     embed.addFields({
-                        name: `${report.reportId}`,
-                        value: `**Author:** ${report.authorTag}\n**Reporter:** ${report.reporterTag}\n**Date:** ${date}\n**Status:** ${report.status}`,
+                        name: t('reports.reportid', { reportId: report.reportId }),
+                        value: t('reports.authorValueNReporterValue2', { value: report.authorTag, value2: report.reporterTag, date: date, status: report.status }),
                         inline: true
                     });
                 });
 
                 if (reports.length > 10) {
-                    embed.setFooter({ text: `Showing 10 most recent of ${reports.length} reports` });
+                    embed.setFooter({ text: t('reports.showingMostRecentOfCount', { count: reports.length }) });
                 }
 
                 await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
@@ -143,8 +146,8 @@ export default {
                     await interaction.reply({
                         embeds: [{
                             color: 0xFF0000,
-                            title: '[ERROR] Missing Report ID',
-                            description: 'Please provide a report ID to view.',
+                            title: t('reports.errorMissingReportId'),
+                            description: t('reports.pleaseProvideAReportId'),
                             timestamp: new Date().toISOString()
                         }],
                         flags: MessageFlags.Ephemeral
@@ -158,8 +161,8 @@ export default {
                     await interaction.reply({
                         embeds: [{
                             color: 0xFF0000,
-                            title: '[ERROR] Report Not Found',
-                            description: `No report found with ID: ${reportId}`,
+                            title: t('reports.errorReportNotFound'),
+                            description: t('reports.noReportFoundWithId', { reportId: reportId }),
                             timestamp: new Date().toISOString()
                         }],
                         flags: MessageFlags.Ephemeral
@@ -171,14 +174,14 @@ export default {
 
                 const embed = new EmbedBuilder()
                     .setColor('#3498DB')
-                    .setTitle(`Report Details - ${reportId}`)
+                    .setTitle(t('reports.reportDetailsReportid', { reportId: reportId }))
                     .addFields(
-                        { name: 'Message Author', value: `${report.authorTag}\n\`${report.authorId}\``, inline: true },
-                        { name: 'Reporter', value: `${report.reporterTag}\n\`${report.reporterId}\``, inline: true },
-                        { name: 'Status', value: report.status, inline: true },
-                        { name: 'Channel', value: `<#${report.channelId}>`, inline: true },
-                        { name: 'Date', value: date, inline: true },
-                        { name: 'Message Content', value: report.content || '*No text content*', inline: false }
+                        { name: t('reports.messageAuthor'), value: `${report.authorTag}\n\`${report.authorId}\``, inline: true },
+                        { name: t('reports.reporter'), value: `${report.reporterTag}\n\`${report.reporterId}\``, inline: true },
+                        { name: t('reports.status'), value: report.status, inline: true },
+                        { name: t('reports.channel'), value: t('reports.value', { value: report.channelId }), inline: true },
+                        { name: t('reports.date'), value: date, inline: true },
+                        { name: t('reports.messageContent'), value: report.content || t('reports.noTextContent'), inline: false }
                     )
                     .setTimestamp();
 
@@ -189,8 +192,8 @@ export default {
                     await interaction.reply({
                         embeds: [{
                             color: 0xFF0000,
-                            title: '[ERROR] Missing Report ID',
-                            description: 'Please provide a report ID to dismiss.',
+                            title: t('reports.errorMissingReportId2'),
+                            description: t('reports.pleaseProvideAReportId2'),
                             timestamp: new Date().toISOString()
                         }],
                         flags: MessageFlags.Ephemeral
@@ -204,8 +207,8 @@ export default {
                     await interaction.reply({
                         embeds: [{
                             color: 0xFF0000,
-                            title: '[ERROR] Report Not Found',
-                            description: `No report found with ID: ${reportId}`,
+                            title: t('reports.errorReportNotFound2'),
+                            description: t('reports.noReportFoundWithId2', { reportId: reportId }),
                             timestamp: new Date().toISOString()
                         }],
                         flags: MessageFlags.Ephemeral
@@ -226,8 +229,8 @@ export default {
                 await interaction.reply({
                     embeds: [{
                         color: 0x00FF00,
-                        title: '[SUCCESS] Report Dismissed',
-                        description: `Report ${reportId} has been dismissed.`,
+                        title: t('reports.successReportDismissed'),
+                        description: t('reports.reportReportidHasBeenDismissed', { reportId: reportId }),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -236,7 +239,7 @@ export default {
                 logger.info({ msg: `[REPORT] Report ${reportId} dismissed by ${interaction.user.tag}` });
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
+            const errorMessage = handleDiscordError(error) ?? t('reports.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

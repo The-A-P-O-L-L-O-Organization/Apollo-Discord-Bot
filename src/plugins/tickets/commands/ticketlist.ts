@@ -4,6 +4,7 @@ import { getGuildData } from '../../../utils/db.js';
 import { getPriorityEmoji, formatTime, hasBreachedSLA } from '../../../utils/slaTracker.js';
 import type { Ticket as SlaTicket, SLAThresholds } from '../../../utils/slaTracker.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface OpenTicket extends SlaTicket {
     assignedTo?: string[];
@@ -60,6 +61,13 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'tickets');
+
             await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
             const guildId = interaction.guild!.id;
@@ -73,7 +81,7 @@ export default {
 
             if (tickets.length === 0) {
                 await interaction.editReply({
-                    content: 'There are no open tickets at the moment.'
+                    content: t('ticketlist.empty')
                 });
                 return;
             }
@@ -98,7 +106,7 @@ export default {
 
             if (tickets.length === 0) {
                 await interaction.editReply({
-                    content: 'No tickets match your filter criteria.'
+                    content: t('ticketlist.noMatch')
                 });
                 return;
             }
@@ -122,8 +130,8 @@ export default {
 
                 const embed = new EmbedBuilder()
                     .setColor('#3498DB')
-                    .setTitle('Open Tickets')
-                    .setDescription(`Showing **${tickets.length}** ticket(s) | Page ${page + 1} of ${totalPages}`)
+                    .setTitle(t('ticketlist.title'))
+                    .setDescription(t('ticketlist.description', { count: tickets.length, page: page + 1, total: totalPages }))
                     .setTimestamp();
 
                 pageTickets.forEach(ticket => {
@@ -132,34 +140,34 @@ export default {
                     const category = ticket.category ?? 'general';
 
                     const value = [
-                        `Priority: ${emoji} ${priority}`,
-                        `Category: ${category}`,
-                        `Created: <t:${Math.floor(ticket.createdAt / 1000)}:R>`
+                        t('ticketlist.rowPriority', { emoji, priority }),
+                        t('ticketlist.rowCategory', { category }),
+                        t('ticketlist.rowCreated', { timestamp: Math.floor(ticket.createdAt / 1000) })
                     ];
 
                     if (ticket.claimedBy) {
-                        value.push(`Claimed by: <@${ticket.claimedBy}>`);
+                        value.push(t('ticketlist.rowClaimedBy', { user: ticket.claimedBy }));
                     } else if (ticket.assignedTo && ticket.assignedTo.length > 0) {
-                        value.push(`Assigned: ${ticket.assignedTo.length} staff`);
+                        value.push(t('ticketlist.rowAssigned', { count: ticket.assignedTo.length }));
                     } else {
-                        value.push('Status: [WARNING] Unassigned');
+                        value.push(t('ticketlist.rowUnassigned'));
                     }
 
                     if (!ticket.firstResponseAt) {
                         const waitingTime = Date.now() - ticket.createdAt;
-                        value.push(`Waiting: ${formatTime(waitingTime)}`);
+                        value.push(t('ticketlist.rowWaiting', { duration: formatTime(waitingTime) }));
 
                         if (hasBreachedSLA(ticket, slaThresholds)) {
-                            value.push('**SLA BREACHED**');
+                            value.push(t('ticketlist.rowSlaBreached'));
                         }
                     }
 
                     if (ticket.channelId) {
-                        value.push(`Channel: <#${ticket.channelId}>`);
+                        value.push(t('ticketlist.rowChannel', { channelId: ticket.channelId }));
                     }
 
                     embed.addFields({
-                        name: `Ticket #${ticket.ticketNumber}`,
+                        name: t('ticketlist.rowTitle', { number: ticket.ticketNumber }),
                         value: value.join('\n'),
                         inline: false
                     });
@@ -174,22 +182,22 @@ export default {
                 row.addComponents(
                     new ButtonBuilder()
                         .setCustomId('list_first')
-                        .setLabel('First')
+                        .setLabel(t('ticketlist.buttonFirst'))
                         .setStyle(ButtonStyle.Secondary)
                         .setDisabled(page === 0),
                     new ButtonBuilder()
                         .setCustomId('list_prev')
-                        .setLabel('Previous')
+                        .setLabel(t('ticketlist.buttonPrevious'))
                         .setStyle(ButtonStyle.Primary)
                         .setDisabled(page === 0),
                     new ButtonBuilder()
                         .setCustomId('list_next')
-                        .setLabel('Next')
+                        .setLabel(t('ticketlist.buttonNext'))
                         .setStyle(ButtonStyle.Primary)
                         .setDisabled(page === totalPages - 1),
                     new ButtonBuilder()
                         .setCustomId('list_last')
-                        .setLabel('Last')
+                        .setLabel(t('ticketlist.buttonLast'))
                         .setStyle(ButtonStyle.Secondary)
                         .setDisabled(page === totalPages - 1)
                 );
@@ -210,7 +218,7 @@ export default {
                 collector.on('collect', (i) => { void (async () => {
                     if (i.user.id !== interaction.user.id) {
                         return i.reply({
-                            content: 'These buttons are not for you!',
+                            content: t('ticketlist.notForYou'),
                             flags: MessageFlags.Ephemeral
                         });
                     }

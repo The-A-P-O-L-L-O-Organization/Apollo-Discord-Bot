@@ -2,6 +2,7 @@
 // Ask the magic 8-ball a question
 import type { ChatInputCommandInteraction } from 'discord.js';
 import { handleDiscordError, safeReply } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: '8ball',
@@ -20,29 +21,35 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'utility');
             const question = interaction.options.getString('question');
 
             const responses = [
-                { text: 'It is certain.', color: 0x00FF00 },
-                { text: 'It is decidedly so.', color: 0x00FF00 },
-                { text: 'Without a doubt.', color: 0x00FF00 },
-                { text: 'Yes definitely.', color: 0x00FF00 },
-                { text: 'You may rely on it.', color: 0x00FF00 },
-                { text: 'As I see it, yes.', color: 0x00FF00 },
-                { text: 'Most likely.', color: 0x00FF00 },
-                { text: 'Outlook good.', color: 0x00FF00 },
-                { text: 'Yes.', color: 0x00FF00 },
-                { text: 'Signs point to yes.', color: 0x00FF00 },
-                { text: 'Reply hazy, try again.', color: 0xFFA500 },
-                { text: 'Ask again later.', color: 0xFFA500 },
-                { text: 'Better not tell you now.', color: 0xFFA500 },
-                { text: 'Cannot predict now.', color: 0xFFA500 },
-                { text: 'Concentrate and ask again.', color: 0xFFA500 },
-                { text: 'Don\'t count on it.', color: 0xFF0000 },
-                { text: 'My reply is no.', color: 0xFF0000 },
-                { text: 'My sources say no.', color: 0xFF0000 },
-                { text: 'Outlook not so good.', color: 0xFF0000 },
-                { text: 'Very doubtful.', color: 0xFF0000 }
+                { text: t('eightball.r0'), color: 0x00FF00 },
+                { text: t('eightball.r1'), color: 0x00FF00 },
+                { text: t('eightball.r2'), color: 0x00FF00 },
+                { text: t('eightball.r3'), color: 0x00FF00 },
+                { text: t('eightball.r4'), color: 0x00FF00 },
+                { text: t('eightball.r5'), color: 0x00FF00 },
+                { text: t('eightball.r6'), color: 0x00FF00 },
+                { text: t('eightball.r7'), color: 0x00FF00 },
+                { text: t('eightball.r8'), color: 0x00FF00 },
+                { text: t('eightball.r9'), color: 0x00FF00 },
+                { text: t('eightball.r10'), color: 0xFFA500 },
+                { text: t('eightball.r11'), color: 0xFFA500 },
+                { text: t('eightball.r12'), color: 0xFFA500 },
+                { text: t('eightball.r13'), color: 0xFFA500 },
+                { text: t('eightball.r14'), color: 0xFFA500 },
+                { text: t('eightball.r15'), color: 0xFF0000 },
+                { text: t('eightball.r16'), color: 0xFF0000 },
+                { text: t('eightball.r17'), color: 0xFF0000 },
+                { text: t('eightball.r18'), color: 0xFF0000 },
+                { text: t('eightball.r19'), color: 0xFF0000 }
             ];
 
             const response = responses[Math.floor(Math.random() * responses.length)];
@@ -51,11 +58,11 @@ export default {
 
             const ballEmbed = {
                 color: response.color,
-                title: '🎱 Magic 8-Ball',
-                description: `**Question:** ${question}\n\n**Answer:** ${response.text}`,
+                title: t('eightball.title'),
+                description: `**${t('eightball.question')}:** ${question}\n\n**${t('eightball.answer')}:** ${response.text}`,
                 fields: [
                     {
-                        name: '[INFO] Asked by',
+                        name: t('eightball.askedBy'),
                         value: interaction.user.tag,
                         inline: true
                     }

@@ -4,6 +4,7 @@ import { PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface StrikeConfig {
     banThreshold?: number;
@@ -42,6 +43,8 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const action = interaction.options.getString('action', true);
             const value = interaction.options.getInteger('value');
@@ -55,15 +58,15 @@ export default {
 
                 const embed = new EmbedBuilder()
                     .setColor('#3498DB')
-                    .setTitle('Strike System Configuration')
-                    .setDescription('Current strike system settings for this server')
+                    .setTitle(t('strikeconfig.strikeSystemConfiguration'))
+                    .setDescription(t('strikeconfig.currentStrikeSystemSettingsFor'))
                     .addFields(
-                        { name: 'Ban Threshold', value: `${banThreshold} strikes`, inline: true },
-                        { name: 'Kick Threshold', value: `${kickThreshold} strikes`, inline: true },
-                        { name: 'Auto-Kick Enabled', value: autoKick ? 'Yes' : 'No', inline: true }
+                        { name: t('strikeconfig.banThreshold'), value: t('strikeconfig.valueStrikes', { value: banThreshold }), inline: true },
+                        { name: t('strikeconfig.kickThreshold'), value: t('strikeconfig.valueStrikes2', { value: kickThreshold }), inline: true },
+                        { name: t('strikeconfig.autoKickEnabled'), value: autoKick ? 'Yes' : 'No', inline: true }
                     )
                     .setTimestamp()
-                    .setFooter({ text: 'Use /strikeconfig to modify settings' });
+                    .setFooter({ text: t('strikeconfig.useStrikeconfigToModifySettings') });
 
                 await interaction.reply({ embeds: [embed] });
 
@@ -72,8 +75,8 @@ export default {
                     await interaction.reply({
                         embeds: [{
                             color: 0xFF0000,
-                            title: '[ERROR] Missing Value',
-                            description: 'Please provide a value for the ban threshold.',
+                            title: t('strikeconfig.errorMissingValue'),
+                            description: t('strikeconfig.pleaseProvideAValueFor'),
                             timestamp: new Date().toISOString()
                         }],
                         flags: MessageFlags.Ephemeral
@@ -87,8 +90,8 @@ export default {
                 await interaction.reply({
                     embeds: [{
                         color: 0x00FF00,
-                        title: '[SUCCESS] Setting Updated',
-                        description: `Ban threshold set to **${value}** strikes.`,
+                        title: t('strikeconfig.successSettingUpdated'),
+                        description: t('strikeconfig.banThresholdSetToValue', { value: value }),
                         timestamp: new Date().toISOString()
                     }]
                 });
@@ -100,8 +103,8 @@ export default {
                     await interaction.reply({
                         embeds: [{
                             color: 0xFF0000,
-                            title: '[ERROR] Missing Value',
-                            description: 'Please provide a value for the kick threshold.',
+                            title: t('strikeconfig.errorMissingValue2'),
+                            description: t('strikeconfig.pleaseProvideAValueFor2'),
                             timestamp: new Date().toISOString()
                         }],
                         flags: MessageFlags.Ephemeral
@@ -115,8 +118,8 @@ export default {
                 await interaction.reply({
                     embeds: [{
                         color: 0x00FF00,
-                        title: '[SUCCESS] Setting Updated',
-                        description: `Kick threshold set to **${value}** strikes.`,
+                        title: t('strikeconfig.successSettingUpdated2'),
+                        description: t('strikeconfig.kickThresholdSetToValue', { value: value }),
                         timestamp: new Date().toISOString()
                     }]
                 });
@@ -133,8 +136,8 @@ export default {
                 await interaction.reply({
                     embeds: [{
                         color: 0x00FF00,
-                        title: '[SUCCESS] Setting Updated',
-                        description: `Auto-kick is now **${newState ? 'enabled' : 'disabled'}**.`,
+                        title: t('strikeconfig.successSettingUpdated3'),
+                        description: t('strikeconfig.autoKickIsNowValue', { value: newState ? 'enabled' : 'disabled' }),
                         timestamp: new Date().toISOString()
                     }]
                 });
@@ -142,7 +145,7 @@ export default {
                 logger.info({ msg: `[CONFIG] Auto-kick ${newState ? 'enabled' : 'disabled'} in ${interaction.guild!.name}` });
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
+            const errorMessage = handleDiscordError(error) ?? t('strikeconfig.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

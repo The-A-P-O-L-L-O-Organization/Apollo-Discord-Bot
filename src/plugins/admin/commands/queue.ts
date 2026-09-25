@@ -2,6 +2,7 @@ import { config } from '../../../config/config.js';
 import { getQueueMetrics } from '../../../queue/metrics.js';
 import { requireOwner } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { MessageFlags } from 'discord.js';
 
@@ -15,6 +16,12 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction) {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'admin');
             const denial = await requireOwner(interaction);
             if (denial) {
                 return interaction.reply(denial);
@@ -24,8 +31,8 @@ export default {
                 return interaction.reply({
                     embeds: [{
                         color: 0xFFA500,
-                        title: 'Queue Not Enabled',
-                        description: 'Set `QUEUE_ENABLED=true` and configure `REDIS_HOST`/`REDIS_PORT` to enable the work queue.',
+                        title: t('queue.notEnabledTitle'),
+                        description: t('queue.notEnabledDescription'),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -41,12 +48,12 @@ export default {
             return interaction.editReply({
                 embeds: [{
                     color,
-                    title: 'Queue Status (' + config.queue.prefix + ')',
+                    title: t('queue.title', { prefix: config.queue.prefix }),
                     fields: [
-                        { name: 'Waiting', value: String(metrics.waiting), inline: true },
-                        { name: 'Active', value: String(metrics.active), inline: true },
-                        { name: 'Failed', value: String(metrics.failed), inline: true },
-                        { name: 'Redis', value: config.queue.redis.host + ':' + config.queue.redis.port, inline: false }
+                        { name: t('queue.waiting'), value: String(metrics.waiting), inline: true },
+                        { name: t('queue.active'), value: String(metrics.active), inline: true },
+                        { name: t('queue.failed'), value: String(metrics.failed), inline: true },
+                        { name: t('queue.redis'), value: config.queue.redis.host + ':' + config.queue.redis.port, inline: false }
                     ],
                     timestamp: new Date().toISOString()
                 }]

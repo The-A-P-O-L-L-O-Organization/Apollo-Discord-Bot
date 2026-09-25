@@ -3,6 +3,7 @@ import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilde
 import { getGuildData } from '../../../utils/db.js';
 import { formatTime, getPriorityEmoji } from '../../../utils/slaTracker.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'ticketsearch',
@@ -84,6 +85,13 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'tickets');
+
             await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
             const guildId = interaction.guild!.id;
@@ -131,7 +139,7 @@ export default {
 
             if (results.length === 0) {
                 await interaction.editReply({
-                    content: 'No tickets found matching your search criteria.'
+                    content: t('ticketsearch.noResults')
                 });
                 return;
             }
@@ -149,41 +157,41 @@ export default {
 
                 const embed = new EmbedBuilder()
                     .setColor('#3498DB')
-                    .setTitle('Search Ticket Search Results')
-                    .setDescription(`Found **${results.length}** ticket(s) matching your search.\nPage ${page + 1} of ${totalPages}`)
+                    .setTitle(t('ticketsearch.title'))
+                    .setDescription(t('ticketsearch.description', { count: results.length, page: page + 1, total: totalPages }))
                     .setTimestamp();
 
                 pageResults.forEach(ticket => {
-                    const status = ticket.closedAt ? 'Closed' : 'Open';
+                    const status = ticket.closedAt ? t('ticketsearch.statusClosed') : t('ticketsearch.statusOpen');
                     const priority = ticket.priority ?? 'medium';
                     const emoji = getPriorityEmoji(priority);
 
                     const value = [
-                        `Status: ${status}`,
-                        `Priority: ${emoji} ${priority}`,
-                        `Category: ${ticket.category ?? 'general'}`,
-                        `Created: <t:${Math.floor(ticket.createdAt / 1000)}:R>`
+                        t('ticketsearch.rowStatus', { status }),
+                        t('ticketsearch.rowPriority', { emoji, priority }),
+                        t('ticketsearch.rowCategory', { category: ticket.category ?? 'general' }),
+                        t('ticketsearch.rowCreated', { timestamp: Math.floor(ticket.createdAt / 1000) })
                     ];
 
                     if (ticket.closedAt) {
-                        value.push(`Closed: <t:${Math.floor(ticket.closedAt / 1000)}:R>`);
+                        value.push(t('ticketsearch.rowClosed', { timestamp: Math.floor(ticket.closedAt / 1000) }));
 
                         if (ticket.firstResponseAt) {
                             const responseTime = ticket.firstResponseAt - ticket.createdAt;
-                            value.push(`Response Time: ${formatTime(responseTime)}`);
+                            value.push(t('ticketsearch.rowResponseTime', { duration: formatTime(responseTime) }));
                         }
 
                         if (ticket.rating) {
-                            value.push(`Rating: ${'★'.repeat(ticket.rating)}`);
+                            value.push(t('ticketsearch.rowRating', { stars: '★'.repeat(ticket.rating) }));
                         }
                     }
 
                     if (ticket.assignedTo && ticket.assignedTo.length > 0) {
-                        value.push(`Assigned: ${ticket.assignedTo.length} staff member(s)`);
+                        value.push(t('ticketsearch.rowAssigned', { count: ticket.assignedTo.length }));
                     }
 
                     embed.addFields({
-                        name: `Ticket #${ticket.ticketNumber}`,
+                        name: t('ticketsearch.rowTitle', { number: ticket.ticketNumber }),
                         value: value.join('\n'),
                         inline: false
                     });
@@ -198,22 +206,22 @@ export default {
                 row.addComponents(
                     new ButtonBuilder()
                         .setCustomId('search_first')
-                        .setLabel('First')
+                        .setLabel(t('ticketsearch.buttonFirst'))
                         .setStyle(ButtonStyle.Secondary)
                         .setDisabled(page === 0),
                     new ButtonBuilder()
                         .setCustomId('search_prev')
-                        .setLabel('Previous')
+                        .setLabel(t('ticketsearch.buttonPrevious'))
                         .setStyle(ButtonStyle.Primary)
                         .setDisabled(page === 0),
                     new ButtonBuilder()
                         .setCustomId('search_next')
-                        .setLabel('Next')
+                        .setLabel(t('ticketsearch.buttonNext'))
                         .setStyle(ButtonStyle.Primary)
                         .setDisabled(page === totalPages - 1),
                     new ButtonBuilder()
                         .setCustomId('search_last')
-                        .setLabel('Last')
+                        .setLabel(t('ticketsearch.buttonLast'))
                         .setStyle(ButtonStyle.Secondary)
                         .setDisabled(page === totalPages - 1)
                 );
@@ -234,7 +242,7 @@ export default {
                 collector.on('collect', (i) => { void (async () => {
                     if (i.user.id !== interaction.user.id) {
                         return i.reply({
-                            content: 'These buttons are not for you!',
+                            content: t('ticketsearch.notForYou'),
                             flags: MessageFlags.Ephemeral
                         });
                     }

@@ -1,6 +1,7 @@
 import { config } from '../../../config/config.js';
 import { requireOwner } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 import type { ChatInputCommandInteraction} from 'discord.js';
 import type { ApolloClient } from '../../../types/shared.js';
 import { MessageFlags } from 'discord.js';
@@ -29,6 +30,12 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction) {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'admin');
             const denial = await requireOwner(interaction);
             if (denial) {
                 return interaction.reply(denial);
@@ -40,13 +47,13 @@ export default {
             const runMode = process.env['RUN_MODE'] ?? 'gateway';
 
             const fields = [
-                { name: 'Run Mode', value: runMode, inline: true },
-                { name: 'Database', value: config.database.type, inline: true },
-                { name: 'Pod ID', value: config.podId, inline: true },
-                { name: 'Queue', value: config.queue.enabled ? 'Enabled (' + config.queue.prefix + ')' : 'Disabled', inline: true },
-                { name: 'Plugins', value: plugins.length + ' loaded (' + plugins.filter(p => p.enabled).length + ' enabled)', inline: true },
-                { name: 'Uptime', value: formatDuration(uptime), inline: true },
-                { name: 'Commands Run', value: String(client.stats.commandsRan), inline: true }
+                { name: t('system.runMode'), value: runMode, inline: true },
+                { name: t('system.database'), value: config.database.type, inline: true },
+                { name: t('system.podId'), value: config.podId, inline: true },
+                { name: t('system.queue'), value: config.queue.enabled ? t('system.queueEnabled', { prefix: config.queue.prefix }) : t('system.queueDisabled'), inline: true },
+                { name: t('system.plugins'), value: t('system.pluginsValue', { loaded: plugins.length, enabled: plugins.filter(p => p.enabled).length }), inline: true },
+                { name: t('system.uptime'), value: formatDuration(uptime), inline: true },
+                { name: t('system.commandsRun'), value: String(client.stats.commandsRan), inline: true }
             ];
 
             if (config.queue.enabled) {
@@ -60,16 +67,16 @@ export default {
                     });
                     const leader = await redis.get('apollo:gateway:leader');
                     await redis.quit();
-                    fields.push({ name: 'Leader', value: leader ?? 'None', inline: true });
+                    fields.push({ name: t('system.leader'), value: leader ?? t('system.leaderNone'), inline: true });
                 } catch (err) {
-                    fields.push({ name: 'Leader', value: 'Error: ' + (err as Error).message, inline: true });
+                    fields.push({ name: t('system.leader'), value: t('system.leaderError', { message: (err as Error).message }), inline: true });
                 }
             }
 
             return interaction.reply({
                 embeds: [{
                     color: 0x1E90FF,
-                    title: 'System Status',
+                    title: t('system.title'),
                     fields,
                     timestamp: new Date().toISOString()
                 }],

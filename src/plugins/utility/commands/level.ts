@@ -3,6 +3,7 @@ import { EmbedBuilder } from 'discord.js';
 import { getUserData } from '../../../utils/db.js';
 import { calculateXPForLevel } from '../../../utils/xp.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface LevelData {
     xp: number;
@@ -22,6 +23,12 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'utility');
             const user = interaction.options.getUser('user') ?? interaction.user;
 
             const levelData = await getUserData('levels', interaction.guild!.id, user.id);
@@ -41,14 +48,14 @@ export default {
 
             const levelEmbed = new EmbedBuilder()
                 .setColor(0x3498DB)
-                .setTitle(`[LEVEL] ${user.tag}`)
-                .setDescription(`<@${user.id}>'s level and experience`)
+                .setTitle(t('level.title', { tag: user.tag }))
+                .setDescription(t('level.description', { mention: `<@${user.id}>` }))
                 .addFields(
-                    { name: '[INFO] Level', value: `**${typedLevelData.level}**`, inline: true },
-                    { name: '[INFO] XP', value: `**${formatNumber(typedLevelData.xp)}** / ${formatNumber(xpForNextLevel)}`, inline: true },
-                    { name: '[INFO] Total Messages', value: `${formatNumber(typedLevelData.messages)}`, inline: true },
-                    { name: `[PROGRESS] To Level ${typedLevelData.level + 1}`, value: `${progressBar} ${progressPercent}%`, inline: false },
-                    { name: '[INFO] XP Needed', value: `${formatNumber(xpNeeded - xpProgress)} more XP`, inline: true }
+                    { name: t('level.level'), value: `**${typedLevelData.level}**`, inline: true },
+                    { name: t('level.xp'), value: `**${formatNumber(typedLevelData.xp)}** / ${formatNumber(xpForNextLevel)}`, inline: true },
+                    { name: t('level.totalMessages'), value: `${formatNumber(typedLevelData.messages)}`, inline: true },
+                    { name: t('level.toLevel', { level: typedLevelData.level + 1 }), value: `${progressBar} ${progressPercent}%`, inline: false },
+                    { name: t('level.xpNeeded'), value: t('level.moreXp', { count: formatNumber(xpNeeded - xpProgress) }), inline: true }
                 )
                 .setTimestamp();
 

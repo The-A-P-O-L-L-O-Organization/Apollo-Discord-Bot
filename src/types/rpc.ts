@@ -150,4 +150,5 @@ export interface InterlinkContext {
     channelId?: string;
     timestamp: number;
     authToken?: string;
+    locale?: string;
 }

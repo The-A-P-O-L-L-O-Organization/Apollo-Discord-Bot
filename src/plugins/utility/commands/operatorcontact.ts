@@ -2,6 +2,7 @@ import type { ChatInputCommandInteraction} from 'discord.js';
 import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
 import { config } from '../../../config/config.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -15,17 +16,19 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'utility');
             const operator = config.operator;
 
             if (operator?.agreed !== true || !operator.contact || operator.contact.trim().length === 0) {
                 const errorEmbed = new EmbedBuilder()
                     .setColor(0xFF0000)
-                    .setTitle('Operator Contact Not Configured')
-                    .setDescription(
-                        'The operator of this bot instance has not published contact information. ' +
-                        'If you need to reach the operator, ask a server administrator in the Discord server ' +
-                        'where you encountered this bot.'
-                    )
+                    .setTitle(t('operatorcontact.missingTitle'))
+                    .setDescription(t('operatorcontact.missingDesc'))
                     .setTimestamp();
 
                 await interaction.reply({
@@ -37,15 +40,12 @@ export default {
 
             const embed = new EmbedBuilder()
                 .setColor(0x3498DB)
-                .setTitle('Operator Contact')
-                .setDescription(
-                    'The operator of this bot instance has published the following contact information. ' +
-                    'Use it for privacy requests, data deletion requests, and reports of bot misbehavior.'
-                )
+                .setTitle(t('operatorcontact.title'))
+                .setDescription(t('operatorcontact.desc'))
                 .addFields(
-                    { name: 'Contact', value: operator.contact, inline: false }
+                    { name: t('operatorcontact.contact'), value: operator.contact, inline: false }
                 )
-                .setFooter({ text: 'This bot is self-hosted. The operator is not affiliated with Discord or the upstream Apollo project.' })
+                .setFooter({ text: t('operatorcontact.footer') })
                 .setTimestamp();
 
             await interaction.reply({

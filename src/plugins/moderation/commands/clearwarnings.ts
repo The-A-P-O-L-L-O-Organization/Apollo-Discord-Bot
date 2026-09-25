@@ -6,6 +6,7 @@ import { logger } from '../../../utils/logger.js';
 import { getUserData, setUserData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import type { WarningEntry } from './warnings.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'clearwarnings',
@@ -35,18 +36,20 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const user = interaction.options.getUser('user');
             const warningId = interaction.options.getString('warning-id');
-            const reason = interaction.options.getString('reason') ?? 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? t('clearwarnings.noReason');
 
             // Check if user exists
             if (!user) {
                 await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Missing User',
-                        description: 'Please specify a valid user.',
+                        title: t('clearwarnings.missingUserTitle'),
+                        description: t('clearwarnings.missingUserDescription'),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -61,8 +64,8 @@ export default {
                 await interaction.reply({
                     embeds: [{
                         color: 0xFFFF00,
-                        title: '[INFO] No Warnings',
-                        description: `${user.tag} has no warnings to clear.`,
+                        title: t('clearwarnings.infoNoWarnings'),
+                        description: t('clearwarnings.userHasNoWarningsTo', { user: user.tag }),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -81,10 +84,10 @@ export default {
                     await interaction.reply({
                         embeds: [{
                             color: 0xFF0000,
-                            title: '[ERROR] Warning Not Found',
+                            title: t('clearwarnings.errorWarningNotFound'),
                             description: `Could not find warning with ID \`${warningId}\` for ${user.tag}.`,
                             fields: [{
-                                name: 'Tip',
+                                name: t('clearwarnings.tip'),
                                 value: `Use \`/warnings user:${user.tag}\` to see all warning IDs.`
                             }],
                             timestamp: new Date().toISOString()
@@ -117,8 +120,8 @@ export default {
                     await interaction.reply({
                         embeds: [{
                             color: 0xFFFF00,
-                            title: '[INFO] No Active Warnings',
-                            description: `${user.tag} has no active warnings to clear.`,
+                            title: t('clearwarnings.infoNoActiveWarnings'),
+                            description: t('clearwarnings.userHasNoActiveWarnings', { user: user.tag }),
                             timestamp: new Date().toISOString()
                         }],
                         flags: MessageFlags.Ephemeral
@@ -148,24 +151,24 @@ export default {
             // Create success embed
             const embed = new EmbedBuilder()
                 .setColor('#00FF00')
-                .setTitle('[SUCCESS] Warnings Cleared')
+                .setTitle(t('clearwarnings.successWarningsCleared'))
                 .setDescription(
                     warningId
                         ? `Cleared warning \`${warningId}\` for ${user.tag}.`
                         : `Cleared all ${clearedCount} active warning(s) for ${user.tag}.`
                 )
                 .addFields(
-                    { name: 'User', value: `${user.tag} (${user.id})`, inline: true },
-                    { name: 'Cleared By', value: interaction.user.tag, inline: true },
-                    { name: 'Warnings Cleared', value: `${clearedCount}`, inline: true },
-                    { name: 'Reason', value: reason, inline: false }
+                    { name: t('clearwarnings.user'), value: t('clearwarnings.userValue', { user: user.tag, value: user.id }), inline: true },
+                    { name: t('clearwarnings.clearedBy'), value: interaction.user.tag, inline: true },
+                    { name: t('clearwarnings.warningsCleared'), value: t('clearwarnings.count', { count: clearedCount }), inline: true },
+                    { name: t('clearwarnings.reason'), value: reason, inline: false }
                 )
                 .setTimestamp();
 
             // Add specific warning details if clearing single warning
             if (clearedWarning) {
                 embed.addFields({
-                    name: 'Cleared Warning Details',
+                    name: t('clearwarnings.clearedWarningDetails'),
                     value: [
                         `**Original Reason:** ${clearedWarning.reason}`,
                         `**Issued By:** ${clearedWarning.moderatorTag ?? 'Unknown'}`,
@@ -180,8 +183,8 @@ export default {
                 .filter(w => w.active !== false).length;
 
             embed.addFields({
-                name: 'Remaining Active Warnings',
-                value: `${remainingActive}`,
+                name: t('clearwarnings.remainingActiveWarnings'),
+                value: t('clearwarnings.value', { value: remainingActive }),
                 inline: true
             });
 
@@ -208,9 +211,9 @@ export default {
             await interaction.reply({
                 embeds: [{
                     color: 0xFF0000,
-                    title: '[ERROR] Command Failed',
-                    description: 'An error occurred while clearing warnings.',
-                    fields: [{ name: 'Error', value: (error as Error).message, inline: true }],
+                    title: t('clearwarnings.commandFailedTitle'),
+                    description: t('clearwarnings.anErrorOccurredWhileClearing'),
+                    fields: [{ name: t('clearwarnings.error'), value: (error as Error).message, inline: true }],
                     timestamp: new Date().toISOString()
                 }],
                 flags: MessageFlags.Ephemeral

@@ -6,6 +6,7 @@ import { logger } from '../../../utils/logger.js';
 import { setGuildData, getGuildData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'lockdown',
@@ -29,17 +30,19 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction) {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             // Get the channel to lock
             const channel = (interaction.options.getChannel('channel') ?? interaction.channel) as TextChannel | null;
-            const reason = interaction.options.getString('reason') ?? 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? t('lockdown.noReason');
 
             // Check if the channel is a text-based channel
             if (!channel!.isTextBased()) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Invalid Channel',
-                    description: 'You can only lock text-based channels.',
+                    title: t('lockdown.errorInvalidChannel'),
+                    description: t('lockdown.youCanOnlyLockText'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -57,8 +60,8 @@ export default {
             if (lockdownData[channel.id]) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Channel Already Locked',
-                    description: `<#${channel.id}> is already in lockdown mode.`,
+                    title: t('lockdown.errorChannelAlreadyLocked'),
+                    description: t('lockdown.channelidIsAlreadyInLockdown', { channelId: channel.id }),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -96,21 +99,21 @@ export default {
             // Create success embed
             const successEmbed = {
                 color: 0x00FF00,
-                title: '[SUCCESS] Channel Locked',
-                description: `<#${channel.id}> has been locked down.`,
+                title: t('lockdown.successChannelLocked'),
+                description: t('lockdown.channelidHasBeenLockedDown', { channelId: channel.id }),
                 fields: [
                     {
-                        name: '[INFO] Moderator',
+                        name: t('lockdown.fieldModerator'),
                         value: interaction.user.tag,
                         inline: true
                     },
                     {
-                        name: '[INFO] Reason',
+                        name: t('lockdown.fieldReason'),
                         value: reason,
                         inline: true
                     },
                     {
-                        name: '[INFO] Channel ID',
+                        name: t('lockdown.infoChannelId'),
                         value: channel.id,
                         inline: true
                     }
@@ -124,11 +127,11 @@ export default {
             try {
                 const lockNotice = {
                     color: 0xFF0000,
-                    title: '[LOCKDOWN] Channel Locked',
-                    description: 'This channel has been locked by a moderator. You cannot send messages or add reactions.',
+                    title: t('lockdown.lockdownChannelLocked'),
+                    description: t('lockdown.thisChannelHasBeenLocked'),
                     fields: [
                         {
-                            name: '[INFO] Reason',
+                            name: t('lockdown.fieldReason2'),
                             value: reason,
                             inline: false
                         }
@@ -154,7 +157,7 @@ export default {
             // Log the action
             logger.info({ msg: `[MODERATION] Channel ${channel.name} was locked by ${interaction.user.tag}. Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
+            const errorMessage = handleDiscordError(error) ?? t('lockdown.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

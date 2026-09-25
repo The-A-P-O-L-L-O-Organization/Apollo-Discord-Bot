@@ -5,6 +5,7 @@ import { logger } from '../../../utils/logger.js';
 import { getUserData, setUserData, appendToUserArray } from '../../../utils/db.js';
 import { generateId } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface ModNote {
     id: string;
@@ -78,6 +79,8 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction) {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const subcommand = interaction.options.getSubcommand();
             const user = interaction.options.getUser('user');
@@ -85,8 +88,8 @@ export default {
             if (!user) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Missing User',
-                    description: 'Please specify a valid user.',
+                    title: t('note.missingUserTitle'),
+                    description: t('note.missingUserDescription'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -101,7 +104,7 @@ export default {
                 await handleRemoveNote(interaction, user);
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
+            const errorMessage = handleDiscordError(error) ?? t('note.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {
@@ -112,6 +115,8 @@ export default {
 };
 
 async function handleAddNote(interaction: ChatInputCommandInteraction, user: User) {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+    const t = i18n.getFixedT(resolved, 'moderation');
     const noteContent = interaction.options.getString('note');
 
     const note: ModNote = {
@@ -128,21 +133,21 @@ async function handleAddNote(interaction: ChatInputCommandInteraction, user: Use
 
     const successEmbed = {
         color: 0x00FF00,
-        title: '[SUCCESS] Note Added',
-        description: `Note has been added for ${user.tag}.`,
+        title: t('note.successNoteAdded'),
+        description: t('note.noteHasBeenAddedFor', { user: user.tag }),
         fields: [
             {
-                name: '[INFO] Note ID',
+                name: t('note.infoNoteId'),
                 value: note.id,
                 inline: true
             },
             {
-                name: '[INFO] Moderator',
+                name: t('note.fieldModerator'),
                 value: interaction.user.tag,
                 inline: true
             },
             {
-                name: '[INFO] Note',
+                name: t('note.infoNote'),
                 value: noteContent!,
                 inline: false
             }
@@ -156,13 +161,15 @@ async function handleAddNote(interaction: ChatInputCommandInteraction, user: Use
 }
 
 async function handleViewNotes(interaction: ChatInputCommandInteraction, user: User) {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+    const t = i18n.getFixedT(resolved, 'moderation');
     const notes = (await getUserData('mod-notes', interaction.guild!.id, user.id) ?? []) as ModNote[];
 
     if (notes.length === 0) {
         const errorEmbed = {
             color: 0xFF0000,
-            title: '[INFO] No Notes Found',
-            description: `No notes found for ${user.tag}.`,
+            title: t('note.infoNoNotesFound'),
+            description: t('note.noNotesFoundForUser', { user: user.tag }),
             timestamp: new Date().toISOString()
         };
         await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -173,11 +180,11 @@ async function handleViewNotes(interaction: ChatInputCommandInteraction, user: U
 
     const notesEmbed = {
         color: 0x0099FF,
-        title: `[NOTES] Moderator Notes for ${user.tag}`,
-        description: `Total notes: ${notes.length}`,
+        title: t('note.notesModeratorNotesForUser', { user: user.tag }),
+        description: t('note.totalNotesCount', { count: notes.length }),
         fields: notes.slice(0, 10).map(note => ({
-            name: `Note ID: ${note.id}`,
-            value: `**By:** ${note.moderatorTag}\n**Date:** <t:${Math.floor(note.timestamp / 1000)}:R>\n**Note:** ${note.note}`,
+            name: t('note.noteIdNoteid', { noteId: note.id }),
+            value: t('note.byModeratorNDateT', { moderator: note.moderatorTag, value: Math.floor(note.timestamp / 1000), value2: note.note }),
             inline: false
         })),
         footer: {
@@ -190,6 +197,8 @@ async function handleViewNotes(interaction: ChatInputCommandInteraction, user: U
 }
 
 async function handleRemoveNote(interaction: ChatInputCommandInteraction, user: User) {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+    const t = i18n.getFixedT(resolved, 'moderation');
     const noteId = interaction.options.getString('note-id');
 
     const notes = (await getUserData('mod-notes', interaction.guild!.id, user.id) ?? []) as ModNote[];
@@ -199,7 +208,7 @@ async function handleRemoveNote(interaction: ChatInputCommandInteraction, user: 
     if (noteIndex === -1) {
         const errorEmbed = {
             color: 0xFF0000,
-            title: '[ERROR] Note Not Found',
+            title: t('note.errorNoteNotFound'),
             description: `No note with ID \`${noteId}\` found for ${user.tag}.`,
             timestamp: new Date().toISOString()
         };
@@ -212,26 +221,26 @@ async function handleRemoveNote(interaction: ChatInputCommandInteraction, user: 
 
     const successEmbed = {
         color: 0x00FF00,
-        title: '[SUCCESS] Note Removed',
-        description: `Note has been removed for ${user.tag}.`,
+        title: t('note.successNoteRemoved'),
+        description: t('note.noteHasBeenRemovedFor', { user: user.tag }),
         fields: [
             {
-                name: '[INFO] Note ID',
+                name: t('note.infoNoteId2'),
                 value: removedNote.id,
                 inline: true
             },
             {
-                name: '[INFO] Original Moderator',
+                name: t('note.infoOriginalModerator'),
                 value: removedNote.moderatorTag,
                 inline: true
             },
             {
-                name: '[INFO] Removed By',
+                name: t('note.infoRemovedBy'),
                 value: interaction.user.tag,
                 inline: true
             },
             {
-                name: '[INFO] Note Content',
+                name: t('note.infoNoteContent'),
                 value: removedNote.note,
                 inline: false
             }

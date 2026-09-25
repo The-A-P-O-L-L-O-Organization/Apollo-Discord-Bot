@@ -4,6 +4,7 @@ import { PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface RolePersistenceConfig {
     enabled?: boolean;
@@ -53,6 +54,8 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const subcommand = interaction.options.getSubcommand();
 
@@ -64,7 +67,7 @@ export default {
                 await handleClear(interaction);
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
+            const errorMessage = handleDiscordError(error) ?? t('rolepersistence.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {
@@ -75,6 +78,8 @@ export default {
 };
 
 async function handleToggle(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+    const t = i18n.getFixedT(resolved, 'moderation');
     const enabled = interaction.options.getBoolean('enabled', true);
 
     const config = (await getGuildData('role-persistence', interaction.guild!.id)) as RolePersistenceConfig || {};
@@ -84,17 +89,17 @@ async function handleToggle(interaction: ChatInputCommandInteraction): Promise<v
 
     const successEmbed = {
         color: 0x00FF00,
-        title: '[SUCCESS] Role Persistence Updated',
-        description: `Role persistence has been ${enabled ? 'enabled' : 'disabled'}.`,
+        title: t('rolepersistence.successRolePersistenceUpdated'),
+        description: t('rolepersistence.rolePersistenceHasBeenValue', { value: enabled ? 'enabled' : 'disabled' }),
         fields: [
             {
-                name: '[INFO] Status',
+                name: t('rolepersistence.infoStatus'),
                 value: enabled ? 'Enabled' : 'Disabled',
                 inline: true
             },
             {
-                name: '[INFO] How it works',
-                value: 'Roles will be saved when members leave and restored when they rejoin.',
+                name: t('rolepersistence.infoHowItWorks'),
+                value: t('rolepersistence.rolesWillBeSavedWhen'),
                 inline: false
             }
         ],
@@ -107,20 +112,22 @@ async function handleToggle(interaction: ChatInputCommandInteraction): Promise<v
 }
 
 async function handleView(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+    const t = i18n.getFixedT(resolved, 'moderation');
     const config = (await getGuildData('role-persistence', interaction.guild!.id)) as RolePersistenceConfig | undefined;
 
     const viewEmbed = {
         color: 0x3498DB,
-        title: '[ROLE PERSISTENCE] Configuration',
+        title: t('rolepersistence.rolePersistenceConfiguration'),
         fields: [
             {
-                name: '[INFO] Status',
+                name: t('rolepersistence.infoStatus2'),
                 value: config?.enabled ? 'Enabled' : 'Disabled',
                 inline: true
             },
             {
-                name: '[INFO] How it works',
-                value: 'Roles will be saved when members leave and restored when they rejoin.',
+                name: t('rolepersistence.infoHowItWorks2'),
+                value: t('rolepersistence.rolesWillBeSavedWhen2'),
                 inline: false
             }
         ],
@@ -131,6 +138,8 @@ async function handleView(interaction: ChatInputCommandInteraction): Promise<voi
 }
 
 async function handleClear(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+    const t = i18n.getFixedT(resolved, 'moderation');
     const user = interaction.options.getUser('user', true);
 
     const config = (await getGuildData('role-persistence', interaction.guild!.id)) as RolePersistenceConfig | undefined;
@@ -139,8 +148,8 @@ async function handleClear(interaction: ChatInputCommandInteraction): Promise<vo
         await interaction.reply({
             embeds: [{
                 color: 0xFFA500,
-                title: '[INFO] No Saved Roles',
-                description: `No roles are saved for ${user.tag}.`,
+                title: t('rolepersistence.infoNoSavedRoles'),
+                description: t('rolepersistence.noRolesAreSavedFor', { user: user.tag }),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -154,8 +163,8 @@ async function handleClear(interaction: ChatInputCommandInteraction): Promise<vo
 
     const successEmbed = {
         color: 0x00FF00,
-        title: '[SUCCESS] Saved Roles Cleared',
-        description: `Saved roles for ${user.tag} have been cleared.`,
+        title: t('rolepersistence.successSavedRolesCleared'),
+        description: t('rolepersistence.savedRolesForUserHave', { user: user.tag }),
         timestamp: new Date().toISOString()
     };
 

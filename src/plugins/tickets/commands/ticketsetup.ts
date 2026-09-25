@@ -3,6 +3,7 @@ import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ChannelType, Ac
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'ticketsetup',
@@ -66,28 +67,35 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'tickets');
+
             const subcommand = interaction.options.getSubcommand();
             const guildId = interaction.guild!.id;
 
             if (subcommand === 'panel') {
                 // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
                 const channel = interaction.options.getChannel('channel')! as TextChannel;
-                const title = interaction.options.getString('title') ?? 'Support Tickets';
+                const title = interaction.options.getString('title') ?? t('ticketsetup.panelDefaultTitle');
                 const description = interaction.options.getString('description') ??
-                'Click the button below to create a support ticket.\n\nA staff member will assist you shortly.';
+                t('ticketsetup.panelDefaultDescription');
 
                 const embed = new EmbedBuilder()
                     .setColor('#3498DB')
                     .setTitle(title)
                     .setDescription(description)
-                    .setFooter({ text: 'Click the button below to open a ticket' })
+                    .setFooter({ text: t('ticketsetup.panelFooter') })
                     .setTimestamp();
 
                 const row = new ActionRowBuilder<ButtonBuilder>()
                     .addComponents(
                         new ButtonBuilder()
                             .setCustomId('create_ticket')
-                            .setLabel('Create Ticket')
+                            .setLabel(t('ticketsetup.panelButtonCreate'))
                             .setStyle(ButtonStyle.Primary)
                     );
 
@@ -104,14 +112,14 @@ export default {
                     });
 
                     await interaction.reply({
-                        content: `Ticket panel created in <#${channel.id}>!`,
+                        content: t('ticketsetup.panelCreated', { channel: channel.id }),
                         flags: MessageFlags.Ephemeral
                     });
                     return;
                 } catch (error) {
                     logger.error({ err: error, msg: '[ERROR] Failed to create ticket panel:' });
                     await interaction.reply({
-                        content: 'Failed to create the ticket panel. Make sure I have permission to send messages in that channel.',
+                        content: t('ticketsetup.panelFailed'),
                         flags: MessageFlags.Ephemeral
                     });
                     return;
@@ -126,7 +134,7 @@ export default {
                 });
 
                 await interaction.reply({
-                    content: `Ticket category set to **${category.name}**. New tickets will be created in this category.`,
+                    content: t('ticketsetup.categorySet', { name: category.name }),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -140,7 +148,7 @@ export default {
                 });
 
                 await interaction.reply({
-                    content: `Support role set to <@&${role.id}>. Members with this role can see all tickets.`,
+                    content: t('ticketsetup.supportRoleSet', { role: role.id }),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -150,10 +158,10 @@ export default {
 
                 const embed = new EmbedBuilder()
                     .setColor('#3498DB')
-                    .setTitle('Ticket System Configuration')
+                    .setTitle(t('ticketsetup.statusTitle'))
                     .setTimestamp();
 
-                let categoryStatus = 'Not configured';
+                let categoryStatus = t('ticketsetup.notConfigured');
                 if (ticketConfig['categoryId']) {
                     try {
                         const category = await interaction.guild!.channels.fetch(ticketConfig['categoryId'] as string);
@@ -161,11 +169,11 @@ export default {
                             categoryStatus = category.name;
                         }
                     } catch {
-                        categoryStatus = 'Category not found (needs reconfiguration)';
+                        categoryStatus = t('ticketsetup.categoryMissing');
                     }
                 }
 
-                let roleStatus = 'Not configured';
+                let roleStatus = t('ticketsetup.notConfigured');
                 if (ticketConfig['supportRoleId']) {
                     try {
                         const role = await interaction.guild!.roles.fetch(ticketConfig['supportRoleId'] as string);
@@ -173,19 +181,19 @@ export default {
                             roleStatus = role.name;
                         }
                     } catch {
-                        roleStatus = 'Role not found (needs reconfiguration)';
+                        roleStatus = t('ticketsetup.roleMissing');
                     }
                 }
 
-                let panelStatus = 'Not created';
+                let panelStatus = t('ticketsetup.panelMissing');
                 if (ticketConfig['panelMessageId'] && ticketConfig['panelChannelId']) {
                     panelStatus = `[Jump to panel](https://discord.com/channels/${guildId}/${ticketConfig['panelChannelId'] as string}/${ticketConfig['panelMessageId'] as string})`;
                 }
 
                 embed.addFields(
-                    { name: 'Ticket Category', value: categoryStatus, inline: true },
-                    { name: 'Support Role', value: roleStatus, inline: true },
-                    { name: 'Ticket Panel', value: panelStatus, inline: false }
+                    { name: t('ticketsetup.fieldCategory'), value: categoryStatus, inline: true },
+                    { name: t('ticketsetup.fieldSupportRole'), value: roleStatus, inline: true },
+                    { name: t('ticketsetup.fieldPanel'), value: panelStatus, inline: false }
                 );
 
                 await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });

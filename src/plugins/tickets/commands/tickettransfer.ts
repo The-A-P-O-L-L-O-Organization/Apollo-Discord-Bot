@@ -3,6 +3,7 @@ import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } 
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface TransferTicketData {
     userId: string;
@@ -37,10 +38,17 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'tickets');
+
             const guildId = interaction.guild!.id;
             const channelId = interaction.channel!.id;
             const transferUser = interaction.options.getUser('user')!;
-            const note = interaction.options.getString('note') ?? 'No note provided';
+            const note = interaction.options.getString('note') ?? t('tickettransfer.defaultNote');
 
             const ticketConfig = await getGuildData('tickets', guildId);
             const openTickets = (ticketConfig['openTickets'] ?? []) as TransferTicketData[];
@@ -48,7 +56,7 @@ export default {
 
             if (!ticket) {
                 await interaction.reply({
-                    content: 'This channel is not a ticket channel.',
+                    content: t('tickettransfer.notTicket'),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -62,7 +70,7 @@ export default {
 
             if (!isAssigned && !isClaimed && !hasSupport && !isAdmin) {
                 await interaction.reply({
-                    content: 'You do not have permission to transfer this ticket.',
+                    content: t('tickettransfer.noPermission'),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -70,7 +78,7 @@ export default {
 
             if (transferUser.id === interaction.user.id) {
                 await interaction.reply({
-                    content: 'You cannot transfer a ticket to yourself.',
+                    content: t('tickettransfer.cannotSelf'),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -106,12 +114,12 @@ export default {
 
             const embed = new EmbedBuilder()
                 .setColor('#FFA500')
-                .setTitle('Ticket Transferred')
-                .setDescription(`This ticket has been transferred to <@${transferUser.id}>.`)
+                .setTitle(t('tickettransfer.title'))
+                .setDescription(t('tickettransfer.description', { user: transferUser.id }))
                 .addFields(
-                    { name: 'Transferred by', value: `<@${interaction.user.id}>`, inline: true },
-                    { name: 'New assignee', value: `<@${transferUser.id}>`, inline: true },
-                    { name: 'Note', value: note, inline: false }
+                    { name: t('tickettransfer.fieldTransferredBy'), value: `<@${interaction.user.id}>`, inline: true },
+                    { name: t('tickettransfer.fieldNewAssignee'), value: `<@${transferUser.id}>`, inline: true },
+                    { name: t('tickettransfer.fieldNote'), value: note, inline: false }
                 )
                 .setTimestamp();
 
@@ -123,14 +131,14 @@ export default {
             try {
                 const dmEmbed = new EmbedBuilder()
                     .setColor('#FFA500')
-                    .setTitle('Ticket Transferred to You')
-                    .setDescription(`Ticket #${ticket.ticketNumber} in **${interaction.guild!.name}** has been transferred to you.`)
+                    .setTitle(t('tickettransfer.dmTitle'))
+                    .setDescription(t('tickettransfer.dmDescription', { number: ticket.ticketNumber, guild: interaction.guild!.name }))
                     .addFields(
-                        { name: 'Ticket', value: `<#${channelId}>`, inline: true },
-                        { name: 'From', value: interaction.user.tag, inline: true },
-                        { name: 'Category', value: ticket.category ?? 'general', inline: true },
-                        { name: 'Priority', value: ticket.priority ?? 'medium', inline: true },
-                        { name: 'Note', value: note, inline: false }
+                        { name: t('tickettransfer.dmFieldTicket'), value: `<#${channelId}>`, inline: true },
+                        { name: t('tickettransfer.dmFieldFrom'), value: interaction.user.tag, inline: true },
+                        { name: t('tickettransfer.dmFieldCategory'), value: ticket.category ?? 'general', inline: true },
+                        { name: t('tickettransfer.dmFieldPriority'), value: ticket.priority ?? 'medium', inline: true },
+                        { name: t('tickettransfer.fieldNote'), value: note, inline: false }
                     )
                     .setTimestamp();
 
@@ -145,11 +153,11 @@ export default {
                     const oldAssignee = await interaction.client.users.fetch(oldAssigneeId);
                     const dmEmbed = new EmbedBuilder()
                         .setColor('#FFA500')
-                        .setTitle('Ticket Transferred')
-                        .setDescription(`Ticket #${ticket.ticketNumber} in **${interaction.guild!.name}** has been transferred to ${transferUser.tag}.`)
+                        .setTitle(t('tickettransfer.dmOldTitle'))
+                        .setDescription(t('tickettransfer.dmOldDescription', { number: ticket.ticketNumber, guild: interaction.guild!.name, user: transferUser.tag }))
                         .addFields(
-                            { name: 'Transferred by', value: interaction.user.tag, inline: true },
-                            { name: 'Note', value: note, inline: false }
+                            { name: t('tickettransfer.fieldTransferredBy'), value: interaction.user.tag, inline: true },
+                            { name: t('tickettransfer.fieldNote'), value: note, inline: false }
                         )
                         .setTimestamp();
 

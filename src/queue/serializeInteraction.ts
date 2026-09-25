@@ -9,6 +9,9 @@ export function serializeInteraction(interaction: {
     createdTimestamp: number;
     guildId: string | null;
     channelId: string;
+    locale?: string | null;
+    guildLocale?: string | null;
+    resolvedLocale?: string | null;
     user: { id: string; tag?: string; username?: string; discriminator?: string; avatar?: string };
     member?: { permissions?: { toArray?: () => string[] }; roles?: { cache?: Map<string, { id: string }> } };
     options: { data?: { name: string; type: number; value: unknown; focused?: boolean; options?: unknown[] }[] };
@@ -49,8 +52,9 @@ export function serializeInteraction(interaction: {
         token: interaction.token,
         version: 1,
         appPermissions: '0',
-        locale: 'en-US',
-        guildLocale: 'en-US',
+        locale: interaction.locale ?? 'en-US',
+        guildLocale: interaction.guildLocale ?? null,
+        resolvedLocale: interaction.resolvedLocale ?? interaction.locale ?? interaction.guildLocale ?? 'en-US',
         entitlements: []
     };
 }

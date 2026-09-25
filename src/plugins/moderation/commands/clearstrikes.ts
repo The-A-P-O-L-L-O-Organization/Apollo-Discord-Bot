@@ -6,6 +6,7 @@ import { getUserData, setUserData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import type { StrikeEntry } from './strike.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     // Remove strikes from a user
@@ -30,6 +31,8 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const user = interaction.options.getUser('user');
             const strikeId = interaction.options.getString('strike_id');
@@ -38,8 +41,8 @@ export default {
                 await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Missing User',
-                        description: 'Please specify a valid user.',
+                        title: t('clearstrikes.missingUserTitle'),
+                        description: t('clearstrikes.missingUserDescription'),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -54,8 +57,8 @@ export default {
                 await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] No Strikes',
-                        description: `${user.tag} has no strikes to clear.`,
+                        title: t('clearstrikes.errorNoStrikes'),
+                        description: t('clearstrikes.userHasNoStrikesTo', { user: user.tag }),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -74,8 +77,8 @@ export default {
                     await interaction.reply({
                         embeds: [{
                             color: 0xFF0000,
-                            title: '[ERROR] Strike Not Found',
-                            description: `Strike with ID ${strikeId} not found.`,
+                            title: t('clearstrikes.errorStrikeNotFound'),
+                            description: t('clearstrikes.strikeWithIdStrikeidNot', { strikeId: strikeId }),
                             timestamp: new Date().toISOString()
                         }],
                         flags: MessageFlags.Ephemeral
@@ -106,12 +109,12 @@ export default {
             // Create success embed
             const successEmbed = new EmbedBuilder()
                 .setColor('#00FF00')
-                .setTitle('[SUCCESS] Strikes Cleared')
+                .setTitle(t('clearstrikes.successStrikesCleared'))
                 .setDescription(description)
                 .addFields(
-                    { name: 'User', value: `${user.tag} (${user.id})`, inline: true },
-                    { name: 'Moderator', value: interaction.user.tag, inline: true },
-                    { name: 'Strikes Removed', value: `${removed}`, inline: true }
+                    { name: t('clearstrikes.user'), value: t('clearstrikes.userValue', { user: user.tag, value: user.id }), inline: true },
+                    { name: t('clearstrikes.moderator'), value: interaction.user.tag, inline: true },
+                    { name: t('clearstrikes.strikesRemoved'), value: t('clearstrikes.count', { count: removed }), inline: true }
                 )
                 .setTimestamp();
 
@@ -130,7 +133,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] ${removed} strike(s) cleared for ${user.tag} by ${interaction.user.tag}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
+            const errorMessage = handleDiscordError(error) ?? t('clearstrikes.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

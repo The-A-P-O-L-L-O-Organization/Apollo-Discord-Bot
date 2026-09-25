@@ -4,6 +4,7 @@ import { getGuildData, updateGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
 import { MessageFlags } from 'discord.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface AddTicketData {
     userId: string;
@@ -30,6 +31,12 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'tickets');
 
             const guildId = interaction.guild!.id;
             const channelId = interaction.channel!.id;
@@ -42,7 +49,7 @@ export default {
 
             if (!ticket) {
                 await interaction.reply({
-                    content: 'This channel is not a ticket channel.',
+                    content: t('ticketadd.notTicket'),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -56,7 +63,7 @@ export default {
 
             if (!isTicketOwner && !isAssigned && !hasSupport && !isAdmin) {
                 await interaction.reply({
-                    content: 'You do not have permission to add users to this ticket.',
+                    content: t('ticketadd.noPermission'),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -66,7 +73,7 @@ export default {
 
             if (ticket.participants.includes(addUser.id)) {
                 await interaction.reply({
-                    content: `<@${addUser.id}> is already in this ticket.`,
+                    content: t('ticketadd.alreadyIn', { user: addUser.id }),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -93,7 +100,7 @@ export default {
             } catch (error) {
                 logger.error({ msg: '[ERROR] Failed to update channel permissions', err: error });
                 await interaction.reply({
-                    content: 'Failed to add user to ticket. Please check my permissions.',
+                    content: t('ticketadd.addFailed'),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -101,11 +108,11 @@ export default {
 
             const embed = new EmbedBuilder()
                 .setColor('#3498DB')
-                .setTitle('User Added to Ticket')
-                .setDescription(`<@${addUser.id}> has been added to this ticket.`)
+                .setTitle(t('ticketadd.title'))
+                .setDescription(t('ticketadd.description', { user: addUser.id }))
                 .addFields(
-                    { name: 'Added by', value: `<@${interaction.user.id}>`, inline: true },
-                    { name: 'User', value: `<@${addUser.id}>`, inline: true }
+                    { name: t('ticketadd.fieldAddedBy'), value: `<@${interaction.user.id}>`, inline: true },
+                    { name: t('ticketadd.fieldUser'), value: `<@${addUser.id}>`, inline: true }
                 )
                 .setTimestamp();
 
@@ -117,11 +124,11 @@ export default {
             try {
                 const dmEmbed = new EmbedBuilder()
                     .setColor('#3498DB')
-                    .setTitle('Added to Ticket')
-                    .setDescription(`You have been added to ticket #${ticket.ticketNumber} in **${interaction.guild!.name}**.`)
+                    .setTitle(t('ticketadd.dmTitle'))
+                    .setDescription(t('ticketadd.dmDescription', { number: ticket.ticketNumber, guild: interaction.guild!.name }))
                     .addFields(
-                        { name: 'Ticket', value: `<#${channelId}>`, inline: true },
-                        { name: 'Added by', value: interaction.user.tag, inline: true }
+                        { name: t('ticketadd.dmFieldTicket'), value: `<#${channelId}>`, inline: true },
+                        { name: t('ticketadd.dmFieldAddedBy'), value: interaction.user.tag, inline: true }
                     )
                     .setTimestamp();
 

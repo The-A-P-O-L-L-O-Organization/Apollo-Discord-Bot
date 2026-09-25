@@ -7,6 +7,7 @@ import { createModCase } from './case.js';
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 import { canModerate } from '../../../utils/moderation.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'voicemove',
@@ -21,17 +22,19 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction) {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const user = interaction.options.getUser('user');
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
             const targetChannel = interaction.options.getChannel('channel') as VoiceChannel | null;
-            const reason = interaction.options.getString('reason') ?? 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? t('voicemove.noReason');
 
             if (!user) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Missing User',
-                    description: 'Please specify a valid user to move.',
+                    title: t('voicemove.missingUserTitle'),
+                    description: t('voicemove.missingUserDescription'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -40,8 +43,8 @@ export default {
             if (!targetChannel) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Missing Channel',
-                    description: 'Please specify a valid voice channel.',
+                    title: t('voicemove.errorMissingChannel'),
+                    description: t('voicemove.pleaseSpecifyAValidVoice'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -52,8 +55,8 @@ export default {
             if (!member) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] User Not In Server',
-                    description: 'This user is not in the server.',
+                    title: t('voicemove.memberNotFoundTitle'),
+                    description: t('voicemove.memberNotFoundDescription'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -62,8 +65,8 @@ export default {
             if (!member.voice.channel) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Not In Voice Channel',
-                    description: `${user.tag} is not currently in a voice channel.`,
+                    title: t('voicemove.errorNotInVoiceChannel'),
+                    description: t('voicemove.userIsNotCurrentlyIn', { user: user.tag }),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -72,8 +75,8 @@ export default {
             if (!targetChannel.permissionsFor(interaction.guild!.members.me!).has('MoveMembers')) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Missing Permissions',
-                    description: 'I do not have permission to move members in the target voice channel.',
+                    title: t('voicemove.errorMissingPermissions'),
+                    description: t('voicemove.iDoNotHavePermission'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -82,8 +85,8 @@ export default {
             if (!member.voice.channel.permissionsFor(interaction.guild!.members.me!).has('MoveMembers')) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Missing Permissions',
-                    description: 'I do not have permission to move members in the source voice channel.',
+                    title: t('voicemove.errorMissingPermissions2'),
+                    description: t('voicemove.iDoNotHavePermission2'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -92,8 +95,8 @@ export default {
             if (user.id === interaction.user.id) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Self Action',
-                    description: 'You cannot move yourself using this command.',
+                    title: t('voicemove.selfActionTitle'),
+                    description: t('voicemove.selfActionDescription'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -102,8 +105,8 @@ export default {
             if (user.id === interaction.client.user.id) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Bot Protection',
-                    description: 'You cannot move the bot.',
+                    title: t('voicemove.botProtectionTitle'),
+                    description: t('voicemove.botProtectionDescription'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -113,7 +116,7 @@ export default {
             if (!hierarchy.ok) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Hierarchy Check Failed',
+                    title: t('voicemove.hierarchyTitle'),
                     description: hierarchy.reason,
                     timestamp: new Date().toISOString()
                 };
@@ -139,15 +142,15 @@ export default {
 
             const successEmbed = {
                 color: 0x00FF00,
-                title: '[SUCCESS] User Moved',
-                description: `${user.tag} has been moved from **${sourceChannelName}** to **${targetChannelName}**.`,
+                title: t('voicemove.successUserMoved'),
+                description: t('voicemove.userHasBeenMovedFrom', { user: user.tag, sourceChannel: sourceChannelName, targetChannel: targetChannelName }),
                 fields: [
-                    { name: '[INFO] Moderator', value: interaction.user.tag, inline: true },
-                    { name: '[INFO] Case ID', value: `#${caseId}`, inline: true },
-                    { name: '[INFO] Reason', value: reason, inline: false },
-                    { name: '[INFO] From', value: sourceChannelName, inline: true },
-                    { name: '[INFO] To', value: targetChannelName, inline: true },
-                    { name: '[INFO] User ID', value: user.id, inline: true }
+                    { name: t('voicemove.fieldModerator'), value: interaction.user.tag, inline: true },
+                    { name: t('voicemove.fieldCaseId'), value: t('voicemove.caseid', { caseId: caseId }), inline: true },
+                    { name: t('voicemove.fieldReason'), value: reason, inline: false },
+                    { name: t('voicemove.infoFrom'), value: sourceChannelName, inline: true },
+                    { name: t('voicemove.infoTo'), value: targetChannelName, inline: true },
+                    { name: t('voicemove.fieldUserId'), value: user.id, inline: true }
                 ],
                 timestamp: new Date().toISOString()
             };
@@ -164,7 +167,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] User ${user.tag} was moved from ${sourceChannelName} to ${targetChannelName} by ${interaction.user.tag}. Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
+            const errorMessage = handleDiscordError(error) ?? t('voicemove.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

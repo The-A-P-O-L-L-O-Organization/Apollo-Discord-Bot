@@ -3,6 +3,7 @@ import type { ChatInputCommandInteraction} from 'discord.js';
 import { PermissionsBitField, MessageFlags } from 'discord.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { getUserData, setUserData } from '../../../utils/db.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'unmute',
@@ -26,15 +27,17 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction) {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const user = interaction.options.getUser('user');
-            const reason = interaction.options.getString('reason') ?? 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? t('unmute.noReason');
 
             if (!user) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Missing User',
-                    description: 'Please specify a valid user to unmute.',
+                    title: t('unmute.missingUserTitle'),
+                    description: t('unmute.missingUserDescription'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -46,8 +49,8 @@ export default {
             if (!member) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Member Not Found',
-                    description: 'This user is not a member of the server.',
+                    title: t('unmute.memberNotFoundTitle'),
+                    description: t('unmute.memberNotFoundDescription'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -57,8 +60,8 @@ export default {
             if (!member.moderatable) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Cannot Unmute',
-                    description: 'I cannot unmute this user. They may have higher permissions than me.',
+                    title: t('unmute.errorCannotUnmute'),
+                    description: t('unmute.iCannotUnmuteThisUser'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -68,8 +71,8 @@ export default {
             if (user.id === interaction.user.id) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Self Action',
-                    description: 'You cannot unmute yourself.',
+                    title: t('unmute.selfActionTitle'),
+                    description: t('unmute.selfActionDescription'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -79,8 +82,8 @@ export default {
             if (!member.isCommunicationDisabled() && !member.roles.cache.some(role => role.name === 'Muted')) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Not Muted',
-                    description: 'This user is not currently muted.',
+                    title: t('unmute.errorNotMuted'),
+                    description: t('unmute.thisUserIsNotCurrently'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -124,21 +127,21 @@ export default {
 
             const successEmbed = {
                 color: 0x00FF00,
-                title: '[SUCCESS] User Unmuted',
-                description: `${user.tag} has been unmuted.`,
+                title: t('unmute.successUserUnmuted'),
+                description: t('unmute.userHasBeenUnmuted', { user: user.tag }),
                 fields: [
                     {
-                        name: '[INFO] Moderator',
+                        name: t('unmute.fieldModerator'),
                         value: interaction.user.tag,
                         inline: true
                     },
                     {
-                        name: '[INFO] Reason',
+                        name: t('unmute.fieldReason'),
                         value: reason,
                         inline: true
                     },
                     {
-                        name: '[INFO] User ID',
+                        name: t('unmute.fieldUserId'),
                         value: user.id,
                         inline: true
                     }
@@ -162,11 +165,11 @@ export default {
 
             const errorEmbed = {
                 color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred while trying to unmute the user.',
+                title: t('unmute.commandFailedTitle'),
+                description: t('unmute.commandFailedDescription'),
                 fields: [
                     {
-                        name: '[ERROR] Details',
+                        name: t('unmute.errorDetails'),
                         value: (error as Error).message,
                         inline: true
                     }

@@ -3,6 +3,7 @@ import { getDb, runMigrations } from '../../../db/knex.js';
 import { safeError } from '../../../utils/safeError.js';
 import { requireOwner } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { MessageFlags } from 'discord.js';
 
@@ -27,13 +28,19 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction) {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'admin');
             const denial = await requireOwner(interaction);
             if (denial) {
                 if (typeof denial === 'string') {
                     return safeReply(interaction, denial);
                 }
                 // If denial is an embed object, use a generic message
-                return safeReply(interaction, 'Access denied: bot owner only');
+                return safeReply(interaction, t('migrate.accessDenied'));
             }
 
             const subcommand = interaction.options.getSubcommand();
@@ -43,12 +50,12 @@ export default {
                 const [completed, pending] = await db.migrate.list();
                 const completedNames = completed && completed.length > 0
                     ? completed.map((m: { name?: string; file?: string }) => '`' + (m.name ?? m.file ?? JSON.stringify(m)) + '`').join('\n')
-                    : 'None';
+                    : t('migrate.none');
                 const pendingFiles = pending && pending.length > 0
                     ? pending.map((m: { file?: string }) => '`' + (m.file ?? JSON.stringify(m)) + '`').join('\n')
-                    : 'None';
+                    : t('migrate.none');
 
-                return safeReply(interaction, `Migration Status (${config.database.type}):\n\nCompleted:\n${completedNames}\n\nPending:\n${pendingFiles}`);
+                return safeReply(interaction, t('migrate.status', { db: config.database.type, completed: completedNames, pending: pendingFiles }));
             }
 
             if (subcommand === 'run') {
@@ -59,14 +66,14 @@ export default {
                     return interaction.editReply({
                         embeds: [{
                             color: 0x00FF00,
-                            title: '[SUCCESS] Migrations Applied',
-                            description: 'All pending migrations have been run successfully.',
+                            title: t('migrate.appliedTitle'),
+                            description: t('migrate.appliedDescription'),
                             timestamp: new Date().toISOString()
                         }]
                     });
                 } catch (err) {
                     return interaction.editReply({
-                        embeds: [{ color: 0xFF0000, title: '[ERROR] Migration Failed', description: safeError(err) }]
+                        embeds: [{ color: 0xFF0000, title: t('migrate.failedTitle'), description: safeError(err) }]
                     });
                 }
             }

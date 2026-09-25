@@ -5,6 +5,7 @@ import { PermissionsBitField } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'slowmode',
@@ -36,18 +37,20 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction) {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const duration = interaction.options.getInteger('duration') ?? 0;
             const channel = interaction.options.getChannel('channel') ?? interaction.channel;
-            const reason = interaction.options.getString('reason') ?? 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? t('slowmode.noReason');
 
             const textChannel = channel as TextChannel;
 
             if (!textChannel.isTextBased()) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Invalid Channel',
-                    description: 'You can only set slowmode on text-based channels.',
+                    title: t('slowmode.errorInvalidChannel'),
+                    description: t('slowmode.youCanOnlySetSlowmode'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -56,8 +59,8 @@ export default {
             if (duration < 0 || duration > 21600) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Invalid Duration',
-                    description: 'Slowmode duration must be between 0 and 21600 seconds (6 hours).',
+                    title: t('slowmode.errorInvalidDuration'),
+                    description: t('slowmode.slowmodeDurationMustBeBetween'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -81,12 +84,12 @@ export default {
             const successEmbed = {
                 color: 0x00FF00,
                 title: duration === 0 ? '[SUCCESS] Slowmode Disabled' : '[SUCCESS] Slowmode Enabled',
-                description: `Slowmode has been ${duration === 0 ? 'disabled' : 'set'} for <#${textChannel.id}>.`,
+                description: t('slowmode.slowmodeHasBeenDurationFor', { duration: duration === 0 ? 'disabled' : 'set', channelId: textChannel.id }),
                 fields: [
-                    { name: '[INFO] Moderator', value: interaction.user.tag, inline: true },
-                    { name: '[INFO] Duration', value: durationText, inline: true },
-                    { name: '[INFO] Previous', value: previousSlowmode === 0 ? 'Disabled' : `${previousSlowmode}s`, inline: true },
-                    { name: '[INFO] Reason', value: reason, inline: false }
+                    { name: t('slowmode.fieldModerator'), value: interaction.user.tag, inline: true },
+                    { name: t('slowmode.fieldDuration'), value: durationText, inline: true },
+                    { name: t('slowmode.infoPrevious'), value: previousSlowmode === 0 ? 'Disabled' : `${previousSlowmode}s`, inline: true },
+                    { name: t('slowmode.fieldReason'), value: reason, inline: false }
                 ],
                 timestamp: new Date().toISOString()
             };
@@ -101,7 +104,7 @@ export default {
                         description: duration === 0 ?
                             'Slowmode has been disabled for this channel.' :
                             `Slowmode has been enabled. Members must wait ${durationText} between messages.`,
-                        fields: [{ name: '[INFO] Reason', value: reason, inline: false }],
+                        fields: [{ name: t('slowmode.fieldReason2'), value: reason, inline: false }],
                         timestamp: new Date().toISOString()
                     };
                     await textChannel.send({ embeds: [slowmodeNotice] });
@@ -124,7 +127,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] Slowmode ${duration === 0 ? 'disabled' : 'set to ' + duration + 's'} for channel ${textChannel.name} by ${interaction.user.tag}. Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
+            const errorMessage = handleDiscordError(error) ?? t('slowmode.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

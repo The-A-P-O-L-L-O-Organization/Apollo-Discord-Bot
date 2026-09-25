@@ -2,6 +2,7 @@ import type { ChatInputCommandInteraction } from 'discord.js';
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { getGuildData, updateGuildData, generateId } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface TemplateData {
     id: string;
@@ -87,6 +88,13 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'tickets');
+
             const subcommand = interaction.options.getSubcommand();
             const guildId = interaction.guild!.id;
 
@@ -99,9 +107,9 @@ export default {
                 const templates = await getGuildData('ticket-templates', guildId);
                 const list = (templates['list'] as TemplateData[]) || [];
 
-                if (list.find(t => t.name.toLowerCase() === name.toLowerCase())) {
+                if (list.find(tmpl => tmpl.name.toLowerCase() === name.toLowerCase())) {
                     await interaction.reply({
-                        content: `A template named **${name}** already exists. Delete it first to create a new one with this name.`,
+                        content: t('tickettemplate.alreadyExists', { name }),
                         flags: MessageFlags.Ephemeral
                     });
                     return;
@@ -128,12 +136,12 @@ export default {
 
                 const embed = new EmbedBuilder()
                     .setColor('#00FF00')
-                    .setTitle('Template Created')
-                    .setDescription(`Template **${name}** has been created successfully.`)
+                    .setTitle(t('tickettemplate.createdTitle'))
+                    .setDescription(t('tickettemplate.createdDescription', { name }))
                     .addFields(
-                        { name: 'Category', value: category, inline: true },
-                        { name: 'Questions', value: questions.length > 0 ? questions.join('\n') : 'None', inline: false },
-                        { name: 'Auto-Response', value: response.substring(0, 1024), inline: false }
+                        { name: t('tickettemplate.fieldCategory'), value: category, inline: true },
+                        { name: t('tickettemplate.fieldQuestions'), value: questions.length > 0 ? questions.join('\n') : t('tickettemplate.fieldNone'), inline: false },
+                        { name: t('tickettemplate.fieldAutoResponse'), value: response.substring(0, 1024), inline: false }
                     )
                     .setTimestamp();
 
@@ -146,11 +154,11 @@ export default {
                 const templates = await getGuildData('ticket-templates', guildId);
                 const list = (templates['list'] as TemplateData[]) || [];
 
-                const templateIndex = list.findIndex(t => t.name.toLowerCase() === name.toLowerCase());
+                const templateIndex = list.findIndex(tmpl => tmpl.name.toLowerCase() === name.toLowerCase());
 
                 if (templateIndex === -1) {
                     await interaction.reply({
-                        content: `Template **${name}** not found.`,
+                        content: t('tickettemplate.notFound', { name }),
                         flags: MessageFlags.Ephemeral
                     });
                     return;
@@ -164,7 +172,7 @@ export default {
                 });
 
                 await interaction.reply({
-                    content: `Template **${deletedTemplate.name}** has been deleted.`,
+                    content: t('tickettemplate.deleted', { name: deletedTemplate.name }),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -175,7 +183,7 @@ export default {
 
                 if (list.length === 0) {
                     await interaction.reply({
-                        content: 'No templates have been created yet. Use `/tickettemplate create` to create one.',
+                        content: t('tickettemplate.empty'),
                         flags: MessageFlags.Ephemeral
                     });
                     return;
@@ -183,14 +191,14 @@ export default {
 
                 const embed = new EmbedBuilder()
                     .setColor('#3498DB')
-                    .setTitle('Ticket Templates')
-                    .setDescription(`Total templates: ${list.length}`)
+                    .setTitle(t('tickettemplate.listTitle'))
+                    .setDescription(t('tickettemplate.listDescription', { count: list.length }))
                     .setTimestamp();
 
                 list.forEach(template => {
                     embed.addFields({
                         name: `${template.name} (${template.category})`,
-                        value: `Questions: ${template.questions.length || 0}\nCreated: <t:${Math.floor(template.createdAt / 1000)}:R>`,
+                        value: t('tickettemplate.listRow', { count: template.questions.length || 0, timestamp: Math.floor(template.createdAt / 1000) }),
                         inline: false
                     });
                 });
@@ -208,7 +216,7 @@ export default {
 
                 if (!template) {
                     await interaction.reply({
-                        content: `Template **${name}** not found.`,
+                        content: t('tickettemplate.notFound', { name }),
                         flags: MessageFlags.Ephemeral
                     });
                     return;
@@ -216,12 +224,12 @@ export default {
 
                 const embed = new EmbedBuilder()
                     .setColor('#3498DB')
-                    .setTitle(`Template: ${template.name}`)
+                    .setTitle(t('tickettemplate.viewTitle', { name: template.name }))
                     .addFields(
-                        { name: 'Category', value: template.category, inline: true },
-                        { name: 'Created', value: `<t:${Math.floor(template.createdAt / 1000)}:R>`, inline: true },
-                        { name: 'Questions', value: template.questions.length > 0 ? template.questions.join('\n') : 'None', inline: false },
-                        { name: 'Auto-Response', value: template.autoResponse, inline: false }
+                        { name: t('tickettemplate.fieldCategory'), value: template.category, inline: true },
+                        { name: t('tickettemplate.fieldCreated'), value: `<t:${Math.floor(template.createdAt / 1000)}:R>`, inline: true },
+                        { name: t('tickettemplate.fieldQuestions'), value: template.questions.length > 0 ? template.questions.join('\n') : t('tickettemplate.fieldNone'), inline: false },
+                        { name: t('tickettemplate.fieldAutoResponse'), value: template.autoResponse, inline: false }
                     )
                     .setTimestamp();
 

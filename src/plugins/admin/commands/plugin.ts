@@ -1,6 +1,7 @@
 import { safeError } from '../../../utils/safeError.js';
 import { requireOwner } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { MessageFlags } from 'discord.js';
 import type { } from '../../../types/plugin.js';
@@ -115,6 +116,12 @@ export default {
     async execute(interaction: ChatInputCommandInteraction) {
         try {
             await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'admin');
             const denial = await requireOwner(interaction);
             if (denial) {
                 return interaction.editReply(denial);
@@ -130,10 +137,10 @@ export default {
                 const discovered = manager.scanPlugins();
                 const embed = {
                     color: 0x00FF00,
-                    title: 'Plugin Manager',
+                    title: t('plugin.title'),
                     fields: [
                         {
-                            name: 'Loaded Plugins (' + plugins.length + ')',
+                            name: t('plugin.loaded', { count: plugins.length }),
                             value: plugins.map((p: any) => {
                                 const installed = manager.installedPlugins.get(p.id);
                                 const workerStatus = installed?.origin === 'installed'
@@ -141,12 +148,12 @@ export default {
                                     : '';
                                 return '**' + p.id + '** v' + p.version +
                                     ' — ' + (p.enabled ? '[ENABLED]' : '[DISABLED]') + workerStatus;
-                            }).join('\n') ?? 'None',
+                            }).join('\n') ?? t('plugin.none'),
                             inline: false
                         },
                         {
-                            name: 'Available on Disk',
-                            value: discovered.filter((d: string) => !plugins.find((p: any) => p.id === d)).join(', ') ?? 'All loaded',
+                            name: t('plugin.available'),
+                            value: discovered.filter((d: string) => !plugins.find((p: any) => p.id === d)).join(', ') ?? t('plugin.allLoaded'),
                             inline: false
                         }
                     ],
@@ -162,15 +169,15 @@ export default {
                     return interaction.editReply({
                         embeds: [{
                             color: 0x00FF00,
-                            title: '[SUCCESS] Plugin Enabled',
-                            description: '**' + name + '** has been enabled.',
+                            title: t('plugin.enabledTitle'),
+                            description: t('plugin.enabledDescription', { name }),
                             timestamp: new Date().toISOString()
                         }]
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
-                            color: 0xFF0000, title: '[ERROR]', description: safeError(err)
+                            color: 0xFF0000, title: t('plugin.errorTitle'), description: safeError(err)
                         }]
                     });
                 }
@@ -183,15 +190,15 @@ export default {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFFA500,
-                            title: '[SUCCESS] Plugin Disabled',
-                            description: '**' + name + '** has been disabled.',
+                            title: t('plugin.disabledTitle'),
+                            description: t('plugin.disabledDescription', { name }),
                             timestamp: new Date().toISOString()
                         }]
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
-                            color: 0xFF0000, title: '[ERROR]', description: safeError(err)
+                            color: 0xFF0000, title: t('plugin.errorTitle'), description: safeError(err)
                         }]
                     });
                 }
@@ -204,15 +211,15 @@ export default {
                     return interaction.editReply({
                         embeds: [{
                             color: 0x00FF00,
-                            title: '[SUCCESS] Plugin Reloaded',
-                            description: '**' + name + '** has been hot-reloaded.',
+                            title: t('plugin.reloadedTitle'),
+                            description: t('plugin.reloadedDescription', { name }),
                             timestamp: new Date().toISOString()
                         }]
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
-                            color: 0xFF0000, title: '[ERROR]', description: safeError(err)
+                            color: 0xFF0000, title: t('plugin.errorTitle'), description: safeError(err)
                         }]
                     });
                 }
@@ -227,15 +234,15 @@ export default {
                     return interaction.editReply({
                         embeds: [{
                             color: 0x00FF00,
-                            title: '[SUCCESS] Plugin Loaded',
-                            description: '**' + name + '** v' + (plugin.constructor as any).version + ' loaded and enabled.',
+                            title: t('plugin.loadedTitle'),
+                            description: t('plugin.loadedDescription', { name, version: (plugin.constructor as any).version }),
                             timestamp: new Date().toISOString()
                         }]
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
-                            color: 0xFF0000, title: '[ERROR]', description: safeError(err)
+                            color: 0xFF0000, title: t('plugin.errorTitle'), description: safeError(err)
                         }]
                     });
                 }
@@ -248,10 +255,8 @@ export default {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFFA500,
-                            title: '[WARNING] Confirm Plugin Install',
-                            description: 'Installing a third-party plugin runs arbitrary code from the registry. ' +
-                                'It will run isolated from the main process. ' +
-                                'Re-run with `confirm: true` to proceed.',
+                            title: t('plugin.confirmTitle'),
+                            description: t('plugin.confirmDescription'),
                             timestamp: new Date().toISOString()
                         }]
                     });
@@ -261,15 +266,15 @@ export default {
                     return interaction.editReply({
                         embeds: [{
                             color: 0x00FF00,
-                            title: '[SUCCESS] Plugin Installed',
-                            description: '**' + name + '** has been downloaded and enabled.',
+                            title: t('plugin.installedTitle'),
+                            description: t('plugin.installedDescription', { name }),
                             timestamp: new Date().toISOString()
                         }]
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
-                            color: 0xFF0000, title: '[ERROR]', description: safeError(err)
+                            color: 0xFF0000, title: t('plugin.errorTitle'), description: safeError(err)
                         }]
                     });
                 }
@@ -282,15 +287,15 @@ export default {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFFA500,
-                            title: '[SUCCESS] Plugin Uninstalled',
-                            description: '**' + name + '** has been removed.',
+                            title: t('plugin.uninstalledTitle'),
+                            description: t('plugin.uninstalledDescription', { name }),
                             timestamp: new Date().toISOString()
                         }]
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
-                            color: 0xFF0000, title: '[ERROR]', description: safeError(err)
+                            color: 0xFF0000, title: t('plugin.errorTitle'), description: safeError(err)
                         }]
                     });
                 }
@@ -307,12 +312,12 @@ export default {
                 return interaction.editReply({
                     embeds: [{
                         color: 0x00BFFF,
-                        title: 'Plugin Search: "' + query + '"',
+                        title: t('plugin.searchTitle', { query }),
                         description: results.length
                             ? results.map((r: any) => '**' + r.id + '** v' + r.version + ' — ' + (r.name ?? r.id)).join('\n')
-                            : 'No plugins found.',
+                            : t('plugin.noResults'),
                         fields: results.length ? [{
-                            name: 'Install',
+                            name: t('plugin.searchInstall'),
                             value: results.map((r: any) => '`/plugin install ' + r.id + '`').join('\n')
                         }] : [],
                         timestamp: new Date().toISOString()
@@ -328,15 +333,15 @@ export default {
                     return interaction.editReply({
                         embeds: [{
                             color: 0x00FF00,
-                            title: '[SUCCESS] Plugin Updated',
-                            description: '**' + name + '** has been re-downloaded and reloaded.',
+                            title: t('plugin.updatedTitle'),
+                            description: t('plugin.updatedDescription', { name }),
                             timestamp: new Date().toISOString()
                         }]
                     });
                 } catch (err) {
                     return interaction.editReply({
                         embeds: [{
-                            color: 0xFF0000, title: '[ERROR]', description: safeError(err)
+                            color: 0xFF0000, title: t('plugin.errorTitle'), description: safeError(err)
                         }]
                     });
                 }

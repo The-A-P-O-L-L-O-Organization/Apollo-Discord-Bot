@@ -4,6 +4,7 @@ import { getGuildData, updateGuildData, generateId, writeToSubDir } from '../../
 import { config } from '../../../config/config.js';
 import { logger } from '../../../utils/logger.js';
 import { MessageFlags } from 'discord.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'interactionCreate',
@@ -27,16 +28,23 @@ export default {
 };
 
 async function handleCreateTicket(interaction: ButtonInteraction): Promise<void> {
+    const resolvedLocale = await i18n.resolveLocale({
+        locale: interaction.locale ?? null,
+        guildLocale: interaction.guildLocale ?? null,
+        guildId: interaction.guildId ?? null
+    });
+    const t = i18n.getFixedT(resolvedLocale, 'tickets');
+
     const guildId = interaction.guild!.id;
     const userId = interaction.user.id;
 
     const ticketConfig = await getGuildData('tickets', guildId);
     const openTickets = (ticketConfig['openTickets'] as Record<string, unknown>[]) || [];
 
-    const existingTicket = openTickets.find(t => t['userId'] === userId);
+    const existingTicket = openTickets.find(ticketData => ticketData['userId'] === userId);
     if (existingTicket) {
         await interaction.reply({
-            content: `You already have an open ticket: <#${existingTicket['channelId'] as string}>`,
+            content: t('ticket.alreadyOpen', { channelId: existingTicket['channelId'] as string }),
             flags: MessageFlags.Ephemeral
         });
         return;
@@ -47,7 +55,7 @@ async function handleCreateTicket(interaction: ButtonInteraction): Promise<void>
     const botMember = interaction.guild!.members?.me;
     if (!botMember?.permissions?.has?.(PermissionFlagsBits.ManageChannels)) {
         await interaction.editReply({
-            content: 'I do not have permission to manage channels.'
+            content: t('ticket.noManagePermission')
         });
         return;
     }
@@ -113,7 +121,7 @@ async function handleCreateTicket(interaction: ButtonInteraction): Promise<void>
     } catch (error) {
         logger.error({ err: error, msg: '[ERROR] Failed to create ticket channel:' });
         await interaction.editReply({
-            content: 'Failed to create ticket channel. Please contact an administrator.'
+            content: t('ticket.createFailed')
         });
         return;
     }
@@ -123,17 +131,17 @@ async function handleCreateTicket(interaction: ButtonInteraction): Promise<void>
         .setTitle(`Ticket #${ticketNumber}`)
         .setDescription(config.tickets.welcomeMessage)
         .addFields(
-            { name: 'Created by', value: `<@${interaction.user.id}>`, inline: true },
-            { name: 'Ticket ID', value: `#${ticketNumber}`, inline: true }
+            { name: t('ticket.fieldCreatedBy'), value: `<@${interaction.user.id}>`, inline: true },
+            { name: t('ticket.fieldTicketId'), value: `#${ticketNumber}`, inline: true }
         )
         .setTimestamp()
-        .setFooter({ text: 'Use the button below or /closeticket to close this ticket' });
+        .setFooter({ text: t('panel.footer') });
 
     const row = new ActionRowBuilder<ButtonBuilder>()
         .addComponents(
             new ButtonBuilder()
                 .setCustomId('close_ticket')
-                .setLabel('Close Ticket')
+                .setLabel(t('ticket.buttonClose'))
                 .setStyle(ButtonStyle.Danger)
         );
 
@@ -151,7 +159,7 @@ async function handleCreateTicket(interaction: ButtonInteraction): Promise<void>
             ticketNumber,
             channelId: ticketChannel.id,
             userId,
-            reason: 'Opened via panel',
+            reason: t('panel.defaultReason'),
             createdAt: Date.now()
         });
         data['openTickets'] = currentOpenTickets;
@@ -160,23 +168,30 @@ async function handleCreateTicket(interaction: ButtonInteraction): Promise<void>
     });
 
     await interaction.editReply({
-        content: `Your ticket has been created: <#${ticketChannel.id}>`
+        content: t('ticket.created', { channelId: ticketChannel.id })
     }).catch((err: Error) => logger.warn({ err, msg: '[WARN] Failed to delete message:' }));
     return;
 }
 
 async function handleCloseTicket(interaction: ButtonInteraction): Promise<void> {
+    const resolvedLocale = await i18n.resolveLocale({
+        locale: interaction.locale ?? null,
+        guildLocale: interaction.guildLocale ?? null,
+        guildId: interaction.guildId ?? null
+    });
+    const t = i18n.getFixedT(resolvedLocale, 'tickets');
+
     const guildId = interaction.guild!.id;
     const channelId = interaction.channel!.id;
 
     const ticketConfig = await getGuildData('tickets', guildId);
     const openTickets = (ticketConfig['openTickets'] as Record<string, unknown>[]) || [];
 
-    const ticketIndex = openTickets.findIndex(t => t['channelId'] === channelId);
+    const ticketIndex = openTickets.findIndex(ticketData => ticketData['channelId'] === channelId);
 
     if (ticketIndex === -1) {
         await interaction.reply({
-            content: 'This channel is not a ticket channel.',
+            content: t('closeticket.notTicket'),
             flags: MessageFlags.Ephemeral
         });
         return;
@@ -191,14 +206,14 @@ async function handleCloseTicket(interaction: ButtonInteraction): Promise<void> 
 
     if (!isTicketOwner && !hasSupport && !isAdmin) {
         await interaction.reply({
-            content: 'You do not have permission to close this ticket.',
+            content: t('closeticket.noPermission'),
             flags: MessageFlags.Ephemeral
         });
         return;
     }
 
     await interaction.reply({
-        content: 'Closing ticket and saving transcript...'
+        content: t('closeticket.closing')
     });
 
     let allMessages: Message[] = [];
@@ -241,7 +256,7 @@ async function handleCloseTicket(interaction: ButtonInteraction): Promise<void> 
             tag: interaction.user.tag
         },
         reason: ticket['reason'],
-        closeReason: 'Closed via button',
+        closeReason: t('close.viaButton'),
         createdAt: ticket['createdAt'],
         closedAt: Date.now(),
         messageCount: allMessages.length,
@@ -277,7 +292,7 @@ async function handleCloseTicket(interaction: ButtonInteraction): Promise<void> 
             userId: ticket['userId'],
             closedBy: interaction.user.id,
             reason: ticket['reason'],
-            closeReason: 'Closed via button',
+            closeReason: t('close.viaButton'),
             createdAt: ticket['createdAt'],
             closedAt: Date.now(),
             transcriptFile: filename
@@ -294,10 +309,10 @@ async function handleCloseTicket(interaction: ButtonInteraction): Promise<void> 
     try {
         const dmEmbed = new EmbedBuilder()
             .setColor('#FF6B6B')
-            .setTitle('Ticket Closed')
-            .setDescription(`Your ticket #${ticket['ticketNumber'] as number} in **${interaction.guild!.name}** has been closed.`)
+            .setTitle(t('closeticket.dmTitle'))
+            .setDescription(t('closeticket.dmDescription', { number: ticket['ticketNumber'] as number, guild: interaction.guild!.name }))
             .addFields(
-                { name: 'Closed by', value: interaction.user.tag, inline: true }
+                { name: t('closeticket.fieldClosedBy'), value: interaction.user.tag, inline: true }
             )
             .setTimestamp();
 

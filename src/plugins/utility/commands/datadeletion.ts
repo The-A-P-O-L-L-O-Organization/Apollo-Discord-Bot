@@ -3,6 +3,7 @@ import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, But
 import { getAllGuildData, setGuildData, getUserData, setUserData } from '../../../utils/db.js';
 import { logSecurityEvent } from '../../../utils/securityLog.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 const GUILD_ARRAY_STORES: Record<string, { key: string; match: (item: unknown, userId: string) => boolean }> = {
     warnings: { key: 'warnings', match: (item, userId) => (item as { userId?: string }).userId === userId },
@@ -121,32 +122,30 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'utility');
             const userId = interaction.user.id;
 
             const confirmEmbed = new EmbedBuilder()
                 .setColor(0xFF0000)
-                .setTitle('Data Deletion Request')
-                .setDescription(
-                    'This will permanently delete all data the bot has stored about you across all servers, including:\n'
-                    + '- Warnings, strikes, and moderator notes\n'
-                    + '- XP, level, and message counts\n'
-                    + '- Reminders, polls, giveaways, and tags you created\n'
-                    + '- Tickets you opened or participated in\n\n'
-                    + '**This action is permanent and cannot be undone.**\n'
-                    + 'Discord message logs in channels are not affected (those belong to Discord, not this bot).'
-                )
-                .setFooter({ text: 'You can also contact the bot operator directly to request deletion.' })
+                .setTitle(t('datadeletion.confirmTitle'))
+                .setDescription(t('datadeletion.confirmDesc'))
+                .setFooter({ text: t('datadeletion.confirmFooter') })
                 .setTimestamp();
 
             const row = new ActionRowBuilder<ButtonBuilder>()
                 .addComponents(
                     new ButtonBuilder()
                         .setCustomId('data_deletion_accept')
-                        .setLabel('Delete My Data')
+                        .setLabel(t('datadeletion.accept'))
                         .setStyle(ButtonStyle.Danger),
                     new ButtonBuilder()
                         .setCustomId('data_deletion_cancel')
-                        .setLabel('Cancel')
+                        .setLabel(t('datadeletion.cancel'))
                         .setStyle(ButtonStyle.Secondary)
                 );
 
@@ -166,8 +165,8 @@ export default {
             } catch {
                 const timeoutEmbed = new EmbedBuilder()
                     .setColor(0x808080)
-                    .setTitle('Data Deletion Request Expired')
-                    .setDescription('No response received. Your data was not deleted.')
+                    .setTitle(t('datadeletion.expiredTitle'))
+                    .setDescription(t('datadeletion.expiredDesc'))
                     .setTimestamp();
 
                 try {
@@ -181,8 +180,8 @@ export default {
             if (buttonInteraction.customId === 'data_deletion_cancel') {
                 const cancelEmbed = new EmbedBuilder()
                     .setColor(0x808080)
-                    .setTitle('Data Deletion Cancelled')
-                    .setDescription('No data was deleted.')
+                    .setTitle(t('datadeletion.cancelledTitle'))
+                    .setDescription(t('datadeletion.cancelledDesc'))
                     .setTimestamp();
 
                 await buttonInteraction.update({ embeds: [cancelEmbed], components: [] });
@@ -192,8 +191,8 @@ export default {
             if (buttonInteraction.user.id !== userId) {
                 const rejectEmbed = new EmbedBuilder()
                     .setColor(0xFF0000)
-                    .setTitle('Action Rejected')
-                    .setDescription('This deletion request is not yours.')
+                    .setTitle(t('datadeletion.rejectedTitle'))
+                    .setDescription(t('datadeletion.rejectedDesc'))
                     .setTimestamp();
 
                 await buttonInteraction.update({ embeds: [rejectEmbed], components: [] });
@@ -215,9 +214,9 @@ export default {
             const resultText = buildDeletionSummary(summary);
             const resultEmbed = new EmbedBuilder()
                 .setColor(summary.total === 0 ? 0x808080 : 0x00FF00)
-                .setTitle(summary.total === 0 ? 'No Data Found' : 'Data Deletion Complete')
+                .setTitle(summary.total === 0 ? t('datadeletion.noneTitle') : t('datadeletion.doneTitle'))
                 .setDescription(resultText)
-                .setFooter({ text: 'A record of this request has been logged.' })
+                .setFooter({ text: t('datadeletion.logged') })
                 .setTimestamp();
 
             await buttonInteraction.update({ embeds: [resultEmbed], components: [] });

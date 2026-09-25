@@ -335,6 +335,22 @@ Use the mock factories in `tests/mocks/discord.js`:
 - New utilities must include unit tests for all exported functions
 - Bug fixes must include a regression test
 
+## Translating (Locale PRs)
+
+Locale pull requests touch only JSON files under `src/plugins/<id>/locales/`
+or `src/i18n/dictionaries/`. Read `docs/i18n.md` first: `en-US` is canonical,
+the namespace equals the plugin id, and `{{variable}}` placeholders must
+match exactly across locales.
+
+```bash
+pnpm lint:locales      # Required gate: parity, empty values, interpolation
+```
+
+Do not run `pnpm manifest` for a locales-only change: `**/locales/**` is
+excluded from `plugin-manifest.json` integrity hashes, so translator PRs
+never churn hashes. Run `pnpm manifest` only when you add, move, or delete
+non-locale source files.
+
 ## Submitting Changes
 
 ### Pull Request Process

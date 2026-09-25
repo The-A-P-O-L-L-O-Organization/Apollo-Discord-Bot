@@ -7,6 +7,7 @@ import { enqueueNsfwAnalysis } from '../../../utils/nsfwDetection.js';
 import { isRaidModeEnabled } from '../../../utils/raidDetection.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { config } from '../../../config/config.js';
+import { i18n } from '../../../i18n/index.js';
 import type { Message, Client, TextChannel } from 'discord.js';
 import { EmbedBuilder } from 'discord.js';
 
@@ -23,6 +24,8 @@ interface Violation {
 async function handleViolation(message: Message, type: string, reason: string, client: Client, deleteMessage = true, violationCooldownKey?: string): Promise<void> {
     const guildId = message.guild!.id;
     const userId = message.author.id;
+    const resolved = (await i18n.getGuildLocale(guildId)) ?? 'en-US';
+    const t = i18n.getFixedT(resolved, 'automod');
 
     // Track violation for analytics
     trackViolation(guildId, type);
@@ -63,13 +66,13 @@ async function handleViolation(message: Message, type: string, reason: string, c
     // Send warning to user in channel
     const warningEmbed = new EmbedBuilder()
         .setColor('#FFA500')
-        .setTitle('[!] Automod Warning')
-        .setDescription(`<@${message.author.id}>, your message was flagged by automod.`)
+        .setTitle(t('violation.title'))
+        .setDescription(t('violation.description', { user: message.author.id }))
         .addFields(
-            { name: 'Reason', value: reason, inline: true },
-            { name: 'Total Warnings', value: `${warningCount}`, inline: true }
+            { name: t('violation.fieldReason'), value: reason, inline: true },
+            { name: t('violation.fieldWarnings'), value: `${warningCount}`, inline: true }
         )
-        .setFooter({ text: 'This message will be deleted in 10 seconds' })
+        .setFooter({ text: t('violation.footer') })
         .setTimestamp();
 
     const warningMsg = await (message.channel as TextChannel).send({ embeds: [warningEmbed] });
@@ -147,6 +150,9 @@ export default {
         const automodConfig = await getAutomodConfig(guildId);
         if (!automodConfig.enabled) {return;}
 
+        const locale = (await i18n.getGuildLocale(guildId)) ?? 'en-US';
+        const t = i18n.getFixedT(locale, 'automod');
+
         // Check exemptions
         if (isExempt(message.member, automodConfig) || isChannelExempt(message.channel.id, automodConfig)) {
             return;
@@ -170,7 +176,7 @@ export default {
         if (member && automodConfig.minAccountAge > 0) {
             const isTooNew = checkAccountAge(message.author, automodConfig.minAccountAge);
             if (isTooNew) {
-                await handleViolation(message, 'new_account', `Account is less than ${automodConfig.minAccountAge} days old`, client, false);
+                await handleViolation(message, 'new_account', t('violation.reasonNewAccount', { days: automodConfig.minAccountAge }), client, false);
                 return;
             }
         }
@@ -182,7 +188,7 @@ export default {
             if (automodConfig.bannedWords && automodConfig.bannedWords.length > 0) {
                 const bannedWord = checkBannedWords(message.content, automodConfig.bannedWords || []);
                 if (bannedWord) {
-                    await handleViolation(message, 'banned_word', 'Used banned word', client, true);
+                    await handleViolation(message, 'banned_word', t('violation.reasonBannedWord'), client, true);
                     return;
                 }
             }
@@ -190,7 +196,7 @@ export default {
             if (automodConfig.filterInvites) {
                 const invite = checkInvites(message.content);
                 if (invite) {
-                    await handleViolation(message, 'invite_link', 'Posted Discord invite link', client, true);
+                    await handleViolation(message, 'invite_link', t('violation.reasonInvite'), client, true);
                     return;
                 }
             }
@@ -198,7 +204,7 @@ export default {
             if (automodConfig.filterLinks) {
                 const link = checkLinks(message.content);
                 if (link) {
-                    await handleViolation(message, 'external_link', 'Posted external link', client, true);
+                    await handleViolation(message, 'external_link', t('violation.reasonLink'), client, true);
                     return;
                 }
             }
@@ -206,7 +212,7 @@ export default {
             if (automodConfig.filterPhishingLinks) {
                 const phishing = checkPhishingLinks(message.content);
                 if (phishing) {
-                    await handleViolation(message, 'phishing_link', 'Phishing link detected', client, true);
+                    await handleViolation(message, 'phishing_link', t('violation.reasonPhishing'), client, true);
                     return;
                 }
             }
@@ -214,7 +220,7 @@ export default {
             if (automodConfig.maxMentions > 0) {
                 const mention = checkMentionSpam(message, automodConfig.maxMentions);
                 if (mention) {
-                    await handleViolation(message, 'mention_spam', `Exceeded ${automodConfig.maxMentions} mentions`, client, true);
+                    await handleViolation(message, 'mention_spam', t('violation.reasonMentions', { max: automodConfig.maxMentions }), client, true);
                     return;
                 }
             }
@@ -222,7 +228,7 @@ export default {
             if (automodConfig.maxCapsPercent < 100) {
                 const caps = checkCapsSpam(message.content, automodConfig.maxCapsPercent, automodConfig.minCapsLength || 10);
                 if (caps) {
-                    await handleViolation(message, 'caps_spam', `Message exceeded ${automodConfig.maxCapsPercent}% caps`, client, true);
+                    await handleViolation(message, 'caps_spam', t('violation.reasonCaps', { percent: automodConfig.maxCapsPercent }), client, true);
                     return;
                 }
             }
@@ -257,7 +263,7 @@ export default {
                     // Synchronous NSFW check (fallback)
                     const result = await checkMessageAttachments(guildId, message, true);
                     if (result?.shouldDelete) {
-                        await handleViolation(message, 'nsfw', 'NSFW content in attachment', client, true);
+                        await handleViolation(message, 'nsfw', t('violation.reasonNsfw'), client, true);
                         return;
                     }
                 }

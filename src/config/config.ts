@@ -3,6 +3,7 @@
 // Uses ApolloConfig interface from @types/config for type safety
 
 import type { ApolloConfig } from '../types/config.js';
+import { getCommonT } from '../utils/discordErrors.js';
 
 function parseIntSafe(value: string | undefined, defaultValue: number): number {
     const n = parseInt(value ?? '', 10);
@@ -316,3 +317,15 @@ const config = {
 
 export { config };
 export default config;
+
+export function getWelcomeMessage(locale = 'en-US'): string {
+    return getCommonT(locale)('welcome.message', { defaultValue: config.welcome.message });
+}
+
+export function getDefaultReason(locale = 'en-US'): string {
+    return getCommonT(locale)('modlog.defaultReason', { defaultValue: config.moderation.defaultReason });
+}
+
+export function getTicketWelcomeMessage(locale = 'en-US'): string {
+    return getCommonT(locale)('tickets.welcomeMessage', { defaultValue: config.tickets.welcomeMessage });
+}

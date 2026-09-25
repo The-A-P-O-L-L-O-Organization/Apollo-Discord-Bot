@@ -9,6 +9,7 @@ import { flushAnalyticsCritical, trackModAction } from '../../../utils/analytics
 import { canModerate } from '../../../utils/moderation.js';
 import { formatDuration, validateDuration } from '../../../utils/duration.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'massmute',
@@ -38,16 +39,18 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction) {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const userIdsStr = interaction.options.getString('user-ids');
             const durationStr = interaction.options.getString('duration');
-            const reason = interaction.options.getString('reason') ?? 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? t('massmute.noReason');
 
             if (!userIdsStr) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Missing User IDs',
-                    description: 'Please provide a comma-separated list of user IDs.',
+                    title: t('massmute.errorMissingUserIds'),
+                    description: t('massmute.pleaseProvideACommaSeparated'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -59,8 +62,8 @@ export default {
             if (!validation.valid || validation.durationMs == null) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Invalid Duration',
-                    description: validation.error ?? 'Invalid duration.',
+                    title: t('massmute.errorInvalidDuration'),
+                    description: validation.error ?? t('massmute.invalidDuration'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -75,8 +78,8 @@ export default {
             if (userIds.length === 0) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] No Valid User IDs',
-                    description: 'Please provide valid user IDs (17-19 digits each).',
+                    title: t('massmute.errorNoValidUserIds'),
+                    description: t('massmute.pleaseProvideValidUserIds'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -86,8 +89,8 @@ export default {
             if (userIds.length > 50) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Too Many Users',
-                    description: 'Maximum 50 users per mass mute.',
+                    title: t('massmute.errorTooManyUsers'),
+                    description: t('massmute.maximumUsersPerMassMute'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -98,8 +101,8 @@ export default {
             if (userIds.includes(interaction.user.id)) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Self Action',
-                    description: 'You cannot timeout yourself.',
+                    title: t('massmute.selfActionTitle'),
+                    description: t('massmute.selfActionDescription'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -109,8 +112,8 @@ export default {
             if (userIds.includes(interaction.client.user.id)) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Bot Protection',
-                    description: 'You cannot timeout the bot.',
+                    title: t('massmute.botProtectionTitle'),
+                    description: t('massmute.botProtectionDescription'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -132,18 +135,18 @@ export default {
                     const member = await fetchMember(interaction.guild!, userId);
 
                     if (!member) {
-                        results.failed.push({ userId, error: 'User not in server' });
+                        results.failed.push({ userId, error: t('massmute.userNotInServer') });
                         continue;
                     }
 
                     if (!member.moderatable) {
-                        results.failed.push({ userId, error: 'Cannot timeout (higher permissions or missing bot permissions)' });
+                        results.failed.push({ userId, error: t('massmute.cannotTimeoutHigherPermissionsOr') });
                         continue;
                     }
 
                     const hierarchy = canModerate(interaction.guild!, interaction.member, member);
                     if (!hierarchy.ok) {
-                        results.failed.push({ userId, error: hierarchy.reason ?? 'Hierarchy check failed.' });
+                        results.failed.push({ userId, error: hierarchy.reason ?? t('massmute.hierarchyTitle') });
                         continue;
                     }
 
@@ -188,18 +191,18 @@ export default {
             const successEmbed = {
                 color: results.failed.length === 0 ? 0x00FF00 : 0xFFFF00,
                 title: results.failed.length === 0 ? '[SUCCESS] Mass Mute Complete' : '[PARTIAL] Mass Mute Complete',
-                description: `Processed ${userIds.length} user(s). **${results.success.length} timed out**, **${results.failed.length} failed**.`,
+                description: t('massmute.processedCountUserSCount2', { count: userIds.length, count2: results.success.length, count3: results.failed.length }),
                 fields: [
-                    { name: '[INFO] Moderator', value: interaction.user.tag, inline: true },
-                    { name: '[INFO] Duration', value: durationDisplay, inline: true },
-                    { name: '[INFO] Reason', value: reason, inline: false }
+                    { name: t('massmute.fieldModerator'), value: interaction.user.tag, inline: true },
+                    { name: t('massmute.fieldDuration'), value: durationDisplay, inline: true },
+                    { name: t('massmute.fieldReason'), value: reason, inline: false }
                 ],
                 timestamp: new Date().toISOString()
             };
 
             if (results.success.length > 0) {
                 successEmbed.fields.push({
-                    name: `[SUCCESS] Timed Out (${results.success.length})`,
+                    name: t('massmute.successTimedOutCount', { count: results.success.length }),
                     value: results.success.map(r => `• ${r.userTag} (\`${r.userId}\`) - Case #${r.caseId}`).join('\n'),
                     inline: false
                 });
@@ -207,7 +210,7 @@ export default {
 
             if (results.failed.length > 0) {
                 successEmbed.fields.push({
-                    name: `[ERROR] Failed (${results.failed.length})`,
+                    name: t('massmute.errorFailedCount', { count: results.failed.length }),
                     value: results.failed.map(r => `• \`${r.userId}\` - ${r.error}`).join('\n'),
                     inline: false
                 });
@@ -217,7 +220,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] Mass mute by ${interaction.user.tag}: ${results.success.length} success, ${results.failed.length} failed. Duration: ${durationDisplay}. Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
+            const errorMessage = handleDiscordError(error) ?? t('massmute.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

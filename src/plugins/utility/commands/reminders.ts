@@ -2,6 +2,7 @@ import type { ChatInputCommandInteraction} from 'discord.js';
 import { EmbedBuilder, MessageFlags, SlashCommandBuilder } from 'discord.js';
 import { getUserReminders } from '../../../utils/reminderScheduler.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     // Reminders Command
@@ -14,6 +15,12 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'utility');
             const userId = interaction.user.id;
 
             // Get user's reminders
@@ -24,7 +31,7 @@ export default {
 
             if (activeReminders.length === 0) {
                 await interaction.reply({
-                    content: 'You have no active reminders.\n\nUse `/remind` to create one!',
+                    content: t('reminders.empty'),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -35,10 +42,10 @@ export default {
 
             const embed = new EmbedBuilder()
                 .setColor('#3498DB')
-                .setTitle('Your Reminders')
-                .setDescription(`You have ${activeReminders.length} active reminder(s)`)
+                .setTitle(t('reminders.title'))
+                .setDescription(t('reminders.description', { count: activeReminders.length }))
                 .setTimestamp()
-                .setFooter({ text: 'Use /cancelreminder <id> to cancel a reminder' });
+                .setFooter({ text: t('reminders.footer') });
 
             // Add each reminder as a field (max 25 fields in an embed)
             const maxReminderFields = activeReminders.length > 25 ? 24 : 25;
@@ -47,8 +54,8 @@ export default {
             for (const reminder of displayReminders) {
                 const timestamp = Math.floor(reminder.remindAt / 1000);
                 embed.addFields({
-                    name: `ID: \`${reminder.id}\``,
-                    value: `**Message:** ${reminder.message.substring(0, 200)}${reminder.message.length > 200 ? '...' : ''}\n**Reminds:** <t:${timestamp}:R> (<t:${timestamp}:f>)`,
+                    name: t('reminders.idLabel', { id: reminder.id }),
+                    value: t('reminders.value', { message: `${reminder.message.substring(0, 200)}${reminder.message.length > 200 ? '...' : ''}`, relative: `<t:${timestamp}:R>`, absolute: `<t:${timestamp}:f>` }),
                     inline: false
                 });
             }
@@ -56,7 +63,7 @@ export default {
             if (activeReminders.length > 25) {
                 embed.addFields({
                     name: '\u200B',
-                    value: `*...and ${activeReminders.length - 25} more reminder(s)*`,
+                    value: t('reminders.more', { count: activeReminders.length - 25 }),
                     inline: false
                 });
             }

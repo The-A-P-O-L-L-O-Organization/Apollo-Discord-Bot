@@ -1,6 +1,7 @@
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     // Joke Command
@@ -12,22 +13,18 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'utility');
             const jokes = [
-                { setup: 'Why don\'t scientists trust atoms?', punchline: 'Because they make up everything!' },
-                { setup: 'Why did the scarecrow win an award?', punchline: 'He was outstanding in his field!' },
-                { setup: 'What do you call a fake noodle?', punchline: 'An impasta!' },
-                { setup: 'Why don\'t eggs tell jokes?', punchline: 'They\'d crack each other up!' },
-                { setup: 'What do you call a bear with no teeth?', punchline: 'A gummy bear!' },
-                { setup: 'Why did the bicycle fall over?', punchline: 'Because it was two tired!' },
-                { setup: 'What do you call a dog that does magic?', punchline: 'A Labracadabrador!' },
-                { setup: 'Why did the math book look so sad?', punchline: 'Because it had too many problems!' },
-                { setup: 'What do you call a fish without eyes?', punchline: 'A fsh!' },
-                { setup: 'Why don\'t skeletons fight each other?', punchline: 'They don\'t have the guts!' },
-                { setup: 'What do you call cheese that isn\'t yours?', punchline: 'Nacho cheese!' },
-                { setup: 'Why did the cookie go to the doctor?', punchline: 'Because it was feeling crummy!' },
-                { setup: 'What do you call a lazy kangaroo?', punchline: 'A pouch potato!' },
-                { setup: 'Why was the computer cold?', punchline: 'It left its Windows open!' },
-                { setup: 'What do you call a talking dog?', punchline: 'A bark-bark!' }
+                { setup: t('joke.j0s'), punchline: t('joke.j0p') },
+                { setup: t('joke.j1s'), punchline: t('joke.j1p') },
+                { setup: t('joke.j2s'), punchline: t('joke.j2p') },
+                { setup: t('joke.j3s'), punchline: t('joke.j3p') },
+                { setup: t('joke.j4s'), punchline: t('joke.j4p') }
             ];
 
             const randomIndex = Math.floor(Math.random() * jokes.length);
@@ -36,11 +33,11 @@ export default {
 
             const jokeEmbed = {
                 color: 0x3498DB,
-                title: '😂 Random Joke',
+                title: t('joke.title'),
                 description: `**${joke.setup}**\n\n${joke.punchline}`,
                 fields: [
                     {
-                        name: '[INFO] Requested by',
+                        name: t('joke.requestedBy'),
                         value: interaction.user.tag,
                         inline: true
                     }
@@ -52,14 +49,20 @@ export default {
 
         } catch (error) {
             logger.error({ err: error, msg: '[ERROR] Joke command error' });
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'utility');
 
             const errorEmbed = {
                 color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred.',
+                title: t('joke.errorTitle'),
+                description: t('joke.errorDesc'),
                 fields: [
                     {
-                        name: '[ERROR] Details',
+                        name: t('joke.errorDetails'),
                         value: error instanceof Error ? error.message : 'Unknown error',
                         inline: true
                     }

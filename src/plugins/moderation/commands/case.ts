@@ -2,6 +2,7 @@ import { logger } from '../../../utils/logger.js';
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { PermissionsBitField, MessageFlags } from 'discord.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface CaseData {
     caseId: number;
@@ -149,6 +150,8 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction) {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const subcommand = interaction.options.getSubcommand();
 
@@ -169,11 +172,11 @@ export default {
 
             const errorEmbed = {
                 color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred while managing cases.',
+                title: t('case.commandFailedTitle'),
+                description: t('case.anErrorOccurredWhileManaging'),
                 fields: [
                     {
-                        name: '[ERROR] Details',
+                        name: t('case.errorDetails'),
                         value: (error as Error).message,
                         inline: true
                     }
@@ -191,6 +194,8 @@ export default {
 };
 
 async function handleViewCase(interaction: ChatInputCommandInteraction) {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+    const t = i18n.getFixedT(resolved, 'moderation');
     const caseId = interaction.options.getInteger('case-id')!;
 
     // Get case data
@@ -201,8 +206,8 @@ async function handleViewCase(interaction: ChatInputCommandInteraction) {
     if (!caseInfo) {
         const errorEmbed = {
             color: 0xFF0000,
-            title: '[ERROR] Case Not Found',
-            description: `No case with ID #${caseId} found.`,
+            title: t('case.errorCaseNotFound'),
+            description: t('case.noCaseWithIdCaseid', { caseId: caseId }),
             timestamp: new Date().toISOString()
         };
         return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -214,28 +219,28 @@ async function handleViewCase(interaction: ChatInputCommandInteraction) {
         title: `[CASE] Case #${caseInfo.caseId} - ${caseInfo.type.toUpperCase()}`,
         fields: [
             {
-                name: '[INFO] Target User',
+                name: t('case.infoTargetUser'),
                 value: `${caseInfo.targetTag}\n\`${caseInfo.targetId}\``,
                 inline: true
             },
             {
-                name: '[INFO] Moderator',
+                name: t('case.fieldModerator'),
                 value: `${caseInfo.moderatorTag}\n\`${caseInfo.moderatorId}\``,
                 inline: true
             },
             {
-                name: '[INFO] Status',
+                name: t('case.infoStatus'),
                 value: caseInfo.active ? '[OK] Active' : '[ERROR] Deleted',
                 inline: true
             },
             {
-                name: '[INFO] Reason',
+                name: t('case.fieldReason'),
                 value: caseInfo.reason,
                 inline: false
             },
             {
-                name: '[INFO] Date',
-                value: `<t:${Math.floor(caseInfo.timestamp / 1000)}:F>`,
+                name: t('case.infoDate'),
+                value: t('case.tValueF', { value: Math.floor(caseInfo.timestamp / 1000) }),
                 inline: true
             }
         ],
@@ -245,7 +250,7 @@ async function handleViewCase(interaction: ChatInputCommandInteraction) {
     // Add duration if present
     if (caseInfo.duration) {
         caseEmbed.fields.splice(3, 0, {
-            name: '[INFO] Duration',
+            name: t('case.fieldDuration'),
             value: caseInfo.duration,
             inline: true
         });
@@ -254,8 +259,8 @@ async function handleViewCase(interaction: ChatInputCommandInteraction) {
     // Add edited info if present
     if (caseInfo.editedBy) {
         caseEmbed.fields.push({
-            name: '[INFO] Last Edited',
-            value: `By: ${caseInfo.editedByTag}\nAt: <t:${Math.floor(caseInfo.editedAt! / 1000)}:R>`,
+            name: t('case.infoLastEdited'),
+            value: t('case.byValueNatTValue2', { value: caseInfo.editedByTag, value2: Math.floor(caseInfo.editedAt! / 1000) }),
             inline: false
         });
     }
@@ -264,6 +269,8 @@ async function handleViewCase(interaction: ChatInputCommandInteraction) {
 }
 
 async function handleSearchCases(interaction: ChatInputCommandInteraction) {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+    const t = i18n.getFixedT(resolved, 'moderation');
     const user = interaction.options.getUser('user')!;
     const typeFilter = interaction.options.getString('type');
 
@@ -282,8 +289,8 @@ async function handleSearchCases(interaction: ChatInputCommandInteraction) {
     if (userCases.length === 0) {
         const errorEmbed = {
             color: 0xFF0000,
-            title: '[INFO] No Cases Found',
-            description: `No ${typeFilter ? typeFilter + ' ' : ''}cases found for ${user.tag}.`,
+            title: t('case.infoNoCasesFound'),
+            description: t('case.noValueCasesFoundFor', { value: typeFilter ? typeFilter + ' ' : '', user: user.tag }),
             timestamp: new Date().toISOString()
         };
         return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -295,11 +302,11 @@ async function handleSearchCases(interaction: ChatInputCommandInteraction) {
     // Create embed
     const casesEmbed = {
         color: 0x0099FF,
-        title: `[CASES] Cases for ${user.tag}`,
-        description: `Total ${typeFilter ? typeFilter + ' ' : ''}cases: ${userCases.length}`,
+        title: t('case.casesCasesForUser', { user: user.tag }),
+        description: t('case.totalValueCasesCount', { value: typeFilter ? typeFilter + ' ' : '', count: userCases.length }),
         fields: userCases.slice(0, 10).map(c => ({
-            name: `Case #${c.caseId} - ${c.type.toUpperCase()}`,
-            value: `**Moderator:** ${c.moderatorTag}\n**Date:** <t:${Math.floor(c.timestamp / 1000)}:R>\n**Reason:** ${c.reason.substring(0, 100)}${c.reason.length > 100 ? '...' : ''}`,
+            name: t('case.caseCaseidValue', { caseId: c.caseId, value: c.type.toUpperCase() }),
+            value: t('case.moderatorModeratorNDateT', { moderator: c.moderatorTag, value: Math.floor(c.timestamp / 1000), reason: c.reason.substring(0, 100), count: c.reason.length > 100 ? '...' : '' }),
             inline: false
         })),
         footer: {
@@ -312,6 +319,8 @@ async function handleSearchCases(interaction: ChatInputCommandInteraction) {
 }
 
 async function handleEditCase(interaction: ChatInputCommandInteraction) {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+    const t = i18n.getFixedT(resolved, 'moderation');
     const caseId = interaction.options.getInteger('case-id')!;
     const newReason = interaction.options.getString('reason')!;
 
@@ -345,8 +354,8 @@ async function handleEditCase(interaction: ChatInputCommandInteraction) {
     if (result['error'] === 'not_found') {
         const errorEmbed = {
             color: 0xFF0000,
-            title: '[ERROR] Case Not Found',
-            description: `No case with ID #${caseId} found.`,
+            title: t('case.errorCaseNotFound2'),
+            description: t('case.noCaseWithIdCaseid2', { caseId: caseId }),
             timestamp: new Date().toISOString()
         };
         return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -355,8 +364,8 @@ async function handleEditCase(interaction: ChatInputCommandInteraction) {
     if (result['error'] === 'deleted') {
         const errorEmbed = {
             color: 0xFF0000,
-            title: '[ERROR] Case Deleted',
-            description: `Case #${caseId} has been deleted and cannot be edited.`,
+            title: t('case.errorCaseDeleted'),
+            description: t('case.caseCaseidHasBeenDeleted', { caseId: caseId }),
             timestamp: new Date().toISOString()
         };
         return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -365,21 +374,21 @@ async function handleEditCase(interaction: ChatInputCommandInteraction) {
     // Create success embed
     const successEmbed = {
         color: 0x00FF00,
-        title: '[SUCCESS] Case Updated',
-        description: `Case #${caseId} has been updated.`,
+        title: t('case.successCaseUpdated'),
+        description: t('case.caseCaseidHasBeenUpdated', { caseId: caseId }),
         fields: [
             {
-                name: '[INFO] Edited By',
+                name: t('case.infoEditedBy'),
                 value: interaction.user.tag,
                 inline: true
             },
             {
-                name: '[INFO] Case ID',
-                value: `#${caseId}`,
+                name: t('case.fieldCaseId'),
+                value: t('case.caseid', { caseId: caseId }),
                 inline: true
             },
             {
-                name: '[INFO] New Reason',
+                name: t('case.infoNewReason'),
                 value: newReason,
                 inline: false
             }
@@ -394,6 +403,8 @@ async function handleEditCase(interaction: ChatInputCommandInteraction) {
 }
 
 async function handleDeleteCase(interaction: ChatInputCommandInteraction) {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+    const t = i18n.getFixedT(resolved, 'moderation');
     const caseId = interaction.options.getInteger('case-id')!;
     const reason = interaction.options.getString('reason')!;
 
@@ -423,8 +434,8 @@ async function handleDeleteCase(interaction: ChatInputCommandInteraction) {
     if (result['error'] === 'not_found') {
         const errorEmbed = {
             color: 0xFF0000,
-            title: '[ERROR] Case Not Found',
-            description: `No case with ID #${caseId} found.`,
+            title: t('case.errorCaseNotFound3'),
+            description: t('case.noCaseWithIdCaseid3', { caseId: caseId }),
             timestamp: new Date().toISOString()
         };
         return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -433,8 +444,8 @@ async function handleDeleteCase(interaction: ChatInputCommandInteraction) {
     if (result['error'] === 'already_deleted') {
         const errorEmbed = {
             color: 0xFF0000,
-            title: '[ERROR] Already Deleted',
-            description: `Case #${caseId} has already been deleted.`,
+            title: t('case.errorAlreadyDeleted'),
+            description: t('case.caseCaseidHasAlreadyBeen', { caseId: caseId }),
             timestamp: new Date().toISOString()
         };
         return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -443,21 +454,21 @@ async function handleDeleteCase(interaction: ChatInputCommandInteraction) {
     // Create success embed
     const successEmbed = {
         color: 0x00FF00,
-        title: '[SUCCESS] Case Deleted',
-        description: `Case #${caseId} has been marked as deleted.`,
+        title: t('case.successCaseDeleted'),
+        description: t('case.caseCaseidHasBeenMarked', { caseId: caseId }),
         fields: [
             {
-                name: '[INFO] Deleted By',
+                name: t('case.infoDeletedBy'),
                 value: interaction.user.tag,
                 inline: true
             },
             {
-                name: '[INFO] Case ID',
-                value: `#${caseId}`,
+                name: t('case.fieldCaseId2'),
+                value: t('case.caseid2', { caseId: caseId }),
                 inline: true
             },
             {
-                name: '[INFO] Reason',
+                name: t('case.fieldReason2'),
                 value: reason,
                 inline: false
             }
@@ -472,6 +483,8 @@ async function handleDeleteCase(interaction: ChatInputCommandInteraction) {
 }
 
 async function handleListCases(interaction: ChatInputCommandInteraction) {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+    const t = i18n.getFixedT(resolved, 'moderation');
     const limit = interaction.options.getInteger('limit') ?? 10;
 
     // Get case data
@@ -484,8 +497,8 @@ async function handleListCases(interaction: ChatInputCommandInteraction) {
     if (activeCases.length === 0) {
         const errorEmbed = {
             color: 0xFF0000,
-            title: '[INFO] No Cases Found',
-            description: 'No active cases found for this server.',
+            title: t('case.infoNoCasesFound2'),
+            description: t('case.noActiveCasesFoundFor'),
             timestamp: new Date().toISOString()
         };
         return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -497,11 +510,11 @@ async function handleListCases(interaction: ChatInputCommandInteraction) {
     // Create embed
     const casesEmbed = {
         color: 0x0099FF,
-        title: '[CASES] Recent Moderation Cases',
-        description: `Total active cases: ${activeCases.length}`,
+        title: t('case.casesRecentModerationCases'),
+        description: t('case.totalActiveCasesCount', { count: activeCases.length }),
         fields: activeCases.slice(0, limit).map(c => ({
-            name: `Case #${c.caseId} - ${c.type.toUpperCase()}`,
-            value: `**Target:** ${c.targetTag}\n**Moderator:** ${c.moderatorTag}\n**Date:** <t:${Math.floor(c.timestamp / 1000)}:R>\n**Reason:** ${c.reason.substring(0, 80)}${c.reason.length > 80 ? '...' : ''}`,
+            name: t('case.caseCaseidValue2', { caseId: c.caseId, value: c.type.toUpperCase() }),
+            value: t('case.targetTargetNModeratorModerator', { target: c.targetTag, moderator: c.moderatorTag, value: Math.floor(c.timestamp / 1000), reason: c.reason.substring(0, 80), count: c.reason.length > 80 ? '...' : '' }),
             inline: false
         })),
         footer: {

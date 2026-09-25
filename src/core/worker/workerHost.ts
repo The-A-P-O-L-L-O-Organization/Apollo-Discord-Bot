@@ -1,11 +1,14 @@
 import { fork, type ForkOptions, type ChildProcess } from 'node:child_process';
 import { logSecurityEvent } from '../../utils/securityLog.js';
+import { i18n } from '../../i18n/index.js';
+import { DEFAULT_LOCALE, isSupported } from '../../i18n/supportedLocales.js';
+import { isOversize } from './rpc.js';
 import type { RPCMessage } from './rpc.js';
 
 const MAX_CONSECUTIVE_CRASHES = 5;
 const HEALTHY_WINDOW_MS = 10 * 60 * 1000;
 
-const HIGH_RISK_CAPABILITIES = new Set([
+export const HIGH_RISK_CAPABILITIES = new Set([
     'api:sendMessage',
     'api:commandReply',
     'events:messageCreate',
@@ -34,6 +37,20 @@ export interface WorkerHostOptions {
     log?: (msg: string) => void;
     now?: () => number;
     backoff?: (attempt: number) => number;
+}
+
+export interface I18nCallPayload {
+    key: string;
+    locale?: unknown;
+    ns?: unknown;
+    vars?: Record<string, string | number | boolean>;
+    count?: number;
+}
+
+export interface I18nCallResult {
+    ok: boolean;
+    text?: string;
+    error?: string;
 }
 
 type ForkFn = (modulePath: string, args: string[], options: ForkOptions) => ChildProcess;
@@ -187,6 +204,26 @@ export class WorkerHost {
 
     getWorker(pluginId: string): WorkerInfo | undefined {
         return this._workers.get(pluginId);
+    }
+
+    async handleI18nCall(pluginId: string, payload: I18nCallPayload): Promise<I18nCallResult> {
+        const worker = this._workers.get(pluginId);
+        if (worker?.granted.includes('api:i18n') !== true) {
+            return { ok: false, error: `Capability 'api:i18n' is not granted to plugin '${pluginId}'.` };
+        }
+        if (isOversize(payload)) {
+            return { ok: false, error: 'Payload exceeds RPC size limit.' };
+        }
+        const key = typeof payload.key === 'string' ? payload.key : '';
+        const ns = typeof payload.ns === 'string' && payload.ns.length > 0 ? payload.ns : 'common';
+        const locale = typeof payload.locale === 'string' && isSupported(payload.locale) ? payload.locale : DEFAULT_LOCALE;
+        await i18n.init();
+        const t = i18n.getFixedT(locale, ns);
+        const text = t(key, {
+            ...(payload.vars ?? {}),
+            ...(typeof payload.count === 'number' ? { count: payload.count } : {})
+        });
+        return { ok: true, text };
     }
 
     getAllWorkers(): Map<string, WorkerInfo> {

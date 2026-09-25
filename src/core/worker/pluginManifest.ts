@@ -11,7 +11,8 @@ export const KNOWN_CAPABILITIES = new Set<string>([
     'api:sendMessage',
     'api:getOwnConfig',
     'api:setOwnConfig',
-    'api:commandReply'
+    'api:commandReply',
+    'api:i18n'
 ]);
 
 export function normalizeCapabilities(capabilities: unknown): string[] {

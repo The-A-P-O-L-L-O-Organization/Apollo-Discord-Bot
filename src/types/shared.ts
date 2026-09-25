@@ -66,6 +66,7 @@ export interface SerializedInteraction {
     appPermissions: string | null;
     locale: string;
     guildLocale: string | null;
+    resolvedLocale: string;
     entitlements: unknown[];
 }
 
@@ -290,6 +291,7 @@ export interface InterlinkContext {
     sourceBotId: string;
     sourcePlugin?: string;
     timestamp: number;
+    locale?: string;
 }
 
 // ============================================

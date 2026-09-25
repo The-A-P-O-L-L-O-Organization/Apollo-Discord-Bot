@@ -26,6 +26,32 @@ interface ProcessLike {
     on: (event: string, listener: (msg: unknown) => void) => void;
 }
 
+export interface WorkerTranslationRequest {
+    key: string;
+    locale?: string;
+    ns?: string;
+    vars?: Record<string, string | number | boolean>;
+    count?: number;
+}
+
+export async function requestWorkerTranslation(
+    host: Pick<ChildHost, 'call'>,
+    request: WorkerTranslationRequest
+): Promise<string> {
+    const response = await host.call('api:i18n', {
+        key: request.key,
+        locale: request.locale ?? 'en-US',
+        ns: request.ns ?? 'common',
+        ...(request.vars !== undefined ? { vars: request.vars } : {}),
+        ...(request.count !== undefined ? { count: request.count } : {})
+    });
+    const text = response['text'];
+    if (response.ok === true && typeof text === 'string') {
+        return text;
+    }
+    return request.key;
+}
+
 export async function runChild({ pluginDir, env, processLike = process as unknown as ProcessLike, loader }: {
     pluginDir: string;
     env: NodeJS.ProcessEnv;

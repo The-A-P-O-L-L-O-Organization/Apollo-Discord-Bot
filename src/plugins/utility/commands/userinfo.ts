@@ -2,6 +2,7 @@ import type { ChatInputCommandInteraction} from 'discord.js';
 import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'userinfo',
@@ -19,13 +20,19 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'utility');
             const targetUser = interaction.options.getUser('user') ?? interaction.user;
             const member = interaction.guild!.members.cache.get(targetUser.id) ??
                 await interaction.guild!.members.fetch(targetUser.id);
 
             if (!member) {
                 await interaction.reply({
-                    content: '[ERROR] Could not find that user in this server.',
+                    content: t('userinfo.notFound'),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -40,20 +47,20 @@ export default {
             const status = member.presence?.status ?? 'offline';
             let statusIndicator: string;
             if (status === 'online') {
-                statusIndicator = '[ONLINE]';
+                statusIndicator = t('userinfo.online');
             } else if (status === 'idle') {
-                statusIndicator = '[IDLE]';
+                statusIndicator = t('userinfo.idle');
             } else if (status === 'dnd') {
-                statusIndicator = '[DND]';
+                statusIndicator = t('userinfo.dnd');
             } else {
-                statusIndicator = '[OFFLINE]';
+                statusIndicator = t('userinfo.offline');
             }
 
             const topRole = member.roles.highest;
             const roleCount = member.roles.cache.size - 1;
 
             // Calculate join position
-            let joinPosition = 'Unknown';
+            let joinPosition = t('userinfo.unknownPos');
             if (member.joinedTimestamp) {
                 const sortedMembers = interaction.guild!.members.cache
                     .filter(m => m.joinedTimestamp)
@@ -67,53 +74,53 @@ export default {
 
             const userInfoEmbed = new EmbedBuilder()
                 .setColor('#0099FF')
-                .setTitle(`User Information - ${statusIndicator}`)
+                .setTitle(t('userinfo.title', { status: statusIndicator }))
                 .setThumbnail(targetUser.displayAvatarURL({ size: 256 }))
                 .addFields(
                     {
-                        name: 'Username',
+                        name: t('userinfo.username'),
                         value: `**${targetUser.username}**${targetUser.discriminator !== '0' ? `#${targetUser.discriminator}` : ''}`,
                         inline: true
                     },
                     {
-                        name: 'User ID',
+                        name: t('userinfo.userId'),
                         value: `\`${targetUser.id}\``,
                         inline: true
                     },
                     {
-                        name: 'Bot',
-                        value: targetUser.bot ? 'Yes' : 'No',
+                        name: t('userinfo.bot'),
+                        value: targetUser.bot ? t('userinfo.yes') : t('userinfo.no'),
                         inline: true
                     },
                     {
-                        name: 'Account Created',
-                        value: `<t:${Math.floor(targetUser.createdTimestamp / 1000)}:F>\n(${daysOld} days ago)`,
+                        name: t('userinfo.created'),
+                        value: `<t:${Math.floor(targetUser.createdTimestamp / 1000)}:F>\n(${t('userinfo.daysAgo', { count: daysOld })})`,
                         inline: true
                     },
                     {
-                        name: 'Joined Server',
-                        value: `<t:${Math.floor((member.joinedTimestamp ?? Date.now()) / 1000)}:F>\n(${daysInServer} days ago)`,
+                        name: t('userinfo.joined'),
+                        value: `<t:${Math.floor((member.joinedTimestamp ?? Date.now()) / 1000)}:F>\n(${t('userinfo.daysAgo', { count: daysInServer })})`,
                         inline: true
                     },
                     {
-                        name: 'Status',
+                        name: t('userinfo.status'),
                         value: statusIndicator,
                         inline: true
                     }
                 )
                 .addFields(
                     {
-                        name: 'Top Role',
+                        name: t('userinfo.topRole'),
                         value: topRole.toString(),
                         inline: true
                     },
                     {
-                        name: 'Role Count',
-                        value: roleCount > 0 ? `${roleCount} role(s)` : 'None',
+                        name: t('userinfo.roleCount'),
+                        value: roleCount > 0 ? t('userinfo.rolesValue', { count: roleCount }) : t('userinfo.none'),
                         inline: true
                     },
                     {
-                        name: 'Position',
+                        name: t('userinfo.position'),
                         value: joinPosition,
                         inline: true
                     }
@@ -124,7 +131,7 @@ export default {
             }
 
             userInfoEmbed.setFooter({
-                text: `Requested by ${interaction.user.tag}`,
+                text: t('userinfo.requestedBy', { user: interaction.user.tag }),
                 iconURL: interaction.user.displayAvatarURL()
             }).setTimestamp();
 

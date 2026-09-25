@@ -7,6 +7,7 @@ import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { addTempban } from '../../../utils/tempbanScheduler.js';
 import { createModCase } from './case.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'tempban',
@@ -44,17 +45,19 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction) {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const user = interaction.options.getUser('user');
             const durationStr = interaction.options.getString('duration') ?? '';
-            const reason = interaction.options.getString('reason') ?? 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? t('tempban.noReason');
             const deleteDays = interaction.options.getInteger('delete-days') ?? 0;
 
             if (!user) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Missing User',
-                    description: 'Please specify a valid user to ban.',
+                    title: t('tempban.missingUserTitle'),
+                    description: t('tempban.missingUserDescription'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -65,8 +68,8 @@ export default {
             if (!match) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Invalid Duration',
-                    description: 'Invalid duration format. Use: 1m (minutes), 1h (hours), 1d (days), 1w (weeks)',
+                    title: t('tempban.errorInvalidDuration'),
+                    description: t('tempban.invalidDurationFormatUse1m'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -104,8 +107,8 @@ export default {
             if (durationMs < 60000) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Duration Too Short',
-                    description: 'Minimum tempban duration is 1 minute.',
+                    title: t('tempban.errorDurationTooShort'),
+                    description: t('tempban.minimumTempbanDurationIsMinute'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -117,8 +120,8 @@ export default {
             if (member && !member.bannable) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Cannot Ban',
-                    description: 'I cannot ban this user. They may have higher permissions than me.',
+                    title: t('tempban.errorCannotBan'),
+                    description: t('tempban.iCannotBanThisUser'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -128,8 +131,8 @@ export default {
             if (user.id === interaction.user.id) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Self Action',
-                    description: 'You cannot ban yourself.',
+                    title: t('tempban.selfActionTitle'),
+                    description: t('tempban.selfActionDescription'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -139,8 +142,8 @@ export default {
             if (user.id === interaction.client.user.id) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Bot Protection',
-                    description: 'You cannot ban the bot.',
+                    title: t('tempban.botProtectionTitle'),
+                    description: t('tempban.botProtectionDescription'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -178,16 +181,16 @@ export default {
 
             const successEmbed = {
                 color: 0x00FF00,
-                title: '[SUCCESS] User Temporarily Banned',
-                description: `${user.tag} has been temporarily banned from the server.`,
+                title: t('tempban.successUserTemporarilyBanned'),
+                description: t('tempban.userHasBeenTemporarilyBanned', { user: user.tag }),
                 fields: [
-                    { name: '[INFO] Moderator', value: interaction.user.tag, inline: true },
-                    { name: '[INFO] Duration', value: durationText, inline: true },
-                    { name: '[INFO] Case ID', value: `#${caseId}`, inline: true },
-                    { name: '[INFO] Reason', value: reason, inline: false },
-                    { name: '[INFO] Unban Time', value: `<t:${Math.floor(unbanAt / 1000)}:F>\n(<t:${Math.floor(unbanAt / 1000)}:R>)`, inline: false },
-                    { name: '[INFO] User ID', value: user.id, inline: true },
-                    { name: '[INFO] Delete Days', value: `${deleteDays} days`, inline: true }
+                    { name: t('tempban.fieldModerator'), value: interaction.user.tag, inline: true },
+                    { name: t('tempban.fieldDuration'), value: durationText, inline: true },
+                    { name: t('tempban.fieldCaseId'), value: t('tempban.caseid', { caseId: caseId }), inline: true },
+                    { name: t('tempban.fieldReason'), value: reason, inline: false },
+                    { name: t('tempban.infoUnbanTime'), value: t('tempban.tValueFNT', { value: Math.floor(unbanAt / 1000), value2: Math.floor(unbanAt / 1000) }), inline: false },
+                    { name: t('tempban.fieldUserId'), value: user.id, inline: true },
+                    { name: t('tempban.infoDeleteDays'), value: t('tempban.deletedaysDays', { deleteDays: deleteDays }), inline: true }
                 ],
                 timestamp: new Date().toISOString()
             };
@@ -210,7 +213,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] User ${user.tag} was temporarily banned by ${interaction.user.tag}. Duration: ${durationText}. Reason: ${reason}. Case ID: ${caseId}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
+            const errorMessage = handleDiscordError(error) ?? t('tempban.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

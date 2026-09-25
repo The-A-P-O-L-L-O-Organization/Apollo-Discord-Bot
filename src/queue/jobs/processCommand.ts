@@ -14,6 +14,7 @@ import { registerHandler } from '../jobHandler.js';
 import { createQueue } from '../queue.js';
 import { recordCommand, recordCommandDuration, recordError } from '../../utils/metrics.js';
 import { logger } from '../../utils/logger.js';
+import { i18n } from '../../i18n/index.js';
 import { encode } from 'msgpackr';
 import type { Job } from 'bullmq';
 
@@ -105,6 +106,9 @@ export async function enqueueCommand(_interaction: {
     createdTimestamp: number;
     guildId: string | null;
     channelId: string;
+    locale?: string | null;
+    guildLocale?: string | null;
+    resolvedLocale?: string | null;
     user: { id: string };
     member?: { permissions?: { toArray?: () => string[] }; roles?: { cache?: Map<string, { id: string }> } };
     options: { data?: { name: string; type: number; value: unknown; focused?: boolean; options?: unknown[] }[] };
@@ -115,6 +119,11 @@ export async function enqueueCommand(_interaction: {
     const data = serializeInteraction(_interaction);
     // @ts-expect-error pluginId added to serialized interaction
     data.pluginId = command.pluginId ?? null;
+    data.resolvedLocale = _interaction.resolvedLocale ?? await i18n.resolveLocale({
+        locale: _interaction.locale ?? null,
+        guildLocale: _interaction.guildLocale ?? null,
+        guildId: _interaction.guildId
+    });
 
     // Sign job data with HMAC
     const signedData = signJobData(data as unknown as Record<string, unknown>);
@@ -141,6 +150,15 @@ export default function register(): void {
 
         logger.info(`[Worker] Processing /${String(data['commandName'])} in guild ${String(data['guildId'])}`);
 
+        if (typeof data['resolvedLocale'] !== 'string' || data['resolvedLocale'].length === 0) {
+            data['resolvedLocale'] = await i18n.resolveLocale({
+                locale: typeof data['locale'] === 'string' ? data['locale'] : null,
+                guildLocale: typeof data['guildLocale'] === 'string' ? data['guildLocale'] : null,
+                guildId: typeof data['guildId'] === 'string' ? data['guildId'] : null
+            });
+        }
+        const lng = data['resolvedLocale'] as string;
+
         const r = getRest();
 
         const interaction = new RemoteInteraction(data, r, {
@@ -158,8 +176,8 @@ export default function register(): void {
                 await interaction.editReply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: 'Error',
-                        description: `\`/${String(data['commandName'])}\` not found on worker.`
+                        title: i18n.t('common:errorTitle', { lng, defaultValue: 'Error' }),
+                        description: i18n.t('common:queue.commandNotFound', { lng, defaultValue: `\`/${String(data['commandName'])}\` not found on worker.` })
                     }]
                 });
                 recordCommand(String(data['commandName']), String(data['guildId']), 'not_found');
@@ -170,8 +188,8 @@ export default function register(): void {
                 await interaction.editReply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: 'Error',
-                        description: `\`/${String(data['commandName'])}\` has invalid execute method.`
+                        title: i18n.t('common:errorTitle', { lng, defaultValue: 'Error' }),
+                        description: i18n.t('common:queue.invalidCommand', { lng, defaultValue: `\`/${String(data['commandName'])}\` has invalid execute method.` })
                     }]
                 });
                 recordCommand(String(data['commandName']), String(data['guildId']), 'invalid');
@@ -189,8 +207,8 @@ export default function register(): void {
 
             const errorEmbed = {
                 color: 0xFF0000,
-                title: 'Error',
-                description: 'An error occurred while executing this command.',
+                title: i18n.t('common:errorTitle', { lng, defaultValue: 'Error' }),
+                description: i18n.t('common:error', { lng, defaultValue: 'An error occurred while executing this command.' }),
                 fields: [{ name: 'Error', value: (error as Error).message ?? 'Unknown error' }],
                 timestamp: new Date().toISOString()
             };

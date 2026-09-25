@@ -1,6 +1,7 @@
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'apollo',
@@ -40,25 +41,31 @@ export default {
 };
 
 async function handleInfo(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolvedLocale = await i18n.resolveLocale({
+        locale: interaction.locale ?? null,
+        guildLocale: interaction.guildLocale ?? null,
+        guildId: interaction.guildId ?? null
+    });
+    const t = i18n.getFixedT(resolvedLocale, 'utility');
     const infoEmbed = new EmbedBuilder()
         .setColor('#5865F2')
-        .setTitle('The A.P.O.L.L.O Organization')
-        .setDescription('An open-source organization dedicated to building innovative, modular, and scalable Discord bots and tools.')
+        .setTitle(t('apollo.infoTitle'))
+        .setDescription(t('apollo.infoDesc'))
         .addFields(
             {
-                name: 'Purpose',
-                value: 'Providing high-quality, community-driven solutions for Discord server management and automation.',
+                name: t('apollo.purpose'),
+                value: t('apollo.purposeValue'),
                 inline: false
             },
             {
-                name: 'Links',
+                name: t('apollo.links'),
                 value: '[GitHub Organization](https://github.com/The-A-P-O-L-L-O-Organization)\n[Documentation](https://the-a-p-o-l-l-o-organization.github.io/Apollo-Org-Docs/)',
                 inline: false
             }
         )
         .setTimestamp()
         .setFooter({
-            text: `Requested by ${interaction.user.tag}`,
+            text: t('apollo.requestedBy', { user: interaction.user.tag }),
             iconURL: interaction.user.displayAvatarURL({ extension: 'png', size: 256 })
         });
 
@@ -66,13 +73,19 @@ async function handleInfo(interaction: ChatInputCommandInteraction): Promise<voi
 }
 
 async function handleDocs(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolvedLocale = await i18n.resolveLocale({
+        locale: interaction.locale ?? null,
+        guildLocale: interaction.guildLocale ?? null,
+        guildId: interaction.guildId ?? null
+    });
+    const t = i18n.getFixedT(resolvedLocale, 'utility');
     const docsEmbed = new EmbedBuilder()
         .setColor('#5865F2')
-        .setTitle('Apollo Organization Documentation')
-        .setDescription('My documentation can be found [here](https://the-a-p-o-l-l-o-organization.github.io/Apollo-Org-Docs/)')
+        .setTitle(t('apollo.docsTitle'))
+        .setDescription(t('apollo.docsDesc'))
         .setTimestamp()
         .setFooter({
-            text: `Requested by ${interaction.user.tag}`,
+            text: t('apollo.requestedBy', { user: interaction.user.tag }),
             iconURL: interaction.user.displayAvatarURL({ extension: 'png', size: 256 })
         });
 

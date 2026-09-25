@@ -5,6 +5,7 @@ import { logger } from '../../../utils/logger.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { canModerate } from '../../../utils/moderation.js';
 import { safeError } from '../../../utils/safeError.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'purge',
@@ -37,16 +38,18 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction) {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const amount = interaction.options.getInteger('amount') ?? 0;
             const targetUser = interaction.options.getUser('user');
-            const reason = interaction.options.getString('reason') ?? 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? t('purge.noReason');
 
             if (!amount || amount < 1 || amount > 100) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Invalid Amount',
-                    description: 'Please specify a number between 1 and 100.',
+                    title: t('purge.errorInvalidAmount'),
+                    description: t('purge.pleaseSpecifyANumberBetween'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -59,8 +62,8 @@ export default {
                 await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] No Channel',
-                        description: 'This command must be used in a channel.',
+                        title: t('purge.errorNoChannel'),
+                        description: t('purge.thisCommandMustBeUsed'),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -73,8 +76,8 @@ export default {
             if (!channelPerms?.has(PermissionsBitField.Flags.ManageMessages)) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Missing Permissions',
-                    description: 'I do not have permission to delete messages in this channel.',
+                    title: t('purge.errorMissingPermissions'),
+                    description: t('purge.iDoNotHavePermission'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -94,7 +97,7 @@ export default {
                 if (!hierarchy.ok) {
                     const errorEmbed = {
                         color: 0xFF0000,
-                        title: '[ERROR] Hierarchy Check Failed',
+                        title: t('purge.hierarchyTitle'),
                         description: hierarchy.reason,
                         timestamp: new Date().toISOString()
                     };
@@ -106,7 +109,7 @@ export default {
             if (messages.size === 0) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] No Messages Found',
+                    title: t('purge.errorNoMessagesFound'),
                     description: targetUser
                         ? `No messages from ${targetUser.tag} found to delete.`
                         : 'No messages found to delete.',
@@ -120,7 +123,7 @@ export default {
 
             if (deletedMessages.size === 0 && messages.size > 0) {
                 await interaction.reply({
-                    content: 'Could not delete messages - they may be older than 14 days.',
+                    content: t('purge.couldNotDeleteMessagesThey'),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -128,19 +131,19 @@ export default {
 
             const successEmbed = {
                 color: 0x00FF00,
-                title: '[SUCCESS] Messages Deleted',
-                description: `Successfully deleted ${deletedMessages.size} message(s).`,
+                title: t('purge.successMessagesDeleted'),
+                description: t('purge.successfullyDeletedCountMessageS', { count: deletedMessages.size }),
                 fields: [
-                    { name: '[INFO] Moderator', value: interaction.user.tag, inline: true },
-                    { name: '[INFO] Channel', value: manageableChannel.name ?? 'Unknown', inline: true },
-                    { name: '[INFO] Reason', value: reason, inline: true }
+                    { name: t('purge.fieldModerator'), value: interaction.user.tag, inline: true },
+                    { name: t('purge.infoChannel'), value: manageableChannel.name ?? t('purge.unknown'), inline: true },
+                    { name: t('purge.fieldReason'), value: reason, inline: true }
                 ],
                 timestamp: new Date().toISOString()
             };
 
             if (targetUser) {
                 successEmbed.fields.splice(3, 0, {
-                    name: '[INFO] Filtered User',
+                    name: t('purge.infoFilteredUser'),
                     value: targetUser.tag,
                     inline: true
                 });
@@ -165,11 +168,11 @@ export default {
         } catch (error) {
             const errorEmbed = {
                 color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred while trying to delete messages.',
+                title: t('purge.commandFailedTitle'),
+                description: t('purge.commandFailedDescription'),
                 fields: [
                     {
-                        name: '[ERROR] Details',
+                        name: t('purge.errorDetails'),
                         value: safeError(error),
                         inline: true
                     }

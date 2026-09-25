@@ -1,10 +1,9 @@
-// Ping Command
-// Measures bot latency and response time
 import { logger } from '../../../utils/logger.js';
 
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { EmbedBuilder } from 'discord.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'ping',
@@ -13,18 +12,21 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
-            // Defer the reply to get accurate latency
             await interaction.deferReply();
 
-            // Calculate round-trip time
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'utility');
+
             const timestamp = interaction.createdTimestamp;
             const now = Date.now();
             const roundTrip = now - timestamp;
 
-            // Get bot's API latency
             const botPing = Math.round(interaction.client.ws.ping);
 
-            // Determine status
             let status;
             if (roundTrip < 100) {
                 status = '[EXCELLENT]';
@@ -36,34 +38,32 @@ export default {
                 status = '[POOR]';
             }
 
-            // Create embed for the response
             const pingEmbed = new EmbedBuilder()
                 .setColor('#00FF00')
-                .setTitle('Pong!')
+                .setTitle(t('ping.response'))
                 .addFields(
                     {
-                        name: 'Round-Trip Latency',
+                        name: t('ping.roundTrip'),
                         value: `${roundTrip}ms`,
                         inline: true
                     },
                     {
-                        name: 'API Latency',
+                        name: t('ping.apiLatency'),
                         value: `${botPing}ms`,
                         inline: true
                     },
                     {
-                        name: 'Status',
+                        name: t('ping.status'),
                         value: status,
                         inline: true
                     }
                 )
                 .setFooter({
-                    text: `Requested by ${interaction.user.tag}`,
+                    text: t('ping.requestedBy', { user: interaction.user.tag }),
                     iconURL: interaction.user.displayAvatarURL()
                 })
                 .setTimestamp();
 
-            // Send the embed
             await interaction.editReply({ embeds: [pingEmbed] });
 
             logger.info({ msg: `[SUCCESS] Ping command executed by ${interaction.user.tag}` });
