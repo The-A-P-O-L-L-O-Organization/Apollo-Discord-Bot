@@ -17,7 +17,7 @@
     "logging.channelMissing": "Canale non trovato (Serve Riconfigurazione)",
     "logging.onLabel": "[ACCESO] Abilitato",
     "logging.offLabel": "[SPENTO] Disabilitato",
-    "logging.footer": "Utilizza /logging enable o /logging disable a cambiare le impostazioni",
+    "logging.footer": "Utilizza /logging Anale",
     "migrate.status": "Stato di Migrazione: ({{db}}):\n\nCompletato: \n{{completed}}\n\nAspettando:\n{{pending}}",
     "migrate.none": "Niente",
     "migrate.appliedTitle": "[SUCCESSO] Migrazioni Applicati",
