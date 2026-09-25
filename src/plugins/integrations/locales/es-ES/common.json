@@ -1,10 +1,10 @@
 {
-    "integration.textChannel": "",
-    "integration.added": "",
-    "integration.notFound": "",
-    "integration.removed": "",
-    "integration.empty": "",
-    "integration.title": "",
-    "integration.count": "",
-    "error.unknown": ""
+    "integration.textChannel": "Please select a text channel.",
+    "integration.added": "[OK] Added **{{type}}** subscription for `{{target}}` → {{channel}}. ID: `{{id}}`",
+    "integration.notFound": "[ERROR] Subscription `{{id}}` not found.",
+    "integration.removed": "[OK] Removed subscription `{{id}}`.",
+    "integration.empty": "No integrations configured.",
+    "integration.title": "Integration Subscriptions",
+    "integration.count": "{{count}} subscription(s)",
+    "error.unknown": "An unknown error occurred."
 }
