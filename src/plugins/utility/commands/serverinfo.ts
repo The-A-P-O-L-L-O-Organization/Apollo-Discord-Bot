@@ -1,43 +1,51 @@
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { EmbedBuilder, ChannelType, SlashCommandBuilder } from 'discord.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
-    // Server Info Command
-    // Displays detailed information about the server
     data: new SlashCommandBuilder()
         .setName('serverinfo')
-        .setDescription('Display information about the server'),
+        .setDescription('Display information about the server')
+        .setNameLocalizations({
+            'es-ES': 'infoservidor',
+            de: 'serverinfo'
+        })
+        .setDescriptionLocalizations({
+            'es-ES': 'Muestra información sobre el servidor',
+            de: 'Zeigt Informationen über den Server'
+        }),
     name: 'serverinfo',
     category: 'utility',
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'utility');
+
             const guild = interaction.guild!;
 
-            // Fetch the guild to ensure we have the most up-to-date info
             await guild.fetch();
 
-            // Fetch the owner
             const owner = await guild.fetchOwner();
 
-            // Count channels by type
             const textChannels = guild.channels.cache.filter(c => c.type === ChannelType.GuildText).size;
             const voiceChannels = guild.channels.cache.filter(c => c.type === ChannelType.GuildVoice).size;
             const categories = guild.channels.cache.filter(c => c.type === ChannelType.GuildCategory).size;
             const forumChannels = guild.channels.cache.filter(c => c.type === ChannelType.GuildForum).size;
             const stageChannels = guild.channels.cache.filter(c => c.type === ChannelType.GuildStageVoice).size;
 
-            // Member stats
             const totalMembers = guild.memberCount;
             const botCount = guild.members.cache.filter(m => m.user.bot).size;
             const humanCount = totalMembers - botCount;
 
-            // Get boost info
             const boostLevel = guild.premiumTier;
             const boostCount = guild.premiumSubscriptionCount ?? 0;
 
-            // Get verification level
             const verificationLevels: Record<number, string> = {
                 0: 'None',
                 1: 'Low',
@@ -46,14 +54,12 @@ export default {
                 4: 'Highest'
             };
 
-            // Get explicit content filter
             const contentFilterLevels: Record<number, string> = {
                 0: 'Disabled',
                 1: 'Members without roles',
                 2: 'All members'
             };
 
-            // Create the embed
             const embed = new EmbedBuilder()
                 .setColor('#3498DB')
                 .setTitle(guild.name)
@@ -114,14 +120,12 @@ export default {
                     }
                 )
                 .setTimestamp()
-                .setFooter({ text: `Requested by ${interaction.user.tag}` });
+                .setFooter({ text: t('serverinfo.requestedBy', { user: interaction.user.tag }) });
 
-            // Add banner if available
             if (guild.bannerURL()) {
                 embed.setImage(guild.bannerURL({ size: 512 }));
             }
 
-            // Add description if available
             if (guild.description) {
                 embed.setDescription(guild.description);
             }

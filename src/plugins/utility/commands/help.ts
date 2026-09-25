@@ -5,6 +5,7 @@ import { logger } from '../../../utils/logger.js';
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { EmbedBuilder, PermissionsBitField } from 'discord.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 // Map permission flags to human-readable names
 const permissionNames: Record<string, string> = {
@@ -48,6 +49,12 @@ export default {
     category: 'Utility',
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+        const resolvedLocale = await i18n.resolveLocale({
+            locale: interaction.locale ?? null,
+            guildLocale: interaction.guildLocale ?? null,
+            guildId: interaction.guildId ?? null
+        });
+        const t = i18n.getFixedT(resolvedLocale, 'utility');
         try {
             // Get all commands from the client
             // @ts-expect-error commands Map added by plugin system
@@ -82,15 +89,11 @@ export default {
             // Create help embed
             const helpEmbed = new EmbedBuilder()
                 .setColor('#0099FF')
-                .setTitle('Bot Help Menu')
-                .setDescription(
-                    'Here are all the available commands you can use:\n\n' +
-                'Use `/` before each command\n\n' +
-                '----------------------------------------'
-                )
+                .setTitle(t('help.title'))
+                .setDescription(t('help.description'))
                 .setThumbnail(interaction.client.user.displayAvatarURL())
                 .setFooter({
-                    text: `Requested by ${interaction.user.tag} | Total Commands: ${totalCommands}`,
+                    text: t('help.footer', { tag: interaction.user.tag, count: totalCommands }),
                     iconURL: interaction.user.displayAvatarURL()
                 })
                 .setTimestamp();
@@ -100,13 +103,13 @@ export default {
                 const commandList = cmds.map(cmd => {
                     let line = `\`${cmd.usage}\`\n   └─ ${cmd.description}`;
                     if (cmd.permissions) {
-                        line += `\n   └─ Requires: \`${cmd.permissions}\``;
+                        line += `\n   └─ ${t('help.requires', { perms: cmd.permissions })}`;
                     }
                     return line;
                 }).join('\n\n');
 
                 helpEmbed.addFields({
-                    name: `[CATEGORY] ${category} (${cmds.length})`,
+                    name: t('help.category', { category, count: cmds.length }),
                     value: commandList,
                     inline: false
                 });
@@ -114,20 +117,15 @@ export default {
 
             // Add usage guide
             helpEmbed.addFields({
-                name: 'How to Use Commands',
-                value: '1. Type `/` in the chat\n' +
-                   '2. Select the bot from the list\n' +
-                   '3. Choose a command\n' +
-                   '4. Fill in any required parameters\n' +
-                   '5. Press Enter to execute',
+                name: t('help.howTo'),
+                value: t('help.howToValue'),
                 inline: false
             });
 
             // Add legend
             helpEmbed.addFields({
-                name: 'Legend',
-                value: '`<param>` = Required parameter\n' +
-                   '`[param]` = Optional parameter',
+                name: t('help.legend'),
+                value: t('help.legendValue'),
                 inline: false
             });
 

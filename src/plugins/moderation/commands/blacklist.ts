@@ -7,6 +7,7 @@ import { sendModLog } from '../../../utils/modLog.js';
 import { safeError } from '../../../utils/safeError.js';
 import { isOwner } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface BlacklistEntry {
     userId: string;
@@ -100,6 +101,8 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const subcommand = interaction.options.getSubcommand();
 
@@ -113,7 +116,7 @@ export default {
                 await handleGlobal(interaction);
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
+            const errorMessage = handleDiscordError(error) ?? t('blacklist.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {
@@ -127,6 +130,8 @@ export default {
  * Adds a user to the guild blacklist
  */
 async function handleAdd(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+    const t = i18n.getFixedT(resolved, 'moderation');
     try {
         const user = interaction.options.getUser('user', true);
         const reason = interaction.options.getString('reason', true);
@@ -136,8 +141,8 @@ async function handleAdd(interaction: ChatInputCommandInteraction): Promise<void
             await interaction.reply({
                 embeds: [{
                     color: 0xFF0000,
-                    title: '[ERROR] Self Action',
-                    description: 'You cannot blacklist yourself.',
+                    title: t('blacklist.selfActionTitle'),
+                    description: t('blacklist.selfActionDescription'),
                     timestamp: new Date().toISOString()
                 }],
                 flags: MessageFlags.Ephemeral
@@ -150,8 +155,8 @@ async function handleAdd(interaction: ChatInputCommandInteraction): Promise<void
             await interaction.reply({
                 embeds: [{
                     color: 0xFF0000,
-                    title: '[ERROR] Bot Protection',
-                    description: 'You cannot blacklist the bot.',
+                    title: t('blacklist.botProtectionTitle'),
+                    description: t('blacklist.botProtectionDescription'),
                     timestamp: new Date().toISOString()
                 }],
                 flags: MessageFlags.Ephemeral
@@ -168,8 +173,8 @@ async function handleAdd(interaction: ChatInputCommandInteraction): Promise<void
             await interaction.reply({
                 embeds: [{
                     color: 0xFFA500,
-                    title: '[WARNING] Already Blacklisted',
-                    description: `${user.tag} is already on the blacklist.\nReason: ${existingEntry.reason}`,
+                    title: t('blacklist.warningAlreadyBlacklisted'),
+                    description: t('blacklist.userIsAlreadyOnThe', { user: user.tag, reason: existingEntry.reason }),
                     timestamp: new Date().toISOString()
                 }],
                 flags: MessageFlags.Ephemeral
@@ -193,12 +198,12 @@ async function handleAdd(interaction: ChatInputCommandInteraction): Promise<void
 
         const successEmbed = new EmbedBuilder()
             .setColor('#FF0000')
-            .setTitle('[SUCCESS] User Blacklisted')
-            .setDescription(`${user.tag} has been added to the blacklist.`)
+            .setTitle(t('blacklist.successUserBlacklisted'))
+            .setDescription(t('blacklist.userHasBeenAddedTo', { user: user.tag }))
             .addFields(
-                { name: 'User', value: `${user.tag} (\`${user.id}\`)`, inline: true },
-                { name: 'Moderator', value: interaction.user.tag, inline: true },
-                { name: 'Reason', value: reason, inline: false }
+                { name: t('blacklist.user'), value: `${user.tag} (\`${user.id}\`)`, inline: true },
+                { name: t('blacklist.moderator'), value: interaction.user.tag, inline: true },
+                { name: t('blacklist.reason'), value: reason, inline: false }
             )
             .setThumbnail(user.displayAvatarURL())
             .setTimestamp();
@@ -225,6 +230,8 @@ async function handleAdd(interaction: ChatInputCommandInteraction): Promise<void
  * Removes a user from the guild blacklist
  */
 async function handleRemove(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+    const t = i18n.getFixedT(resolved, 'moderation');
     try {
         const user = interaction.options.getUser('user', true);
 
@@ -235,8 +242,8 @@ async function handleRemove(interaction: ChatInputCommandInteraction): Promise<v
             await interaction.reply({
                 embeds: [{
                     color: 0xFF0000,
-                    title: '[ERROR] Not Blacklisted',
-                    description: `${user.tag} is not on the blacklist.`,
+                    title: t('blacklist.errorNotBlacklisted'),
+                    description: t('blacklist.userIsNotOnThe', { user: user.tag }),
                     timestamp: new Date().toISOString()
                 }],
                 flags: MessageFlags.Ephemeral
@@ -254,12 +261,12 @@ async function handleRemove(interaction: ChatInputCommandInteraction): Promise<v
 
         const successEmbed = new EmbedBuilder()
             .setColor('#00FF00')
-            .setTitle('[SUCCESS] User Removed from Blacklist')
-            .setDescription(`${user.tag} has been removed from the blacklist.`)
+            .setTitle(t('blacklist.successUserRemovedFromBlacklist'))
+            .setDescription(t('blacklist.userHasBeenRemovedFrom', { user: user.tag }))
             .addFields(
-                { name: 'User', value: `${user.tag} (\`${user.id}\`)`, inline: true },
-                { name: 'Removed By', value: interaction.user.tag, inline: true },
-                { name: 'Original Reason', value: removedEntry.reason, inline: false }
+                { name: t('blacklist.user2'), value: `${user.tag} (\`${user.id}\`)`, inline: true },
+                { name: t('blacklist.removedBy'), value: interaction.user.tag, inline: true },
+                { name: t('blacklist.originalReason'), value: removedEntry.reason, inline: false }
             )
             .setThumbnail(user.displayAvatarURL())
             .setTimestamp();
@@ -278,6 +285,8 @@ async function handleRemove(interaction: ChatInputCommandInteraction): Promise<v
  * Shows all blacklisted users for the guild
  */
 async function handleView(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+    const t = i18n.getFixedT(resolved, 'moderation');
     try {
         const guildData = (await getGuildData('blacklist', interaction.guild!.id)) as BlacklistData;
         const entries = guildData.entries ?? {};
@@ -287,8 +296,8 @@ async function handleView(interaction: ChatInputCommandInteraction): Promise<voi
             await interaction.reply({
                 embeds: [{
                     color: 0x7289DA,
-                    title: 'Server Blacklist',
-                    description: 'The blacklist is currently empty.',
+                    title: t('blacklist.serverBlacklist'),
+                    description: t('blacklist.theBlacklistIsCurrentlyEmpty'),
                     timestamp: new Date().toISOString()
                 }],
                 flags: MessageFlags.Ephemeral
@@ -307,7 +316,7 @@ async function handleView(interaction: ChatInputCommandInteraction): Promise<voi
 
         const embed = new EmbedBuilder()
             .setColor('#FF0000')
-            .setTitle(`Server Blacklist — ${interaction.guild!.name}`)
+            .setTitle(t('blacklist.serverBlacklistServer', { server: interaction.guild!.name }))
             .setDescription(fieldLines.join('\n\n'))
             .setFooter({ text: `${list.length} total entr${list.length === 1 ? 'y' : 'ies'}${list.length > PAGE_SIZE ? ` (showing first ${PAGE_SIZE})` : ''}` })
             .setTimestamp();
@@ -325,13 +334,15 @@ async function handleView(interaction: ChatInputCommandInteraction): Promise<voi
  * Restricted to bot owners defined in OWNER_IDS env var
  */
 async function handleGlobal(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+    const t = i18n.getFixedT(resolved, 'moderation');
     try {
         if (!isOwner(interaction.user.id)) {
             await interaction.reply({
                 embeds: [{
                     color: 0xFF0000,
-                    title: '[ERROR] Access Denied',
-                    description: 'This command is restricted to the bot owner only.',
+                    title: t('blacklist.errorAccessDenied'),
+                    description: t('blacklist.thisCommandIsRestrictedTo'),
                     timestamp: new Date().toISOString()
                 }],
                 flags: MessageFlags.Ephemeral
@@ -351,8 +362,8 @@ async function handleGlobal(interaction: ChatInputCommandInteraction): Promise<v
                 await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Missing Arguments',
-                        description: 'Both user and reason are required to add to global blacklist.',
+                        title: t('blacklist.errorMissingArguments'),
+                        description: t('blacklist.bothUserAndReasonAre'),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -364,8 +375,8 @@ async function handleGlobal(interaction: ChatInputCommandInteraction): Promise<v
                 await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Self Action',
-                        description: 'You cannot blacklist yourself globally.',
+                        title: t('blacklist.selfActionTitle2'),
+                        description: t('blacklist.selfActionDescription2'),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -378,8 +389,8 @@ async function handleGlobal(interaction: ChatInputCommandInteraction): Promise<v
                 await interaction.reply({
                     embeds: [{
                         color: 0xFFA500,
-                        title: '[WARNING] Already Blacklisted',
-                        description: `${user.tag} is already on the global blacklist.\nReason: ${existingGlobalEntry.reason}`,
+                        title: t('blacklist.warningAlreadyBlacklisted2'),
+                        description: t('blacklist.userIsAlreadyOnThe2', { user: user.tag, reason: existingGlobalEntry.reason }),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -402,12 +413,12 @@ async function handleGlobal(interaction: ChatInputCommandInteraction): Promise<v
 
             const successEmbed = new EmbedBuilder()
                 .setColor('#FF0000')
-                .setTitle('[SUCCESS] User Globally Blacklisted')
-                .setDescription(`${user.tag} has been added to the global blacklist. They will be banned from all servers the bot is in.`)
+                .setTitle(t('blacklist.successUserGloballyBlacklisted'))
+                .setDescription(t('blacklist.userHasBeenAddedTo2', { user: user.tag }))
                 .addFields(
-                    { name: 'User', value: `${user.tag} (\`${user.id}\`)`, inline: true },
-                    { name: 'Moderator', value: interaction.user.tag, inline: true },
-                    { name: 'Reason', value: reason, inline: false }
+                    { name: t('blacklist.user3'), value: `${user.tag} (\`${user.id}\`)`, inline: true },
+                    { name: t('blacklist.moderator2'), value: interaction.user.tag, inline: true },
+                    { name: t('blacklist.reason2'), value: reason, inline: false }
                 )
                 .setThumbnail(user.displayAvatarURL())
                 .setTimestamp();
@@ -420,8 +431,8 @@ async function handleGlobal(interaction: ChatInputCommandInteraction): Promise<v
                 await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Missing Arguments',
-                        description: 'User is required to remove from global blacklist.',
+                        title: t('blacklist.errorMissingArguments2'),
+                        description: t('blacklist.userIsRequiredToRemove'),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -433,8 +444,8 @@ async function handleGlobal(interaction: ChatInputCommandInteraction): Promise<v
                 await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Not Blacklisted',
-                        description: `${user.tag} is not on the global blacklist.`,
+                        title: t('blacklist.errorNotBlacklisted2'),
+                        description: t('blacklist.userIsNotOnThe2', { user: user.tag }),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -452,12 +463,12 @@ async function handleGlobal(interaction: ChatInputCommandInteraction): Promise<v
 
             const successEmbed = new EmbedBuilder()
                 .setColor('#00FF00')
-                .setTitle('[SUCCESS] User Removed from Global Blacklist')
-                .setDescription(`${user.tag} has been removed from the global blacklist.`)
+                .setTitle(t('blacklist.successUserRemovedFromGlobal'))
+                .setDescription(t('blacklist.userHasBeenRemovedFrom2', { user: user.tag }))
                 .addFields(
-                    { name: 'User', value: `${user.tag} (\`${user.id}\`)`, inline: true },
-                    { name: 'Removed By', value: interaction.user.tag, inline: true },
-                    { name: 'Original Reason', value: removedEntry.reason, inline: false }
+                    { name: t('blacklist.user4'), value: `${user.tag} (\`${user.id}\`)`, inline: true },
+                    { name: t('blacklist.removedBy2'), value: interaction.user.tag, inline: true },
+                    { name: t('blacklist.originalReason2'), value: removedEntry.reason, inline: false }
                 )
                 .setThumbnail(user.displayAvatarURL())
                 .setTimestamp();
@@ -472,8 +483,8 @@ async function handleGlobal(interaction: ChatInputCommandInteraction): Promise<v
                 await interaction.reply({
                     embeds: [{
                         color: 0x7289DA,
-                        title: 'Global Blacklist',
-                        description: 'The global blacklist is currently empty.',
+                        title: t('blacklist.globalBlacklist'),
+                        description: t('blacklist.theGlobalBlacklistIsCurrently'),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -491,7 +502,7 @@ async function handleGlobal(interaction: ChatInputCommandInteraction): Promise<v
 
             const embed = new EmbedBuilder()
                 .setColor('#FF0000')
-                .setTitle('Global Blacklist — All Servers')
+                .setTitle(t('blacklist.globalBlacklistAllServers'))
                 .setDescription(fieldLines.join('\n\n'))
                 .setFooter({ text: `${list.length} total entr${list.length === 1 ? 'y' : 'ies'}${list.length > PAGE_SIZE ? ` (showing first ${PAGE_SIZE})` : ''}` })
                 .setTimestamp();
@@ -509,11 +520,13 @@ async function handleGlobal(interaction: ChatInputCommandInteraction): Promise<v
  * Sends a generic error reply
  */
 async function replyError(interaction: ChatInputCommandInteraction, error: unknown): Promise<void> {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+    const t = i18n.getFixedT(resolved, 'moderation');
     const errorEmbed = {
         color: 0xFF0000,
-        title: '[ERROR] Command Failed',
-        description: 'An error occurred while managing the blacklist.',
-        fields: [{ name: 'Details', value: safeError(error), inline: true }],
+        title: t('blacklist.commandFailedTitle'),
+        description: t('blacklist.anErrorOccurredWhileManaging'),
+        fields: [{ name: t('blacklist.details'), value: safeError(error), inline: true }],
         timestamp: new Date().toISOString()
     };
     if (interaction.replied || interaction.deferred) {

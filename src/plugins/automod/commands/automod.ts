@@ -9,6 +9,7 @@ import { config } from '../../../config/config.js';
 import { safeError } from '../../../utils/safeError.js';
 import { checkMessageAttachments } from '../../../utils/nsfwDetection.js';
 import { handleDiscordError, safeReply } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface AutomodConfig {
     enabled: boolean;
@@ -76,6 +77,10 @@ export default {
     data: new SlashCommandBuilder()
         .setName('automod')
         .setDescription('Configure automatic moderation')
+        .setDescriptionLocalizations({
+            'es-ES': 'Configura la moderación automática',
+            de: 'Konfiguriere automatische Moderation'
+        })
         .addSubcommand(sub => sub
             .setName('enable')
             .setDescription('Enable automod for this server')
@@ -268,19 +273,19 @@ async function getAutomodConfig(guildId: string): Promise<AutomodConfig> {
 }
 
 async function handleEnable(interaction: ChatInputCommandInteraction) {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale ?? null, guildLocale: interaction.guildLocale ?? null, guildId: interaction.guildId ?? null });
+    const t = i18n.getFixedT(resolved, 'automod');
     const cfg = await getGuildData('automod', interaction.guild!.id);
     cfg['enabled'] = true;
     await setGuildData('automod', interaction.guild!.id, cfg);
 
     const embed = new EmbedBuilder()
         .setColor('#00FF00')
-        .setTitle('Automod Enabled')
-        .setDescription('Automatic moderation is now **enabled** for this server.')
+        .setTitle(t('enable.title'))
+        .setDescription(t('enable.description'))
         .addFields({
-            name: 'Next Steps',
-            value: '• Use `/automod addword <word>` to add banned words\n' +
-                   '• Use `/automod set` to configure filters\n' +
-                   '• Use `/automod status` to view settings'
+            name: t('enable.nextStepsTitle'),
+            value: t('enable.nextStepsValue')
         })
         .setTimestamp();
 
@@ -289,14 +294,16 @@ async function handleEnable(interaction: ChatInputCommandInteraction) {
 }
 
 async function handleDisable(interaction: ChatInputCommandInteraction) {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale ?? null, guildLocale: interaction.guildLocale ?? null, guildId: interaction.guildId ?? null });
+    const t = i18n.getFixedT(resolved, 'automod');
     const cfg = await getGuildData('automod', interaction.guild!.id);
     cfg['enabled'] = false;
     await setGuildData('automod', interaction.guild!.id, cfg);
 
     const embed = new EmbedBuilder()
         .setColor('#FF0000')
-        .setTitle('Automod Disabled')
-        .setDescription('Automatic moderation is now **disabled** for this server.')
+        .setTitle(t('disable.title'))
+        .setDescription(t('disable.description'))
         .setTimestamp();
 
     await interaction.reply({ embeds: [embed] });
@@ -304,34 +311,41 @@ async function handleDisable(interaction: ChatInputCommandInteraction) {
 }
 
 async function handleStatus(interaction: ChatInputCommandInteraction) {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale ?? null, guildLocale: interaction.guildLocale ?? null, guildId: interaction.guildId ?? null });
+    const t = i18n.getFixedT(resolved, 'automod');
     const cfg = await getAutomodConfig(interaction.guild!.id);
+    const state = cfg.enabled ? t('status.stateEnabled') : t('status.stateDisabled');
+    const onOff = (on: boolean) => on ? t('status.stateEnabled') : t('status.stateDisabled');
+    const yesNo = (on: boolean) => on ? t('status.yes') : t('status.no');
 
     const embed = new EmbedBuilder()
         .setColor(cfg.enabled ? '#00FF00' : '#FF0000')
-        .setTitle('Automod Configuration')
-        .setDescription(`Status: ${cfg.enabled ? 'Enabled' : 'Disabled'}`)
+        .setTitle(t('status.title'))
+        .setDescription(t('status.statusLine', { state }))
         .addFields(
-            { name: 'Filter Invites', value: cfg.filterInvites ? 'Yes' : 'No', inline: true },
-            { name: 'Filter Links', value: cfg.filterLinks ? 'Yes' : 'No', inline: true },
-            { name: 'Filter Phishing Links', value: cfg.filterPhishingLinks ? 'Yes' : 'No', inline: true },
-            { name: 'Raid Detection', value: cfg.raidDetection ? 'Enabled' : 'Disabled', inline: true },
-            { name: 'Max Mentions', value: `${cfg.maxMentions}`, inline: true },
-            { name: 'Max Caps %', value: `${cfg.maxCapsPercent}%`, inline: true },
-            { name: 'Min Account Age', value: cfg.minAccountAge > 0 ? `${cfg.minAccountAge} days` : 'Disabled', inline: true },
-            { name: 'Spam Threshold', value: `${cfg.spamThreshold} msgs / ${cfg.spamInterval / 1000}s`, inline: true },
-            { name: 'Banned Words', value: cfg.bannedWords.length > 0 ? `${cfg.bannedWords.length} word(s)` : 'None configured', inline: true },
-            { name: 'Exempt Channels', value: `${cfg.exemptChannels.length} channel(s)`, inline: true },
-            { name: 'Exempt Roles', value: `${cfg.exemptRoles.length} role(s)`, inline: true },
-            { name: 'AI Moderation', value: cfg.aiModeration ? 'Enabled' : 'Disabled', inline: true },
-            { name: 'NSFW Filter', value: cfg.nsfwFilter ? 'Enabled' : 'Disabled', inline: true }
+            { name: t('status.fieldFilterInvites'), value: yesNo(cfg.filterInvites), inline: true },
+            { name: t('status.fieldFilterLinks'), value: yesNo(cfg.filterLinks), inline: true },
+            { name: t('status.fieldFilterPhishing'), value: yesNo(cfg.filterPhishingLinks), inline: true },
+            { name: t('status.fieldRaid'), value: onOff(cfg.raidDetection), inline: true },
+            { name: t('status.fieldMaxMentions'), value: `${cfg.maxMentions}`, inline: true },
+            { name: t('status.fieldMaxCaps'), value: `${cfg.maxCapsPercent}%`, inline: true },
+            { name: t('status.fieldMinAge'), value: cfg.minAccountAge > 0 ? t('status.minAgeValue', { count: cfg.minAccountAge }) : t('status.stateDisabled'), inline: true },
+            { name: t('status.fieldSpam'), value: t('status.spamValue', { threshold: cfg.spamThreshold, seconds: cfg.spamInterval / 1000 }), inline: true },
+            { name: t('status.fieldBannedWords'), value: cfg.bannedWords.length > 0 ? t('status.bannedValue', { count: cfg.bannedWords.length }) : t('status.noneConfigured'), inline: true },
+            { name: t('status.fieldExemptChannels'), value: t('status.exemptValue', { count: cfg.exemptChannels.length }), inline: true },
+            { name: t('status.fieldExemptRoles'), value: t('status.roleValue', { count: cfg.exemptRoles.length }), inline: true },
+            { name: t('status.fieldAi'), value: onOff(cfg.aiModeration), inline: true },
+            { name: t('status.fieldNsfw'), value: onOff(cfg.nsfwFilter), inline: true }
         )
         .setTimestamp()
-        .setFooter({ text: 'Use /automod set to modify settings' });
+        .setFooter({ text: t('status.footer') });
 
     await interaction.reply({ embeds: [embed] });
 }
 
 async function handleAddWord(interaction: ChatInputCommandInteraction) {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale ?? null, guildLocale: interaction.guildLocale ?? null, guildId: interaction.guildId ?? null });
+    const t = i18n.getFixedT(resolved, 'automod');
     const word = interaction.options.getString('word', true).toLowerCase();
     const guildConfig = await getGuildData('automod', interaction.guild!.id);
 
@@ -342,8 +356,8 @@ async function handleAddWord(interaction: ChatInputCommandInteraction) {
         return interaction.reply({
             embeds: [{
                 color: 0xFFFF00,
-                title: 'Word Already Banned',
-                description: `The word \`${word}\` is already in the banned list.`,
+                title: t('addWord.alreadyTitle'),
+                description: t('addWord.alreadyDescription', { word }),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -355,9 +369,9 @@ async function handleAddWord(interaction: ChatInputCommandInteraction) {
 
     const embed = new EmbedBuilder()
         .setColor('#00FF00')
-        .setTitle('Word Added')
-        .setDescription(`Added \`${word}\` to the banned words list.`)
-        .addFields({ name: 'Total Banned Words', value: `${bannedWords.length}` })
+        .setTitle(t('addWord.addedTitle'))
+        .setDescription(t('addWord.addedDescription', { word }))
+        .addFields({ name: t('addWord.totalTitle'), value: `${bannedWords.length}` })
         .setTimestamp();
 
     await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
@@ -365,6 +379,8 @@ async function handleAddWord(interaction: ChatInputCommandInteraction) {
 }
 
 async function handleRemoveWord(interaction: ChatInputCommandInteraction) {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale ?? null, guildLocale: interaction.guildLocale ?? null, guildId: interaction.guildId ?? null });
+    const t = i18n.getFixedT(resolved, 'automod');
     const word = interaction.options.getString('word', true).toLowerCase();
     const guildConfig = await getGuildData('automod', interaction.guild!.id);
 
@@ -374,8 +390,8 @@ async function handleRemoveWord(interaction: ChatInputCommandInteraction) {
         return interaction.reply({
             embeds: [{
                 color: 0xFF0000,
-                title: 'Word Not Found',
-                description: `The word \`${word}\` is not in the banned list.`,
+                title: t('removeWord.notFoundTitle'),
+                description: t('removeWord.notFoundDescription', { word }),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -387,9 +403,9 @@ async function handleRemoveWord(interaction: ChatInputCommandInteraction) {
 
     const embed = new EmbedBuilder()
         .setColor('#00FF00')
-        .setTitle('Word Removed')
-        .setDescription(`Removed \`${word}\` from the banned words list.`)
-        .addFields({ name: 'Total Banned Words', value: `${(guildConfig['bannedWords'] as string[]).length}` })
+        .setTitle(t('removeWord.removedTitle'))
+        .setDescription(t('removeWord.removedDescription', { word }))
+        .addFields({ name: t('removeWord.totalTitle'), value: `${(guildConfig['bannedWords'] as string[]).length}` })
         .setTimestamp();
 
     await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
@@ -397,14 +413,16 @@ async function handleRemoveWord(interaction: ChatInputCommandInteraction) {
 }
 
 async function handleListWords(interaction: ChatInputCommandInteraction) {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale ?? null, guildLocale: interaction.guildLocale ?? null, guildId: interaction.guildId ?? null });
+    const t = i18n.getFixedT(resolved, 'automod');
     const cfg = await getAutomodConfig(interaction.guild!.id);
 
     if (cfg.bannedWords.length === 0) {
         return interaction.reply({
             embeds: [{
                 color: 0xFFFF00,
-                title: 'Banned Words List',
-                description: 'No banned words configured.\n\nUse `/automod addword <word>` to add words.',
+                title: t('listWords.title'),
+                description: t('listWords.emptyDescription'),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -419,15 +437,17 @@ async function handleListWords(interaction: ChatInputCommandInteraction) {
 
     const embed = new EmbedBuilder()
         .setColor('#0099FF')
-        .setTitle('Banned Words List')
-        .setDescription(`**${cfg.bannedWords.length}** word(s) banned:\n\n${censoredWords.join(', ')}`)
+        .setTitle(t('listWords.title'))
+        .setDescription(t('listWords.description', { count: cfg.bannedWords.length, words: censoredWords.join(', ') }))
         .setTimestamp()
-        .setFooter({ text: 'Words are partially censored for safety' });
+        .setFooter({ text: t('listWords.footer') });
 
     await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
 async function handleSet(interaction: ChatInputCommandInteraction) {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale ?? null, guildLocale: interaction.guildLocale ?? null, guildId: interaction.guildId ?? null });
+    const t = i18n.getFixedT(resolved, 'automod');
     const setting = interaction.options.getString('setting', true);
     const valueStr = interaction.options.getString('value', true);
 
@@ -444,8 +464,8 @@ async function handleSet(interaction: ChatInputCommandInteraction) {
             return interaction.reply({
                 embeds: [{
                     color: 0xFF0000,
-                    title: 'Invalid Value',
-                    description: `Please provide a number for ${setting}.`,
+                    title: t('set.invalidValueTitle'),
+                    description: t('set.numberRequired', { setting }),
                     timestamp: new Date().toISOString()
                 }],
                 flags: MessageFlags.Ephemeral
@@ -457,8 +477,8 @@ async function handleSet(interaction: ChatInputCommandInteraction) {
             return interaction.reply({
                 embeds: [{
                     color: 0xFF0000,
-                    title: 'Invalid Value',
-                    description: 'Max caps percent must be between 0 and 100.',
+                    title: t('set.invalidValueTitle'),
+                    description: t('set.capsRange'),
                     timestamp: new Date().toISOString()
                 }],
                 flags: MessageFlags.Ephemeral
@@ -468,7 +488,7 @@ async function handleSet(interaction: ChatInputCommandInteraction) {
         // Validate positive numbers for numeric settings (except maxCapsPercent which can be 0)
         if (setting !== 'maxCapsPercent' && value <= 0) {
             return interaction.reply({
-                content: `${setting} must be a positive number greater than zero.`,
+                content: t('set.positive', { setting }),
                 flags: MessageFlags.Ephemeral
             });
         }
@@ -476,8 +496,8 @@ async function handleSet(interaction: ChatInputCommandInteraction) {
         return interaction.reply({
             embeds: [{
                 color: 0xFF0000,
-                title: 'Invalid Setting',
-                description: `Unknown setting: ${setting}`,
+                title: t('set.invalidSettingTitle'),
+                description: t('set.unknownSetting', { setting }),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -490,8 +510,8 @@ async function handleSet(interaction: ChatInputCommandInteraction) {
 
     const embed = new EmbedBuilder()
         .setColor('#00FF00')
-        .setTitle('Setting Updated')
-        .setDescription(`**${setting}** has been set to **${value}**.`)
+        .setTitle(t('set.updatedTitle'))
+        .setDescription(t('set.updatedDescription', { setting, value }))
         .setTimestamp();
 
     await interaction.reply({ embeds: [embed] });
@@ -499,6 +519,8 @@ async function handleSet(interaction: ChatInputCommandInteraction) {
 }
 
 async function handleExemptChannel(interaction: ChatInputCommandInteraction) {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale ?? null, guildLocale: interaction.guildLocale ?? null, guildId: interaction.guildId ?? null });
+    const t = i18n.getFixedT(resolved, 'automod');
     const channel = interaction.options.getChannel('channel', true);
     const action = interaction.options.getString('action', true);
 
@@ -511,8 +533,8 @@ async function handleExemptChannel(interaction: ChatInputCommandInteraction) {
             return interaction.reply({
                 embeds: [{
                     color: 0xFFFF00,
-                    title: 'Already Exempt',
-                    description: `<#${channel.id}> is already exempt from automod.`,
+                    title: t('exemptChannel.alreadyTitle'),
+                    description: t('exemptChannel.alreadyDescription', { channel: channel.id }),
                     timestamp: new Date().toISOString()
                 }],
                 flags: MessageFlags.Ephemeral
@@ -525,8 +547,8 @@ async function handleExemptChannel(interaction: ChatInputCommandInteraction) {
         await interaction.reply({
             embeds: [{
                 color: 0x00FF00,
-                title: 'Channel Exempted',
-                description: `<#${channel.id}> is now exempt from automod.`,
+                title: t('exemptChannel.exemptedTitle'),
+                description: t('exemptChannel.exemptedDescription', { channel: channel.id }),
                 timestamp: new Date().toISOString()
             }]
         });
@@ -535,8 +557,8 @@ async function handleExemptChannel(interaction: ChatInputCommandInteraction) {
             return interaction.reply({
                 embeds: [{
                     color: 0xFFFF00,
-                    title: 'Not Exempt',
-                    description: `<#${channel.id}> is not currently exempt.`,
+                    title: t('exemptChannel.notExemptTitle'),
+                    description: t('exemptChannel.notExemptDescription', { channel: channel.id }),
                     timestamp: new Date().toISOString()
                 }],
                 flags: MessageFlags.Ephemeral
@@ -549,8 +571,8 @@ async function handleExemptChannel(interaction: ChatInputCommandInteraction) {
         await interaction.reply({
             embeds: [{
                 color: 0x00FF00,
-                title: 'Exemption Removed',
-                description: `<#${channel.id}> is no longer exempt from automod.`,
+                title: t('exemptChannel.removedTitle'),
+                description: t('exemptChannel.removedDescription', { channel: channel.id }),
                 timestamp: new Date().toISOString()
             }]
         });
@@ -558,6 +580,8 @@ async function handleExemptChannel(interaction: ChatInputCommandInteraction) {
 }
 
 async function handleExemptRole(interaction: ChatInputCommandInteraction) {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale ?? null, guildLocale: interaction.guildLocale ?? null, guildId: interaction.guildId ?? null });
+    const t = i18n.getFixedT(resolved, 'automod');
     const role = interaction.options.getRole('role', true);
     const action = interaction.options.getString('action', true);
 
@@ -570,8 +594,8 @@ async function handleExemptRole(interaction: ChatInputCommandInteraction) {
             return interaction.reply({
                 embeds: [{
                     color: 0xFFFF00,
-                    title: 'Already Exempt',
-                    description: `<@&${role.id}> is already exempt from automod.`,
+                    title: t('exemptRole.alreadyTitle'),
+                    description: t('exemptRole.alreadyDescription', { role: role.id }),
                     timestamp: new Date().toISOString()
                 }],
                 flags: MessageFlags.Ephemeral
@@ -584,8 +608,8 @@ async function handleExemptRole(interaction: ChatInputCommandInteraction) {
         await interaction.reply({
             embeds: [{
                 color: 0x00FF00,
-                title: 'Role Exempted',
-                description: `<@&${role.id}> is now exempt from automod.`,
+                title: t('exemptRole.exemptedTitle'),
+                description: t('exemptRole.exemptedDescription', { role: role.id }),
                 timestamp: new Date().toISOString()
             }]
         });
@@ -594,8 +618,8 @@ async function handleExemptRole(interaction: ChatInputCommandInteraction) {
             return interaction.reply({
                 embeds: [{
                     color: 0xFFFF00,
-                    title: 'Not Exempt',
-                    description: `<@&${role.id}> is not currently exempt.`,
+                    title: t('exemptRole.notExemptTitle'),
+                    description: t('exemptRole.notExemptDescription', { role: role.id }),
                     timestamp: new Date().toISOString()
                 }],
                 flags: MessageFlags.Ephemeral
@@ -608,8 +632,8 @@ async function handleExemptRole(interaction: ChatInputCommandInteraction) {
         await interaction.reply({
             embeds: [{
                 color: 0x00FF00,
-                title: 'Exemption Removed',
-                description: `<@&${role.id}> is no longer exempt from automod.`,
+                title: t('exemptRole.removedTitle'),
+                description: t('exemptRole.removedDescription', { role: role.id }),
                 timestamp: new Date().toISOString()
             }]
         });
@@ -617,6 +641,8 @@ async function handleExemptRole(interaction: ChatInputCommandInteraction) {
 }
 
 async function handleScan(interaction: ChatInputCommandInteraction) {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale ?? null, guildLocale: interaction.guildLocale ?? null, guildId: interaction.guildId ?? null });
+    const t = i18n.getFixedT(resolved, 'automod');
     try {
         const channel = interaction.options.getChannel('channel', true) as GuildTextBasedChannel;
         const limit = interaction.options.getInteger('limit') ?? 100;
@@ -626,7 +652,7 @@ async function handleScan(interaction: ChatInputCommandInteraction) {
         // Check if NSFW filter is enabled for this guild
         const cfg = await getAutomodConfig(interaction.guild!.id);
         if (!cfg.nsfwFilter) {
-            return interaction.reply({ content: 'NSFW filter is disabled for this server.', flags: MessageFlags.Ephemeral });
+            return interaction.reply({ content: t('scan.nsfwDisabled'), flags: MessageFlags.Ephemeral });
         }
 
         // Validate channel is text-based and in guild
@@ -634,8 +660,8 @@ async function handleScan(interaction: ChatInputCommandInteraction) {
             return interaction.reply({
                 embeds: [{
                     color: 0xFF0000,
-                    title: 'Invalid Channel',
-                    description: 'Please select a text channel in this server.',
+                    title: t('scan.invalidChannelTitle'),
+                    description: t('scan.invalidChannelDescription'),
                     timestamp: new Date().toISOString()
                 }],
                 flags: MessageFlags.Ephemeral
@@ -647,8 +673,8 @@ async function handleScan(interaction: ChatInputCommandInteraction) {
             return interaction.reply({
                 embeds: [{
                     color: 0xFF0000,
-                    title: 'Permission Denied',
-                    description: 'I cannot view messages in that channel.',
+                    title: t('scan.permissionDeniedTitle'),
+                    description: t('scan.permissionDeniedDescription'),
                     timestamp: new Date().toISOString()
                 }],
                 flags: MessageFlags.Ephemeral
@@ -708,12 +734,12 @@ async function handleScan(interaction: ChatInputCommandInteraction) {
                     await interaction.editReply({
                         embeds: [{
                             color: 0x0099FF,
-                            title: 'NSFW Scan Progress',
-                            description: `Scanning messages in <#${channel.id}>...`,
+                            title: t('scan.progressTitle'),
+                            description: t('scan.progressDescription', { channel: channel.id }),
                             fields: [
-                                { name: 'Messages Scanned', value: `${messagesScanned}/${limit}`, inline: true },
-                                { name: 'NSFW Detected', value: `${nsfwFound}`, inline: true },
-                                { name: 'Messages Deleted', value: `${messagesDeleted}`, inline: true }
+                                { name: t('scan.fieldScanned'), value: `${messagesScanned}/${limit}`, inline: true },
+                                { name: t('scan.fieldDetected'), value: `${nsfwFound}`, inline: true },
+                                { name: t('scan.fieldDeleted'), value: `${messagesDeleted}`, inline: true }
                             ],
                             timestamp: new Date().toISOString()
                         }]
@@ -738,20 +764,20 @@ async function handleScan(interaction: ChatInputCommandInteraction) {
         // Final results
         const embed = new EmbedBuilder()
             .setColor(nsfwFound > 0 ? '#FF0000' : '#00FF00')
-            .setTitle('NSFW Scan Complete')
-            .setDescription(`Finished scanning ${messagesScanned} messages in <#${channel.id}>`)
+            .setTitle(t('scan.completeTitle'))
+            .setDescription(t('scan.completeDescription', { count: messagesScanned, channel: channel.id }))
             .addFields(
-                { name: 'NSFW Content Detected', value: `${nsfwFound}`, inline: true },
-                { name: 'Messages Deleted', value: `${messagesDeleted}`, inline: true },
-                { name: 'Channel', value: channel.toString(), inline: true }
+                { name: t('scan.fieldDetectedTitle'), value: `${nsfwFound}`, inline: true },
+                { name: t('scan.fieldDeleted'), value: `${messagesDeleted}`, inline: true },
+                { name: t('scan.fieldChannel'), value: channel.toString(), inline: true }
             )
             .setTimestamp();
 
         if (user) {
-            embed.addFields({ name: 'User Filter', value: user.toString(), inline: true });
+            embed.addFields({ name: t('scan.fieldUserFilter'), value: user.toString(), inline: true });
         }
         if (deleteEnabled) {
-            embed.addFields({ name: 'Delete Enabled', value: 'Yes', inline: true });
+            embed.addFields({ name: t('scan.fieldDeleteEnabled'), value: t('scan.yes'), inline: true });
         }
 
         await interaction.editReply({ embeds: [embed] });
@@ -761,9 +787,9 @@ async function handleScan(interaction: ChatInputCommandInteraction) {
         await interaction.editReply({
             embeds: [{
                 color: 0xFF0000,
-                title: 'Scan Failed',
-                description: 'An error occurred during the NSFW scan.',
-                fields: [{ name: 'Error', value: safeError(error) }],
+                title: t('scan.failedTitle'),
+                description: t('scan.failedDescription'),
+                fields: [{ name: t('scan.fieldError'), value: safeError(error) }],
                 timestamp: new Date().toISOString()
             }]
         });

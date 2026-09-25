@@ -21,6 +21,9 @@ import { startHealthServer, stopHealthServer } from './utils/healthServer.js';
 import { createLogger } from './utils/logger.js';
 import type { TypedClient } from './core/PluginManager.js';
 import { SocketServer } from './cli/socket-server.js';
+import { i18n } from './i18n/index.js';
+import { startLocaleWatcher } from './i18n/watchLocales.js';
+import { subscribeInvalidation } from './i18n/localeCache.js';
 import { acquireGlobalLock, releaseLock, startHeartbeat, stopHeartbeat, GLOBAL_LEADER_LOCK_KEY } from './gateway/leader.js';
 import type { ApolloClient } from './types/shared.js';
 import type { CommandModule } from './types/discord.js';
@@ -166,10 +169,11 @@ async function handleInteraction(interaction: Interaction): Promise<void> {
         } catch (error) {
             logger.error({ err: error as Error }, '[ERROR] Error executing context menu command');
             try {
+                const errorMessage = i18n.tFor(interaction, 'common:error', { defaultValue: 'An error occurred.' });
                 if (interaction.deferred || interaction.replied) {
-                    await interaction.editReply({ content: 'An error occurred.' });
+                    await interaction.editReply({ content: errorMessage });
                 } else {
-                    await interaction.reply({ content: 'An error occurred.', flags: MessageFlags.Ephemeral });
+                    await interaction.reply({ content: errorMessage, flags: MessageFlags.Ephemeral });
                 }
             } catch (e) {
                 logger.error({ err: e as Error }, '[ERROR] Failed to send error response');
@@ -189,10 +193,11 @@ async function handleInteraction(interaction: Interaction): Promise<void> {
         } catch (error) {
             logger.error({ err: error as Error }, '[ERROR] Error executing user context menu command');
             try {
+                const errorMessage = i18n.tFor(interaction, 'common:error', { defaultValue: 'An error occurred.' });
                 if (interaction.deferred || interaction.replied) {
-                    await interaction.editReply({ content: 'An error occurred.' });
+                    await interaction.editReply({ content: errorMessage });
                 } else {
-                    await interaction.reply({ content: 'An error occurred.', flags: MessageFlags.Ephemeral });
+                    await interaction.reply({ content: errorMessage, flags: MessageFlags.Ephemeral });
                 }
             } catch (e) {
                 logger.error({ err: e as Error }, '[ERROR] Failed to send error response');
@@ -230,8 +235,8 @@ async function handleInteraction(interaction: Interaction): Promise<void> {
             logger.error({ err: error as Error }, '[ERROR] Error queueing /' + interaction.commandName);
             const errorEmbed = {
                 color: 0xFF0000,
-                title: 'Error',
-                description: 'Failed to queue command. Is the queue available?',
+                title: i18n.tFor(interaction, 'common:errorTitle', { defaultValue: 'Error' }),
+                description: i18n.tFor(interaction, 'common:queueFailure', { defaultValue: 'Failed to queue command. Is the queue available?' }),
                 timestamp: new Date().toISOString()
             };
             try {
@@ -252,8 +257,8 @@ async function handleInteraction(interaction: Interaction): Promise<void> {
     } catch (error) {
         const errorEmbed = {
             color: 0xFF0000,
-            title: 'Error',
-            description: 'An error occurred while executing this command.',
+            title: i18n.tFor(interaction, 'common:errorTitle', { defaultValue: 'Error' }),
+            description: i18n.tFor(interaction, 'common:error', { defaultValue: 'An error occurred while executing this command.' }),
             fields: [{ name: 'Error', value: safeError(error) }],
             timestamp: new Date().toISOString()
         };
@@ -394,6 +399,15 @@ if (RUN_MODE === 'worker') {
             assertDiscordToken(config.discord.token);
             assertEncryptionKey(config.ENCRYPTION_KEY);
             assertOperatorAgreement(config.operator);
+            await i18n.init();
+            if (process.env['NODE_ENV'] !== 'production') {
+                try {
+                    startLocaleWatcher();
+                } catch (error: unknown) {
+                    logger.warn({ err: error as Error }, '[WARN] Locale watcher failed to start');
+                }
+            }
+            subscribeInvalidation(bus);
 
             if (config.database.type === 'postgres') {
                 const pg = config.database.postgres;

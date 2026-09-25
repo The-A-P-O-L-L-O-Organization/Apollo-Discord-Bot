@@ -4,6 +4,7 @@ import { PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { sendModLog, fetchMember } from '../../../utils/modLog.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     // Force nickname changes for users
@@ -35,18 +36,20 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             // Get options
             const user = interaction.options.getUser('user');
             const nickname = interaction.options.getString('nickname');
-            const reason = interaction.options.getString('reason') ?? 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? t('nickname.noReason');
 
             // Check if user exists
             if (!user) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Missing User',
-                    description: 'Please specify a valid user.',
+                    title: t('nickname.missingUserTitle'),
+                    description: t('nickname.missingUserDescription'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -59,8 +62,8 @@ export default {
             if (!member) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Member Not Found',
-                    description: 'This user is not a member of the server.',
+                    title: t('nickname.memberNotFoundTitle'),
+                    description: t('nickname.memberNotFoundDescription'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -71,8 +74,8 @@ export default {
             if (!member.manageable) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Cannot Change Nickname',
-                    description: 'I cannot change this user\'s nickname. They may have higher permissions than me.',
+                    title: t('nickname.errorCannotChangeNickname'),
+                    description: t('nickname.iCannotChangeThisUser'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -83,8 +86,8 @@ export default {
             if (user.id === interaction.guild!.ownerId && interaction.user.id !== interaction.guild!.ownerId) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Cannot Change Nickname',
-                    description: 'You cannot change the server owner\'s nickname.',
+                    title: t('nickname.errorCannotChangeNickname2'),
+                    description: t('nickname.youCannotChangeTheServer'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -105,31 +108,31 @@ export default {
             // Create success embed
             const successEmbed = {
                 color: 0x00FF00,
-                title: `[SUCCESS] Nickname ${nickname ? 'Changed' : 'Reset'}`,
-                description: `${user.tag}'s nickname has been ${action}.`,
+                title: t('nickname.successNicknameNickname', { nickname: nickname ? 'Changed' : 'Reset' }),
+                description: t('nickname.userSNicknameHasBeen', { user: user.tag, action: action }),
                 fields: [
                     {
-                        name: '[INFO] Moderator',
+                        name: t('nickname.fieldModerator'),
                         value: interaction.user.tag,
                         inline: true
                     },
                     {
-                        name: '[INFO] Old Nickname',
+                        name: t('nickname.infoOldNickname'),
                         value: oldNickname,
                         inline: true
                     },
                     {
-                        name: '[INFO] New Nickname',
+                        name: t('nickname.infoNewNickname'),
                         value: newNickname,
                         inline: true
                     },
                     {
-                        name: '[INFO] Reason',
+                        name: t('nickname.fieldReason'),
                         value: reason,
                         inline: false
                     },
                     {
-                        name: '[INFO] User ID',
+                        name: t('nickname.fieldUserId'),
                         value: user.id,
                         inline: true
                     }
@@ -154,7 +157,7 @@ export default {
             // Log the action
             logger.info({ msg: `[MODERATION] User ${user.tag}'s nickname was ${action} by ${interaction.user.tag}. Old: "${oldNickname}", New: "${newNickname}". Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
+            const errorMessage = handleDiscordError(error) ?? t('nickname.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

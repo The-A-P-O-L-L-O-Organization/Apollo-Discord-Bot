@@ -4,6 +4,7 @@ import { logger } from '../../../utils/logger.js';
 import { config } from '../../../config/config.js';
 import { appendToGuildArray, generateId } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 const POLL_EMOJIS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
 
@@ -61,6 +62,12 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'utility');
             const question = interaction.options.getString('question') ?? '';
             const optionsInput = interaction.options.getString('options') ?? '';
             const durationInput = interaction.options.getString('duration');
@@ -73,7 +80,7 @@ export default {
 
             if (options.length < 2) {
                 await interaction.reply({
-                    content: 'A poll must have at least 2 options. Separate options with `|`.',
+                    content: t('poll.minOptions'),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -81,7 +88,7 @@ export default {
 
             if (options.length > config.polls.maxOptions) {
                 await interaction.reply({
-                    content: `A poll can have a maximum of ${config.polls.maxOptions} options.`,
+                    content: t('poll.maxOptions', { max: config.polls.maxOptions }),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -92,7 +99,7 @@ export default {
                 const duration = parseTimeString(durationInput);
                 if (!duration) {
                     await interaction.reply({
-                        content: 'Invalid duration format. Use formats like: `1h` (1 hour), `6h` (6 hours), `1d` (1 day).',
+                        content: t('poll.badDuration'),
                         flags: MessageFlags.Ephemeral
                     });
                     return;
@@ -101,7 +108,7 @@ export default {
                 if (duration > config.polls.maxDuration) {
                     const maxDays = Math.floor(config.polls.maxDuration / (1000 * 60 * 60 * 24));
                     await interaction.reply({
-                        content: `Poll duration cannot exceed ${maxDays} days.`,
+                        content: t('poll.tooLong', { days: maxDays }),
                         flags: MessageFlags.Ephemeral
                     });
                     return;
@@ -112,9 +119,9 @@ export default {
 
             const embed = new EmbedBuilder()
                 .setColor('#9B59B6')
-                .setTitle('[Poll] ' + question)
+                .setTitle(t('poll.title', { question }))
                 .setFooter({
-                    text: `Poll by ${interaction.user.tag}${anonymous ? ' • Anonymous voting' : ''}`
+                    text: t('poll.by', { user: interaction.user.tag, anon: anonymous ? t('poll.anon') : '' })
                 })
                 .setTimestamp();
 
@@ -127,7 +134,7 @@ export default {
             if (endTime) {
                 const timestamp = Math.floor(endTime / 1000);
                 embed.addFields({
-                    name: 'Poll Ends',
+                    name: t('poll.ends'),
                     value: `<t:${timestamp}:R> (<t:${timestamp}:f>)`,
                     inline: false
                 });

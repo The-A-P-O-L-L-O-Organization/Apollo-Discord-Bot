@@ -4,6 +4,7 @@ import { logger } from '../utils/logger.js';
 import type { Guild, GuildMember, TextChannel } from 'discord.js';
 import { EmbedBuilder } from 'discord.js';
 import { config } from '../config/config.js';
+import { getCommonT } from './discordErrors.js';
 
 export interface ModLogOptions {
     action: string;
@@ -25,7 +26,7 @@ export interface ModLogOptions {
  * @param options.duration - Duration (for mutes)
  * @param options.extra - Extra fields to add
  */
-export async function sendModLog(guild: Guild, options: ModLogOptions): Promise<void> {
+export async function sendModLog(guild: Guild, options: ModLogOptions, locale = 'en-US'): Promise<void> {
     // Check if mod logging is enabled
     if (!config.moderation.logModerationActions) {
         return;
@@ -54,25 +55,27 @@ export async function sendModLog(guild: Guild, options: ModLogOptions): Promise<
             default: 0x7289DA  // Discord Blurple
         };
 
+        const t = getCommonT(locale);
+
         // Create the embed
         const logEmbed = new EmbedBuilder()
             .setColor(actionColors[options.action.toLowerCase()] ?? actionColors['default'] ?? 0x7289DA)
-            .setTitle(`[MODERATION] ${options.action.toUpperCase()}`)
+            .setTitle(t('modlog.title', { action: options.action.toUpperCase(), defaultValue: `[MODERATION] ${options.action.toUpperCase()}` }))
             .setThumbnail(options.target.displayAvatarURL())
             .addFields(
                 {
-                    name: 'Target User',
+                    name: t('modlog.target', { defaultValue: 'Target User' }),
                     value: `${options.target.tag}\n\`${options.target.id}\``,
                     inline: true
                 },
                 {
-                    name: 'Moderator',
+                    name: t('modlog.moderator', { defaultValue: 'Moderator' }),
                     value: `${options.moderator.tag}\n\`${options.moderator.id}\``,
                     inline: true
                 },
                 {
-                    name: 'Reason',
-                    value: options.reason || config.moderation.defaultReason,
+                    name: t('modlog.reason', { defaultValue: 'Reason' }),
+                    value: options.reason || t('modlog.defaultReason', { defaultValue: 'No reason provided' }),
                     inline: false
                 }
             )
@@ -109,6 +112,43 @@ export async function sendModLog(guild: Guild, options: ModLogOptions): Promise<
     } catch (error) {
         logger.error({ err: error as Error, msg: '[ERROR] Failed to send mod log' });
     }
+}
+
+export interface LocaleChangeContext {
+    guildId: string;
+    actor: { id: string; tag: string };
+    oldLocale: string;
+    newLocale: string;
+}
+
+export function logLocaleChange(context: LocaleChangeContext, locale = 'en-US'): void {
+    const t = getCommonT(locale);
+    const embed = new EmbedBuilder()
+        .setColor(0x7289DA)
+        .setTitle(t('modlog.localeChanged', { defaultValue: 'Server Language Changed' }))
+        .addFields(
+            {
+                name: t('modlog.localeChangedBy', { defaultValue: 'Changed by' }),
+                value: `${context.actor.tag}\n\`${context.actor.id}\``,
+                inline: true
+            },
+            {
+                name: t('modlog.previousLocale', { defaultValue: 'Previous' }),
+                value: context.oldLocale,
+                inline: true
+            },
+            {
+                name: t('modlog.newLocale', { defaultValue: 'New' }),
+                value: context.newLocale,
+                inline: true
+            }
+        )
+        .setTimestamp()
+        .setFooter({ text: t('modlog.localeFooter', { defaultValue: 'Future bot messages in this server will use the new language.' }) });
+    logger.info({
+        msg: `[MOD-LOG] locale changed in ${context.guildId}: ${context.oldLocale} -> ${context.newLocale}`,
+        embed: embed.toJSON()
+    });
 }
 
 /**

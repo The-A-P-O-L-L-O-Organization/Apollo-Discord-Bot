@@ -5,6 +5,7 @@ import { PermissionsBitField } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { enableRaidMode, disableRaidMode, isRaidModeEnabled } from '../../../utils/raidDetection.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'raidmode',
@@ -27,6 +28,8 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction) {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const action = interaction.options.getString('action');
 
@@ -35,13 +38,13 @@ export default {
 
                 const embed = new EmbedBuilder()
                     .setColor(isEnabled ? '#FF0000' : '#00FF00')
-                    .setTitle('Raid Mode Status')
-                    .setDescription(`Raid mode is currently **${isEnabled ? 'ENABLED' : 'DISABLED'}**`)
+                    .setTitle(t('raidmode.raidModeStatus'))
+                    .setDescription(t('raidmode.raidModeIsCurrentlyValue', { value: isEnabled ? 'ENABLED' : 'DISABLED' }))
                     .setTimestamp();
 
                 if (isEnabled) {
                     embed.addFields({
-                        name: 'Note',
+                        name: t('raidmode.note'),
                         value: 'All channels are locked. Use `/raidmode disable` to unlock.',
                         inline: false
                     });
@@ -58,7 +61,7 @@ export default {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000,
-                            title: '[ERROR] Already Enabled',
+                            title: t('raidmode.errorAlreadyEnabled'),
                             description: result.reason,
                             timestamp: new Date().toISOString()
                         }]
@@ -67,15 +70,15 @@ export default {
 
                 const embed = new EmbedBuilder()
                     .setColor('#FF0000')
-                    .setTitle('[!] Raid Mode ENABLED')
-                    .setDescription('All channels have been locked to prevent raid damage.')
+                    .setTitle(t('raidmode.raidModeEnabled'))
+                    .setDescription(t('raidmode.allChannelsHaveBeenLocked'))
                     .addFields(
-                        { name: 'Channels Locked', value: `${result.locked}`, inline: true },
-                        { name: 'Failed', value: `${result.failed}`, inline: true },
-                        { name: 'Total Channels', value: `${result.total}`, inline: true }
+                        { name: t('raidmode.channelsLocked'), value: t('raidmode.value', { value: result.locked }), inline: true },
+                        { name: t('raidmode.failed'), value: t('raidmode.value2', { value: result.failed }), inline: true },
+                        { name: t('raidmode.totalChannels'), value: t('raidmode.value3', { value: result.total }), inline: true }
                     )
                     .addFields({
-                        name: 'Next Steps',
+                        name: t('raidmode.nextSteps'),
                         value: '• Review recent member joins\n• Ban raiders manually\n• Use `/raidmode disable` when clear',
                         inline: false
                     })
@@ -95,7 +98,7 @@ export default {
                     return interaction.editReply({
                         embeds: [{
                             color: 0xFF0000,
-                            title: '[ERROR] Not Enabled',
+                            title: t('raidmode.errorNotEnabled'),
                             description: result.reason,
                             timestamp: new Date().toISOString()
                         }]
@@ -104,12 +107,12 @@ export default {
 
                 const embed = new EmbedBuilder()
                     .setColor('#00FF00')
-                    .setTitle('[SUCCESS] Raid Mode DISABLED')
-                    .setDescription('All channels have been unlocked.')
+                    .setTitle(t('raidmode.successRaidModeDisabled'))
+                    .setDescription(t('raidmode.allChannelsHaveBeenUnlocked'))
                     .addFields(
-                        { name: 'Channels Unlocked', value: `${result.unlocked}`, inline: true },
-                        { name: 'Failed', value: `${result.failed}`, inline: true },
-                        { name: 'Total Channels', value: `${result.total}`, inline: true }
+                        { name: t('raidmode.channelsUnlocked'), value: t('raidmode.value4', { value: result.unlocked }), inline: true },
+                        { name: t('raidmode.failed2'), value: t('raidmode.value5', { value: result.failed }), inline: true },
+                        { name: t('raidmode.totalChannels2'), value: t('raidmode.value6', { value: result.total }), inline: true }
                     )
                     .setTimestamp()
                     .setFooter({ text: `Deactivated by ${interaction.user.tag}` });
@@ -119,7 +122,7 @@ export default {
                 logger.info({ msg: `[RAID] Raid mode disabled by ${interaction.user.tag} in ${interaction.guild!.name}` });
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
+            const errorMessage = handleDiscordError(error) ?? t('raidmode.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

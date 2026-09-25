@@ -3,6 +3,7 @@ import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } 
 import { calculateSLAMetrics, formatTime, DEFAULT_SLA_THRESHOLDS } from '../../../utils/slaTracker.js';
 import { getGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface SLAThresholds {
     urgent: number;
@@ -28,6 +29,12 @@ export default {
         try {
             await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'utility');
             const guildId = interaction.guild!.id;
             const metrics = await calculateSLAMetrics(guildId);
             const ticketConfig = await getGuildData('tickets', guildId) as TicketConfig | null;
@@ -35,8 +42,8 @@ export default {
 
             const embed = new EmbedBuilder()
                 .setColor('#3498DB')
-                .setTitle('Statistics SLA Metrics & Response Times')
-                .setDescription('Service Level Agreement statistics for ticket support')
+                .setTitle(t('sla.title'))
+                .setDescription(t('sla.desc'))
                 .setTimestamp();
 
             const slaComplianceRate = metrics.totalTickets > 0
@@ -44,32 +51,32 @@ export default {
                 : 'N/A';
 
             embed.addFields({
-                name: 'Chart Overall Statistics',
+                name: t('sla.overall'),
                 value: [
-                    `Total Closed Tickets: **${metrics.totalTickets}**`,
-                    `Average Response Time: **${formatTime(metrics.avgResponseTime)}**`,
-                    `Average Resolution Time: **${formatTime(metrics.avgResolutionTime)}**`,
-                    `SLA Compliance Rate: **${slaComplianceRate}%**`,
-                    `SLA Met: **${metrics.slaMet}** | Breached: **${metrics.slaBreached}**`
+                    t('sla.totalClosed', { count: metrics.totalTickets }),
+                    t('sla.avgResponse', { time: formatTime(metrics.avgResponseTime) }),
+                    t('sla.avgResolution', { time: formatTime(metrics.avgResolutionTime) }),
+                    t('sla.compliance', { rate: slaComplianceRate }),
+                    t('sla.metBreached', { met: metrics.slaMet, breached: metrics.slaBreached })
                 ].join('\n'),
                 inline: false
             });
 
             if (metrics.openTicketsBreached > 0) {
                 embed.addFields({
-                    name: '[WARNING] Open Tickets with Breached SLA',
-                    value: `**${metrics.openTicketsBreached}** open ticket(s) have exceeded their SLA threshold and need immediate attention.`,
+                    name: t('sla.breachedTitle'),
+                    value: t('sla.breachedValue', { count: metrics.openTicketsBreached }),
                     inline: false
                 });
             }
 
             embed.addFields({
-                name: '⏱️ Current SLA Thresholds',
+                name: t('sla.thresholds'),
                 value: [
-                    `🔴 Urgent: **${formatTime(slaThresholds.urgent)}**`,
-                    `🟠 High: **${formatTime(slaThresholds.high)}**`,
-                    `🟡 Medium: **${formatTime(slaThresholds.medium)}**`,
-                    `🔵 Low: **${formatTime(slaThresholds.low)}**`
+                    t('sla.urgent', { time: formatTime(slaThresholds.urgent) }),
+                    t('sla.high', { time: formatTime(slaThresholds.high) }),
+                    t('sla.medium', { time: formatTime(slaThresholds.medium) }),
+                    t('sla.low', { time: formatTime(slaThresholds.low) })
                 ].join('\n'),
                 inline: true
             });
@@ -77,14 +84,13 @@ export default {
             if (Object.keys(metrics.byPriority).length > 0) {
                 const priorityStats = Object.entries(metrics.byPriority)
                     .map(([priority, data]) => {
-                        const emoji = priority === 'urgent' ? '🔴' : priority === 'high' ? '🟠' : priority === 'medium' ? '🟡' : '🔵';
-                        return `${emoji} ${priority.charAt(0).toUpperCase() + priority.slice(1)}: **${data.count}** tickets, avg **${formatTime(data.avgResponseTime)}**`;
+                        return t('sla.priorityRow', { priority: priority.charAt(0).toUpperCase() + priority.slice(1), count: data.count, time: formatTime(data.avgResponseTime) });
                     })
                     .join('\n');
 
                 embed.addFields({
-                    name: ' Response Time by Priority',
-                    value: priorityStats || 'No data',
+                    name: t('sla.byPriority'),
+                    value: priorityStats || t('sla.noData'),
                     inline: false
                 });
             }
@@ -94,21 +100,21 @@ export default {
                     .sort((a, b) => b[1].count - a[1].count)
                     .slice(0, 5)
                     .map(([category, data]) => {
-                        return `**${category.charAt(0).toUpperCase() + category.slice(1)}**: ${data.count} tickets, avg **${formatTime(data.avgResponseTime)}**`;
+                        return t('sla.categoryRow', { category: category.charAt(0).toUpperCase() + category.slice(1), count: data.count, time: formatTime(data.avgResponseTime) });
                     })
                     .join('\n');
 
                 embed.addFields({
-                    name: '📁 Response Time by Category (Top 5)',
-                    value: categoryStats || 'No data',
+                    name: t('sla.byCategory'),
+                    value: categoryStats || t('sla.noData'),
                     inline: false
                 });
             }
 
             if (metrics.openTicketsBreached > 0) {
                 embed.addFields({
-                    name: 'Recommendations Recommendations',
-                    value: '• Review open tickets with breached SLAs using `/ticketlist`\n• Consider adjusting SLA thresholds with `/ticketsetup sla`\n• Assign more support staff to high-priority categories',
+                    name: t('sla.recommendations'),
+                    value: t('sla.recommendationsValue'),
                     inline: false
                 });
             }

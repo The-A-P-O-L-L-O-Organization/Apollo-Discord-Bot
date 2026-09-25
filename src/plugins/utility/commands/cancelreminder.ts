@@ -2,6 +2,7 @@ import type { ChatInputCommandInteraction} from 'discord.js';
 import { MessageFlags, SlashCommandBuilder } from 'discord.js';
 import { cancelReminder, getUserReminders } from '../../../utils/reminderScheduler.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     // Cancel Reminder Command
@@ -20,6 +21,12 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'utility');
             const reminderId = interaction.options.getString('id') ?? '';
             const userId = interaction.user.id;
 
@@ -29,7 +36,7 @@ export default {
 
             if (!reminder) {
                 await interaction.reply({
-                    content: `Could not find a reminder with ID \`${reminderId}\`.\n\nUse \`/reminders\` to see your active reminders and their IDs.`,
+                    content: t('cancelreminder.notFound', { id: reminderId }),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -40,14 +47,14 @@ export default {
 
             if (!cancelled) {
                 await interaction.reply({
-                    content: 'Failed to cancel the reminder. It may have already been sent or deleted.',
+                    content: t('cancelreminder.failed'),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
             }
 
             await interaction.reply({
-                content: `Reminder cancelled!\n\n**Message:** ${reminder.message}`,
+                content: t('cancelreminder.cancelled', { message: reminder.message }),
                 flags: MessageFlags.Ephemeral
             });
 

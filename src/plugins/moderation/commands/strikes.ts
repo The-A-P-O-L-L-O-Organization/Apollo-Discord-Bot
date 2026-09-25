@@ -5,6 +5,7 @@ import { getUserData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 
 import type { StrikeEntry } from './strike.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'strikes',
@@ -22,6 +23,8 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const user = interaction.options.getUser('user');
 
@@ -29,8 +32,8 @@ export default {
                 await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Missing User',
-                        description: 'Please specify a valid user.',
+                        title: t('strikes.missingUserTitle'),
+                        description: t('strikes.missingUserDescription'),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -45,8 +48,8 @@ export default {
                 await interaction.reply({
                     embeds: [{
                         color: 0x00FF00,
-                        title: '[INFO] No Strikes',
-                        description: `${user.tag} has no strikes on record.`,
+                        title: t('strikes.infoNoStrikes'),
+                        description: t('strikes.userHasNoStrikesOn', { user: user.tag }),
                         timestamp: new Date().toISOString()
                     }]
                 });
@@ -55,8 +58,8 @@ export default {
 
             const embed = new EmbedBuilder()
                 .setColor('#FF0000')
-                .setTitle(`Strike History - ${user.tag}`)
-                .setDescription(`Total: ${strikes.length} strike(s) | Active: ${activeStrikes.length}`)
+                .setTitle(t('strikes.strikeHistoryUser', { user: user.tag }))
+                .setDescription(t('strikes.totalCountStrikeSActive', { count: strikes.length, count2: activeStrikes.length }))
                 .setThumbnail(user.displayAvatarURL())
                 .setTimestamp();
 
@@ -65,19 +68,19 @@ export default {
                 const status = strike.active === false ? '(Removed)' : '';
 
                 embed.addFields({
-                    name: `Strike #${index + 1} ${status}`,
-                    value: `**ID:** ${strike.id}\n**Reason:** ${strike.reason}\n**Moderator:** ${strike.moderatorTag}\n**Date:** ${date}`,
+                    name: t('strikes.strikeValueStatus', { value: index + 1, status: status }),
+                    value: t('strikes.idValueNReasonReason', { value: strike.id, reason: strike.reason, moderator: strike.moderatorTag, date: date }),
                     inline: false
                 });
             });
 
             if (strikes.length > 25) {
-                embed.setFooter({ text: `Showing 25 of ${strikes.length} strikes` });
+                embed.setFooter({ text: t('strikes.showingOfCountStrikes', { count: strikes.length }) });
             }
 
             await interaction.reply({ embeds: [embed] });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
+            const errorMessage = handleDiscordError(error) ?? t('strikes.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

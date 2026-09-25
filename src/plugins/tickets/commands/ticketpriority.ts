@@ -4,6 +4,7 @@ import { getGuildData, updateGuildData } from '../../../utils/db.js';
 import { getPriorityColor, getPriorityEmoji } from '../../../utils/slaTracker.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface PriorityTicketData {
     userId: string;
@@ -36,6 +37,13 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'tickets');
+
             const guildId = interaction.guild!.id;
             const channelId = interaction.channel!.id;
             const newPriority = interaction.options.getString('priority')!;
@@ -47,7 +55,7 @@ export default {
 
             if (!ticket) {
                 await interaction.reply({
-                    content: 'This channel is not a ticket channel.',
+                    content: t('ticketpriority.notTicket'),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -59,7 +67,7 @@ export default {
 
             if (!hasSupport && !isAdmin) {
                 await interaction.reply({
-                    content: 'You do not have permission to change ticket priority.',
+                    content: t('ticketpriority.noPermission'),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -69,7 +77,7 @@ export default {
 
             if (oldPriority === newPriority) {
                 await interaction.reply({
-                    content: `This ticket is already set to **${newPriority}** priority.`,
+                    content: t('ticketpriority.alreadySet', { priority: newPriority }),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -98,11 +106,11 @@ export default {
 
             const embed = new EmbedBuilder()
                 .setColor(getPriorityColor(newPriority))
-                .setTitle('Ticket Priority Updated')
-                .setDescription(`Priority changed from **${getPriorityEmoji(oldPriority)} ${oldPriority.toUpperCase()}** to **${getPriorityEmoji(newPriority)} ${newPriority.toUpperCase()}**`)
+                .setTitle(t('ticketpriority.title'))
+                .setDescription(t('ticketpriority.description', { oldEmoji: getPriorityEmoji(oldPriority), old: oldPriority.toUpperCase(), newEmoji: getPriorityEmoji(newPriority), new: newPriority.toUpperCase() }))
                 .addFields(
-                    { name: 'Updated by', value: `<@${interaction.user.id}>`, inline: true },
-                    { name: 'New Priority', value: `${getPriorityEmoji(newPriority)} ${newPriority.charAt(0).toUpperCase() + newPriority.slice(1)}`, inline: true }
+                    { name: t('ticketpriority.fieldUpdatedBy'), value: `<@${interaction.user.id}>`, inline: true },
+                    { name: t('ticketpriority.fieldNewPriority'), value: `${getPriorityEmoji(newPriority)} ${newPriority.charAt(0).toUpperCase() + newPriority.slice(1)}`, inline: true }
                 )
                 .setTimestamp();
 

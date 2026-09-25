@@ -5,6 +5,7 @@ import { generateNonce, getInterlinkClient, resetInterlinkClient } from './conne
 import type { InterlinkConnectClient } from './connectClient.js';
 import type { Envelope as ProtoEnvelope } from '../../generated/interlink/interlink/v1/interlink_pb.js';
 import { createLogger } from '../../utils/logger.js';
+import { extractInterlinkLocale, resolveInterlinkLocale } from './locale.js';
 import { config } from '../../config/config.js';
 import type { EventBusImpl } from '../../core/EventBus.js';
 
@@ -22,6 +23,7 @@ interface Envelope {
     id: string;
     timestamp: number;
     nonce: string;
+    locale?: string;
     payload: unknown;
 }
 
@@ -229,6 +231,7 @@ export default class InterlinkPlugin extends Plugin {
             await this.bus.emit('interlink:message:ping', envelope);
             return;
         }
+        envelope.locale = resolveInterlinkLocale(extractInterlinkLocale(envelope.payload));
         await this.bus.emit(`interlink:message:${envelope.type}`, envelope);
     }
 

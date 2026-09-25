@@ -4,6 +4,7 @@ import { logger } from '../../../utils/logger.js';
 import { parseMarkdownToEmbed } from '../../../utils/markdownParser.js';
 import { getAutomodConfig, checkBannedWords } from '../../../utils/automod.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 function isValidUrl(string: string): boolean {
     try {
@@ -84,6 +85,12 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'utility');
             const title = interaction.options.getString('title');
             const description = interaction.options.getString('description');
             const color = interaction.options.getString('color');
@@ -99,7 +106,7 @@ export default {
             if (fileAttachment) {
                 if (!fileAttachment.name.toLowerCase().endsWith('.md')) {
                     await interaction.reply({
-                        content: 'Only `.md` files are supported. Please upload a markdown file.',
+                        content: t('embed.onlyMd'),
                         flags: MessageFlags.Ephemeral
                     });
                     return;
@@ -109,7 +116,7 @@ export default {
                     const content = await response.text();
                     if (!content.trim()) {
                         await interaction.reply({
-                            content: 'The uploaded .md file is empty.',
+                            content: t('embed.emptyFile'),
                             flags: MessageFlags.Ephemeral
                         });
                         return;
@@ -118,7 +125,7 @@ export default {
                     parsed = parseMarkdownToEmbed(content, fileAttachment.name, { title, description }) as Record<string, unknown>;
                 } catch {
                     await interaction.reply({
-                        content: 'Could not read the attached file. Please try again.',
+                        content: t('embed.readFailed'),
                         flags: MessageFlags.Ephemeral
                     });
                     return;
@@ -127,7 +134,7 @@ export default {
 
             if (!title && !description && !fileAttachment) {
                 await interaction.reply({
-                    content: 'You must provide at least a title or description for the embed.',
+                    content: t('embed.needTitleOrDesc'),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -154,7 +161,7 @@ export default {
                     embed.setColor(`#${match[1]}`);
                 } else {
                     await interaction.reply({
-                        content: 'Invalid color format. Please use a hex color code (e.g., #FF0000 or FF0000).',
+                        content: t('embed.badColor'),
                         flags: MessageFlags.Ephemeral
                     });
                     return;
@@ -166,7 +173,7 @@ export default {
             if (image) {
                 if (!isValidUrl(image)) {
                     await interaction.reply({
-                        content: 'Invalid image URL. Please provide a valid URL.',
+                        content: t('embed.badImage'),
                         flags: MessageFlags.Ephemeral
                     });
                     return;
@@ -177,7 +184,7 @@ export default {
             if (thumbnail) {
                 if (!isValidUrl(thumbnail)) {
                     await interaction.reply({
-                        content: 'Invalid thumbnail URL. Please provide a valid URL.',
+                        content: t('embed.badThumb'),
                         flags: MessageFlags.Ephemeral
                     });
                     return;
@@ -196,7 +203,7 @@ export default {
             if (url) {
                 if (!isValidUrl(url)) {
                     await interaction.reply({
-                        content: 'Invalid URL. Please provide a valid URL.',
+                        content: t('embed.badUrl'),
                         flags: MessageFlags.Ephemeral
                     });
                     return;
@@ -234,7 +241,7 @@ export default {
                 const matchedWord = checkBannedWords(embedTexts.join(' '), cfg.bannedWords);
                 if (matchedWord) {
                     await interaction.reply({
-                        content: 'Your embed contains a banned word and cannot be sent.',
+                        content: t('embed.banned'),
                         flags: MessageFlags.Ephemeral
                     });
                     return;
@@ -247,14 +254,14 @@ export default {
                     await targetChannel.send({ embeds: [embed] });
                 }
                 await interaction.reply({
-                    content: 'Embed created successfully!',
+                    content: t('embed.created'),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
             } catch (error) {
                 logger.error({ err: error, msg: '[ERROR] Failed to send embed' });
                 await interaction.reply({
-                    content: 'Failed to create the embed. Please check your inputs and try again.',
+                    content: t('embed.failed'),
                     flags: MessageFlags.Ephemeral
                 });
                 return;

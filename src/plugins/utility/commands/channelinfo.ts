@@ -1,6 +1,7 @@
 import type { ChatInputCommandInteraction, GuildChannel, CategoryChannel} from 'discord.js';
 import { EmbedBuilder, MessageFlags, TextChannel, VoiceChannel, StageChannel, ThreadChannel, VideoQualityMode } from 'discord.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 function isTextChannel(channel: unknown): channel is TextChannel {
     return channel instanceof TextChannel;
@@ -36,10 +37,16 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'utility');
             const channel = interaction.options.getChannel('channel') ?? interaction.channel;
 
             if (!channel) {
-                await interaction.reply({ content: 'Could not find that channel.', flags: MessageFlags.Ephemeral });
+                await interaction.reply({ content: t('channelinfo.notFound'), flags: MessageFlags.Ephemeral });
                 return;
             }
 
@@ -49,31 +56,31 @@ export default {
 
             // Determine channel type
             const channelTypes: Record<number, string> = {
-                0: 'Text Channel',
-                1: 'DM',
-                2: 'Voice Channel',
-                3: 'Group DM',
-                4: 'Category',
-                5: 'News Channel',
-                10: 'News Thread',
-                11: 'Public Thread',
-                12: 'Private Thread',
-                13: 'Stage Channel',
-                14: 'Directory',
-                15: 'Forum'
+                0: t('channelinfo.text'),
+                1: t('channelinfo.dm'),
+                2: t('channelinfo.voice'),
+                3: t('channelinfo.groupDm'),
+                4: t('channelinfo.categoryType'),
+                5: t('channelinfo.news'),
+                10: t('channelinfo.newsThread'),
+                11: t('channelinfo.publicThread'),
+                12: t('channelinfo.privateThread'),
+                13: t('channelinfo.stage'),
+                14: t('channelinfo.directory'),
+                15: t('channelinfo.forum')
             };
 
-            const typeName = channelTypes[channel.type] ?? 'Unknown';
+            const typeName = channelTypes[channel.type] ?? t('channelinfo.unknown');
 
             // Get basic info
             const channelInfo = [
                 {
-                    name: '[INFO] Type',
+                    name: t('channelinfo.type'),
                     value: typeName,
                     inline: true
                 },
                 {
-                    name: '[INFO] ID',
+                    name: t('channelinfo.id'),
                     value: channel.id,
                     inline: true
                 }
@@ -82,7 +89,7 @@ export default {
             // Add topic for text channels
             if (isTextChannel(channel) && channel.topic) {
                 channelInfo.push({
-                    name: '[INFO] Topic',
+                    name: t('channelinfo.topic'),
                     value: channel.topic.substring(0, 1024),
                     inline: false
                 });
@@ -91,8 +98,8 @@ export default {
             // Add slowmode for text channels
             if (isTextChannel(channel) && channel.rateLimitPerUser && channel.rateLimitPerUser > 0) {
                 channelInfo.push({
-                    name: '[INFO] Slowmode',
-                    value: `${channel.rateLimitPerUser} second(s)`,
+                    name: t('channelinfo.slowmode'),
+                    value: t('channelinfo.seconds', { count: channel.rateLimitPerUser }),
                     inline: true
                 });
             }
@@ -100,8 +107,8 @@ export default {
             // Add bitrate for voice channels
             if ((isVoiceChannel(channel) || isStageChannel(channel)) && channel.bitrate) {
                 channelInfo.push({
-                    name: '[INFO] Bitrate',
-                    value: `${Math.floor(channel.bitrate / 1000)}kbps`,
+                    name: t('channelinfo.bitrate'),
+                    value: t('channelinfo.kbps', { count: Math.floor(channel.bitrate / 1000) }),
                     inline: true
                 });
             }
@@ -109,7 +116,7 @@ export default {
             // Add user limit for voice channels
             if (isVoiceChannel(channel) && channel.userLimit && channel.userLimit > 0) {
                 channelInfo.push({
-                    name: '[INFO] User Limit',
+                    name: t('channelinfo.userLimit'),
                     value: `${channel.userLimit}`,
                     inline: true
                 });
@@ -117,9 +124,9 @@ export default {
 
             // Add video quality for stage/voice
             if ((isVoiceChannel(channel) || isStageChannel(channel)) && channel.videoQualityMode) {
-                const quality = channel.videoQualityMode === VideoQualityMode.Auto ? 'Auto' : '720p';
+                const quality = channel.videoQualityMode === VideoQualityMode.Auto ? t('channelinfo.auto') : t('channelinfo.hd');
                 channelInfo.push({
-                    name: '[INFO] Video Quality',
+                    name: t('channelinfo.videoQuality'),
                     value: quality,
                     inline: true
                 });
@@ -128,22 +135,22 @@ export default {
             // Add nsfw status for text channels
             if (isTextChannel(channel) && !isThreadChannel(channel)) {
                 channelInfo.push({
-                    name: '[INFO] NSFW',
-                    value: channel.nsfw ? 'Yes' : 'No',
+                    name: t('channelinfo.nsfw'),
+                    value: channel.nsfw ? t('channelinfo.yes') : t('channelinfo.no'),
                     inline: true
                 });
             }
 
             // Add creation date
             channelInfo.push({
-                name: '[INFO] Created',
+                name: t('channelinfo.created'),
                 value: `<t:${Math.floor(gChannel.createdTimestamp / 1000)}:F>`,
                 inline: true
             });
 
             // Add position (guild channels only)
             channelInfo.push({
-                name: '[INFO] Position',
+                name: t('channelinfo.position'),
                 value: `${gChannel.rawPosition + 1}`,
                 inline: true
             });
@@ -151,14 +158,14 @@ export default {
             // Create channel info embed
             const channelEmbed = new EmbedBuilder()
                 .setColor(0x3498DB)
-                .setTitle(`[CHANNEL] ${gChannel.name}`)
+                .setTitle(t('channelinfo.title', { name: gChannel.name }))
                 .addFields(channelInfo)
                 .setTimestamp();
 
             // Add category if available
             if ('parent' in gChannel && gChannel.parent) {
                 channelEmbed.addFields({
-                    name: '[INFO] Category',
+                    name: t('channelinfo.category'),
                     value: gChannel.parent.name,
                     inline: true
                 });

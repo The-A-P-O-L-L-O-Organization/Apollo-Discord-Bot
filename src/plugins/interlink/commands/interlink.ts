@@ -4,6 +4,7 @@ import { config } from '../../../config/config.js';
 import { safeError } from '../../../utils/safeError.js';
 import { isOwner, getOwnerIds } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 import { logger } from '../../../utils/logger.js';
 import { MessageFlags } from 'discord.js';
 import type { ChatInputCommandInteraction } from 'discord.js';
@@ -98,13 +99,19 @@ export default {
     async execute(interaction: ChatInputCommandInteraction) {
         try {
             await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'interlink');
 
             if (!isOwner(interaction.user.id)) {
                 return interaction.editReply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Access Denied',
-                        description: 'Only bot owners can use this command.'
+                        title: t('interlink.accessDeniedTitle'),
+                        description: t('interlink.accessDenied')
                     }]
                 });
             }
@@ -114,27 +121,27 @@ export default {
             try {
                 switch (sub) {
                 case 'list':
-                    return await this._list(interaction);
+                    return await this._list(interaction, t);
                 case 'register':
-                    return await this._register(interaction);
+                    return await this._register(interaction, t);
                 case 'remove':
-                    return await this._remove(interaction);
+                    return await this._remove(interaction, t);
                 case 'send':
-                    return await this._send(interaction);
+                    return await this._send(interaction, t);
                 case 'broadcast':
-                    return await this._broadcast(interaction);
+                    return await this._broadcast(interaction, t);
                 case 'rotate-key':
-                    return await this._rotateKey(interaction);
+                    return await this._rotateKey(interaction, t);
                 case 'override':
-                    return await this._override(interaction);
+                    return await this._override(interaction, t);
                 default:
-                    return interaction.editReply({ embeds: [{ color: 0xFF0000, title: '[ERROR] Unknown subcommand' }] });
+                    return interaction.editReply({ embeds: [{ color: 0xFF0000, title: t('interlink.unknownSubcommand') }] });
                 }
             } catch (err: unknown) {
                 return interaction.editReply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Command Failed',
+                        title: t('interlink.failedTitle'),
                         description: safeError(err)
                     }]
                 });
@@ -150,36 +157,36 @@ export default {
         }
     },
 
-    async _list(interaction: ChatInputCommandInteraction) {
+    async _list(interaction: ChatInputCommandInteraction, t: ReturnType<typeof i18n.getFixedT>) {
         const response = await getInterlinkClient().listBots();
         const bots = response.bots;
         if (bots.length === 0) {
             return interaction.editReply({
                 embeds: [{
                     color: 0x3498DB,
-                    title: 'Interlink — Registered Bots',
-                    description: 'No bots registered yet. Use `/interlink register` to add one.'
+                    title: t('interlink.listTitle'),
+                    description: t('interlink.listEmpty')
                 }]
             });
         }
 
         const lines = bots.map((bot) => {
-            const status = bot.online ? 'Online' : 'Offline';
-            const lastSeen = bot.lastHeartbeat !== BigInt(0) ? `\n  Last heartbeat: ${new Date(Number(bot.lastHeartbeat)).toLocaleString()}` : '';
-            const endpoint = bot.endpoint ? `\n  Endpoint: ${bot.endpoint}` : '';
-            return `**${bot.botId}**${lastSeen}${endpoint}\n  Status: ${status}`;
+            const status = bot.online ? t('interlink.online') : t('interlink.offline');
+            const lastSeen = bot.lastHeartbeat !== BigInt(0) ? `\n  ${t('interlink.lastHeartbeat', { when: new Date(Number(bot.lastHeartbeat)).toLocaleString() })}` : '';
+            const endpoint = bot.endpoint ? `\n  ${t('interlink.endpoint', { endpoint: bot.endpoint })}` : '';
+            return `**${bot.botId}**${lastSeen}${endpoint}\n  ${t('interlink.status', { status })}`;
         });
 
         return interaction.editReply({
             embeds: [{
                 color: 0x3498DB,
-                title: `Interlink — Registered Bots (${bots.length})`,
+                title: t('interlink.listTitleCount', { count: bots.length }),
                 description: lines.join('\n\n')
             }]
         });
     },
 
-    async _register(interaction: ChatInputCommandInteraction) {
+    async _register(interaction: ChatInputCommandInteraction, t: ReturnType<typeof i18n.getFixedT>) {
         const name = interaction.options.getString('name', true).trim();
         const webhookUrl = interaction.options.getString('webhook-url', true).trim();
         const description = interaction.options.getString('description')?.trim() ?? '';
@@ -187,7 +194,7 @@ export default {
 
         if (!webhookUrl.startsWith('http://') && !webhookUrl.startsWith('https://')) {
             return interaction.editReply({
-                embeds: [{ color: 0xFF0000, title: '[ERROR] Invalid URL', description: 'webhook-url must start with http:// or https://' }]
+                embeds: [{ color: 0xFF0000, title: t('interlink.invalidUrlTitle'), description: t('interlink.invalidUrl') }]
             });
         }
 
@@ -195,7 +202,7 @@ export default {
         try {
             await client.getBotInfo(name);
             return interaction.editReply({
-                embeds: [{ color: 0xFFA500, title: '[WARNING] Already Registered', description: `Bot "${name}" is already registered.` }]
+                embeds: [{ color: 0xFFA500, title: t('interlink.alreadyTitle'), description: t('interlink.already', { name }) }]
             });
         } catch {
             // Not found — proceed with registration.
@@ -211,26 +218,26 @@ export default {
 
         if (!result.success) {
             return interaction.editReply({
-                embeds: [{ color: 0xFF0000, title: '[ERROR] Registration Failed', description: result.error || `Could not register bot "${name}".` }]
+                embeds: [{ color: 0xFF0000, title: t('interlink.regFailedTitle'), description: result.error || t('interlink.regFailed', { name }) }]
             });
         }
 
         return interaction.editReply({
             embeds: [{
                 color: 0x00FF00,
-                title: '[SUCCESS] Bot Registered',
+                title: t('interlink.registeredTitle'),
                 description: [
-                    `**Name:** ${name}`,
-                    `**Endpoint:** ${webhookUrl}`,
-                    supportsRedis ? '**Note:** Redis transport retired; bots communicate via the ConnectRPC Go service.' : '',
+                    t('interlink.registeredName', { name }),
+                    t('interlink.registeredEndpoint', { endpoint: webhookUrl }),
+                    supportsRedis ? t('interlink.redisNote') : '',
                     '',
-                    'Authentication uses the shared INTERLINK_AUTH_KEY trust domain (no per-bot key).'
+                    t('interlink.authNote')
                 ].filter(Boolean).join('\n')
             }]
         });
     },
 
-    async _remove(interaction: ChatInputCommandInteraction) {
+    async _remove(interaction: ChatInputCommandInteraction, t: ReturnType<typeof i18n.getFixedT>) {
         const name = interaction.options.getString('name', true).trim();
         const client = getInterlinkClient();
 
@@ -238,18 +245,18 @@ export default {
             await client.getBotInfo(name);
         } catch {
             return interaction.editReply({
-                embeds: [{ color: 0xFFA500, title: '[WARNING] Not Found', description: `No bot registered as "${name}".` }]
+                embeds: [{ color: 0xFFA500, title: t('interlink.notFoundTitle'), description: t('interlink.notFound', { name }) }]
             });
         }
 
         await client.unregisterBot(name);
 
         return interaction.editReply({
-            embeds: [{ color: 0x00FF00, title: '[SUCCESS] Bot Removed', description: `Bot "${name}" has been removed from the registry.` }]
+            embeds: [{ color: 0x00FF00, title: t('interlink.removedTitle'), description: t('interlink.removed', { name }) }]
         });
     },
 
-    async _send(interaction: ChatInputCommandInteraction) {
+    async _send(interaction: ChatInputCommandInteraction, t: ReturnType<typeof i18n.getFixedT>) {
         const name = interaction.options.getString('name', true).trim();
         const type = interaction.options.getString('type', true);
         const payloadStr = interaction.options.getString('payload', true);
@@ -259,14 +266,14 @@ export default {
             await client.getBotInfo(name);
         } catch {
             return interaction.editReply({
-                embeds: [{ color: 0xFFA500, title: '[WARNING] Not Found', description: `No bot registered as "${name}".` }]
+                embeds: [{ color: 0xFFA500, title: t('interlink.notFoundTitle'), description: t('interlink.notFound', { name }) }]
             });
         }
 
         let payload: unknown;
         try { payload = JSON.parse(payloadStr); } catch {
             return interaction.editReply({
-                embeds: [{ color: 0xFF0000, title: '[ERROR] Invalid JSON', description: 'payload must be a valid JSON string.' }]
+                embeds: [{ color: 0xFF0000, title: t('interlink.invalidJsonTitle'), description: t('interlink.invalidJson') }]
             });
         }
 
@@ -283,29 +290,29 @@ export default {
         });
 
         const success = result.accepted;
-        const error = result.error || 'Unknown error';
+        const error = result.error || t('interlink.unknownError');
 
         return interaction.editReply({
             embeds: [{
                 color: success ? 0x00FF00 : 0xFF0000,
-                title: success ? '[SUCCESS] Message Sent' : '[ERROR] Delivery Failed',
+                title: success ? t('interlink.sentTitle') : t('interlink.failedSendTitle'),
                 description: [
-                    `**Target:** ${name}`,
-                    `**Type:** ${type}`,
-                    `**Result:** ${success ? 'Accepted (at-most-once delivery)' : error}`
+                    t('interlink.sentTarget', { name }),
+                    t('interlink.sentType', { type }),
+                    t('interlink.sentResult', { result: success ? t('interlink.acceptedResult') : error })
                 ].join('\n')
             }]
         });
     },
 
-    async _broadcast(interaction: ChatInputCommandInteraction) {
+    async _broadcast(interaction: ChatInputCommandInteraction, t: ReturnType<typeof i18n.getFixedT>) {
         const type = interaction.options.getString('type', true);
         const payloadStr = interaction.options.getString('payload', true);
 
         let payload: unknown;
         try { payload = JSON.parse(payloadStr); } catch {
             return interaction.editReply({
-                embeds: [{ color: 0xFF0000, title: '[ERROR] Invalid JSON', description: 'payload must be a valid JSON string.' }]
+                embeds: [{ color: 0xFF0000, title: t('interlink.invalidJsonTitle'), description: t('interlink.invalidJson') }]
             });
         }
 
@@ -314,7 +321,7 @@ export default {
 
         if (targets.length === 0) {
             return interaction.editReply({
-                embeds: [{ color: 0xFFA500, title: '[WARNING] No Bots', description: 'No online registered bots to broadcast to.' }]
+                embeds: [{ color: 0xFFA500, title: t('interlink.noBotsTitle'), description: t('interlink.noBroadcastTargets') }]
             });
         }
 
@@ -334,37 +341,33 @@ export default {
         return interaction.editReply({
             embeds: [{
                 color: success ? 0x00FF00 : 0xFF0000,
-                title: '[INFO] Broadcast Complete',
+                title: t('interlink.broadcastTitle'),
                 description: success
-                    ? `Broadcast accepted for ${targets.length} online bot(s) (at-most-once delivery).`
-                    : `Broadcast rejected: ${result.error || 'Unknown error'}`
+                    ? t('interlink.broadcastAccepted', { count: targets.length })
+                    : t('interlink.broadcastRejected', { error: result.error || t('interlink.unknownError') })
             }]
         });
     },
 
-    async _rotateKey(interaction: ChatInputCommandInteraction) {
+    async _rotateKey(interaction: ChatInputCommandInteraction, t: ReturnType<typeof i18n.getFixedT>) {
         const name = interaction.options.getString('name', true).trim();
         logger.warn(`[INTERLINK] rotate-key requested for ${name}: per-bot API keys retired with the Express stack`);
         return interaction.editReply({
             embeds: [{
                 color: 0xFFA500,
-                title: '[WARNING] Key Rotation Retired',
-                description: [
-                    `Per-bot API keys were retired with the Express stack; bot "${name}" has no key to rotate.`,
-                    'Interlink now authenticates via the shared INTERLINK_AUTH_KEY trust domain.',
-                    'To rotate: generate a new secret, set it on every bot plus the Go service, and restart.'
-                ].join('\n')
+                title: t('interlink.keyRetiredTitle'),
+                description: t('interlink.keyRetired', { name })
             }]
         });
     },
 
-    async _override(interaction: ChatInputCommandInteraction) {
+    async _override(interaction: ChatInputCommandInteraction, t: ReturnType<typeof i18n.getFixedT>) {
         const listing = await getInterlinkClient().listBots();
         const active = listing.bots.filter((b) => b.online && b.botId !== selfBotId());
 
         if (active.length === 0) {
             return interaction.editReply({
-                embeds: [{ color: 0xFFA500, title: '[WARNING] No Bots', description: 'No online registered bots to override.' }]
+                embeds: [{ color: 0xFFA500, title: t('interlink.noBotsTitle'), description: t('interlink.noOverrideTargets') }]
             });
         }
 
@@ -373,7 +376,7 @@ export default {
 
         if (!userId) {
             return interaction.editReply({
-                embeds: [{ color: 0xFF0000, title: '[ERROR] No User ID', description: 'Could not determine target user ID. Set OWNER_IDS or provide a user-id.' }]
+                embeds: [{ color: 0xFF0000, title: t('interlink.noUserTitle'), description: t('interlink.noUser') }]
             });
         }
 
@@ -391,19 +394,19 @@ export default {
 
         if (!result.accepted) {
             return interaction.editReply({
-                embeds: [{ color: 0xFF0000, title: '[ERROR] Override Failed', description: result.error || 'Broadcast rejected by the Interlink service.' }]
+                embeds: [{ color: 0xFF0000, title: t('interlink.overrideFailedTitle'), description: result.error || t('interlink.overrideFailed') }]
             });
         }
 
-        const lines = active.map((b) => `**${b.botId}:** Override broadcast accepted`);
+        const lines = active.map((b) => t('interlink.overrideLine', { bot: b.botId }));
 
         return interaction.editReply({
             embeds: [{
                 color: 0x00FF00,
-                title: '[INFO] Override Broadcast Complete',
+                title: t('interlink.overrideTitle'),
                 description: [
-                    `Target user: \`${userId}\``,
-                    `Sent to ${active.length} online bot(s) (at-most-once delivery).`,
+                    t('interlink.overrideTarget', { user: userId }),
+                    t('interlink.overrideSent', { count: active.length }),
                     '',
                     ...lines
                 ].filter(Boolean).join('\n')

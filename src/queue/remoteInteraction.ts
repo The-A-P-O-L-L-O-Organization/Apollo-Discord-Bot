@@ -19,6 +19,9 @@ export default class RemoteInteraction {
     guildId: string | null;
     channelId: string;
     createdTimestamp: number;
+    locale: string;
+    guildLocale: string | null;
+    resolvedLocale: string;
     memberPermissions: string[];
     options: RemoteOptions;
     user: {
@@ -66,46 +69,65 @@ export default class RemoteInteraction {
         this._deferred = true;
 
         this.id = data['id'] as string;
-        this.applicationId = data['applicationId'] as string;
-        this.token = data['interactionToken'] as string;
-        this.commandName = data['commandName'] as string;
-        this.commandId = data['commandId'] as string;
+        this.applicationId = (data['applicationId'] as string) ?? '';
+        const nestedUser = data['user'] as Record<string, unknown> | undefined;
+        const isSerialized = typeof nestedUser === 'object' && nestedUser !== null && typeof data['token'] === 'string';
+        const nestedData = isSerialized ? (data['data'] as Record<string, unknown> | null) : null;
+        const nestedMember = isSerialized ? (data['member'] as Record<string, unknown> | null) : null;
+        this.token = (isSerialized ? data['token'] : data['interactionToken']) as string;
+        this.commandName = ((isSerialized ? nestedData?.['name'] : undefined) ?? data['commandName']) as string;
+        this.commandId = ((isSerialized ? nestedData?.['id'] : undefined) ?? data['commandId']) as string;
         this.guildId = data['guildId'] as string | null;
         this.channelId = data['channelId'] as string;
-        this.createdTimestamp = data['createdTimestamp'] as number;
-        this.memberPermissions = (data['memberPermissions'] as string[]) || [];
+        this.createdTimestamp = (data['createdTimestamp'] as number) ?? Date.now();
+        const rawPermissions = nestedMember?.['permissions'];
+        const nestedPermissions = typeof rawPermissions === 'string'
+            ? rawPermissions.split(',').map(p => p.trim()).filter(p => p.length > 0 && p !== '0')
+            : [];
+        this.memberPermissions = (data['memberPermissions'] as string[]) ?? nestedPermissions ?? [];
+        this.locale = (data['locale'] as string) ?? 'en-US';
+        this.guildLocale = (data['guildLocale'] as string | null) ?? null;
+        this.resolvedLocale = (data['resolvedLocale'] as string) ?? this.locale ?? 'en-US';
 
         this.options = new RemoteOptions(
-            (data['options'] as { name: string; type: number; value: unknown; focused?: boolean; options?: unknown[] }[]) || [],
-            data['resolved'] as Record<string, unknown> | null
+            ((isSerialized ? nestedData?.['options'] : data['options']) as { name: string; type: number; value: unknown; focused?: boolean; options?: unknown[] }[]) || [],
+            (isSerialized ? null : data['resolved']) as Record<string, unknown> | null
         );
 
-        const api = new DiscordAPI(rest, data['applicationId'] as string);
+        const api = new DiscordAPI(rest, this.applicationId);
+
+        const userId = (isSerialized ? nestedUser['id'] : data['userId']) as string;
+        const username = (isSerialized ? nestedUser['username'] : data['username']) as string;
+        const userDiscriminator = (isSerialized ? nestedUser['discriminator'] : data['userDiscriminator']) as string || '0';
+        const userAvatar = (isSerialized ? nestedUser['avatar'] : data['userAvatar']) as string | null;
+        const userTag = (isSerialized ? `${username}#${userDiscriminator}` : data['userTag'] as string) || `${username}#${userDiscriminator}`;
+        const nestedRoles = Array.isArray(nestedMember?.['roles']) ? (nestedMember['roles'] as string[]) : [];
+        const memberRoles = (data['memberRoles'] as string[]) ?? nestedRoles ?? [];
 
         this.user = {
-            id: data['userId'] as string,
-            tag: data['userTag'] as string || `${data['username'] as string}#${data['userDiscriminator'] as string || '0'}`,
-            username: data['username'] as string,
-            discriminator: data['userDiscriminator'] as string || '0',
-            avatar: data['userAvatar'] as string | null,
+            id: userId,
+            tag: userTag,
+            username,
+            discriminator: userDiscriminator,
+            avatar: userAvatar ?? null,
             displayAvatarURL: (_opts = {}) => {
-                if (!data['userAvatar']) {
-                    return `https://cdn.discordapp.com/embed/avatars/${parseInt(data['userDiscriminator'] as string || '0') % 5}.png`;
+                if (!userAvatar) {
+                    return `https://cdn.discordapp.com/embed/avatars/${parseInt(userDiscriminator || '0') % 5}.png`;
                 }
-                const ext = _opts.dynamic && (data['userAvatar'] as string).startsWith('a_') ? 'gif' : (_opts.format ?? 'png');
-                return `https://cdn.discordapp.com/avatars/${data['userId'] as string}/${data['userAvatar'] as string}.${ext}?size=${_opts.size ?? 512}`;
+                const ext = _opts.dynamic && userAvatar.startsWith('a_') ? 'gif' : (_opts.format ?? 'png');
+                return `https://cdn.discordapp.com/avatars/${userId}/${userAvatar}.${ext}?size=${_opts.size ?? 512}`;
             },
-            toString: () => `<@${data['userId'] as string}>`
+            toString: () => `<@${userId}>`
         };
 
         this.member = {
-            id: data['userId'] as string,
+            id: userId,
             permissions: {
                 has: (perm: string) => this.memberPermissions.includes(perm),
                 toArray: () => [...this.memberPermissions]
             },
             roles: {
-                cache: new Collection<string, { id: string }>((data['memberRoles'] as string[] || []).map(id => [id, { id }]))
+                cache: new Collection<string, { id: string }>(memberRoles.map(id => [id, { id }]))
             }
         };
 
@@ -114,14 +136,14 @@ export default class RemoteInteraction {
 
         this.client = {
             user: {
-                id: (config!)['CLIENT_ID'] as string | undefined,
+                id: config?.['CLIENT_ID'] as string | undefined,
                 displayAvatarURL: (_opts = {}) => 'https://cdn.discordapp.com/embed/avatars/0.png'
             },
             ws: { ping: 0 },
             stats: { commandsRan: 0, startTime: Date.now() },
             commands: commands ?? new Collection(),
             config: config ?? {},
-            manager: (config!)['manager'] ? this._createManagerProxy((config!)['manager'] as Record<string, unknown>) : null,
+            manager: config?.['manager'] ? this._createManagerProxy(config['manager'] as Record<string, unknown>) : null,
             rest
         };
     }

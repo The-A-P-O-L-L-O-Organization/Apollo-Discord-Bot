@@ -4,6 +4,11 @@ import { join, relative, sep } from 'node:path';
 
 const PLUGINS_ROOT = join(process.cwd(), 'src', 'plugins');
 const OUTPUT = join(process.cwd(), 'plugin-manifest.json');
+const LOCALES_SEGMENT = '/locales/';
+
+function isExcludedFromManifest(rel) {
+    return rel.includes(LOCALES_SEGMENT);
+}
 
 function walk(dir, base, files = []) {
     for (const name of readdirSync(dir)) {
@@ -21,6 +26,9 @@ function walk(dir, base, files = []) {
 const files = walk(PLUGINS_ROOT, process.cwd());
 const manifest = {};
 for (const { rel, full } of files) {
+    if (isExcludedFromManifest(rel)) {
+        continue;
+    }
     manifest[rel] = createHash('sha256').update(readFileSync(full)).digest('hex');
 }
 

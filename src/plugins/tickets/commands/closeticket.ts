@@ -6,6 +6,7 @@ import { clearSlaAlert } from '../../../plugins/tickets/events/slaMonitor.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
 import { MessageFlags } from 'discord.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface CloseTicketData {
     id: string;
@@ -34,9 +35,16 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'tickets');
+
             const guildId = interaction.guild!.id;
             const channelId = interaction.channel!.id;
-            const reason = interaction.options.getString('reason') ?? 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? t('ticket.defaultReason');
 
             const ticketConfig = await getGuildData('tickets', guildId);
 
@@ -45,7 +53,7 @@ export default {
 
             if (ticketIndex === -1) {
                 await interaction.reply({
-                    content: 'This channel is not a ticket channel.',
+                    content: t('closeticket.notTicket'),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -60,14 +68,14 @@ export default {
 
             if (!isTicketOwner && !hasSupport && !isAdmin) {
                 await interaction.reply({
-                    content: 'You do not have permission to close this ticket.',
+                    content: t('closeticket.noPermission'),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
             }
 
             await interaction.reply({
-                content: 'Closing ticket and saving transcript...',
+                content: t('closeticket.closing'),
                 ephemeral: false
             });
 
@@ -179,11 +187,11 @@ export default {
                 if (ticketCreator) {
                     const dmEmbed = new EmbedBuilder()
                         .setColor('#FF6B6B')
-                        .setTitle('Ticket Closed')
-                        .setDescription(`Your ticket #${ticket.ticketNumber} in **${interaction.guild!.name}** has been closed.`)
+                        .setTitle(t('closeticket.dmTitle'))
+                        .setDescription(t('closeticket.dmDescription', { number: ticket.ticketNumber, guild: interaction.guild!.name }))
                         .addFields(
-                            { name: 'Closed by', value: interaction.user.tag, inline: true },
-                            { name: 'Reason', value: reason, inline: true }
+                            { name: t('closeticket.fieldClosedBy'), value: interaction.user.tag, inline: true },
+                            { name: t('closeticket.fieldReason'), value: reason, inline: true }
                         )
                         .setTimestamp();
 

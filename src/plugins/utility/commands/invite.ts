@@ -2,6 +2,7 @@ import type { ChatInputCommandInteraction} from 'discord.js';
 import { MessageFlags, PermissionsBitField } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     // Invite Command
@@ -43,6 +44,12 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'utility');
             const type = interaction.options.getString('type') ?? 'bot';
 
             if (type === 'bot') {
@@ -51,12 +58,12 @@ export default {
 
                 const inviteEmbed = {
                     color: 0x3498DB,
-                    title: '[INVITE] Bot Invite Link',
-                    description: 'Use this link to add the bot to your server.',
+                    title: t('invite.botTitle'),
+                    description: t('invite.botDesc'),
                     fields: [
                         {
-                            name: '[LINK] Add Bot',
-                            value: `[Click here to invite](${inviteLink})`,
+                            name: t('invite.addBot'),
+                            value: `[${t('invite.clickHere')}](${inviteLink})`,
                             inline: false
                         }
                     ],
@@ -69,7 +76,7 @@ export default {
                 // Check if in guild
                 if (!interaction.guild) {
                     await interaction.reply({
-                        content: '[ERROR] Server invites can only be created in a server.',
+                        content: t('invite.serverOnly'),
                         flags: MessageFlags.Ephemeral
                     });
                     return;
@@ -79,7 +86,7 @@ export default {
                 const me = interaction.guild.members.me;
                 if (!me?.permissions.has(PermissionsBitField.Flags.CreateInstantInvite)) {
                     await interaction.reply({
-                        content: '[ERROR] I do not have permission to create invites.',
+                        content: t('invite.noPerm'),
                         flags: MessageFlags.Ephemeral
                     });
                     return;
@@ -93,7 +100,7 @@ export default {
                 const channel = interaction.channel;
                 if (!channel || !('createInvite' in channel)) {
                     await interaction.reply({
-                        content: '[ERROR] Cannot create invite in this channel.',
+                        content: t('invite.noChannel'),
                         flags: MessageFlags.Ephemeral
                     });
                     return;
@@ -108,27 +115,27 @@ export default {
 
                 const inviteEmbed = {
                     color: 0x00FF00,
-                    title: '[SUCCESS] Invite Created',
-                    description: `Invite for #${'name' in channel ? channel.name : 'unknown'}`,
+                    title: t('invite.createdTitle'),
+                    description: t('invite.createdDesc', { channel: 'name' in channel ? channel.name : 'unknown' }),
                     fields: [
                         {
-                            name: '[LINK] Invite Link',
+                            name: t('invite.link'),
                             value: invite.url,
                             inline: false
                         },
                         {
-                            name: '[INFO] Expires',
-                            value: maxAge > 0 ? `In ${maxAge / 60} minute(s)` : 'Never',
+                            name: t('invite.expires'),
+                            value: maxAge > 0 ? t('invite.inMinutes', { count: maxAge / 60 }) : t('invite.never'),
                             inline: true
                         },
                         {
-                            name: '[INFO] Max Uses',
-                            value: maxUses > 0 ? `${maxUses} uses` : 'Unlimited',
+                            name: t('invite.maxUses'),
+                            value: maxUses > 0 ? t('invite.usesValue', { count: maxUses }) : t('invite.unlimited'),
                             inline: true
                         },
                         {
-                            name: '[INFO] Temporary',
-                            value: temporary ? 'Yes' : 'No',
+                            name: t('invite.temporary'),
+                            value: temporary ? t('invite.yes') : t('invite.no'),
                             inline: true
                         }
                     ],

@@ -1,7 +1,9 @@
 // Discord REST Error Code Handling
 // Centralized error handling for Discord API errors
 import { logger } from './logger.js';
+import { i18n } from '../i18n/index.js';
 import { EmbedBuilder, MessageFlags } from 'discord.js';
+import type { TFunction } from 'i18next';
 import type { ChatInputCommandInteraction, MessageContextMenuCommandInteraction, UserContextMenuCommandInteraction } from 'discord.js';
 
 /**
@@ -126,12 +128,36 @@ interface DiscordAPIError {
  * @param {boolean} options.silent - If true, returns null for unknown interaction errors
  * @returns {string|null} User-friendly error message, or null if should be silent
  */
-export function handleDiscordError(error: unknown, options: { silent?: boolean } = {}): string | null {
-    const { silent = false } = options;
+export function getCommonT(locale: string): TFunction {
+    let raw: TFunction | null = null;
+    try {
+        raw = i18n.getFixedT(locale, 'common');
+    } catch {
+        raw = null;
+    }
+    const safe = (key: string, opts?: Record<string, unknown>): string => {
+        const candidate = opts?.['defaultValue'];
+        const fallback = typeof candidate === 'string' ? candidate : key;
+        if (!raw) {
+            return fallback;
+        }
+        try {
+            const result = raw(key, { ...opts });
+            return typeof result === 'string' && result.length > 0 ? result : fallback;
+        } catch {
+            return fallback;
+        }
+    };
+    return safe as unknown as TFunction;
+}
+
+export function handleDiscordError(error: unknown, options: { silent?: boolean; locale?: string } = {}): string | null {
+    const { silent = false, locale = 'en-US' } = options;
+    const t = getCommonT(locale);
 
     // Check if it's a DiscordAPIError
     if (!error || typeof error !== 'object' || !('code' in error)) {
-        return 'An unexpected error occurred.';
+        return t('unexpectedError', { defaultValue: 'An unexpected error occurred.' });
     }
 
     const discordError = error as DiscordAPIError;
@@ -144,7 +170,7 @@ export function handleDiscordError(error: unknown, options: { silent?: boolean }
 
     // Return user-friendly message if we have one
     if (ERROR_MESSAGES[code]) {
-        return ERROR_MESSAGES[code];
+        return t(`discord.${code}`, { defaultValue: ERROR_MESSAGES[code] });
     }
 
     // For validation errors (50035), try to extract details
@@ -159,7 +185,8 @@ export function handleDiscordError(error: unknown, options: { silent?: boolean }
     }
 
     // Generic fallback
-    return `Discord API error (${code}): ${discordError.message ?? 'Unknown error'}`;
+    const detail = discordError.message ?? 'Unknown error';
+    return t('discord.generic', { code, message: detail, defaultValue: `Discord API error (${code}): ${detail}` });
 }
 
 /**
@@ -191,12 +218,17 @@ function extractValidationErrors(errors: Record<string, unknown>): string {
  * @param {string} [title='Error'] - Embed title
  * @returns {EmbedBuilder} Error embed
  */
-export function createErrorEmbed(message: string, title = 'Error'): EmbedBuilder {
+export function createErrorEmbed(message: string, title?: string, locale = 'en-US'): EmbedBuilder {
+    const t = getCommonT(locale);
     return new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle(title)
+        .setTitle(title ?? t('errorTitle', { defaultValue: 'Error' }))
         .setDescription(message)
         .setTimestamp();
+}
+
+export function resolveInteractionLocale(interaction: { locale?: string; guildLocale?: string | null }): string {
+    return interaction.locale ?? interaction.guildLocale ?? 'en-US';
 }
 
 /**
@@ -209,17 +241,19 @@ export function createErrorEmbed(message: string, title = 'Error'): EmbedBuilder
 export async function safeReply(
     interaction: ChatInputCommandInteraction | MessageContextMenuCommandInteraction | UserContextMenuCommandInteraction,
     message: string,
-    ephemeral = true
+    ephemeral = true,
+    locale?: string
 ): Promise<boolean> {
+    const resolvedLocale = locale ?? resolveInteractionLocale(interaction);
     try {
         if (interaction.replied || interaction.deferred) {
             await interaction.editReply({
-                embeds: [createErrorEmbed(message)],
+                embeds: [createErrorEmbed(message, undefined, resolvedLocale)],
                 components: []
             });
         } else {
             await interaction.reply({
-                embeds: [createErrorEmbed(message)],
+                embeds: [createErrorEmbed(message, undefined, resolvedLocale)],
                 flags: ephemeral ? MessageFlags.Ephemeral : undefined
             });
         }
@@ -245,11 +279,13 @@ export async function safeReply(
 export async function safeFollowUp(
     interaction: ChatInputCommandInteraction | MessageContextMenuCommandInteraction | UserContextMenuCommandInteraction,
     message: string,
-    ephemeral = true
+    ephemeral = true,
+    locale?: string
 ): Promise<boolean> {
+    const resolvedLocale = locale ?? resolveInteractionLocale(interaction);
     try {
         await interaction.followUp({
-            embeds: [createErrorEmbed(message)],
+            embeds: [createErrorEmbed(message, undefined, resolvedLocale)],
             flags: ephemeral ? MessageFlags.Ephemeral : undefined
         });
         return true;
@@ -267,6 +303,8 @@ export default {
     DiscordErrorCodes,
     handleDiscordError,
     createErrorEmbed,
+    getCommonT,
+    resolveInteractionLocale,
     safeReply,
     safeFollowUp
 };

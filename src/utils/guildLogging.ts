@@ -3,6 +3,7 @@
 
 import { EmbedBuilder } from 'discord.js';
 import type { Message, Guild, GuildMember, VoiceState, ColorResolvable } from 'discord.js';
+import { getCommonT } from './discordErrors.js';
 
 /**
  * Gets logging configuration for a guild
@@ -93,10 +94,11 @@ export async function logEvent(guild: Guild, eventType: string, embed: EmbedBuil
  * @param message - The deleted message
  * @returns The log embed
  */
-export function createMessageDeleteEmbed(message: Message): EmbedBuilder {
+export function createMessageDeleteEmbed(message: Message, locale = 'en-US'): EmbedBuilder {
+    const t = getCommonT(locale);
     const embed = new EmbedBuilder()
         .setColor('#FF6B6B')
-        .setTitle('[Delete] Message Deleted')
+        .setTitle(t('guildlog.messageDeletedTitle', { defaultValue: '[Delete] Message Deleted' }))
         .setDescription(message.content || '*No text content*')
         .addFields(
             { name: 'Author', value: `${message.author?.tag || 'Unknown'} (${message.author?.id || 'Unknown'})`, inline: true },
@@ -130,10 +132,11 @@ export function createMessageDeleteEmbed(message: Message): EmbedBuilder {
  * @param newMessage - The new message
  * @returns The log embed
  */
-export function createMessageEditEmbed(oldMessage: Message, newMessage: Message): EmbedBuilder {
+export function createMessageEditEmbed(oldMessage: Message, newMessage: Message, locale = 'en-US'): EmbedBuilder {
+    const t = getCommonT(locale);
     const embed = new EmbedBuilder()
         .setColor('#FFE66D')
-        .setTitle('[Edit] Message Edited')
+        .setTitle(t('guildlog.messageEditedTitle', { defaultValue: '[Edit] Message Edited' }))
         .addFields(
             { name: 'Author', value: `${newMessage.author?.tag || 'Unknown'} (${newMessage.author?.id || 'Unknown'})`, inline: true },
             { name: 'Channel', value: `<#${newMessage.channel.id}>`, inline: true },
@@ -156,13 +159,14 @@ export function createMessageEditEmbed(oldMessage: Message, newMessage: Message)
  * @param member - The member who joined
  * @returns The log embed
  */
-export function createMemberJoinEmbed(member: GuildMember): EmbedBuilder {
+export function createMemberJoinEmbed(member: GuildMember, locale = 'en-US'): EmbedBuilder {
+    const t = getCommonT(locale);
     const accountAge = Date.now() - member.user.createdTimestamp;
     const daysOld = Math.floor(accountAge / (1000 * 60 * 60 * 24));
 
     const embed = new EmbedBuilder()
         .setColor('#4ECDC4')
-        .setTitle('[Join] Member Joined')
+        .setTitle(t('guildlog.memberJoinedTitle', { defaultValue: '[Join] Member Joined' }))
         .setDescription(`${member.user.tag} joined the server`)
         .setThumbnail(member.user.displayAvatarURL())
         .addFields(
@@ -192,7 +196,8 @@ export function createMemberJoinEmbed(member: GuildMember): EmbedBuilder {
  * @param member - The member who left
  * @returns The log embed
  */
-export function createMemberLeaveEmbed(member: GuildMember): EmbedBuilder {
+export function createMemberLeaveEmbed(member: GuildMember, locale = 'en-US'): EmbedBuilder {
+    const t = getCommonT(locale);
     const joinedAt = member.joinedTimestamp;
     const timeInServer = joinedAt ? Date.now() - joinedAt : null;
     const daysInServer = timeInServer ? Math.floor(timeInServer / (1000 * 60 * 60 * 24)) : 'Unknown';
@@ -205,7 +210,7 @@ export function createMemberLeaveEmbed(member: GuildMember): EmbedBuilder {
 
     const embed = new EmbedBuilder()
         .setColor('#FF6B6B')
-        .setTitle('[Leave] Member Left')
+        .setTitle(t('guildlog.memberLeftTitle', { defaultValue: '[Leave] Member Left' }))
         .setDescription(`${member.user.tag} left the server`)
         .setThumbnail(member.user.displayAvatarURL())
         .addFields(
@@ -228,7 +233,8 @@ export function createMemberLeaveEmbed(member: GuildMember): EmbedBuilder {
  * @param newMember - The new member state
  * @returns The log embed or null if no role changes
  */
-export function createRoleChangeEmbed(oldMember: GuildMember, newMember: GuildMember): EmbedBuilder | null {
+export function createRoleChangeEmbed(oldMember: GuildMember, newMember: GuildMember, locale = 'en-US'): EmbedBuilder | null {
+    const t = getCommonT(locale);
     const oldRoles = oldMember.roles.cache;
     const newRoles = newMember.roles.cache;
 
@@ -242,7 +248,7 @@ export function createRoleChangeEmbed(oldMember: GuildMember, newMember: GuildMe
 
     const embed = new EmbedBuilder()
         .setColor('#9B59B6')
-        .setTitle('[Role] Role Update')
+        .setTitle(t('guildlog.roleTitle', { user: newMember.user.tag, defaultValue: '[Role] Role Update' }))
         .setDescription(`Roles updated for ${newMember.user.tag}`)
         .setThumbnail(newMember.user.displayAvatarURL())
         .addFields(
@@ -277,7 +283,8 @@ export function createRoleChangeEmbed(oldMember: GuildMember, newMember: GuildMe
  * @param newState - The new voice state
  * @returns The log embed or null if not significant
  */
-export function createVoiceChangeEmbed(oldState: VoiceState, newState: VoiceState): EmbedBuilder | null {
+export function createVoiceChangeEmbed(oldState: VoiceState, newState: VoiceState, locale = 'en-US'): EmbedBuilder | null {
+    const t = getCommonT(locale);
     const member = newState.member ?? oldState.member;
     if (!member) { return null; }
 
@@ -287,17 +294,17 @@ export function createVoiceChangeEmbed(oldState: VoiceState, newState: VoiceStat
 
     if (!oldState.channel && newState.channel) {
         // Joined voice channel
-        title = '[Voice] Voice Channel Joined';
+        title = t('guildlog.voiceJoinedTitle', { defaultValue: '[Voice] Voice Channel Joined' });
         description = `${member.user.tag} joined a voice channel`;
         color = '#4ECDC4';
     } else if (oldState.channel && !newState.channel) {
         // Left voice channel
-        title = '[Voice] Voice Channel Left';
+        title = t('guildlog.voiceLeftTitle', { defaultValue: '[Voice] Voice Channel Left' });
         description = `${member.user.tag} left a voice channel`;
         color = '#FF6B6B';
     } else if (oldState.channel && newState.channel && oldState.channel.id !== newState.channel.id) {
         // Moved voice channels
-        title = '[Voice] Voice Channel Moved';
+        title = t('guildlog.voiceMovedTitle', { defaultValue: '[Voice] Voice Channel Moved' });
         description = `${member.user.tag} moved voice channels`;
         color = '#FFE66D';
     } else {

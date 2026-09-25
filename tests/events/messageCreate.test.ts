@@ -1,7 +1,7 @@
 // Message Create Event Tests
 // Tests for the messageCreate event handler (automod)
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 import type { Message, Guild, GuildMember, TextChannel, Client } from 'discord.js';
 import messageCreateEvent from '../../src/plugins/automod/events/messageCreate.js';
 import {
@@ -94,6 +94,7 @@ import * as mockedDb from '../../src/utils/db.js';
 import * as mockedModLog from '../../src/utils/modLog.js';
 import * as mockedNsfw from '../../src/utils/nsfwDetection.js';
 import * as mockedOpenai from '../../src/utils/openaiModeration.js';
+import { i18n } from '../../src/i18n/index.js';
 
 const {
     getAutomodConfig,
@@ -157,6 +158,10 @@ describe('MessageCreate Event', () => {
     let mockClient: Client;
     let mockChannel: TextChannel;
     let automodConfig: AutomodTestConfig;
+
+    beforeAll(async () => {
+        await i18n.loadNamespaces('automod');
+    });
 
     beforeEach(() => {
         vi.resetAllMocks();

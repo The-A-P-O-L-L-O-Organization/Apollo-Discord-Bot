@@ -2,6 +2,7 @@ import type { ChatInputCommandInteraction } from 'discord.js';
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { getGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface ClosedTicket {
     assignedTo?: string[];
@@ -58,6 +59,13 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'tickets');
+
             await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
             const guildId = interaction.guild!.id;
@@ -74,7 +82,7 @@ export default {
 
                 if (staffTickets.length === 0) {
                     await interaction.editReply({
-                        content: `No closed tickets found for <@${user.id}>.`
+                        content: t('ticketratings.noStaffTickets', { user: user.id })
                     });
                     return;
                 }
@@ -83,7 +91,7 @@ export default {
 
                 if (ratedTickets.length === 0) {
                     await interaction.editReply({
-                        content: `<@${user.id}> has handled ${staffTickets.length} ticket(s), but none have been rated yet.`
+                        content: t('ticketratings.staffUnrated', { user: user.id, count: staffTickets.length })
                     });
                     return;
                 }
@@ -99,24 +107,24 @@ export default {
 
                 const embed = new EmbedBuilder()
                     .setColor('#FFD700')
-                    .setTitle(`★ Ratings for ${user.tag}`)
+                    .setTitle(t('ticketratings.staffTitle', { user: user.tag }))
                     .setThumbnail(user.displayAvatarURL())
                     .addFields(
-                        { name: 'Total Tickets Handled', value: `${staffTickets.length}`, inline: true },
-                        { name: 'Tickets Rated', value: `${ratedTickets.length}`, inline: true },
-                        { name: 'Average Rating', value: `${avgRating.toFixed(2)}/5.0 ${'★'.repeat(Math.round(avgRating))}`, inline: true }
+                        { name: t('ticketratings.fieldTotalHandled'), value: `${staffTickets.length}`, inline: true },
+                        { name: t('ticketratings.fieldTicketsRated'), value: `${ratedTickets.length}`, inline: true },
+                        { name: t('ticketratings.fieldAverageRating'), value: t('ticketratings.avgRatingValue', { value: avgRating.toFixed(2), stars: '★'.repeat(Math.round(avgRating)) }), inline: true }
                     )
                     .setTimestamp();
 
                 const distribution = [
-                    `★★★★★: ${ratingCounts[5]} (${((ratingCounts[5] / ratedTickets.length) * 100).toFixed(1)}%)`,
-                    `★★★★: ${ratingCounts[4]} (${((ratingCounts[4] / ratedTickets.length) * 100).toFixed(1)}%)`,
-                    `★★★: ${ratingCounts[3]} (${((ratingCounts[3] / ratedTickets.length) * 100).toFixed(1)}%)`,
-                    `★★: ${ratingCounts[2]} (${((ratingCounts[2] / ratedTickets.length) * 100).toFixed(1)}%)`,
-                    `★: ${ratingCounts[1]} (${((ratingCounts[1] / ratedTickets.length) * 100).toFixed(1)}%)`
+                    t('ticketratings.distFive', { count: ratingCounts[5], pct: ((ratingCounts[5] / ratedTickets.length) * 100).toFixed(1) }),
+                    t('ticketratings.distFour', { count: ratingCounts[4], pct: ((ratingCounts[4] / ratedTickets.length) * 100).toFixed(1) }),
+                    t('ticketratings.distThree', { count: ratingCounts[3], pct: ((ratingCounts[3] / ratedTickets.length) * 100).toFixed(1) }),
+                    t('ticketratings.distTwo', { count: ratingCounts[2], pct: ((ratingCounts[2] / ratedTickets.length) * 100).toFixed(1) }),
+                    t('ticketratings.distOne', { count: ratingCounts[1], pct: ((ratingCounts[1] / ratedTickets.length) * 100).toFixed(1) })
                 ].join('\n');
 
-                embed.addFields({ name: 'Rating Distribution', value: distribution, inline: false });
+                embed.addFields({ name: t('ticketratings.fieldDistribution'), value: distribution, inline: false });
 
                 const recentFeedback = ratedTickets
                     .filter((t): t is ClosedTicket & { rating: number; ratingFeedback: string } => Boolean(t.ratingFeedback))
@@ -124,11 +132,11 @@ export default {
                     .slice(0, 3);
 
                 if (recentFeedback.length > 0) {
-                    const feedbackList = recentFeedback.map(t =>
-                        `${'★'.repeat(t.rating)} (Ticket #${t.ticketNumber}): "${t.ratingFeedback.substring(0, 100)}${t.ratingFeedback.length > 100 ? '...' : ''}"`
+                    const feedbackList = recentFeedback.map(fb =>
+                        t('ticketratings.feedbackRow', { stars: '★'.repeat(fb.rating), number: fb.ticketNumber, feedback: fb.ratingFeedback.substring(0, 100), suffix: fb.ratingFeedback.length > 100 ? '...' : '' })
                     ).join('\n\n');
 
-                    embed.addFields({ name: 'Recent Feedback', value: feedbackList, inline: false });
+                    embed.addFields({ name: t('ticketratings.fieldRecentFeedback'), value: feedbackList, inline: false });
                 }
 
                 await interaction.editReply({ embeds: [embed] });
@@ -141,7 +149,7 @@ export default {
 
                 if (categoryTickets.length === 0) {
                     await interaction.editReply({
-                        content: `No closed tickets found for category "${category}".`
+                        content: t('ticketratings.noCategoryTickets', { category })
                     });
                     return;
                 }
@@ -150,7 +158,7 @@ export default {
 
                 if (ratedTickets.length === 0) {
                     await interaction.editReply({
-                        content: `${categoryTickets.length} ticket(s) in "${category}" category, but none have been rated yet.`
+                        content: t('ticketratings.categoryUnrated', { count: categoryTickets.length, category })
                     });
                     return;
                 }
@@ -166,23 +174,23 @@ export default {
 
                 const embed = new EmbedBuilder()
                     .setColor('#FFD700')
-                    .setTitle(`★ Ratings for "${category.charAt(0).toUpperCase() + category.slice(1)}" Category`)
+                    .setTitle(t('ticketratings.categoryTitle', { category: category.charAt(0).toUpperCase() + category.slice(1) }))
                     .addFields(
-                        { name: 'Total Tickets', value: `${categoryTickets.length}`, inline: true },
-                        { name: 'Tickets Rated', value: `${ratedTickets.length}`, inline: true },
-                        { name: 'Average Rating', value: `${avgRating.toFixed(2)}/5.0 ${'★'.repeat(Math.round(avgRating))}`, inline: true }
+                        { name: t('ticketratings.fieldTotalTickets'), value: `${categoryTickets.length}`, inline: true },
+                        { name: t('ticketratings.fieldTicketsRated'), value: `${ratedTickets.length}`, inline: true },
+                        { name: t('ticketratings.fieldAverageRating'), value: t('ticketratings.avgRatingValue', { value: avgRating.toFixed(2), stars: '★'.repeat(Math.round(avgRating)) }), inline: true }
                     )
                     .setTimestamp();
 
                 const distribution = [
-                    `★★★★★: ${ratingCounts[5]} (${((ratingCounts[5] / ratedTickets.length) * 100).toFixed(1)}%)`,
-                    `★★★★: ${ratingCounts[4]} (${((ratingCounts[4] / ratedTickets.length) * 100).toFixed(1)}%)`,
-                    `★★★: ${ratingCounts[3]} (${((ratingCounts[3] / ratedTickets.length) * 100).toFixed(1)}%)`,
-                    `★★: ${ratingCounts[2]} (${((ratingCounts[2] / ratedTickets.length) * 100).toFixed(1)}%)`,
-                    `★: ${ratingCounts[1]} (${((ratingCounts[1] / ratedTickets.length) * 100).toFixed(1)}%)`
+                    t('ticketratings.distFive', { count: ratingCounts[5], pct: ((ratingCounts[5] / ratedTickets.length) * 100).toFixed(1) }),
+                    t('ticketratings.distFour', { count: ratingCounts[4], pct: ((ratingCounts[4] / ratedTickets.length) * 100).toFixed(1) }),
+                    t('ticketratings.distThree', { count: ratingCounts[3], pct: ((ratingCounts[3] / ratedTickets.length) * 100).toFixed(1) }),
+                    t('ticketratings.distTwo', { count: ratingCounts[2], pct: ((ratingCounts[2] / ratedTickets.length) * 100).toFixed(1) }),
+                    t('ticketratings.distOne', { count: ratingCounts[1], pct: ((ratingCounts[1] / ratedTickets.length) * 100).toFixed(1) })
                 ].join('\n');
 
-                embed.addFields({ name: 'Rating Distribution', value: distribution, inline: false });
+                embed.addFields({ name: t('ticketratings.fieldDistribution'), value: distribution, inline: false });
 
                 await interaction.editReply({ embeds: [embed] });
                 return;
@@ -192,7 +200,7 @@ export default {
 
                 if (ratedTickets.length === 0) {
                     await interaction.editReply({
-                        content: `${closedTickets.length} ticket(s) have been closed, but none have been rated yet.`
+                        content: t('ticketratings.noRated', { count: closedTickets.length })
                     });
                     return;
                 }
@@ -208,24 +216,24 @@ export default {
 
                 const embed = new EmbedBuilder()
                     .setColor('#FFD700')
-                    .setTitle('★ Overall Rating Statistics')
+                    .setTitle(t('ticketratings.overallTitle'))
                     .addFields(
-                        { name: 'Total Tickets', value: `${closedTickets.length}`, inline: true },
-                        { name: 'Tickets Rated', value: `${ratedTickets.length}`, inline: true },
-                        { name: 'Rating Rate', value: `${((ratedTickets.length / closedTickets.length) * 100).toFixed(1)}%`, inline: true },
-                        { name: 'Average Rating', value: `${avgRating.toFixed(2)}/5.0 ${'★'.repeat(Math.round(avgRating))}`, inline: false }
+                        { name: t('ticketratings.fieldTotalTickets'), value: `${closedTickets.length}`, inline: true },
+                        { name: t('ticketratings.fieldTicketsRated'), value: `${ratedTickets.length}`, inline: true },
+                        { name: t('ticketratings.fieldRatingRate'), value: `${((ratedTickets.length / closedTickets.length) * 100).toFixed(1)}%`, inline: true },
+                        { name: t('ticketratings.fieldAverageRating'), value: t('ticketratings.avgRatingValue', { value: avgRating.toFixed(2), stars: '★'.repeat(Math.round(avgRating)) }), inline: false }
                     )
                     .setTimestamp();
 
                 const distribution = [
-                    `★★★★★: ${ratingCounts[5]} (${((ratingCounts[5] / ratedTickets.length) * 100).toFixed(1)}%)`,
-                    `★★★★: ${ratingCounts[4]} (${((ratingCounts[4] / ratedTickets.length) * 100).toFixed(1)}%)`,
-                    `★★★: ${ratingCounts[3]} (${((ratingCounts[3] / ratedTickets.length) * 100).toFixed(1)}%)`,
-                    `★★: ${ratingCounts[2]} (${((ratingCounts[2] / ratedTickets.length) * 100).toFixed(1)}%)`,
-                    `★: ${ratingCounts[1]} (${((ratingCounts[1] / ratedTickets.length) * 100).toFixed(1)}%)`
+                    t('ticketratings.distFive', { count: ratingCounts[5], pct: ((ratingCounts[5] / ratedTickets.length) * 100).toFixed(1) }),
+                    t('ticketratings.distFour', { count: ratingCounts[4], pct: ((ratingCounts[4] / ratedTickets.length) * 100).toFixed(1) }),
+                    t('ticketratings.distThree', { count: ratingCounts[3], pct: ((ratingCounts[3] / ratedTickets.length) * 100).toFixed(1) }),
+                    t('ticketratings.distTwo', { count: ratingCounts[2], pct: ((ratingCounts[2] / ratedTickets.length) * 100).toFixed(1) }),
+                    t('ticketratings.distOne', { count: ratingCounts[1], pct: ((ratingCounts[1] / ratedTickets.length) * 100).toFixed(1) })
                 ].join('\n');
 
-                embed.addFields({ name: 'Rating Distribution', value: distribution, inline: false });
+                embed.addFields({ name: t('ticketratings.fieldDistribution'), value: distribution, inline: false });
 
                 const categoryRatings: Record<string, number[]> = {};
                 ratedTickets.forEach(t => {
@@ -237,12 +245,12 @@ export default {
                 const categoryStats = Object.entries(categoryRatings)
                     .map(([cat, ratings]) => {
                         const avg = ratings.reduce((a, b) => a + b, 0) / ratings.length;
-                        return `${cat.charAt(0).toUpperCase() + cat.slice(1)}: **${avg.toFixed(2)}**/5.0 (${ratings.length} rated)`;
+                        return t('ticketratings.categoryAvgRow', { name: cat.charAt(0).toUpperCase() + cat.slice(1), value: avg.toFixed(2), count: ratings.length });
                     })
                     .join('\n');
 
                 if (categoryStats) {
-                    embed.addFields({ name: 'Average Rating by Category', value: categoryStats, inline: false });
+                    embed.addFields({ name: t('ticketratings.fieldByCategory'), value: categoryStats, inline: false });
                 }
 
                 await interaction.editReply({ embeds: [embed] });

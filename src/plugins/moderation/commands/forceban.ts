@@ -5,6 +5,7 @@ import { sendModLog } from '../../../utils/modLog.js';
 import { createModCase } from './case.js';
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     // Bans a user by ID without requiring them to be in the server
@@ -37,16 +38,18 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction) {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const userId = interaction.options.getString('user-id')!;
-            const reason = interaction.options.getString('reason') ?? 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? t('forceban.noReason');
             const deleteDays = interaction.options.getInteger('delete-days') ?? 0;
 
             if (!userId || !/^\d{17,19}$/.test(userId)) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Invalid User ID',
-                    description: 'Please provide a valid user ID (17-19 digits).',
+                    title: t('forceban.errorInvalidUserId'),
+                    description: t('forceban.pleaseProvideAValidUser'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -55,8 +58,8 @@ export default {
             if (deleteDays < 0 || deleteDays > 7) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Invalid Value',
-                    description: 'Delete days must be between 0 and 7.',
+                    title: t('forceban.errorInvalidValue'),
+                    description: t('forceban.deleteDaysMustBeBetween'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -65,8 +68,8 @@ export default {
             if (userId === interaction.user.id) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Self Action',
-                    description: 'You cannot forceban yourself.',
+                    title: t('forceban.selfActionTitle'),
+                    description: t('forceban.selfActionDescription'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -75,8 +78,8 @@ export default {
             if (userId === interaction.client.user.id) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Bot Protection',
-                    description: 'You cannot forceban the bot.',
+                    title: t('forceban.botProtectionTitle'),
+                    description: t('forceban.botProtectionDescription'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -111,14 +114,14 @@ export default {
 
             const successEmbed = {
                 color: 0x00FF00,
-                title: '[SUCCESS] User Forcebanned',
-                description: `${userTag} has been banned from the server.`,
+                title: t('forceban.successUserForcebanned'),
+                description: t('forceban.valueHasBeenBannedFrom', { value: userTag }),
                 fields: [
-                    { name: '[INFO] Moderator', value: interaction.user.tag, inline: true },
-                    { name: '[INFO] Case ID', value: `#${caseId}`, inline: true },
-                    { name: '[INFO] Reason', value: reason, inline: false },
-                    { name: '[INFO] Delete Days', value: `${deleteDays} days`, inline: true },
-                    { name: '[INFO] User ID', value: userId, inline: true }
+                    { name: t('forceban.fieldModerator'), value: interaction.user.tag, inline: true },
+                    { name: t('forceban.fieldCaseId'), value: t('forceban.caseid', { caseId: caseId }), inline: true },
+                    { name: t('forceban.fieldReason'), value: reason, inline: false },
+                    { name: t('forceban.infoDeleteDays'), value: t('forceban.deletedaysDays', { deleteDays: deleteDays }), inline: true },
+                    { name: t('forceban.fieldUserId'), value: userId, inline: true }
                 ],
                 timestamp: new Date().toISOString()
             };
@@ -147,7 +150,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] User ${userTag} (${userId}) was forcebanned by ${interaction.user.tag}. Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
+            const errorMessage = handleDiscordError(error) ?? t('forceban.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

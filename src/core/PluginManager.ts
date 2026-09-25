@@ -6,6 +6,8 @@ import { Routes } from 'discord.js';
 import { verifyPluginManifest, verifyPluginFile } from '../utils/manifest.js';
 import { WorkerHost } from './worker/workerHost.js';
 import { parsePluginManifest } from './worker/pluginManifest.js';
+import { buildLocalizedPayload } from '../i18n/commandPayload.js';
+import type { CommandInput } from '../i18n/commandPayload.js';
 import { commandModuleCache } from '../queue/jobs/processCommand.js';
 import type { Client, REST } from 'discord.js';
 import type { EventBusImpl } from '../core/EventBus.js';
@@ -23,7 +25,8 @@ const ALL_PLUGIN_CAPABILITIES = [
     'api:sendMessage',
     'api:getOwnConfig',
     'api:setOwnConfig',
-    'api:commandReply'
+    'api:commandReply',
+    'api:i18n'
 ];
 
 interface PluginInfo {
@@ -221,19 +224,7 @@ export default class PluginManager {
                 if (!plugin) { return; }
 
                 const commands = plugin.getCommands?.() || [];
-                const body = commands.map(cmd => {
-                    if (cmd.data && 'toJSON' in cmd.data && typeof cmd.data.toJSON === 'function') {
-                        return cmd.data.toJSON();
-                    }
-                    const isContextMenu = cmd.type === 2 || cmd.type === 3;
-                    return {
-                        name: cmd.name,
-                        description: isContextMenu ? undefined : (cmd.description ?? 'No description'),
-                        type: cmd.type ?? 1,
-                        options: cmd.options ?? [],
-                        dm_permission: cmd.dmPermission
-                    };
-                });
+                const body = commands.map(cmd => buildLocalizedPayload(cmd as unknown as CommandInput));
 
                 if (clientConfig.guildId) {
                     // Guild-specific update (instant)
@@ -250,20 +241,7 @@ export default class PluginManager {
                 }
             } else {
                 // Full sync (startup only)
-                const body = [...(this.client.commands?.values() ?? [])].map((cmd: unknown) => {
-                    const command = cmd as { data?: { toJSON: () => unknown }; name: string; type?: number; description?: string; options?: unknown[]; dmPermission?: boolean };
-                    if (command.data && typeof command.data.toJSON === 'function') {
-                        return command.data.toJSON();
-                    }
-                    const isContextMenu = command.type === 2 || command.type === 3;
-                    return {
-                        name: command.name,
-                        description: isContextMenu ? undefined : (command.description ?? 'No description'),
-                        type: command.type ?? 1,
-                        options: command.options ?? [],
-                        dm_permission: command.dmPermission
-                    };
-                });
+                const body = [...(this.client.commands?.values() ?? [])].map((cmd: unknown) => buildLocalizedPayload(cmd as CommandInput));
                 await rest.put(
                     Routes.applicationCommands(CLIENT_ID),
                     { body }

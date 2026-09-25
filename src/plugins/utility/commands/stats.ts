@@ -1,6 +1,7 @@
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { SlashCommandBuilder, EmbedBuilder, version as djsVersion } from 'discord.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface BotStats {
     commandsRan: number;
@@ -25,6 +26,12 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'utility');
             const client = interaction.client as ApolloClient;
 
             // Calculate uptime
@@ -54,48 +61,48 @@ export default {
 
             const embed = new EmbedBuilder()
                 .setColor('#3498DB')
-                .setTitle('Bot Statistics')
+                .setTitle(t('stats.title'))
                 .setThumbnail(client.user.displayAvatarURL())
                 .addFields(
                     {
-                        name: 'General',
+                        name: t('stats.general'),
                         value: [
-                            `**Servers:** ${client.guilds.cache.size.toLocaleString()}`,
-                            `**Users:** ${totalMembers.toLocaleString()}`,
-                            `**Channels:** ${totalChannels.toLocaleString()}`,
-                            `**Commands:** ${commandCount}`
+                            `**${t('stats.servers')}:** ${client.guilds.cache.size.toLocaleString()}`,
+                            `**${t('stats.users')}:** ${totalMembers.toLocaleString()}`,
+                            `**${t('stats.channels')}:** ${totalChannels.toLocaleString()}`,
+                            `**${t('stats.commands')}:** ${commandCount}`
                         ].join('\n'),
                         inline: true
                     },
                     {
-                        name: 'System',
+                        name: t('stats.system'),
                         value: [
-                            `**Uptime:** ${uptime}`,
-                            `**Memory:** ${usedMemory}MB / ${totalMemory}MB`,
-                            `**Node.js:** ${process.version}`,
-                            `**Discord.js:** v${djsVersion}`
+                            `**${t('stats.uptime')}:** ${uptime}`,
+                            `**${t('stats.memory')}:** ${usedMemory}MB / ${totalMemory}MB`,
+                            `**${t('stats.node')}:** ${process.version}`,
+                            `**${t('stats.djs')}:** v${djsVersion}`
                         ].join('\n'),
                         inline: true
                     },
                     {
-                        name: 'Session Stats',
+                        name: t('stats.session'),
                         value: [
-                            `**Commands Ran:** ${stats.commandsRan.toLocaleString()}`,
-                            `**Messages Processed:** ${stats.messagesProcessed.toLocaleString()}`
+                            `**${t('stats.ran')}:** ${stats.commandsRan.toLocaleString()}`,
+                            `**${t('stats.processed')}:** ${stats.messagesProcessed.toLocaleString()}`
                         ].join('\n'),
                         inline: true
                     },
                     {
-                        name: 'Latency',
+                        name: t('stats.latency'),
                         value: [
-                            `**Bot Latency:** ${Date.now() - interaction.createdTimestamp}ms`,
-                            `**API Latency:** ${Math.round(client.ws.ping)}ms`
+                            `**${t('stats.botLatency')}:** ${Date.now() - interaction.createdTimestamp}ms`,
+                            `**${t('stats.apiLatency')}:** ${Math.round(client.ws.ping)}ms`
                         ].join('\n'),
                         inline: true
                     }
                 )
                 .setTimestamp()
-                .setFooter({ text: `Bot ID: ${client.user.id}` });
+                .setFooter({ text: t('stats.footer', { id: client.user.id }) });
 
             await interaction.reply({ embeds: [embed] });
 

@@ -6,6 +6,7 @@ import { getPriorityColor, getPriorityEmoji } from '../../../utils/slaTracker.js
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
 import { MessageFlags } from 'discord.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface CreateTicketData {
     userId: string;
@@ -54,9 +55,16 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'tickets');
+
             const guildId = interaction.guild!.id;
             const userId = interaction.user.id;
-            const reason = interaction.options.getString('reason') ?? 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? t('ticket.defaultReason');
             const category = interaction.options.getString('category') ?? 'general';
             const priority = interaction.options.getString('priority') ?? 'medium';
 
@@ -66,7 +74,7 @@ export default {
             const existingTicket = openTickets.find(t => t.userId === userId);
             if (existingTicket) {
                 await interaction.reply({
-                    content: `You already have an open ticket: <#${existingTicket.channelId}>`,
+                    content: t('ticket.alreadyOpen', { channelId: existingTicket.channelId }),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -74,7 +82,7 @@ export default {
 
             if (!(interaction.guild!.members.me?.permissions.has(PermissionFlagsBits.ManageChannels) ?? false)) {
                 await interaction.reply({
-                    content: 'I do not have permission to manage channels.',
+                    content: t('ticket.noManagePermission'),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -142,7 +150,7 @@ export default {
             } catch (error) {
                 logger.error({ msg: '[ERROR] Failed to create ticket channel', err: error });
                 await interaction.reply({
-                    content: 'Failed to create ticket channel. Please contact an administrator.',
+                    content: t('ticket.createFailed'),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -153,26 +161,26 @@ export default {
                 .setTitle(`${getPriorityEmoji(priority)} Ticket #${ticketNumber}`)
                 .setDescription(config.tickets.welcomeMessage)
                 .addFields(
-                    { name: 'Created by', value: `<@${interaction.user.id}>`, inline: true },
-                    { name: 'Ticket ID', value: `#${ticketNumber}`, inline: true },
-                    { name: 'Category', value: category.charAt(0).toUpperCase() + category.slice(1), inline: true },
-                    { name: 'Priority', value: `${getPriorityEmoji(priority)} ${priority.charAt(0).toUpperCase() + priority.slice(1)}`, inline: true },
-                    { name: 'Status', value: 'Open', inline: true },
-                    { name: 'Assigned to', value: 'Unassigned', inline: true },
-                    { name: 'Reason', value: reason, inline: false }
+                    { name: t('ticket.fieldCreatedBy'), value: `<@${interaction.user.id}>`, inline: true },
+                    { name: t('ticket.fieldTicketId'), value: `#${ticketNumber}`, inline: true },
+                    { name: t('ticket.fieldCategory'), value: category.charAt(0).toUpperCase() + category.slice(1), inline: true },
+                    { name: t('ticket.fieldPriority'), value: `${getPriorityEmoji(priority)} ${priority.charAt(0).toUpperCase() + priority.slice(1)}`, inline: true },
+                    { name: t('ticket.fieldStatus'), value: t('ticket.statusOpen'), inline: true },
+                    { name: t('ticket.fieldAssignedTo'), value: t('ticket.unassigned'), inline: true },
+                    { name: t('ticket.fieldReason'), value: reason, inline: false }
                 )
                 .setTimestamp()
-                .setFooter({ text: 'Use /closeticket to close this ticket' });
+                .setFooter({ text: t('ticket.footerCloseHint') });
 
             const row = new ActionRowBuilder<ButtonBuilder>()
                 .addComponents(
                     new ButtonBuilder()
                         .setCustomId('claim_ticket')
-                        .setLabel('Claim Ticket')
+                        .setLabel(t('ticket.buttonClaim'))
                         .setStyle(ButtonStyle.Success),
                     new ButtonBuilder()
                         .setCustomId('close_ticket')
-                        .setLabel('Close Ticket')
+                        .setLabel(t('ticket.buttonClose'))
                         .setStyle(ButtonStyle.Danger)
                 );
 
@@ -207,7 +215,7 @@ export default {
             });
 
             await interaction.reply({
-                content: `Your ticket has been created: <#${ticketChannel.id}>`,
+                content: t('ticket.created', { channelId: ticketChannel.id }),
                 flags: MessageFlags.Ephemeral
             });
 

@@ -7,6 +7,7 @@ import { createModCase } from './case.js';
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 import { canModerate } from '../../../utils/moderation.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'voicedeafen',
@@ -20,15 +21,17 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction) {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const user = interaction.options.getUser('user');
-            const reason = interaction.options.getString('reason') ?? 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? t('voicedeafen.noReason');
 
             if (!user) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Missing User',
-                    description: 'Please specify a valid user to deafen.',
+                    title: t('voicedeafen.missingUserTitle'),
+                    description: t('voicedeafen.missingUserDescription'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -39,8 +42,8 @@ export default {
             if (!member) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] User Not In Server',
-                    description: 'This user is not in the server.',
+                    title: t('voicedeafen.memberNotFoundTitle'),
+                    description: t('voicedeafen.memberNotFoundDescription'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -49,8 +52,8 @@ export default {
             if (!member.voice.channel) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Not In Voice Channel',
-                    description: `${user.tag} is not currently in a voice channel.`,
+                    title: t('voicedeafen.errorNotInVoiceChannel'),
+                    description: t('voicedeafen.userIsNotCurrentlyIn', { user: user.tag }),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -59,8 +62,8 @@ export default {
             if (member.voice.serverDeaf) {
                 const errorEmbed = {
                     color: 0xFFFF00,
-                    title: '[INFO] Already Deafened',
-                    description: `${user.tag} is already server deafened.`,
+                    title: t('voicedeafen.infoAlreadyDeafened'),
+                    description: t('voicedeafen.userIsAlreadyServerDeafened', { user: user.tag }),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -69,8 +72,8 @@ export default {
             if (!member.voice.channel.permissionsFor(interaction.guild!.members.me!).has('DeafenMembers')) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Missing Permissions',
-                    description: 'I do not have permission to deafen members in that voice channel.',
+                    title: t('voicedeafen.errorMissingPermissions'),
+                    description: t('voicedeafen.iDoNotHavePermission'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -79,8 +82,8 @@ export default {
             if (user.id === interaction.user.id) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Self Action',
-                    description: 'You cannot deafen yourself using this command.',
+                    title: t('voicedeafen.selfActionTitle'),
+                    description: t('voicedeafen.selfActionDescription'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -89,8 +92,8 @@ export default {
             if (user.id === interaction.client.user.id) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Bot Protection',
-                    description: 'You cannot deafen the bot.',
+                    title: t('voicedeafen.botProtectionTitle'),
+                    description: t('voicedeafen.botProtectionDescription'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -100,7 +103,7 @@ export default {
             if (!hierarchy.ok) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Hierarchy Check Failed',
+                    title: t('voicedeafen.hierarchyTitle'),
                     description: hierarchy.reason,
                     timestamp: new Date().toISOString()
                 };
@@ -125,14 +128,14 @@ export default {
 
             const successEmbed = {
                 color: 0x00FF00,
-                title: '[SUCCESS] User Deafened',
-                description: `${user.tag} has been server deafened in **${channelName}**.`,
+                title: t('voicedeafen.successUserDeafened'),
+                description: t('voicedeafen.userHasBeenServerDeafened', { user: user.tag, channelName: channelName }),
                 fields: [
-                    { name: '[INFO] Moderator', value: interaction.user.tag, inline: true },
-                    { name: '[INFO] Case ID', value: `#${caseId}`, inline: true },
-                    { name: '[INFO] Reason', value: reason, inline: false },
-                    { name: '[INFO] Channel', value: channelName, inline: true },
-                    { name: '[INFO] User ID', value: user.id, inline: true }
+                    { name: t('voicedeafen.fieldModerator'), value: interaction.user.tag, inline: true },
+                    { name: t('voicedeafen.fieldCaseId'), value: t('voicedeafen.caseid', { caseId: caseId }), inline: true },
+                    { name: t('voicedeafen.fieldReason'), value: reason, inline: false },
+                    { name: t('voicedeafen.infoChannel'), value: channelName, inline: true },
+                    { name: t('voicedeafen.fieldUserId'), value: user.id, inline: true }
                 ],
                 timestamp: new Date().toISOString()
             };
@@ -149,7 +152,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] User ${user.tag} was voice deafened by ${interaction.user.tag}. Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
+            const errorMessage = handleDiscordError(error) ?? t('voicedeafen.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

@@ -7,6 +7,7 @@ import { sendModLog } from '../../../utils/modLog.js';
 import { checkRaidPattern, handleRaidDetected, checkRaidPatternRedis, trackJoinRedis } from '../../../utils/raidDetection.js';
 import { getLockRedis } from '../../../utils/lock.js';
 import { trackMemberChange } from '../../../utils/analyticsCollector.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface BlacklistEntry {
     reason?: string;
@@ -191,9 +192,12 @@ export default {
             return;
         }
 
+        const resolved = (await i18n.getGuildLocale(guild.id)) ?? 'en-US';
+        const t = i18n.getFixedT(resolved, 'moderation');
+
         const welcomeEmbed = new EmbedBuilder()
             .setColor('#00FF00')
-            .setTitle('Welcome to the Server!')
+            .setTitle(t('welcome.title'))
             .setDescription(
                 config.welcome.message
                     .replace('{user}', member.toString())
@@ -201,31 +205,31 @@ export default {
             )
             .addFields(
                 {
-                    name: 'New Member',
+                    name: t('welcome.newMember'),
                     value: member.user.tag,
                     inline: true
                 },
                 {
-                    name: 'Member ID',
+                    name: t('welcome.memberId'),
                     value: member.id,
                     inline: true
                 },
                 {
-                    name: 'Joined At',
+                    name: t('welcome.joinedAt'),
                     value: new Date().toLocaleString(),
                     inline: true
                 }
             )
             .setThumbnail(member.user.displayAvatarURL())
             .setFooter({
-                text: `Total Members: ${guild.memberCount}`,
+                text: t('welcome.totalMembers', { count: guild.memberCount }),
                 iconURL: guild.iconURL() ?? undefined
             })
             .setTimestamp();
 
         try {
             await (targetChannel as TextChannel).send({
-                content: `Hey ${member.toString()}!`,
+                content: t('welcome.greeting', { user: member.toString() }),
                 embeds: [welcomeEmbed]
             });
             console.log(`[SUCCESS] Welcome message sent for ${member.user.tag}`);

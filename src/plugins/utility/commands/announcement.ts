@@ -2,6 +2,7 @@ import type { ChatInputCommandInteraction} from 'discord.js';
 import { MessageFlags, PermissionsBitField } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface AnnouncementData {
     id: string;
@@ -83,14 +84,20 @@ export default {
 
         } catch (error) {
             logger.error({ err: error, msg: '[ERROR] Announcement command error' });
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'utility');
 
             const errorEmbed = {
                 color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred.',
+                title: t('announcement.failedTitle'),
+                description: t('announcement.failedDesc'),
                 fields: [
                     {
-                        name: '[ERROR] Details',
+                        name: t('announcement.details'),
                         value: error instanceof Error ? error.message : 'Unknown error',
                         inline: true
                     }
@@ -104,6 +111,12 @@ export default {
 };
 
 async function handleSchedule(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolvedLocale = await i18n.resolveLocale({
+        locale: interaction.locale ?? null,
+        guildLocale: interaction.guildLocale ?? null,
+        guildId: interaction.guildId ?? null
+    });
+    const t = i18n.getFixedT(resolvedLocale, 'utility');
     const channel = interaction.options.getChannel('channel');
     const message = interaction.options.getString('message') ?? '';
     const delayStr = interaction.options.getString('delay') ?? '';
@@ -112,8 +125,8 @@ async function handleSchedule(interaction: ChatInputCommandInteraction): Promise
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
-                title: '[ERROR] Missing Parameters',
-                description: 'Channel, message, and delay are required.',
+                title: t('announcement.missingTitle'),
+                description: t('announcement.missing'),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -127,8 +140,8 @@ async function handleSchedule(interaction: ChatInputCommandInteraction): Promise
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
-                title: '[ERROR] Invalid Delay',
-                description: 'Use format like 1h, 30m, 1d',
+                title: t('announcement.badDelayTitle'),
+                description: t('announcement.badDelay'),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -157,21 +170,21 @@ async function handleSchedule(interaction: ChatInputCommandInteraction): Promise
 
     const successEmbed = {
         color: 0x00FF00,
-        title: '[SUCCESS] Announcement Scheduled',
-        description: `Announcement will be sent in #${channel.name}`,
+        title: t('announcement.scheduledTitle'),
+        description: t('announcement.scheduledDesc', { channel: 'name' in channel ? channel.name : 'unknown' }),
         fields: [
             {
-                name: '[INFO] Announcement ID',
+                name: t('announcement.id'),
                 value: announcementId,
                 inline: true
             },
             {
-                name: '[INFO] Message',
+                name: t('announcement.messageLabel'),
                 value: message.substring(0, 100) + (message.length > 100 ? '...' : ''),
                 inline: false
             },
             {
-                name: '[INFO] Scheduled For',
+                name: t('announcement.scheduledFor'),
                 value: `<t:${Math.floor(scheduledTime / 1000)}:R>`,
                 inline: true
             }
@@ -185,14 +198,20 @@ async function handleSchedule(interaction: ChatInputCommandInteraction): Promise
 }
 
 async function handleView(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolvedLocale = await i18n.resolveLocale({
+        locale: interaction.locale ?? null,
+        guildLocale: interaction.guildLocale ?? null,
+        guildId: interaction.guildId ?? null
+    });
+    const t = i18n.getFixedT(resolvedLocale, 'utility');
     const announcements = await getGuildData('announcements', interaction.guild!.id) as Record<string, AnnouncementData> | null;
 
     if (!announcements || Object.keys(announcements).length === 0) {
         await interaction.reply({
             embeds: [{
                 color: 0xFFA500,
-                title: '[INFO] No Scheduled Announcements',
-                description: 'There are no scheduled announcements.',
+                title: t('announcement.noneTitle'),
+                description: t('announcement.none'),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -207,8 +226,8 @@ async function handleView(interaction: ChatInputCommandInteraction): Promise<voi
         await interaction.reply({
             embeds: [{
                 color: 0xFFA500,
-                title: '[INFO] No Active Announcements',
-                description: 'All announcements have been sent.',
+                title: t('announcement.noActiveTitle'),
+                description: t('announcement.noActive'),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -218,11 +237,11 @@ async function handleView(interaction: ChatInputCommandInteraction): Promise<voi
 
     const viewEmbed = {
         color: 0x3498DB,
-        title: '[ANNOUNCEMENTS] Scheduled',
-        description: `Total: ${scheduled.length}`,
+        title: t('announcement.viewTitle'),
+        description: t('announcement.total', { count: scheduled.length }),
         fields: scheduled.slice(0, 5).map(a => ({
             name: `#${a.id}`,
-            value: `Channel: <#${a.channelId}>\nScheduled: <t:${Math.floor(a.sendAt / 1000)}:R>\nBy: ${a.scheduledByTag}`,
+            value: t('announcement.entry', { channel: a.channelId, when: `<t:${Math.floor(a.sendAt / 1000)}:R>`, by: a.scheduledByTag }),
             inline: false
         })),
         timestamp: new Date().toISOString()
@@ -232,6 +251,12 @@ async function handleView(interaction: ChatInputCommandInteraction): Promise<voi
 }
 
 async function handleCancel(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolvedLocale = await i18n.resolveLocale({
+        locale: interaction.locale ?? null,
+        guildLocale: interaction.guildLocale ?? null,
+        guildId: interaction.guildId ?? null
+    });
+    const t = i18n.getFixedT(resolvedLocale, 'utility');
     const id = interaction.options.getString('id') ?? '';
 
     const announcements = await getGuildData('announcements', interaction.guild!.id) as Record<string, AnnouncementData> | null;
@@ -240,8 +265,8 @@ async function handleCancel(interaction: ChatInputCommandInteraction): Promise<v
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
-                title: '[ERROR] Not Found',
-                description: 'No announcement found with that ID.',
+                title: t('announcement.notFoundTitle'),
+                description: t('announcement.notFound'),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -254,8 +279,8 @@ async function handleCancel(interaction: ChatInputCommandInteraction): Promise<v
 
     const successEmbed = {
         color: 0x00FF00,
-        title: '[SUCCESS] Announcement Cancelled',
-        description: `Announcement #${id} has been cancelled.`,
+        title: t('announcement.cancelledTitle'),
+        description: t('announcement.cancelled', { id }),
         timestamp: new Date().toISOString()
     };
 

@@ -1,9 +1,10 @@
 // Automod Command Tests
 // Tests for the automod configuration command functionality
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 import type { ChatInputCommandInteraction, Guild, TextChannel } from 'discord.js';
 import automodCommand from '../../src/plugins/automod/commands/automod.js';
+import { i18n } from '../../src/i18n/index.js';
 import { 
     createMockInteraction, 
     createMockUser, 
@@ -24,6 +25,10 @@ import { getGuildData, setGuildData } from '../../src/utils/db.js';
 describe('Automod Command', () => {
     let mockInteraction: MockCommandInteraction;
     let mockGuild: MockGuild;
+
+    beforeAll(async () => {
+        await i18n.loadNamespaces('automod');
+    });
 
     beforeEach(() => {
         vi.clearAllMocks();

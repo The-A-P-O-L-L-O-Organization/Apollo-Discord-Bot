@@ -133,6 +133,7 @@ export interface InterlinkContext {
     sourceBotId: string;
     sourcePlugin?: string;
     timestamp: number;
+    locale?: string;
 }
 
 // Re-export Plugin types that extend BasePlugin

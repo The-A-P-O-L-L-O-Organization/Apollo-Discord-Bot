@@ -7,6 +7,7 @@ import { flushAnalyticsCritical, trackModAction } from '../../../utils/analytics
 import { canModerate } from '../../../utils/moderation.js';
 import { safeError } from '../../../utils/safeError.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'kick',
@@ -31,18 +32,20 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction) {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             try {
                 // Get the user to kick
                 const user = interaction.options.getUser('user');
-                const reason = interaction.options.getString('reason') ?? 'No reason provided';
+                const reason = interaction.options.getString('reason') ?? t('kick.noReason');
 
                 // Check if user exists
                 if (!user) {
                     const errorEmbed = {
                         color: 0xFF0000,
-                        title: '[ERROR] Missing User',
-                        description: 'Please specify a valid user to kick.',
+                        title: t('kick.missingUserTitle'),
+                        description: t('kick.missingUserDescription'),
                         timestamp: new Date().toISOString()
                     };
                     return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -54,8 +57,8 @@ export default {
                 if (!member) {
                     const errorEmbed = {
                         color: 0xFF0000,
-                        title: '[ERROR] Member Not Found',
-                        description: 'This user is not a member of the server.',
+                        title: t('kick.memberNotFoundTitle'),
+                        description: t('kick.memberNotFoundDescription'),
                         timestamp: new Date().toISOString()
                     };
                     return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -65,8 +68,8 @@ export default {
                 if (!member.kickable) {
                     const errorEmbed = {
                         color: 0xFF0000,
-                        title: '[ERROR] Cannot Kick',
-                        description: 'I cannot kick this user. They may have higher permissions than me.',
+                        title: t('kick.errorCannotKick'),
+                        description: t('kick.iCannotKickThisUser'),
                         timestamp: new Date().toISOString()
                     };
                     return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -76,8 +79,8 @@ export default {
                 if (user.id === interaction.user.id) {
                     const errorEmbed = {
                         color: 0xFF0000,
-                        title: '[ERROR] Self Action',
-                        description: 'You cannot kick yourself.',
+                        title: t('kick.selfActionTitle'),
+                        description: t('kick.selfActionDescription'),
                         timestamp: new Date().toISOString()
                     };
                     return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -88,7 +91,7 @@ export default {
                 if (!hierarchy.ok) {
                     const errorEmbed = {
                         color: 0xFF0000,
-                        title: '[ERROR] Hierarchy Check Failed',
+                        title: t('kick.hierarchyTitle'),
                         description: hierarchy.reason,
                         timestamp: new Date().toISOString()
                     };
@@ -115,26 +118,26 @@ export default {
                 // Create success embed
                 const successEmbed = {
                     color: 0x00FF00,
-                    title: '[SUCCESS] User Kicked',
-                    description: `${user.tag} has been kicked from the server.`,
+                    title: t('kick.successUserKicked'),
+                    description: t('kick.userHasBeenKickedFrom', { user: user.tag }),
                     fields: [
                         {
-                            name: '[INFO] Moderator',
+                            name: t('kick.fieldModerator'),
                             value: interaction.user.tag,
                             inline: true
                         },
                         {
-                            name: '[INFO] Case ID',
-                            value: `#${caseId}`,
+                            name: t('kick.fieldCaseId'),
+                            value: t('kick.caseid', { caseId: caseId }),
                             inline: true
                         },
                         {
-                            name: '[INFO] Reason',
+                            name: t('kick.fieldReason'),
                             value: reason,
                             inline: false
                         },
                         {
-                            name: '[INFO] User ID',
+                            name: t('kick.fieldUserId'),
                             value: user.id,
                             inline: true
                         }
@@ -161,11 +164,11 @@ export default {
             } catch (error) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Command Failed',
-                    description: 'An error occurred while trying to kick the user.',
+                    title: t('kick.commandFailedTitle'),
+                    description: t('kick.commandFailedDescription'),
                     fields: [
                         {
-                            name: '[ERROR] Details',
+                            name: t('kick.errorDetails'),
                             value: safeError(error),
                             inline: true
                         }
@@ -181,7 +184,7 @@ export default {
             }
 
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
+            const errorMessage = handleDiscordError(error) ?? t('kick.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

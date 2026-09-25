@@ -1,5 +1,6 @@
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     // Banner Command
@@ -19,6 +20,12 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'utility');
             const user = interaction.options.getUser('user') ?? interaction.user;
 
             // Fetch full user to get banner
@@ -28,11 +35,11 @@ export default {
             if (!fullUser.banner) {
                 const noBannerEmbed = {
                     color: 0xFF0000,
-                    title: '[INFO] No Banner',
-                    description: `${user.tag} does not have a banner image.\n(Banners require Discord Nitro)`,
+                    title: t('banner.noBannerTitle'),
+                    description: t('banner.noBanner', { tag: user.tag }),
                     fields: [
                         {
-                            name: '[INFO] User',
+                            name: t('banner.user'),
                             value: user.tag,
                             inline: true
                         }
@@ -48,11 +55,11 @@ export default {
             if (!bannerURL) {
                 const noBannerEmbed = {
                     color: 0xFF0000,
-                    title: '[INFO] No Banner',
-                    description: `${user.tag} does not have a banner image.\n(Banners require Discord Nitro)`,
+                    title: t('banner.noBannerTitle'),
+                    description: t('banner.noBanner', { tag: user.tag }),
                     fields: [
                         {
-                            name: '[INFO] User',
+                            name: t('banner.user'),
                             value: user.tag,
                             inline: true
                         }
@@ -68,20 +75,20 @@ export default {
             // Create banner embed
             const bannerEmbed = {
                 color: 0x3498DB,
-                title: `[BANNER] ${user.tag}`,
+                title: t('banner.title', { tag: user.tag }),
                 description: `(${format})`,
                 image: {
                     url: bannerURL
                 },
                 fields: [
                     {
-                        name: '[INFO] User ID',
+                        name: t('banner.userId'),
                         value: user.id,
                         inline: true
                     },
                     {
-                        name: '[LINK] Download',
-                        value: `[Click here](${bannerURL})`,
+                        name: t('banner.download'),
+                        value: `[${t('banner.clickHere')}](${bannerURL})`,
                         inline: true
                     }
                 ],

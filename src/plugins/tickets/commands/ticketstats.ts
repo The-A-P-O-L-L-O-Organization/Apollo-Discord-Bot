@@ -3,6 +3,7 @@ import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } 
 import { getGuildData } from '../../../utils/db.js';
 import { calculateSLAMetrics, formatTime } from '../../../utils/slaTracker.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface TicketData {
     ticketNumber: number;
@@ -36,6 +37,13 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'tickets');
+
             await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
             const guildId = interaction.guild!.id;
@@ -48,17 +56,17 @@ export default {
 
             const embed = new EmbedBuilder()
                 .setColor('#3498DB')
-                .setTitle('Statistics Ticket System Statistics')
+                .setTitle(t('ticketstats.title'))
                 .setTimestamp();
 
             embed.addFields({
-                name: ' Overall Statistics',
+                name: t('ticketstats.fieldOverall'),
                 value: [
-                    `Total Tickets Created: **${totalTickets}**`,
-                    `Currently Open: **${openTickets.length}**`,
-                    `Total Closed: **${closedTickets.length}**`,
-                    `Average Response Time: **${formatTime(metrics.avgResponseTime)}**`,
-                    `Average Resolution Time: **${formatTime(metrics.avgResolutionTime)}**`
+                    t('ticketstats.lineTotal', { count: totalTickets }),
+                    t('ticketstats.lineOpen', { count: openTickets.length }),
+                    t('ticketstats.lineClosed', { count: closedTickets.length }),
+                    t('ticketstats.lineAvgResponse', { value: formatTime(metrics.avgResponseTime) }),
+                    t('ticketstats.lineAvgResolution', { value: formatTime(metrics.avgResolutionTime) })
                 ].join('\n'),
                 inline: false
             });
@@ -75,14 +83,14 @@ export default {
                 };
 
                 embed.addFields({
-                    name: 'Open Tickets Breakdown',
+                    name: t('ticketstats.fieldOpenBreakdown'),
                     value: [
-                        `Unassigned: **${unassigned}**`,
-                        `Awaiting Response: **${awaitingResponse}**`,
-                        `Urgent: **${priorityCounts.urgent}**`,
-                        `High: **${priorityCounts.high}**`,
-                        `Medium: **${priorityCounts.medium}**`,
-                        `Low: **${priorityCounts.low}**`
+                        t('ticketstats.lineUnassigned', { count: unassigned }),
+                        t('ticketstats.lineAwaiting', { count: awaitingResponse }),
+                        t('ticketstats.lineUrgent', { count: priorityCounts.urgent }),
+                        t('ticketstats.lineHigh', { count: priorityCounts.high }),
+                        t('ticketstats.lineMedium', { count: priorityCounts.medium }),
+                        t('ticketstats.lineLow', { count: priorityCounts.low })
                     ].join('\n'),
                     inline: true
                 });
@@ -99,11 +107,11 @@ export default {
                 const categoryList = Object.entries(categoryCounts)
                     .sort((a, b) => b[1] - a[1])
                     .slice(0, 5)
-                    .map(([cat, count]) => `${cat.charAt(0).toUpperCase() + cat.slice(1)}: **${count}**`)
+                    .map(([cat, count]) => t('ticketstats.lineCategoryRow', { name: cat.charAt(0).toUpperCase() + cat.slice(1), count }))
                     .join('\n');
 
                 embed.addFields({
-                    name: 'Top Categories',
+                    name: t('ticketstats.fieldTopCategories'),
                     value: categoryList,
                     inline: true
                 });
@@ -121,12 +129,12 @@ export default {
                 };
 
                 embed.addFields({
-                    name: '★ Rating Statistics',
+                    name: t('ticketstats.fieldRatings'),
                     value: [
-                        `Average Rating: **${avgRating.toFixed(1)}/5.0**`,
-                        `Total Rated: **${ratedTickets.length}**`,
-                        `5★: ${ratingCounts[5]} | 4★: ${ratingCounts[4]} | 3★: ${ratingCounts[3]}`,
-                        `2★: ${ratingCounts[2]} | 1★: ${ratingCounts[1]}`
+                        t('ticketstats.lineAvgRating', { value: avgRating.toFixed(1) }),
+                        t('ticketstats.lineTotalRated', { count: ratedTickets.length }),
+                        t('ticketstats.lineDistHigh', { a: ratingCounts[5], b: ratingCounts[4], c: ratingCounts[3] }),
+                        t('ticketstats.lineDistLow', { a: ratingCounts[2], b: ratingCounts[1] })
                     ].join('\n'),
                     inline: false
                 });
@@ -135,11 +143,11 @@ export default {
             if (closedTickets.length > 0) {
                 const slaRate = ((metrics.slaMet / metrics.totalTickets) * 100).toFixed(1);
                 embed.addFields({
-                    name: 'SLA Compliance',
+                    name: t('ticketstats.fieldSla'),
                     value: [
-                        `Compliance Rate: **${slaRate}%**`,
-                        `Met: **${metrics.slaMet}** | Breached: **${metrics.slaBreached}**`,
-                        `Current Breached: **${metrics.openTicketsBreached}**`
+                        t('ticketstats.lineCompliance', { value: slaRate }),
+                        t('ticketstats.lineSlaMet', { met: metrics.slaMet, breached: metrics.slaBreached }),
+                        t('ticketstats.lineCurrentBreached', { count: metrics.openTicketsBreached })
                     ].join('\n'),
                     inline: false
                 });
@@ -169,12 +177,12 @@ export default {
                         const avgTime = data.responseTimes.length > 0
                             ? data.responseTimes.reduce((a, b) => a + b, 0) / data.responseTimes.length
                             : 0;
-                        return `${user ? user.tag : 'Unknown'}: **${data.count}** tickets | Avg: ${formatTime(avgTime)}`;
+                        return t('ticketstats.lineStaffRow', { name: user ? user.tag : t('ticketstats.unknown'), count: data.count, duration: formatTime(avgTime) });
                     })
                 );
 
                 embed.addFields({
-                    name: 'Top Support Staff',
+                    name: t('ticketstats.fieldTopStaff'),
                     value: staffList.join('\n'),
                     inline: false
                 });
@@ -187,8 +195,8 @@ export default {
 
             if (recentClosed?.closedAt) {
                 embed.addFields({
-                    name: 'Last Closed Ticket',
-                    value: `Ticket #${recentClosed.ticketNumber} closed <t:${Math.floor(recentClosed.closedAt / 1000)}:R>`,
+                    name: t('ticketstats.fieldLastClosed'),
+                    value: t('ticketstats.lineLastClosed', { number: recentClosed.ticketNumber, ts: Math.floor(recentClosed.closedAt / 1000) }),
                     inline: false
                 });
             }

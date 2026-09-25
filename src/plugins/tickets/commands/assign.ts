@@ -4,6 +4,7 @@ import { getGuildData, updateGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { logger } from '../../../utils/logger.js';
 import { MessageFlags } from 'discord.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface AssignTicketData {
     userId: string;
@@ -30,6 +31,13 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'tickets');
+
             const guildId = interaction.guild!.id;
             const channelId = interaction.channel!.id;
             const assignUser = interaction.options.getUser('user', true);
@@ -41,7 +49,7 @@ export default {
 
             if (!ticket) {
                 await interaction.reply({
-                    content: 'This channel is not a ticket channel.',
+                    content: t('assign.notTicket'),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -53,7 +61,7 @@ export default {
 
             if (!hasSupport && !isAdmin) {
                 await interaction.reply({
-                    content: 'You do not have permission to assign tickets.',
+                    content: t('assign.noPermission'),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -63,7 +71,7 @@ export default {
 
             if (ticket.assignedTo.includes(assignUser.id)) {
                 await interaction.reply({
-                    content: `<@${assignUser.id}> is already assigned to this ticket.`,
+                    content: t('assign.alreadyAssigned', { user: assignUser.id }),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -97,11 +105,11 @@ export default {
 
             const embed = new EmbedBuilder()
                 .setColor('#00FF00')
-                .setTitle('Ticket Assigned')
-                .setDescription(`<@${assignUser.id}> has been assigned to this ticket.`)
+                .setTitle(t('assign.title'))
+                .setDescription(t('assign.description', { user: assignUser.id }))
                 .addFields(
-                    { name: 'Assigned by', value: `<@${interaction.user.id}>`, inline: true },
-                    { name: 'Assigned to', value: `<@${assignUser.id}>`, inline: true }
+                    { name: t('assign.fieldAssignedBy'), value: `<@${interaction.user.id}>`, inline: true },
+                    { name: t('assign.fieldAssignedTo'), value: `<@${assignUser.id}>`, inline: true }
                 )
                 .setTimestamp();
 
@@ -113,11 +121,11 @@ export default {
             try {
                 const dmEmbed = new EmbedBuilder()
                     .setColor('#00FF00')
-                    .setTitle('Ticket Assigned to You')
-                    .setDescription(`You have been assigned to ticket #${ticket.ticketNumber} in **${interaction.guild!.name}**.`)
+                    .setTitle(t('assign.dmTitle'))
+                    .setDescription(t('assign.dmDescription', { number: ticket.ticketNumber, guild: interaction.guild!.name }))
                     .addFields(
-                        { name: 'Ticket', value: `<#${channelId}>`, inline: true },
-                        { name: 'Category', value: ticket.category ?? 'general', inline: true }
+                        { name: t('assign.dmFieldTicket'), value: `<#${channelId}>`, inline: true },
+                        { name: t('assign.dmFieldCategory'), value: ticket.category ?? 'general', inline: true }
                     )
                     .setTimestamp();
 

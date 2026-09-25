@@ -71,7 +71,8 @@ export const InterlinkContextSchema = z.object({
     guildId: z.string().optional(),
     channelId: z.string().optional(),
     timestamp: z.number().int().positive(),
-    authToken: z.string().optional()
+    authToken: z.string().optional(),
+    locale: z.string().optional()
 });
 
 export const InterlinkRPCMessageSchema = z.object({
@@ -125,6 +126,7 @@ export const ProcessCommandJobSchema = z.object({
         appPermissions: z.string().nullable(),
         locale: z.string(),
         guildLocale: z.string().optional(),
+        resolvedLocale: z.string().optional(),
         entitlements: z.array(z.unknown())
     }),
     serialized: z.instanceof(Uint8Array),

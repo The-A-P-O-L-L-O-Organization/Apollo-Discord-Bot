@@ -1,6 +1,7 @@
 import type { ChatInputCommandInteraction} from 'discord.js';
 import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     // Roll Command
@@ -15,14 +16,20 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'utility');
             const diceStr = interaction.options.getString('dice') ?? '1d6';
 
             if (diceStr.length > 10) {
                 await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Invalid Dice',
-                        description: 'Dice notation is too long. Please use format like "2d6" or "1d20".',
+                        title: t('roll.invalidTitle'),
+                        description: t('roll.tooLong'),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -36,8 +43,8 @@ export default {
                 await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Invalid Dice',
-                        description: 'Please use dice notation (e.g., 2d6, 1d20). Maximum 10 dice with up to 100 sides each.',
+                        title: t('roll.invalidTitle'),
+                        description: t('roll.invalidFormat'),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -52,8 +59,8 @@ export default {
                 await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Invalid Dice',
-                        description: 'You must roll at least 1 die.',
+                        title: t('roll.invalidTitle'),
+                        description: t('roll.minDice'),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -65,8 +72,8 @@ export default {
                 await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Invalid Dice',
-                        description: 'Dice must have at least 2 sides.',
+                        title: t('roll.invalidTitle'),
+                        description: t('roll.minSides'),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -94,14 +101,14 @@ export default {
 
             const diceEmbed = new EmbedBuilder()
                 .setColor(sides <= 6 ? 0xFFA500 : sides <= 20 ? 0x3498DB : 0x9B59B6)
-                .setTitle('[DICE] Dice Roll')
-                .setDescription(`Rolling **${numDice}d${sides}**...`)
+                .setTitle(t('roll.title'))
+                .setDescription(t('roll.rolling', { spec: `${numDice}d${sides}` }))
                 .addFields(
-                    { name: 'Result Rolls', value: rollsStr, inline: false },
-                    { name: 'Total Sum', value: `**${total}**`, inline: true },
-                    { name: 'Average', value: `**${(total / numDice).toFixed(1)}**`, inline: true }
+                    { name: t('roll.rolls'), value: rollsStr, inline: false },
+                    { name: t('roll.total'), value: `**${total}**`, inline: true },
+                    { name: t('roll.average'), value: `**${(total / numDice).toFixed(1)}**`, inline: true }
                 )
-                .setFooter({ text: `Rolled by ${interaction.user.tag}` })
+                .setFooter({ text: t('roll.rolledBy', { user: interaction.user.tag }) })
                 .setTimestamp();
 
             await interaction.reply({ embeds: [diceEmbed] });

@@ -2,6 +2,7 @@ import type { ChatInputCommandInteraction} from 'discord.js';
 import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface EmojiData {
     identifier: string;
@@ -141,6 +142,12 @@ export default {
         try {
             const subcommand = interaction.options.getSubcommand();
             const guildId = interaction.guild!.id;
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'admin');
 
             if (subcommand === 'add') {
                 const messageId = interaction.options.getString('message_id');
@@ -150,7 +157,7 @@ export default {
 
                 if (!role) {
                     return interaction.reply({
-                        content: 'Role not found.',
+                        content: t('reactionrole.roleNotFound'),
                         flags: MessageFlags.Ephemeral
                     });
                 }
@@ -158,21 +165,21 @@ export default {
                 const botMember = interaction.guild!.members.me;
                 if (!botMember || role.position >= botMember.roles.highest.position) {
                     return interaction.reply({
-                        content: 'I cannot assign this role because it is higher than or equal to my highest role.',
+                        content: t('reactionrole.hierarchy'),
                         flags: MessageFlags.Ephemeral
                     });
                 }
 
                 if (role.id === interaction.guild!.id) {
                     return interaction.reply({
-                        content: 'You cannot use the @everyone role for reaction roles.',
+                        content: t('reactionrole.everyone'),
                         flags: MessageFlags.Ephemeral
                     });
                 }
 
                 if (!channel || !('isTextBased' in channel) || !channel.isTextBased()) {
                     return interaction.reply({
-                        content: 'Invalid channel.',
+                        content: t('reactionrole.invalidChannel'),
                         flags: MessageFlags.Ephemeral
                     });
                 }
@@ -183,7 +190,7 @@ export default {
                     message = await textChannel.messages.fetch(messageId!) as { react: (emoji: string) => Promise<void>; url: string };
                 } catch {
                     return interaction.reply({
-                        content: `Could not find a message with ID \`${messageId}\` in <#${channel.id}>.`,
+                        content: t('reactionrole.messageMissing', { id: messageId, channel: channel.id }),
                         flags: MessageFlags.Ephemeral
                     });
                 }
@@ -191,7 +198,7 @@ export default {
                 const emoji = parseEmoji(emojiInput!);
                 if (!emoji) {
                     return interaction.reply({
-                        content: 'Invalid emoji. Please use a standard emoji or a custom emoji from this server.',
+                        content: t('reactionrole.invalidEmoji'),
                         flags: MessageFlags.Ephemeral
                     });
                 }
@@ -200,7 +207,7 @@ export default {
                     await message.react(emoji.reaction);
                 } catch {
                     return interaction.reply({
-                        content: 'Failed to react to the message. Make sure I have permission to add reactions and the emoji is valid.',
+                        content: t('reactionrole.reactFailed'),
                         flags: MessageFlags.Ephemeral
                     });
                 }
@@ -229,7 +236,7 @@ export default {
                 await setGuildData('reactionroles', guildId, reactionRoles);
 
                 return interaction.reply({
-                    content: `Reaction role added! Users who react with ${emoji.display} on [this message](${message.url}) will receive the <@&${role.id}> role.`,
+                    content: t('reactionrole.added', { emoji: emoji.display, url: message.url, role: role.id }),
                     flags: MessageFlags.Ephemeral
                 });
 
@@ -240,7 +247,7 @@ export default {
                 const emoji = parseEmoji(emojiInput!);
                 if (!emoji) {
                     return interaction.reply({
-                        content: 'Invalid emoji format.',
+                        content: t('reactionrole.invalidEmojiFormat'),
                         flags: MessageFlags.Ephemeral
                     });
                 }
@@ -251,7 +258,7 @@ export default {
 
                 if (!rolesArray || rolesArray.length === 0) {
                     return interaction.reply({
-                        content: 'No reaction roles are configured in this server.',
+                        content: t('reactionrole.noneConfigured'),
                         flags: MessageFlags.Ephemeral
                     });
                 }
@@ -262,7 +269,7 @@ export default {
 
                 if (index === -1) {
                     return interaction.reply({
-                        content: 'No reaction role found for that message and emoji combination.',
+                        content: t('reactionrole.notFound'),
                         flags: MessageFlags.Ephemeral
                     });
                 }
@@ -281,7 +288,7 @@ export default {
                 }
 
                 return interaction.reply({
-                    content: `Reaction role removed for ${emoji.display}.`,
+                    content: t('reactionrole.removed', { emoji: emoji.display }),
                     flags: MessageFlags.Ephemeral
                 });
 
@@ -291,15 +298,15 @@ export default {
 
                 if (!rolesArray || rolesArray.length === 0) {
                     return interaction.reply({
-                        content: 'No reaction roles are configured in this server.',
+                        content: t('reactionrole.noneConfigured'),
                         flags: MessageFlags.Ephemeral
                     });
                 }
 
                 const embed = new EmbedBuilder()
                     .setColor('#3498DB')
-                    .setTitle('Reaction Roles')
-                    .setDescription(`${rolesArray.length} reaction role(s) configured`)
+                    .setTitle(t('reactionrole.title'))
+                    .setDescription(t('reactionrole.count', { count: rolesArray.length }))
                     .setTimestamp();
 
                 const grouped: Record<string, { channelId: string; messageId: string; roles: ReactionRole[] }> = {};
@@ -319,7 +326,7 @@ export default {
                         .join('\n');
 
                     embed.addFields({
-                        name: `Message in <#${group.channelId}>`,
+                        name: t('reactionrole.messageIn', { channel: group.channelId }),
                         value: `[Jump to message](https://discord.com/channels/${guildId}/${group.channelId}/${group.messageId})\n${roleList}`,
                         inline: false
                     });
@@ -335,7 +342,7 @@ export default {
 
                 if (!rolesArray || rolesArray.length === 0) {
                     return interaction.reply({
-                        content: 'No reaction roles are configured in this server.',
+                        content: t('reactionrole.noneConfigured'),
                         flags: MessageFlags.Ephemeral
                     });
                 }
@@ -343,7 +350,7 @@ export default {
                 const toRemove = rolesArray.filter((rr: Record<string, unknown>) => rr['messageId'] === messageId);
                 if (toRemove.length === 0) {
                     return interaction.reply({
-                        content: 'No reaction roles found for that message.',
+                        content: t('reactionrole.noneForMessage'),
                         flags: MessageFlags.Ephemeral
                     });
                 }
@@ -366,7 +373,7 @@ export default {
                 }
 
                 return interaction.reply({
-                    content: `Cleared ${toRemove.length} reaction role(s) from that message.`,
+                    content: t('reactionrole.cleared', { count: toRemove.length }),
                     flags: MessageFlags.Ephemeral
                 });
             }

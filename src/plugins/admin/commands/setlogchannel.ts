@@ -2,6 +2,7 @@ import type { ChatInputCommandInteraction} from 'discord.js';
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } from 'discord.js';
 import { setGuildData, getGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'setlogchannel',
@@ -39,13 +40,19 @@ export default {
             try {
                 const subcommand = interaction.options.getSubcommand();
                 const guildId = interaction.guild!.id;
+                const resolvedLocale = await i18n.resolveLocale({
+                    locale: interaction.locale ?? null,
+                    guildLocale: interaction.guildLocale ?? null,
+                    guildId: interaction.guildId ?? null
+                });
+                const t = i18n.getFixedT(resolvedLocale, 'admin');
 
                 if (subcommand === 'set') {
                     const channel = interaction.options.getChannel('channel');
 
                     if (!channel || !('isTextBased' in channel) || !channel.isTextBased()) {
                         return interaction.reply({
-                            content: 'Invalid channel.',
+                            content: t('setlogchannel.invalidChannel'),
                             flags: MessageFlags.Ephemeral
                         });
                     }
@@ -53,7 +60,7 @@ export default {
                     const botMember = interaction.guild!.members.me;
                     if (!botMember) {
                         return interaction.reply({
-                            content: 'Could not fetch bot member.',
+                            content: t('setlogchannel.noBotMember'),
                             flags: MessageFlags.Ephemeral
                         });
                     }
@@ -61,7 +68,7 @@ export default {
 
                     if (!permissions.has('SendMessages') || !permissions.has('EmbedLinks')) {
                         return interaction.reply({
-                            content: `I don't have permission to send messages or embeds in <#${channel.id}>. Please grant me the required permissions.`,
+                            content: t('setlogchannel.noPermission', { channel: channel.id }),
                             flags: MessageFlags.Ephemeral
                         });
                     }
@@ -75,7 +82,7 @@ export default {
                     await setGuildData('logging', guildId, newConfig);
 
                     return interaction.reply({
-                        content: `Logging channel has been set to <#${channel.id}>.\n\nUse \`/logging\` to configure which events are logged.`,
+                        content: t('setlogchannel.set', { channel: channel.id }),
                         flags: MessageFlags.Ephemeral
                     });
 
@@ -84,7 +91,7 @@ export default {
 
                     if (!existingConfig?.['channelId']) {
                         return interaction.reply({
-                            content: 'No logging channel is currently set.',
+                            content: t('setlogchannel.noChannel'),
                             flags: MessageFlags.Ephemeral
                         });
                     }
@@ -97,7 +104,7 @@ export default {
                     await setGuildData('logging', guildId, newConfig);
 
                     return interaction.reply({
-                        content: 'Logging channel has been removed. Server event logging is now disabled.',
+                        content: t('setlogchannel.removed'),
                         flags: MessageFlags.Ephemeral
                     });
 
@@ -106,7 +113,7 @@ export default {
 
                     if (!config?.['channelId']) {
                         return interaction.reply({
-                            content: 'No logging channel is currently set.\n\nUse `/setlogchannel set` to configure one.',
+                            content: t('setlogchannel.viewEmpty'),
                             flags: MessageFlags.Ephemeral
                         });
                     }
@@ -115,7 +122,7 @@ export default {
                         const channel = await interaction.guild!.channels.fetch(config['channelId'] as string);
                         if (channel) {
                             return interaction.reply({
-                                content: `Current logging channel: <#${channel.id}>\n\nUse \`/logging status\` to see which events are being logged.`,
+                                content: t('setlogchannel.viewCurrent', { channel: channel.id }),
                                 flags: MessageFlags.Ephemeral
                             });
                         }
@@ -124,7 +131,7 @@ export default {
                     }
 
                     return interaction.reply({
-                        content: 'The configured logging channel no longer exists. Please set a new one with `/setlogchannel set`.',
+                        content: t('setlogchannel.channelGone'),
                         flags: MessageFlags.Ephemeral
                     });
                 }

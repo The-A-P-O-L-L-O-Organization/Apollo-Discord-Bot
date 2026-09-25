@@ -6,6 +6,7 @@ import { logger } from '../../../utils/logger.js';
 import { setGuildData, getGuildData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'unlock',
@@ -19,15 +20,17 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction) {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const channel = (interaction.options.getChannel('channel') ?? interaction.channel) as TextChannel | null;
-            const reason = interaction.options.getString('reason') ?? 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? t('unlock.noReason');
 
             if (!channel!.isTextBased()) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Invalid Channel',
-                    description: 'You can only unlock text-based channels.',
+                    title: t('unlock.errorInvalidChannel'),
+                    description: t('unlock.youCanOnlyUnlockText'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -41,8 +44,8 @@ export default {
             if (!lockInfo) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Channel Not Locked',
-                    description: `${channel.name} is not currently in lockdown mode.`,
+                    title: t('unlock.errorChannelNotLocked'),
+                    description: t('unlock.channelnameIsNotCurrentlyIn', { channelName: channel.name }),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -74,14 +77,14 @@ export default {
 
             const successEmbed = {
                 color: 0x00FF00,
-                title: '[SUCCESS] Channel Unlocked',
-                description: `${channel.name} has been unlocked.`,
+                title: t('unlock.successChannelUnlocked'),
+                description: t('unlock.channelnameHasBeenUnlocked', { channelName: channel.name }),
                 fields: [
-                    { name: '[INFO] Moderator', value: interaction.user.tag, inline: true },
-                    { name: '[INFO] Locked By', value: lockInfo.lockedByTag, inline: true },
-                    { name: '[INFO] Duration', value: durationText, inline: true },
-                    { name: '[INFO] Unlock Reason', value: reason, inline: false },
-                    { name: '[INFO] Original Lockdown Reason', value: lockInfo.reason, inline: false }
+                    { name: t('unlock.fieldModerator'), value: interaction.user.tag, inline: true },
+                    { name: t('unlock.infoLockedBy'), value: lockInfo.lockedByTag, inline: true },
+                    { name: t('unlock.fieldDuration'), value: durationText, inline: true },
+                    { name: t('unlock.infoUnlockReason'), value: reason, inline: false },
+                    { name: t('unlock.infoOriginalLockdownReason'), value: lockInfo.reason, inline: false }
                 ],
                 timestamp: new Date().toISOString()
             };
@@ -91,9 +94,9 @@ export default {
             try {
                 const unlockNotice = {
                     color: 0x00FF00,
-                    title: '[LOCKDOWN LIFTED] Channel Unlocked',
-                    description: 'This channel has been unlocked. You can now send messages and add reactions.',
-                    fields: [{ name: '[INFO] Reason', value: reason, inline: false }],
+                    title: t('unlock.lockdownLiftedChannelUnlocked'),
+                    description: t('unlock.thisChannelHasBeenUnlocked'),
+                    fields: [{ name: t('unlock.fieldReason'), value: reason, inline: false }],
                     timestamp: new Date().toISOString()
                 };
                 await channel.send({ embeds: [unlockNotice] });
@@ -111,7 +114,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] Channel ${channel.name} was unlocked by ${interaction.user.tag}. Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
+            const errorMessage = handleDiscordError(error) ?? t('unlock.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

@@ -5,6 +5,7 @@ import { PermissionsBitField } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface TempRoleData {
     userId: string;
@@ -53,6 +54,8 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction) {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const subcommand = interaction.options.getSubcommand();
 
@@ -64,7 +67,7 @@ export default {
                 await handleList(interaction);
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
+            const errorMessage = handleDiscordError(error) ?? t('temprole.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {
@@ -75,18 +78,20 @@ export default {
 };
 
 async function handleAdd(interaction: ChatInputCommandInteraction) {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+    const t = i18n.getFixedT(resolved, 'moderation');
     const user = interaction.options.getUser('user');
     const role = interaction.options.getRole('role');
     const durationStr = interaction.options.getString('duration') ?? '';
-    const reason = interaction.options.getString('reason') ?? 'No reason provided';
+    const reason = interaction.options.getString('reason') ?? t('temprole.noReason');
 
     const durationMs = parseDuration(durationStr);
     if (!durationMs) {
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
-                title: '[ERROR] Invalid Duration',
-                description: 'Please use a valid duration format (e.g., 1h, 30m, 7d, 2w)',
+                title: t('temprole.errorInvalidDuration'),
+                description: t('temprole.pleaseUseAValidDuration'),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -99,8 +104,8 @@ async function handleAdd(interaction: ChatInputCommandInteraction) {
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
-                title: '[ERROR] Duration Too Long',
-                description: 'Maximum duration is 30 days.',
+                title: t('temprole.errorDurationTooLong'),
+                description: t('temprole.maximumDurationIsDays'),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -114,8 +119,8 @@ async function handleAdd(interaction: ChatInputCommandInteraction) {
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
-                title: '[ERROR] Invalid Role',
-                description: 'I cannot assign roles higher than my highest role.',
+                title: t('temprole.errorInvalidRole'),
+                description: t('temprole.iCannotAssignRolesHigher'),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -144,14 +149,14 @@ async function handleAdd(interaction: ChatInputCommandInteraction) {
 
     const successEmbed = {
         color: 0x00FF00,
-        title: '[SUCCESS] Temporary Role Assigned',
-        description: `${user!.tag} has been assigned <@&${role!.id}> for ${durationStr}.`,
+        title: t('temprole.successTemporaryRoleAssigned'),
+        description: t('temprole.valueHasBeenAssignedValue2', { value: user!.tag, value2: role!.id, duration: durationStr }),
         fields: [
-            { name: '[INFO] User', value: user!.tag, inline: true },
-            { name: '[INFO] Role', value: role!.name, inline: true },
-            { name: '[INFO] Duration', value: durationStr, inline: true },
-            { name: '[INFO] Expires', value: `<t:${Math.floor(tempRoleData.expiresAt / 1000)}:R>`, inline: true },
-            { name: '[INFO] Reason', value: reason, inline: false }
+            { name: t('temprole.infoUser'), value: user!.tag, inline: true },
+            { name: t('temprole.infoRole'), value: role!.name, inline: true },
+            { name: t('temprole.fieldDuration'), value: durationStr, inline: true },
+            { name: t('temprole.infoExpires'), value: t('temprole.tValueR', { value: Math.floor(tempRoleData.expiresAt / 1000) }), inline: true },
+            { name: t('temprole.fieldReason'), value: reason, inline: false }
         ],
         timestamp: new Date().toISOString()
     };
@@ -161,6 +166,8 @@ async function handleAdd(interaction: ChatInputCommandInteraction) {
 }
 
 async function handleRemove(interaction: ChatInputCommandInteraction) {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+    const t = i18n.getFixedT(resolved, 'moderation');
     const user = interaction.options.getUser('user');
     const role = interaction.options.getRole('role');
 
@@ -176,8 +183,8 @@ async function handleRemove(interaction: ChatInputCommandInteraction) {
 
         const successEmbed = {
             color: 0x00FF00,
-            title: '[SUCCESS] Temporary Role Removed',
-            description: `<@&${role!.id}> has been removed from ${user!.tag}.`,
+            title: t('temprole.successTemporaryRoleRemoved'),
+            description: t('temprole.valueHasBeenRemovedFrom', { value: role!.id, value2: user!.tag }),
             timestamp: new Date().toISOString()
         };
 
@@ -186,8 +193,8 @@ async function handleRemove(interaction: ChatInputCommandInteraction) {
         await interaction.reply({
             embeds: [{
                 color: 0xFFA500,
-                title: '[INFO] No Temporary Role',
-                description: `${user!.tag} does not have <@&${role!.id}> assigned.`,
+                title: t('temprole.infoNoTemporaryRole'),
+                description: t('temprole.valueDoesNotHaveValue2', { value: user!.tag, value2: role!.id }),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -197,14 +204,16 @@ async function handleRemove(interaction: ChatInputCommandInteraction) {
 }
 
 async function handleList(interaction: ChatInputCommandInteraction) {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+    const t = i18n.getFixedT(resolved, 'moderation');
     const tempRoles = (await getGuildData('temp-roles', interaction.guild!.id)) as Record<string, TempRoleData> | null;
 
     if (!tempRoles || Object.keys(tempRoles).length === 0) {
         await interaction.reply({
             embeds: [{
                 color: 0xFFA500,
-                title: '[INFO] No Active Temporary Roles',
-                description: 'There are no active temporary roles.',
+                title: t('temprole.infoNoActiveTemporaryRoles'),
+                description: t('temprole.thereAreNoActiveTemporary'),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -219,8 +228,8 @@ async function handleList(interaction: ChatInputCommandInteraction) {
         await interaction.reply({
             embeds: [{
                 color: 0xFFA500,
-                title: '[INFO] No Active Temporary Roles',
-                description: 'All temporary roles have expired.',
+                title: t('temprole.infoNoActiveTemporaryRoles2'),
+                description: t('temprole.allTemporaryRolesHaveExpired'),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -230,11 +239,11 @@ async function handleList(interaction: ChatInputCommandInteraction) {
 
     const listEmbed = {
         color: 0x3498DB,
-        title: '[TEMPROLES] Active Temporary Roles',
-        description: `Total: ${activeRoles.length}`,
+        title: t('temprole.temprolesActiveTemporaryRoles'),
+        description: t('temprole.totalCount', { count: activeRoles.length }),
         fields: activeRoles.slice(0, 10).map(r => ({
-            name: `${r.roleName} - ${r.userTag}`,
-            value: `Expires: <t:${Math.floor(r.expiresAt / 1000)}:R>\nReason: ${r.reason}`,
+            name: t('temprole.roleValue', { role: r.roleName, value: r.userTag }),
+            value: t('temprole.expiresTValueRNreason', { value: Math.floor(r.expiresAt / 1000), reason: r.reason }),
             inline: false
         })),
         timestamp: new Date().toISOString()

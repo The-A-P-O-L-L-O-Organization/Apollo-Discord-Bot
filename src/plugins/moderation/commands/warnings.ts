@@ -3,6 +3,7 @@ import type { ChatInputCommandInteraction} from 'discord.js';
 import { PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { getUserData } from '../../../utils/db.js';
+import { i18n } from '../../../i18n/index.js';
 
 export interface WarningEntry {
     id: string;
@@ -38,6 +39,8 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const user = interaction.options.getUser('user');
             const showInactive = interaction.options.getBoolean('show-inactive') ?? false;
@@ -46,8 +49,8 @@ export default {
                 await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Missing User',
-                        description: 'Please specify a valid user.',
+                        title: t('warnings.missingUserTitle'),
+                        description: t('warnings.missingUserDescription'),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -65,7 +68,7 @@ export default {
                 await interaction.reply({
                     embeds: [{
                         color: 0x00FF00,
-                        title: 'No Warnings Found',
+                        title: t('warnings.noWarningsFound'),
                         description: showInactive
                             ? `${user.tag} has no warnings on record.`
                             : `${user.tag} has no active warnings.\n\nUse \`/warnings user:${user.tag} show-inactive:true\` to see cleared warnings.`,
@@ -80,7 +83,7 @@ export default {
 
             const embed = new EmbedBuilder()
                 .setColor('#FFA500')
-                .setTitle(`Warnings for ${user.tag}`)
+                .setTitle(t('warnings.warningsForUser', { user: user.tag }))
                 .setThumbnail(user.displayAvatarURL())
                 .setDescription(
                     `**User ID:** ${user.id}\n` +
@@ -89,7 +92,7 @@ export default {
                 )
                 .setTimestamp()
                 .setFooter({
-                    text: `Requested by ${interaction.user.tag}`,
+                    text: t('warnings.requestedByModerator', { moderator: interaction.user.tag }),
                     iconURL: interaction.user.displayAvatarURL()
                 });
 
@@ -101,7 +104,7 @@ export default {
                 const statusLabel = warning.active === false ? ' [CLEARED]' : '';
 
                 embed.addFields({
-                    name: `${status}Warning #${warnings.length - i}${statusLabel}${status}`,
+                    name: t('warnings.statusWarningCountStatus2Status3', { status: status, count: warnings.length - i, status2: statusLabel, status3: status }),
                     value: [
                         `**ID:** \`${warning.id}\``,
                         `**Reason:** ${warning.reason}`,
@@ -114,15 +117,15 @@ export default {
 
             if (warnings.length > 10) {
                 embed.addFields({
-                    name: 'Note',
-                    value: `Showing ${displayWarnings.length} of ${warnings.length} warnings (most recent first).`,
+                    name: t('warnings.note'),
+                    value: t('warnings.showingCountOfCount2Warnings', { count: displayWarnings.length, count2: warnings.length }),
                     inline: false
                 });
             }
 
             if (!showInactive && inactiveCount > 0) {
                 embed.addFields({
-                    name: 'Hidden Warnings',
+                    name: t('warnings.hiddenWarnings'),
                     value: `${inactiveCount} cleared warning(s) not shown. Use \`show-inactive:true\` to view.`,
                     inline: false
                 });
@@ -138,9 +141,9 @@ export default {
             await interaction.reply({
                 embeds: [{
                     color: 0xFF0000,
-                    title: '[ERROR] Command Failed',
-                    description: 'An error occurred while fetching warnings.',
-                    fields: [{ name: 'Error', value: (error as Error).message, inline: true }],
+                    title: t('warnings.commandFailedTitle'),
+                    description: t('warnings.anErrorOccurredWhileFetching'),
+                    fields: [{ name: t('warnings.error'), value: (error as Error).message, inline: true }],
                     timestamp: new Date().toISOString()
                 }],
                 flags: MessageFlags.Ephemeral

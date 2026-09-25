@@ -3,6 +3,7 @@ import { MessageFlags } from 'discord.js';
 import { config } from '../../../config/config.js';
 import { addReminder, parseTimeString } from '../../../utils/reminderScheduler.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     // Remind Command
@@ -28,6 +29,12 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'utility');
             const timeInput = interaction.options.getString('time') ?? '';
             const message = interaction.options.getString('message') ?? 'Reminder!';
             const userId = interaction.user.id;
@@ -38,7 +45,7 @@ export default {
 
             if (!duration || duration <= 0) {
                 await interaction.reply({
-                    content: 'Invalid time format. Use formats like: `10m` (10 minutes), `1h` (1 hour), `2d` (2 days), `1w` (1 week).',
+                    content: t('remind.badTime'),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -48,7 +55,7 @@ export default {
             if (duration > config.reminders.maxDuration) {
                 const maxDays = Math.floor(config.reminders.maxDuration / (1000 * 60 * 60 * 24));
                 await interaction.reply({
-                    content: `Reminder duration cannot exceed ${maxDays} days.`,
+                    content: t('remind.tooLong', { days: maxDays }),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -76,7 +83,7 @@ export default {
             const timestamp = Math.floor(reminderTime / 1000);
 
             await interaction.reply({
-                content: `Reminder set! I'll remind you <t:${timestamp}:R> (<t:${timestamp}:F>).\n\n**Message:** ${message}\n**Reminder ID:** \`${reminderId}\``,
+                content: t('remind.set', { relative: `<t:${timestamp}:R>`, absolute: `<t:${timestamp}:F>`, message, id: reminderId }),
                 flags: MessageFlags.Ephemeral
             });
 

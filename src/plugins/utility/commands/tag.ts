@@ -3,6 +3,7 @@ import { MessageFlags, PermissionsBitField, type APIEmbed } from 'discord.js';
 import { setGuildData, getGuildData } from '../../../utils/db.js';
 import { safeError } from '../../../utils/safeError.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 const ALLOWED_EMBED_KEYS = ['title', 'description', 'color', 'fields', 'image', 'thumbnail', 'footer', 'author'] as const;
 const MAX_EMBED_JSON_LENGTH = 2048;
@@ -114,13 +115,19 @@ export default {
                 }
 
             } catch (error) {
+                const resolvedLocale = await i18n.resolveLocale({
+                    locale: interaction.locale ?? null,
+                    guildLocale: interaction.guildLocale ?? null,
+                    guildId: interaction.guildId ?? null
+                });
+                const t = i18n.getFixedT(resolvedLocale, 'utility');
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Command Failed',
-                    description: 'An error occurred.',
+                    title: t('tag.failedTitle'),
+                    description: t('tag.failedDesc'),
                     fields: [
                         {
-                            name: '[ERROR] Details',
+                            name: t('tag.details'),
                             value: safeError(error),
                             inline: true
                         }
@@ -143,6 +150,12 @@ export default {
 };
 
 async function handleCreate(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolvedLocale = await i18n.resolveLocale({
+        locale: interaction.locale ?? null,
+        guildLocale: interaction.guildLocale ?? null,
+        guildId: interaction.guildId ?? null
+    });
+    const t = i18n.getFixedT(resolvedLocale, 'utility');
     const name = interaction.options.getString('name')?.toLowerCase() ?? '';
     const content = interaction.options.getString('content') ?? '';
     const embedJson = interaction.options.getString('embed');
@@ -153,8 +166,8 @@ async function handleCreate(interaction: ChatInputCommandInteraction): Promise<v
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
-                title: '[ERROR] Permission Required',
-                description: 'You need Manage Messages permission to create tags.',
+                title: t('tag.permTitle'),
+                description: t('tag.permCreate'),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -167,8 +180,8 @@ async function handleCreate(interaction: ChatInputCommandInteraction): Promise<v
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
-                title: '[ERROR] Name Too Long',
-                description: 'Tag name must be 30 characters or less.',
+                title: t('tag.nameLongTitle'),
+                description: t('tag.nameLong'),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -181,8 +194,8 @@ async function handleCreate(interaction: ChatInputCommandInteraction): Promise<v
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
-                title: '[ERROR] Content Too Long',
-                description: 'Tag content must be 2000 characters or less.',
+                title: t('tag.contentLongTitle'),
+                description: t('tag.contentLong'),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -202,8 +215,8 @@ async function handleCreate(interaction: ChatInputCommandInteraction): Promise<v
                 await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Embed Too Large',
-                        description: 'Embed JSON must be 2KB or less.',
+                        title: t('tag.embedLargeTitle'),
+                        description: t('tag.embedLarge'),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -215,8 +228,8 @@ async function handleCreate(interaction: ChatInputCommandInteraction): Promise<v
             await interaction.reply({
                 embeds: [{
                     color: 0xFF0000,
-                    title: '[ERROR] Invalid Embed JSON',
-                    description: `Could not parse embed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    title: t('tag.badJsonTitle'),
+                    description: t('tag.badJson', { err: error instanceof Error ? error.message : 'Unknown error' }),
                     timestamp: new Date().toISOString()
                 }],
                 flags: MessageFlags.Ephemeral
@@ -231,8 +244,8 @@ async function handleCreate(interaction: ChatInputCommandInteraction): Promise<v
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
-                title: '[ERROR] Tag Exists',
-                description: `Tag "${name}" already exists. Delete it first.`,
+                title: t('tag.existsTitle'),
+                description: t('tag.exists', { name }),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -258,12 +271,12 @@ async function handleCreate(interaction: ChatInputCommandInteraction): Promise<v
 
     const successEmbed = {
         color: 0x00FF00,
-        title: '[SUCCESS] Tag Created',
-        description: `Tag "${name}" has been created!`,
+        title: t('tag.createdTitle'),
+        description: t('tag.created', { name }),
         fields: [
             {
-                name: '[INFO] Usage',
-                value: `Use /tag show ${name} to display this tag`,
+                name: t('tag.usage'),
+                value: t('tag.usageValue', { name }),
                 inline: false
             }
         ],
@@ -274,6 +287,12 @@ async function handleCreate(interaction: ChatInputCommandInteraction): Promise<v
 }
 
 async function handleShow(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolvedLocale = await i18n.resolveLocale({
+        locale: interaction.locale ?? null,
+        guildLocale: interaction.guildLocale ?? null,
+        guildId: interaction.guildId ?? null
+    });
+    const t = i18n.getFixedT(resolvedLocale, 'utility');
     const name = interaction.options.getString('name')?.toLowerCase() ?? '';
 
     const tags = (await getGuildData('tags', interaction.guild!.id)) as Record<string, unknown> | null;
@@ -282,8 +301,8 @@ async function handleShow(interaction: ChatInputCommandInteraction): Promise<voi
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
-                title: '[ERROR] Tag Not Found',
-                description: `Tag "${name}" does not exist.`,
+                title: t('tag.missingTitle'),
+                description: t('tag.missing', { name }),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -369,6 +388,12 @@ function buildTagEmbed(embedData: Record<string, unknown>): Record<string, unkno
 }
 
 async function handleDelete(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolvedLocale = await i18n.resolveLocale({
+        locale: interaction.locale ?? null,
+        guildLocale: interaction.guildLocale ?? null,
+        guildId: interaction.guildId ?? null
+    });
+    const t = i18n.getFixedT(resolvedLocale, 'utility');
     const name = interaction.options.getString('name')?.toLowerCase() ?? '';
 
     // Check permissions
@@ -377,8 +402,8 @@ async function handleDelete(interaction: ChatInputCommandInteraction): Promise<v
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
-                title: '[ERROR] Permission Required',
-                description: 'You need Manage Messages permission to delete tags.',
+                title: t('tag.permTitle'),
+                description: t('tag.permDelete'),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -392,8 +417,8 @@ async function handleDelete(interaction: ChatInputCommandInteraction): Promise<v
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
-                title: '[ERROR] Tag Not Found',
-                description: `Tag "${name}" does not exist.`,
+                title: t('tag.missingTitle'),
+                description: t('tag.missing', { name }),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -406,8 +431,8 @@ async function handleDelete(interaction: ChatInputCommandInteraction): Promise<v
 
     const successEmbed = {
         color: 0x00FF00,
-        title: '[SUCCESS] Tag Deleted',
-        description: `Tag "${name}" has been deleted.`,
+        title: t('tag.deletedTitle'),
+        description: t('tag.deleted', { name }),
         timestamp: new Date().toISOString()
     };
 
@@ -415,14 +440,20 @@ async function handleDelete(interaction: ChatInputCommandInteraction): Promise<v
 }
 
 async function handleList(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolvedLocale = await i18n.resolveLocale({
+        locale: interaction.locale ?? null,
+        guildLocale: interaction.guildLocale ?? null,
+        guildId: interaction.guildId ?? null
+    });
+    const t = i18n.getFixedT(resolvedLocale, 'utility');
     const tags = (await getGuildData('tags', interaction.guild!.id)) as Record<string, unknown> | null;
 
     if (!tags || Object.keys(tags).length === 0) {
         await interaction.reply({
             embeds: [{
                 color: 0xFFA500,
-                title: '[INFO] No Tags',
-                description: 'No custom tags have been created yet.',
+                title: t('tag.noTagsTitle'),
+                description: t('tag.noTags'),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -433,11 +464,11 @@ async function handleList(interaction: ChatInputCommandInteraction): Promise<voi
     const tagList = Object.values(tags) as { name: string; content: string; usageCount?: number }[];
     const listEmbed = {
         color: 0x3498DB,
-        title: '[TAGS] Custom Commands',
-        description: `Total: ${tagList.length}`,
+        title: t('tag.listTitle'),
+        description: t('tag.total', { count: tagList.length }),
         fields: tagList.slice(0, 10).map(tag => ({
             name: tag.name,
-            value: `${tag.content.substring(0, 50)}${tag.content.length > 50 ? '...' : ''}\nUsed ${tag.usageCount ?? 0} times`,
+            value: `${tag.content.substring(0, 50)}${tag.content.length > 50 ? '...' : ''}\n${t('tag.usedTimes', { count: tag.usageCount ?? 0 })}`,
             inline: false
         })),
         timestamp: new Date().toISOString()
@@ -447,6 +478,12 @@ async function handleList(interaction: ChatInputCommandInteraction): Promise<voi
 }
 
 async function handleInfo(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolvedLocale = await i18n.resolveLocale({
+        locale: interaction.locale ?? null,
+        guildLocale: interaction.guildLocale ?? null,
+        guildId: interaction.guildId ?? null
+    });
+    const t = i18n.getFixedT(resolvedLocale, 'utility');
     const name = interaction.options.getString('name')?.toLowerCase() ?? '';
 
     const tags = (await getGuildData('tags', interaction.guild!.id)) as Record<string, unknown> | null;
@@ -455,8 +492,8 @@ async function handleInfo(interaction: ChatInputCommandInteraction): Promise<voi
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
-                title: '[ERROR] Tag Not Found',
-                description: `Tag "${name}" does not exist.`,
+                title: t('tag.missingTitle'),
+                description: t('tag.missing', { name }),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -468,26 +505,26 @@ async function handleInfo(interaction: ChatInputCommandInteraction): Promise<voi
 
     const infoEmbed = {
         color: 0x3498DB,
-        title: `[TAG] ${tag.name}`,
+        title: t('tag.infoTitle', { name: tag.name }),
         fields: [
             {
-                name: '[INFO] Content',
+                name: t('tag.content'),
                 value: tag.content,
                 inline: false
             },
             {
-                name: '[INFO] Created By',
+                name: t('tag.createdBy'),
                 value: tag.createdByTag,
                 inline: true
             },
             {
-                name: '[INFO] Created At',
+                name: t('tag.createdAt'),
                 value: `<t:${Math.floor(tag.createdAt / 1000)}:F>`,
                 inline: true
             },
             {
-                name: '[INFO] Usage Count',
-                value: `${tag.usageCount} times`,
+                name: t('tag.usageCount'),
+                value: t('tag.usedTimes', { count: tag.usageCount }),
                 inline: true
             }
         ],

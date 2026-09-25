@@ -4,6 +4,7 @@ import { PermissionsBitField, MessageFlags } from 'discord.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { createModCase } from './case.js';
 import { removeTempban } from '../../../utils/tempbanScheduler.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'unban',
@@ -27,19 +28,21 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction) {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const userId = interaction.options.getString('user-id')!;
-            const reason = interaction.options.getString('reason') ?? 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? t('unban.noReason');
 
             if (!userId) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Missing User ID',
-                    description: 'Please provide the ID of the user to unban.',
+                    title: t('unban.missingUserIdTitle'),
+                    description: t('unban.pleaseProvideTheIdOf'),
                     fields: [
                         {
-                            name: '[HINT] How to get user ID',
-                            value: '1. Enable Developer Mode in Discord settings\n2. Right-click on the user\n3. Select "Copy ID"'
+                            name: t('unban.hintHowToGetUser'),
+                            value: t('unban.enableDeveloperModeInDiscord')
                         }
                     ],
                     timestamp: new Date().toISOString()
@@ -50,8 +53,8 @@ export default {
             if (!/^\d{17,19}$/.test(userId)) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Invalid User ID',
-                    description: 'Please provide a valid Discord user ID (17-19 digits).',
+                    title: t('unban.errorInvalidUserId'),
+                    description: t('unban.pleaseProvideAValidDiscord'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -62,8 +65,8 @@ export default {
             if (!ban) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Not Banned',
-                    description: 'This user is not banned from the server.',
+                    title: t('unban.errorNotBanned'),
+                    description: t('unban.thisUserIsNotBanned'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -86,26 +89,26 @@ export default {
 
             const successEmbed = {
                 color: 0x00FF00,
-                title: '[SUCCESS] User Unbanned',
-                description: `User ID ${userId} has been unbanned from the server.`,
+                title: t('unban.successUserUnbanned'),
+                description: t('unban.userIdUseridHasBeen', { userId: userId }),
                 fields: [
                     {
-                        name: '[INFO] Moderator',
+                        name: t('unban.fieldModerator'),
                         value: interaction.user.tag,
                         inline: true
                     },
                     {
-                        name: '[INFO] Case ID',
-                        value: `#${caseId}`,
+                        name: t('unban.fieldCaseId'),
+                        value: t('unban.caseid', { caseId: caseId }),
                         inline: true
                     },
                     {
-                        name: '[INFO] Reason',
+                        name: t('unban.fieldReason'),
                         value: reason,
                         inline: false
                     },
                     {
-                        name: '[INFO] User ID',
+                        name: t('unban.fieldUserId'),
                         value: userId,
                         inline: true
                     }
@@ -132,11 +135,11 @@ export default {
 
             const errorEmbed = {
                 color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred while trying to unban the user.',
+                title: t('unban.commandFailedTitle'),
+                description: t('unban.commandFailedDescription'),
                 fields: [
                     {
-                        name: '[ERROR] Details',
+                        name: t('unban.errorDetails'),
                         value: (error as Error).message,
                         inline: true
                     }

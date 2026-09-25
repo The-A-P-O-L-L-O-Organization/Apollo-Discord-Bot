@@ -7,6 +7,7 @@ import { flushAnalyticsCritical, trackModAction } from '../../../utils/analytics
 import { canModerate } from '../../../utils/moderation.js';
 import { formatDuration, validateDuration } from '../../../utils/duration.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'timeout',
@@ -22,16 +23,18 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction) {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const user = interaction.options.getUser('user');
             const durationStr = interaction.options.getString('duration');
-            const reason = interaction.options.getString('reason') ?? 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? t('timeout.noReason');
 
             if (!user) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Missing User',
-                    description: 'Please specify a valid user to timeout.',
+                    title: t('timeout.missingUserTitle'),
+                    description: t('timeout.missingUserDescription'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -42,8 +45,8 @@ export default {
             if (!validation.valid || validation.durationMs == null) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Invalid Duration',
-                    description: validation.error ?? 'Invalid duration.',
+                    title: t('timeout.errorInvalidDuration'),
+                    description: validation.error ?? t('timeout.invalidDuration'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -56,8 +59,8 @@ export default {
             if (!member) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] User Not In Server',
-                    description: 'This user is not in the server. Use /forceban to ban by ID.',
+                    title: t('timeout.memberNotFoundTitle'),
+                    description: t('timeout.memberNotFoundDescription'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -67,8 +70,8 @@ export default {
             if (!member.moderatable) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Cannot Timeout',
-                    description: 'I cannot timeout this user. They may have higher permissions than me.',
+                    title: t('timeout.errorCannotTimeout'),
+                    description: t('timeout.iCannotTimeoutThisUser'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -78,8 +81,8 @@ export default {
             if (user.id === interaction.user.id) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Self Action',
-                    description: 'You cannot timeout yourself.',
+                    title: t('timeout.selfActionTitle'),
+                    description: t('timeout.selfActionDescription'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -89,8 +92,8 @@ export default {
             if (user.id === interaction.client.user.id) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Bot Protection',
-                    description: 'You cannot timeout the bot.',
+                    title: t('timeout.botProtectionTitle'),
+                    description: t('timeout.botProtectionDescription'),
                     timestamp: new Date().toISOString()
                 };
                 await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -101,7 +104,7 @@ export default {
             if (!hierarchy.ok) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Hierarchy Check Failed',
+                    title: t('timeout.hierarchyTitle'),
                     description: hierarchy.reason,
                     timestamp: new Date().toISOString()
                 };
@@ -127,14 +130,14 @@ export default {
 
             const successEmbed = {
                 color: 0x00FF00,
-                title: '[SUCCESS] User Timed Out',
-                description: `${user.tag} has been timed out for ${durationDisplay}.`,
+                title: t('timeout.successUserTimedOut'),
+                description: t('timeout.userHasBeenTimedOut', { user: user.tag, duration: durationDisplay }),
                 fields: [
-                    { name: '[INFO] Moderator', value: interaction.user.tag, inline: true },
-                    { name: '[INFO] Case ID', value: `#${caseId}`, inline: true },
-                    { name: '[INFO] Reason', value: reason, inline: false },
-                    { name: '[INFO] Duration', value: durationDisplay, inline: true },
-                    { name: '[INFO] User ID', value: user.id, inline: true }
+                    { name: t('timeout.fieldModerator'), value: interaction.user.tag, inline: true },
+                    { name: t('timeout.fieldCaseId'), value: t('timeout.caseid', { caseId: caseId }), inline: true },
+                    { name: t('timeout.fieldReason'), value: reason, inline: false },
+                    { name: t('timeout.fieldDuration'), value: durationDisplay, inline: true },
+                    { name: t('timeout.fieldUserId'), value: user.id, inline: true }
                 ],
                 timestamp: new Date().toISOString()
             };
@@ -151,7 +154,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] User ${user.tag} was timed out by ${interaction.user.tag} for ${durationDisplay}. Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
+            const errorMessage = handleDiscordError(error) ?? t('timeout.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

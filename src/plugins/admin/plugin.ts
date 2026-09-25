@@ -2,6 +2,7 @@ import { Plugin } from '../../core/Plugin.js';
 import type PluginManager from '../../core/PluginManager.js';
 import type { Client } from 'discord.js';
 import { createLogger } from '../../utils/logger.js';
+import { i18n } from '../../i18n/index.js';
 
 export default class AdminPlugin extends Plugin {
     public declare logger: ReturnType<typeof createLogger>;
@@ -55,6 +56,15 @@ export default class AdminPlugin extends Plugin {
 
         this.manager.registerSocketHandler('admin.logging.set', (_client: any, args: any) => {
             return Promise.resolve({ success: true, message: `Logging ${args.setting} set to ${args.value}` });
+        });
+
+        this.manager.registerSocketHandler('admin.locales.reload', async (_client: any, args: any) => {
+            const rawLng: unknown = args?.lng;
+            const rawNs: unknown = args?.ns;
+            const lng = typeof rawLng === 'string' ? rawLng : undefined;
+            const ns = typeof rawNs === 'string' ? rawNs : undefined;
+            await i18n.reloadResources(lng, ns);
+            return { success: true, message: 'Locales reloaded from disk' };
         });
     }
 }

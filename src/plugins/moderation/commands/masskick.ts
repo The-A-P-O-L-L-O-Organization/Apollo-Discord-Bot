@@ -8,6 +8,7 @@ import { createModCase } from './case.js';
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 import { canModerate } from '../../../utils/moderation.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'masskick',
@@ -31,15 +32,17 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction) {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const userIdsStr = interaction.options.getString('user-ids');
-            const reason = interaction.options.getString('reason') ?? 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? t('masskick.noReason');
 
             if (!userIdsStr) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Missing User IDs',
-                    description: 'Please provide a comma-separated list of user IDs.',
+                    title: t('masskick.errorMissingUserIds'),
+                    description: t('masskick.pleaseProvideACommaSeparated'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -51,8 +54,8 @@ export default {
             if (userIds.length === 0) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] No Valid User IDs',
-                    description: 'Please provide valid user IDs (17-19 digits each).',
+                    title: t('masskick.errorNoValidUserIds'),
+                    description: t('masskick.pleaseProvideValidUserIds'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -61,8 +64,8 @@ export default {
             if (userIds.length > 50) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Too Many Users',
-                    description: 'Maximum 50 users per mass kick.',
+                    title: t('masskick.errorTooManyUsers'),
+                    description: t('masskick.maximumUsersPerMassKick'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -72,8 +75,8 @@ export default {
             if (userIds.includes(interaction.user.id)) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Self Action',
-                    description: 'You cannot kick yourself.',
+                    title: t('masskick.selfActionTitle'),
+                    description: t('masskick.selfActionDescription'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -82,8 +85,8 @@ export default {
             if (userIds.includes(interaction.client.user.id)) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Bot Protection',
-                    description: 'You cannot kick the bot.',
+                    title: t('masskick.botProtectionTitle'),
+                    description: t('masskick.botProtectionDescription'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -92,8 +95,8 @@ export default {
             // Confirmation prompt for dangerous operation
             const confirmEmbed = {
                 color: 0xFFFF00,
-                title: '[WARN] Confirm Mass Kick',
-                description: `You are about to **kick ${userIds.length} user(s)**.\n\n**Reason:** ${reason}\n\nThis action cannot be undone. Are you sure?`,
+                title: t('masskick.warnConfirmMassKick'),
+                description: t('masskick.youAreAboutToKick', { count: userIds.length, reason: reason }),
                 timestamp: new Date().toISOString()
             };
 
@@ -101,11 +104,11 @@ export default {
                 .addComponents(
                     new ButtonBuilder()
                         .setCustomId('confirm_masskick')
-                        .setLabel('Confirm Kick')
+                        .setLabel(t('masskick.confirmKick'))
                         .setStyle(ButtonStyle.Danger),
                     new ButtonBuilder()
                         .setCustomId('cancel_masskick')
-                        .setLabel('Cancel')
+                        .setLabel(t('masskick.cancel'))
                         .setStyle(ButtonStyle.Secondary)
                 );
 
@@ -121,12 +124,12 @@ export default {
 
             collector.on('collect', (i) => { void (async () => {
                 if (i.customId === 'cancel_masskick') {
-                    await i.update({ content: 'Mass kick cancelled.', embeds: [], components: [] });
+                    await i.update({ content: t('masskick.massKickCancelled'), embeds: [], components: [] });
                     return;
                 }
 
                 if (i.customId === 'confirm_masskick') {
-                    await i.update({ content: 'Processing mass kick...', embeds: [], components: [] });
+                    await i.update({ content: t('masskick.processingMassKick'), embeds: [], components: [] });
 
                     const results = {
                         success: [] as { userId: string; userTag: string; caseId: number }[],
@@ -141,18 +144,18 @@ export default {
                             const member = await fetchMember(interaction.guild!, userId);
 
                             if (!member) {
-                                results.failed.push({ userId, error: 'User not in server' });
+                                results.failed.push({ userId, error: t('masskick.userNotInServer') });
                                 continue;
                             }
 
                             if (!member.kickable) {
-                                results.failed.push({ userId, error: 'Cannot kick (higher permissions or missing bot permissions)' });
+                                results.failed.push({ userId, error: t('masskick.cannotKickHigherPermissionsOr') });
                                 continue;
                             }
 
                             const hierarchy = canModerate(interaction.guild!, interaction.member, member);
                             if (!hierarchy.ok) {
-                                results.failed.push({ userId, error: hierarchy.reason ?? 'Hierarchy check failed.' });
+                                results.failed.push({ userId, error: hierarchy.reason ?? t('masskick.hierarchyTitle') });
                                 continue;
                             }
 
@@ -194,17 +197,17 @@ export default {
                     const successEmbed = {
                         color: results.failed.length === 0 ? 0x00FF00 : 0xFFFF00,
                         title: results.failed.length === 0 ? '[SUCCESS] Mass Kick Complete' : '[PARTIAL] Mass Kick Complete',
-                        description: `Processed ${userIds.length} user(s). **${results.success.length} kicked**, **${results.failed.length} failed**.`,
+                        description: t('masskick.processedCountUserSCount2', { count: userIds.length, count2: results.success.length, count3: results.failed.length }),
                         fields: [
-                            { name: '[INFO] Moderator', value: interaction.user.tag, inline: true },
-                            { name: '[INFO] Reason', value: reason, inline: false }
+                            { name: t('masskick.fieldModerator'), value: interaction.user.tag, inline: true },
+                            { name: t('masskick.fieldReason'), value: reason, inline: false }
                         ],
                         timestamp: new Date().toISOString()
                     };
 
                     if (results.success.length > 0) {
                         successEmbed.fields.push({
-                            name: `[SUCCESS] Kicked (${results.success.length})`,
+                            name: t('masskick.successKickedCount', { count: results.success.length }),
                             value: results.success.map(r => `• ${r.userTag} (\`${r.userId}\`) - Case #${r.caseId}`).join('\n'),
                             inline: false
                         });
@@ -212,7 +215,7 @@ export default {
 
                     if (results.failed.length > 0) {
                         successEmbed.fields.push({
-                            name: `[ERROR] Failed (${results.failed.length})`,
+                            name: t('masskick.errorFailedCount', { count: results.failed.length }),
                             value: results.failed.map(r => `• \`${r.userId}\` - ${r.error}`).join('\n'),
                             inline: false
                         });
@@ -226,11 +229,11 @@ export default {
 
             collector.on('end', (collected) => {
                 if (collected.size === 0) {
-                    interaction.editReply({ content: 'Mass kick timed out (30s).', embeds: [], components: [] }).catch(() => undefined);
+                    interaction.editReply({ content: t('masskick.massKickTimedOut30s'), embeds: [], components: [] }).catch(() => undefined);
                 }
             });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
+            const errorMessage = handleDiscordError(error) ?? t('masskick.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

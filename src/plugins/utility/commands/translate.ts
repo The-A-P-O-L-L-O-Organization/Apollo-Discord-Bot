@@ -3,6 +3,7 @@ import { MessageFlags } from 'discord.js';
 import { ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     // Translate Message Context Menu Command
@@ -12,11 +13,17 @@ export default {
 
     async execute(interaction: MessageContextMenuCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'utility');
             // @ts-expect-error translationService is attached to global by plugin
             const translationService = global.translationService;
             if (!translationService) {
                 await interaction.reply({
-                    content: 'Translation service is not available.',
+                    content: t('translate.unavailable'),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -27,7 +34,7 @@ export default {
 
             if (!textToTranslate || textToTranslate.trim().length === 0) {
                 await interaction.reply({
-                    content: 'That message doesn\'t have any text to translate.',
+                    content: t('translate.noText'),
                     flags: MessageFlags.Ephemeral
                 });
                 return;
@@ -35,13 +42,13 @@ export default {
 
             const modal = new ModalBuilder()
                 .setCustomId(`translate_lang_${interaction.id}`)
-                .setTitle('Translate Message');
+                .setTitle(t('translate.modalTitle'));
 
             const languageInput = new TextInputBuilder()
                 .setCustomId('target_language')
-                .setLabel('Target language (leave blank for English)')
+                .setLabel(t('translate.targetLabel'))
                 .setStyle(TextInputStyle.Short)
-                .setPlaceholder('e.g., Spanish, French, de, ja')
+                .setPlaceholder(t('translate.targetPlaceholder'))
                 .setMaxLength(50)
                 .setRequired(false);
 
@@ -71,14 +78,14 @@ export default {
                 }
                 logger.error({ err: error, msg: '[TRANSLATE] Error' });
 
-                let errorMessage = 'Translation failed. Please try again.';
+                let errorMessage = t('translate.failed');
                 // @ts-expect-error translationService attached to global by plugin
                 const translationServiceGlobal = global.translationService;
                 if (error instanceof Error && error.message.includes('Unsupported language')) {
                     const langs = translationServiceGlobal?.getAvailableLanguagesString?.();
-                    errorMessage = `Language not supported. Available: ${langs ?? 'see translation service docs'}`;
+                    errorMessage = t('translate.unsupported', { langs: langs ?? t('translate.seeDocs') });
                 } else if (error instanceof Error && error.message.includes('Too many')) {
-                    errorMessage = 'Too many translation requests. Please wait a moment.';
+                    errorMessage = t('translate.rateLimited');
                 }
 
                 await interaction.followUp({ content: errorMessage, flags: MessageFlags.Ephemeral });

@@ -3,6 +3,7 @@ import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, Messa
 import { getData, updateGuildData } from '../../../utils/db.js';
 import { isOwner } from '../../../utils/accessControl.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 import { logger } from '../../../utils/logger.js';
 
 interface GlobalBlacklistData {
@@ -27,12 +28,18 @@ export default {
 
     async execute(interaction: UserContextMenuCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'utility');
             if (!isOwner(interaction.user.id)) {
                 await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Access Denied',
-                        description: 'Only the bot owner can use this command.'
+                        title: t('apolloActions.deniedTitle'),
+                        description: t('apolloActions.deniedDesc')
                     }],
                     flags: MessageFlags.Ephemeral
                 });
@@ -45,8 +52,8 @@ export default {
                 await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Self Action',
-                        description: 'You cannot globally ban yourself.'
+                        title: t('apolloActions.selfTitle'),
+                        description: t('apolloActions.selfDesc')
                     }],
                     flags: MessageFlags.Ephemeral
                 });
@@ -57,8 +64,8 @@ export default {
                 await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Bot Protection',
-                        description: 'You cannot globally ban the bot.'
+                        title: t('apolloActions.botTitle'),
+                        description: t('apolloActions.botDesc')
                     }],
                     flags: MessageFlags.Ephemeral
                 });
@@ -67,13 +74,13 @@ export default {
 
             const modal = new ModalBuilder()
                 .setCustomId(`apollo_gban_${interaction.id}`)
-                .setTitle('Global Ban — Reason');
+                .setTitle(t('apolloActions.modalTitle'));
 
             const reasonInput = new TextInputBuilder()
                 .setCustomId('reason')
-                .setLabel('Reason for global ban')
+                .setLabel(t('apolloActions.reasonLabel'))
                 .setStyle(TextInputStyle.Paragraph)
-                .setPlaceholder('Enter the reason for this global ban...')
+                .setPlaceholder(t('apolloActions.reasonPlaceholder'))
                 .setMaxLength(1000)
                 .setRequired(true);
 
@@ -96,8 +103,8 @@ export default {
                 await modalSubmit.reply({
                     embeds: [{
                         color: 0xFFA500,
-                        title: '[WARNING] Already Blacklisted',
-                        description: `${targetUser.tag} is already on the global blacklist.\nReason: ${existing.reason}`
+                        title: t('apolloActions.alreadyTitle'),
+                        description: t('apolloActions.alreadyDesc', { user: targetUser.tag, reason: existing.reason })
                     }],
                     flags: MessageFlags.Ephemeral
                 });
@@ -120,12 +127,12 @@ export default {
             await modalSubmit.reply({
                 embeds: [{
                     color: 0xFF0000,
-                    title: '[SUCCESS] User Globally Blacklisted',
-                    description: `${targetUser.tag} has been added to the global blacklist. They will be banned from all servers the bot is in.`,
+                    title: t('apolloActions.doneTitle'),
+                    description: t('apolloActions.doneDesc', { user: targetUser.tag }),
                     fields: [
-                        { name: 'User', value: `${targetUser.tag} (\`${targetUser.id}\`)`, inline: true },
-                        { name: 'Moderator', value: interaction.user.tag, inline: true },
-                        { name: 'Reason', value: reason, inline: false }
+                        { name: t('apolloActions.user'), value: `${targetUser.tag} (\`${targetUser.id}\`)`, inline: true },
+                        { name: t('apolloActions.moderator'), value: interaction.user.tag, inline: true },
+                        { name: t('apolloActions.reason'), value: reason, inline: false }
                     ],
                     thumbnail: { url: targetUser.displayAvatarURL({ extension: 'png', size: 256 }) },
                     timestamp: new Date().toISOString()

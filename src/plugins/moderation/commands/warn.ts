@@ -9,6 +9,7 @@ import { flushAnalyticsCritical, trackModAction } from '../../../utils/analytics
 import { canModerate } from '../../../utils/moderation.js';
 import { safeError } from '../../../utils/safeError.js';
 import type { WarningEntry } from './warnings.js';
+import { i18n } from '../../../i18n/index.js';
 
 function getNextThreshold(currentCount: number, thresholds: Record<string, number>): { action: string; count: number } | null {
     const sorted = [
@@ -42,6 +43,8 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction) {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const user = interaction.options.getUser('user');
             const reason = interaction.options.getString('reason');
@@ -50,8 +53,8 @@ export default {
                 return interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Missing User',
-                        description: 'Please specify a valid user to warn.',
+                        title: t('warn.missingUserTitle'),
+                        description: t('warn.missingUserDescription'),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -62,8 +65,8 @@ export default {
                 return interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Invalid Target',
-                        description: 'You cannot warn bots.',
+                        title: t('warn.errorInvalidTarget'),
+                        description: t('warn.botProtectionDescription'),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -74,8 +77,8 @@ export default {
                 return interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Self Action',
-                        description: 'You cannot warn yourself.',
+                        title: t('warn.selfActionTitle'),
+                        description: t('warn.selfActionDescription'),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -88,8 +91,8 @@ export default {
                 return interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Member Not Found',
-                        description: 'This user is not a member of the server.',
+                        title: t('warn.memberNotFoundTitle'),
+                        description: t('warn.memberNotFoundDescription'),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -100,7 +103,7 @@ export default {
             if (!hierarchy.ok) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Hierarchy Check Failed',
+                    title: t('warn.hierarchyTitle'),
                     description: hierarchy.reason,
                     timestamp: new Date().toISOString()
                 };
@@ -140,15 +143,15 @@ export default {
                 try {
                     const dmEmbed = {
                         color: 0xFFA500,
-                        title: `[!] Warning in ${interaction.guild!.name}`,
-                        description: 'You have been warned by a moderator.',
+                        title: t('warn.warningInServer', { server: interaction.guild!.name }),
+                        description: t('warn.youHaveBeenWarnedBy'),
                         fields: [
-                            { name: 'Reason', value: reason!, inline: false },
-                            { name: 'Total Warnings', value: `${warningCount}`, inline: true },
-                            { name: 'Warning ID', value: warning.id, inline: true }
+                            { name: t('warn.reason'), value: reason!, inline: false },
+                            { name: t('warn.totalWarnings'), value: t('warn.count', { count: warningCount }), inline: true },
+                            { name: t('warn.warningId'), value: warning.id, inline: true }
                         ],
                         timestamp: new Date().toISOString(),
-                        footer: { text: 'Please follow the server rules to avoid further action.' }
+                        footer: { text: t('warn.pleaseFollowTheServerRules') }
                     };
 
                     await user.send({ embeds: [dmEmbed] });
@@ -197,24 +200,24 @@ export default {
 
             const successEmbed = {
                 color: 0xFFA500,
-                title: '[SUCCESS] User Warned',
-                description: `${user.tag} has been warned.`,
+                title: t('warn.successUserWarned'),
+                description: t('warn.userHasBeenWarned', { user: user.tag }),
                 fields: [
-                    { name: 'User', value: `${user.tag} (${user.id})`, inline: true },
-                    { name: 'Moderator', value: interaction.user.tag, inline: true },
-                    { name: 'Case ID', value: `#${caseId}`, inline: true },
-                    { name: 'Reason', value: reason!, inline: false },
-                    { name: 'Total Warnings', value: `${warningCount}`, inline: true },
-                    { name: 'Warning ID', value: warning.id, inline: true },
-                    { name: 'DM Sent', value: dmSent ? 'Yes' : 'No', inline: true }
+                    { name: t('warn.user'), value: t('warn.userValue', { user: user.tag, value: user.id }), inline: true },
+                    { name: t('warn.moderator'), value: interaction.user.tag, inline: true },
+                    { name: t('warn.caseId'), value: t('warn.caseid', { caseId: caseId }), inline: true },
+                    { name: t('warn.reason2'), value: reason!, inline: false },
+                    { name: t('warn.totalWarnings2'), value: t('warn.count2', { count: warningCount }), inline: true },
+                    { name: t('warn.warningId2'), value: warning.id, inline: true },
+                    { name: t('warn.dmSent'), value: dmSent ? 'Yes' : 'No', inline: true }
                 ],
                 timestamp: new Date().toISOString()
             };
 
             if (autoPunishment) {
                 successEmbed.fields.push({
-                    name: '[!] Auto-Punishment Applied',
-                    value: `User has been **${autoPunishment}** for reaching ${warningCount} warnings.`,
+                    name: t('warn.autoPunishmentApplied'),
+                    value: t('warn.userHasBeenValueFor', { value: autoPunishment, count: warningCount }),
                     inline: false
                 });
             }
@@ -223,8 +226,8 @@ export default {
                 const nextThreshold = getNextThreshold(warningCount, thresholds);
                 if (nextThreshold) {
                     successEmbed.fields.push({
-                        name: 'Next Threshold',
-                        value: `${nextThreshold.action} at ${nextThreshold.count} warnings (${nextThreshold.count - warningCount} more)`,
+                        name: t('warn.nextThreshold'),
+                        value: t('warn.actionAtCountWarningsCount2', { action: nextThreshold.action, count: nextThreshold.count, count2: nextThreshold.count - warningCount }),
                         inline: false
                     });
                 }
@@ -250,9 +253,9 @@ export default {
         } catch (error) {
             const errorEmbed = {
                 color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred while trying to warn the user.',
-                fields: [{ name: 'Error', value: safeError(error), inline: true }],
+                title: t('warn.commandFailedTitle'),
+                description: t('warn.commandFailedDescription'),
+                fields: [{ name: t('warn.error'), value: safeError(error), inline: true }],
                 timestamp: new Date().toISOString()
             };
 

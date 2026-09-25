@@ -7,6 +7,7 @@ import { createModCase } from './case.js';
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 import { canModerate } from '../../../utils/moderation.js';
 import { safeError } from '../../../utils/safeError.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'mute',
@@ -36,16 +37,18 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction) {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const user = interaction.options.getUser('user');
             const duration = interaction.options.getString('duration');
-            const reason = interaction.options.getString('reason') ?? 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? t('mute.noReason');
 
             if (!user) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Missing User',
-                    description: 'Please specify a valid user to mute.',
+                    title: t('mute.missingUserTitle'),
+                    description: t('mute.missingUserDescription'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -56,8 +59,8 @@ export default {
             if (!member) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Member Not Found',
-                    description: 'This user is not a member of the server.',
+                    title: t('mute.memberNotFoundTitle'),
+                    description: t('mute.memberNotFoundDescription'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -66,8 +69,8 @@ export default {
             if (!member.moderatable) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Cannot Mute',
-                    description: 'I cannot mute this user. They may have higher permissions than me.',
+                    title: t('mute.errorCannotMute'),
+                    description: t('mute.iCannotMuteThisUser'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -76,8 +79,8 @@ export default {
             if (user.id === interaction.user.id) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Self Action',
-                    description: 'You cannot mute yourself.',
+                    title: t('mute.selfActionTitle'),
+                    description: t('mute.selfActionDescription'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -87,7 +90,7 @@ export default {
             if (!hierarchy.ok) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Hierarchy Check Failed',
+                    title: t('mute.hierarchyTitle'),
                     description: hierarchy.reason,
                     timestamp: new Date().toISOString()
                 };
@@ -102,8 +105,8 @@ export default {
                 if (!match) {
                     const errorEmbed = {
                         color: 0xFF0000,
-                        title: '[ERROR] Invalid Duration',
-                        description: 'Invalid duration format. Use: 1m (minutes), 1h (hours), 1d (days), 1w (weeks)',
+                        title: t('mute.errorInvalidDuration'),
+                        description: t('mute.invalidDurationFormatUse1m'),
                         timestamp: new Date().toISOString()
                     };
                     return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -136,8 +139,8 @@ export default {
             if (durationMs > maxTimeout) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Duration Too Long',
-                    description: 'Maximum mute duration is 28 days (4 weeks).',
+                    title: t('mute.errorDurationTooLong'),
+                    description: t('mute.maximumMuteDurationIsDays'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -161,7 +164,7 @@ export default {
                 if (!muteRole) {
                     try {
                         muteRole = await interaction.guild!.roles.create({
-                            name: 'Muted',
+                            name: t('mute.muted'),
                             permissions: [],
                             reason: 'Mute role for moderation bot'
                         });
@@ -170,8 +173,8 @@ export default {
                         logger.error({ msg: '[ERROR] Failed to create mute role:', err: roleError });
                         const errorEmbed = {
                             color: 0xFF0000,
-                            title: '[ERROR] Mute Role Missing',
-                            description: 'Could not find or create a "Muted" role. Please create it manually.',
+                            title: t('mute.errorMuteRoleMissing'),
+                            description: t('mute.couldNotFindOrCreate'),
                             timestamp: new Date().toISOString()
                         };
                         return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -196,31 +199,31 @@ export default {
 
             const successEmbed = {
                 color: 0x00FF00,
-                title: '[SUCCESS] User Muted',
-                description: `${user.tag} has been muted.`,
+                title: t('mute.successUserMuted'),
+                description: t('mute.userHasBeenMuted', { user: user.tag }),
                 fields: [
                     {
-                        name: '[INFO] Moderator',
+                        name: t('mute.fieldModerator'),
                         value: interaction.user.tag,
                         inline: true
                     },
                     {
-                        name: '[INFO] Duration',
+                        name: t('mute.fieldDuration'),
                         value: durationText,
                         inline: true
                     },
                     {
-                        name: '[INFO] Case ID',
-                        value: `#${caseId}`,
+                        name: t('mute.fieldCaseId'),
+                        value: t('mute.caseid', { caseId: caseId }),
                         inline: true
                     },
                     {
-                        name: '[INFO] Reason',
+                        name: t('mute.fieldReason'),
                         value: reason,
                         inline: false
                     },
                     {
-                        name: '[INFO] User ID',
+                        name: t('mute.fieldUserId'),
                         value: user.id,
                         inline: true
                     }
@@ -246,11 +249,11 @@ export default {
         } catch (error) {
             const errorEmbed = {
                 color: 0xFF0000,
-                title: '[ERROR] Command Failed',
-                description: 'An error occurred while trying to mute the user.',
+                title: t('mute.commandFailedTitle'),
+                description: t('mute.commandFailedDescription'),
                 fields: [
                     {
-                        name: '[ERROR] Details',
+                        name: t('mute.errorDetails'),
                         value: safeError(error),
                         inline: true
                     }

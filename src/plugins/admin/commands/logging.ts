@@ -3,6 +3,7 @@ import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } 
 import { setGuildData, getGuildData } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'logging',
@@ -63,6 +64,12 @@ export default {
             try {
                 const subcommand = interaction.options.getSubcommand();
                 const guildId = interaction.guild!.id;
+                const resolvedLocale = await i18n.resolveLocale({
+                    locale: interaction.locale ?? null,
+                    guildLocale: interaction.guildLocale ?? null,
+                    guildId: interaction.guildId ?? null
+                });
+                const t = i18n.getFixedT(resolvedLocale, 'admin');
 
                 if (subcommand === 'enable' || subcommand === 'disable') {
                     const event = interaction.options.getString('event');
@@ -84,16 +91,16 @@ export default {
                         events
                     });
 
-                    const eventDisplay = event === 'all' ? 'All events' : getEventDisplayName(event ?? '');
+                    const eventDisplay = event === 'all' ? t('logging.allEvents') : getEventDisplayName(event ?? '', t);
                     return interaction.reply({
-                        content: `${eventDisplay} logging has been **${enabled ? 'enabled' : 'disabled'}**.`,
+                        content: t('logging.toggle', { event: eventDisplay, state: enabled ? t('logging.stateEnabled') : t('logging.stateDisabled') }),
                         flags: MessageFlags.Ephemeral
                     });
                 } else if (subcommand === 'status') {
                     const loggingConfig = await getGuildData('logging', guildId);
                     const events = (loggingConfig['events'] as Record<string, boolean>) || config.logging.defaultEvents;
 
-                    let channelStatus = 'Not configured';
+                    let channelStatus = t('logging.notConfigured');
                     const channelId = loggingConfig['channelId'] as string | undefined;
                     if (channelId) {
                         try {
@@ -101,52 +108,52 @@ export default {
                             if (channel) {
                                 channelStatus = `<#${channel.id}>`;
                             } else {
-                                channelStatus = 'Channel not found (needs reconfiguration)';
+                                channelStatus = t('logging.channelMissing');
                             }
                         } catch {
-                            channelStatus = 'Channel not found (needs reconfiguration)';
+                            channelStatus = t('logging.channelMissing');
                         }
                     }
 
                     const embed = new EmbedBuilder()
                         .setColor('#3498DB')
-                        .setTitle('Logging Configuration')
-                        .setDescription('Current server event logging settings')
+                        .setTitle(t('logging.statusTitle'))
+                        .setDescription(t('logging.statusDescription'))
                         .addFields(
-                            { name: 'Log Channel', value: channelStatus, inline: false },
-                            { name: '\u200B', value: '**Event Status**', inline: false },
+                            { name: t('logging.logChannel'), value: channelStatus, inline: false },
+                            { name: '​', value: t('logging.eventStatus'), inline: false },
                             {
-                                name: 'Message Delete',
-                                value: events['messageDelete'] ?? config.logging.defaultEvents.messageDelete ? '[ON] Enabled' : '[OFF] Disabled',
+                                name: t('logging.field.messageDelete'),
+                                value: events['messageDelete'] ?? config.logging.defaultEvents.messageDelete ? t('logging.onLabel') : t('logging.offLabel'),
                                 inline: true
                             },
                             {
-                                name: 'Message Edit',
-                                value: events['messageEdit'] ?? config.logging.defaultEvents.messageEdit ? '[ON] Enabled' : '[OFF] Disabled',
+                                name: t('logging.field.messageEdit'),
+                                value: events['messageEdit'] ?? config.logging.defaultEvents.messageEdit ? t('logging.onLabel') : t('logging.offLabel'),
                                 inline: true
                             },
                             {
-                                name: 'Member Join',
-                                value: events['memberJoin'] ?? config.logging.defaultEvents.memberJoin ? '[ON] Enabled' : '[OFF] Disabled',
+                                name: t('logging.field.memberJoin'),
+                                value: events['memberJoin'] ?? config.logging.defaultEvents.memberJoin ? t('logging.onLabel') : t('logging.offLabel'),
                                 inline: true
                             },
                             {
-                                name: 'Member Leave',
-                                value: events['memberLeave'] ?? config.logging.defaultEvents.memberLeave ? '[ON] Enabled' : '[OFF] Disabled',
+                                name: t('logging.field.memberLeave'),
+                                value: events['memberLeave'] ?? config.logging.defaultEvents.memberLeave ? t('logging.onLabel') : t('logging.offLabel'),
                                 inline: true
                             },
                             {
-                                name: 'Role Changes',
-                                value: events['roleChanges'] ?? config.logging.defaultEvents.roleChanges ? '[ON] Enabled' : '[OFF] Disabled',
+                                name: t('logging.field.roleChanges'),
+                                value: events['roleChanges'] ?? config.logging.defaultEvents.roleChanges ? t('logging.onLabel') : t('logging.offLabel'),
                                 inline: true
                             },
                             {
-                                name: 'Voice Changes',
-                                value: events['voiceChanges'] ?? config.logging.defaultEvents.voiceChanges ? '[ON] Enabled' : '[OFF] Disabled',
+                                name: t('logging.field.voiceChanges'),
+                                value: events['voiceChanges'] ?? config.logging.defaultEvents.voiceChanges ? t('logging.onLabel') : t('logging.offLabel'),
                                 inline: true
                             }
                         )
-                        .setFooter({ text: 'Use /logging enable or /logging disable to change settings' })
+                        .setFooter({ text: t('logging.footer') })
                         .setTimestamp();
 
                     return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
@@ -168,14 +175,14 @@ export default {
     }
 };
 
-function getEventDisplayName(event: string) {
+function getEventDisplayName(event: string, t: (key: string) => string) {
     const names: Record<string, string> = {
-        messageDelete: 'Message Delete',
-        messageEdit: 'Message Edit',
-        memberJoin: 'Member Join',
-        memberLeave: 'Member Leave',
-        roleChanges: 'Role Changes',
-        voiceChanges: 'Voice Changes'
+        messageDelete: t('logging.field.messageDelete'),
+        messageEdit: t('logging.field.messageEdit'),
+        memberJoin: t('logging.field.memberJoin'),
+        memberLeave: t('logging.field.memberLeave'),
+        roleChanges: t('logging.field.roleChanges'),
+        voiceChanges: t('logging.field.voiceChanges')
     };
     return names[event] ?? event;
 }

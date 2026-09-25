@@ -7,6 +7,7 @@ import { createModCase } from './case.js';
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 import { canModerate } from '../../../utils/moderation.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'voicemute',
@@ -20,15 +21,17 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction) {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const user = interaction.options.getUser('user');
-            const reason = interaction.options.getString('reason') ?? 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? t('voicemute.noReason');
 
             if (!user) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Missing User',
-                    description: 'Please specify a valid user to mute.',
+                    title: t('voicemute.missingUserTitle'),
+                    description: t('voicemute.missingUserDescription'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -39,8 +42,8 @@ export default {
             if (!member) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] User Not In Server',
-                    description: 'This user is not in the server.',
+                    title: t('voicemute.memberNotFoundTitle'),
+                    description: t('voicemute.memberNotFoundDescription'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -49,8 +52,8 @@ export default {
             if (!member.voice.channel) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Not In Voice Channel',
-                    description: `${user.tag} is not currently in a voice channel.`,
+                    title: t('voicemute.errorNotInVoiceChannel'),
+                    description: t('voicemute.userIsNotCurrentlyIn', { user: user.tag }),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -59,8 +62,8 @@ export default {
             if (member.voice.serverMute) {
                 const errorEmbed = {
                     color: 0xFFFF00,
-                    title: '[INFO] Already Muted',
-                    description: `${user.tag} is already server muted.`,
+                    title: t('voicemute.infoAlreadyMuted'),
+                    description: t('voicemute.userIsAlreadyServerMuted', { user: user.tag }),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -69,8 +72,8 @@ export default {
             if (!member.voice.channel.permissionsFor(interaction.guild!.members.me!).has('MuteMembers')) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Missing Permissions',
-                    description: 'I do not have permission to mute members in that voice channel.',
+                    title: t('voicemute.errorMissingPermissions'),
+                    description: t('voicemute.iDoNotHavePermission'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -79,8 +82,8 @@ export default {
             if (user.id === interaction.user.id) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Self Action',
-                    description: 'You cannot mute yourself using this command.',
+                    title: t('voicemute.selfActionTitle'),
+                    description: t('voicemute.selfActionDescription'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -89,8 +92,8 @@ export default {
             if (user.id === interaction.client.user.id) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Bot Protection',
-                    description: 'You cannot mute the bot.',
+                    title: t('voicemute.botProtectionTitle'),
+                    description: t('voicemute.botProtectionDescription'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -100,7 +103,7 @@ export default {
             if (!hierarchy.ok) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Hierarchy Check Failed',
+                    title: t('voicemute.hierarchyTitle'),
                     description: hierarchy.reason,
                     timestamp: new Date().toISOString()
                 };
@@ -125,14 +128,14 @@ export default {
 
             const successEmbed = {
                 color: 0x00FF00,
-                title: '[SUCCESS] User Muted',
-                description: `${user.tag} has been server muted in **${channelName}**.`,
+                title: t('voicemute.successUserMuted'),
+                description: t('voicemute.userHasBeenServerMuted', { user: user.tag, channelName: channelName }),
                 fields: [
-                    { name: '[INFO] Moderator', value: interaction.user.tag, inline: true },
-                    { name: '[INFO] Case ID', value: `#${caseId}`, inline: true },
-                    { name: '[INFO] Reason', value: reason, inline: false },
-                    { name: '[INFO] Channel', value: channelName, inline: true },
-                    { name: '[INFO] User ID', value: user.id, inline: true }
+                    { name: t('voicemute.fieldModerator'), value: interaction.user.tag, inline: true },
+                    { name: t('voicemute.fieldCaseId'), value: t('voicemute.caseid', { caseId: caseId }), inline: true },
+                    { name: t('voicemute.fieldReason'), value: reason, inline: false },
+                    { name: t('voicemute.infoChannel'), value: channelName, inline: true },
+                    { name: t('voicemute.fieldUserId'), value: user.id, inline: true }
                 ],
                 timestamp: new Date().toISOString()
             };
@@ -149,7 +152,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] User ${user.tag} was voice muted by ${interaction.user.tag}. Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
+            const errorMessage = handleDiscordError(error) ?? t('voicemute.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

@@ -6,6 +6,7 @@ import { createModCase } from './case.js';
 import { flushAnalyticsCritical, trackModAction } from '../../../utils/analyticsCollector.js';
 import { canModerate } from '../../../utils/moderation.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 export default {
     name: 'softban',
@@ -38,16 +39,18 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction) {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const user = interaction.options.getUser('user');
-            const reason = interaction.options.getString('reason') ?? 'No reason provided';
+            const reason = interaction.options.getString('reason') ?? t('softban.noReason');
             const deleteDays = interaction.options.getInteger('delete-days') ?? 1;
 
             if (!user) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Missing User',
-                    description: 'Please specify a valid user to softban.',
+                    title: t('softban.missingUserTitle'),
+                    description: t('softban.missingUserDescription'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -56,8 +59,8 @@ export default {
             if (deleteDays < 0 || deleteDays > 7) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Invalid Value',
-                    description: 'Delete days must be between 0 and 7.',
+                    title: t('softban.errorInvalidValue'),
+                    description: t('softban.deleteDaysMustBeBetween'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -68,8 +71,8 @@ export default {
             if (member && !member.bannable) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Cannot Softban',
-                    description: 'I cannot ban this user. They may have higher permissions than me.',
+                    title: t('softban.errorCannotSoftban'),
+                    description: t('softban.iCannotBanThisUser'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -78,8 +81,8 @@ export default {
             if (user.id === interaction.user.id) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Self Action',
-                    description: 'You cannot softban yourself.',
+                    title: t('softban.selfActionTitle'),
+                    description: t('softban.selfActionDescription'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -88,8 +91,8 @@ export default {
             if (user.id === interaction.client.user.id) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Bot Protection',
-                    description: 'You cannot softban the bot.',
+                    title: t('softban.botProtectionTitle'),
+                    description: t('softban.botProtectionDescription'),
                     timestamp: new Date().toISOString()
                 };
                 return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
@@ -99,7 +102,7 @@ export default {
             if (!hierarchy.ok) {
                 const errorEmbed = {
                     color: 0xFF0000,
-                    title: '[ERROR] Hierarchy Check Failed',
+                    title: t('softban.hierarchyTitle'),
                     description: hierarchy.reason,
                     timestamp: new Date().toISOString()
                 };
@@ -127,14 +130,14 @@ export default {
 
             const successEmbed = {
                 color: 0x00FF00,
-                title: '[SUCCESS] User Softbanned',
-                description: `${user.tag} has been softbanned (banned and immediately unbanned).`,
+                title: t('softban.successUserSoftbanned'),
+                description: t('softban.userHasBeenSoftbannedBanned', { user: user.tag }),
                 fields: [
-                    { name: '[INFO] Moderator', value: interaction.user.tag, inline: true },
-                    { name: '[INFO] Case ID', value: `#${caseId}`, inline: true },
-                    { name: '[INFO] Reason', value: reason, inline: false },
-                    { name: '[INFO] Delete Days', value: `${deleteDays} days`, inline: true },
-                    { name: '[INFO] User ID', value: user.id, inline: true }
+                    { name: t('softban.fieldModerator'), value: interaction.user.tag, inline: true },
+                    { name: t('softban.fieldCaseId'), value: t('softban.caseid', { caseId: caseId }), inline: true },
+                    { name: t('softban.fieldReason'), value: reason, inline: false },
+                    { name: t('softban.infoDeleteDays'), value: t('softban.deletedaysDays', { deleteDays: deleteDays }), inline: true },
+                    { name: t('softban.fieldUserId'), value: user.id, inline: true }
                 ],
                 timestamp: new Date().toISOString()
             };
@@ -154,7 +157,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] User ${user.tag} was softbanned by ${interaction.user.tag}. Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
+            const errorMessage = handleDiscordError(error) ?? t('softban.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

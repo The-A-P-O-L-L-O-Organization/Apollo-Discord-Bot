@@ -2,6 +2,7 @@ import type { ChatInputCommandInteraction, User } from 'discord.js';
 import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { getAllUserData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface LevelData {
     xp: number;
@@ -43,6 +44,12 @@ export default {
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         try {
+            const resolvedLocale = await i18n.resolveLocale({
+                locale: interaction.locale ?? null,
+                guildLocale: interaction.guildLocale ?? null,
+                guildId: interaction.guildId ?? null
+            });
+            const t = i18n.getFixedT(resolvedLocale, 'utility');
             const type = interaction.options.getString('type') ?? 'level';
             const limit = interaction.options.getInteger('limit') ?? 10;
 
@@ -52,8 +59,8 @@ export default {
                 await interaction.reply({
                     embeds: [{
                         color: 0xFFA500,
-                        title: '[INFO] No Data',
-                        description: 'No leveling data available yet.',
+                        title: t('leaderboard.noDataTitle'),
+                        description: t('leaderboard.noDataDesc'),
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -87,16 +94,16 @@ export default {
                 }
             }
 
-            const typeLabel = type === 'level' ? 'Level' : type === 'xp' ? 'XP' : 'Messages';
+            const typeLabel = type === 'level' ? t('leaderboard.level') : type === 'xp' ? t('leaderboard.xp') : t('leaderboard.messages');
             const fields = sorted.map((entry, index) => {
                 const user = userMap.get(entry.userId);
                 const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
-                const value = type === 'level' ? `Level ${entry.level}` :
-                    type === 'xp' ? `${formatNumber(entry.xp)} XP` :
-                        `${formatNumber(entry.messages)} messages`;
+                const value = type === 'level' ? t('leaderboard.levelValue', { level: entry.level }) :
+                    type === 'xp' ? t('leaderboard.xpValue', { count: formatNumber(entry.xp) }) :
+                        t('leaderboard.messagesValue', { count: formatNumber(entry.messages) });
 
                 return {
-                    name: `${medal} ${user ? user.tag : 'Unknown User'}`,
+                    name: `${medal} ${user ? user.tag : t('leaderboard.unknownUser')}`,
                     value: value,
                     inline: false
                 };
@@ -104,8 +111,8 @@ export default {
 
             const leaderboardEmbed = new EmbedBuilder()
                 .setColor(0x3498DB)
-                .setTitle(`[LEADERBOARD] Top ${typeLabel}`)
-                .setDescription(`Top ${limit} users by ${typeLabel.toLowerCase()}`)
+                .setTitle(t('leaderboard.title', { label: typeLabel }))
+                .setDescription(t('leaderboard.description', { count: limit, label: typeLabel.toLowerCase() }))
                 .addFields(fields)
                 .setTimestamp();
 

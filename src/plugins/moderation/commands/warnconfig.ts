@@ -5,6 +5,7 @@ import { logger } from '../../../utils/logger.js';
 import { getGuildData, setGuildData } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
+import { i18n } from '../../../i18n/index.js';
 
 interface WarningThresholds {
     mute: number | null;
@@ -55,48 +56,52 @@ function formatDuration(ms: number): string {
 }
 
 async function handleView(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+    const t = i18n.getFixedT(resolved, 'moderation');
     const guildConfig = (await getGuildData('warnings-config', interaction.guild!.id)) as WarningConfig | null;
     const thresholds = guildConfig?.thresholds ?? config.warnings.thresholds;
     const muteDuration = guildConfig?.muteDuration ?? config.warnings.muteDuration;
 
     const embed = new EmbedBuilder()
         .setColor('#0099FF')
-        .setTitle('Warning Configuration')
-        .setDescription(`Current warning thresholds for ${interaction.guild!.name}`)
+        .setTitle(t('warnconfig.warningConfiguration'))
+        .setDescription(t('warnconfig.currentWarningThresholdsForServer', { server: interaction.guild!.name }))
         .addFields(
             {
-                name: '[Mute] Auto-Mute Threshold',
+                name: t('warnconfig.muteAutoMuteThreshold'),
                 value: thresholds.mute ? `${thresholds.mute} warnings` : 'Disabled',
                 inline: true
             },
             {
-                name: '[Kick] Auto-Kick Threshold',
+                name: t('warnconfig.kickAutoKickThreshold'),
                 value: thresholds.kick ? `${thresholds.kick} warnings` : 'Disabled',
                 inline: true
             },
             {
-                name: '[Ban] Auto-Ban Threshold',
+                name: t('warnconfig.banAutoBanThreshold'),
                 value: thresholds.ban ? `${thresholds.ban} warnings` : 'Disabled',
                 inline: true
             },
             {
-                name: '[Time] Auto-Mute Duration',
+                name: t('warnconfig.timeAutoMuteDuration'),
                 value: formatDuration(muteDuration),
                 inline: true
             }
         )
         .addFields({
-            name: 'How it works',
-            value: 'When a user reaches the warning threshold, the corresponding punishment is automatically applied.',
+            name: t('warnconfig.howItWorks'),
+            value: t('warnconfig.whenAUserReachesThe'),
             inline: false
         })
         .setTimestamp()
-        .setFooter({ text: 'Use /warnconfig set to modify thresholds' });
+        .setFooter({ text: t('warnconfig.useWarnconfigSetToModify') });
 
     await interaction.reply({ embeds: [embed] });
 }
 
 async function handleSet(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+    const t = i18n.getFixedT(resolved, 'moderation');
     const action = interaction.options.getString('action', true);
     const warnings = interaction.options.getInteger('warnings', true);
 
@@ -111,8 +116,8 @@ async function handleSet(interaction: ChatInputCommandInteraction): Promise<void
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
-                title: '[ERROR] Invalid Configuration',
-                description: 'Mute threshold must be less than kick threshold.',
+                title: t('warnconfig.errorInvalidConfiguration'),
+                description: t('warnconfig.muteThresholdMustBeLess'),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -123,8 +128,8 @@ async function handleSet(interaction: ChatInputCommandInteraction): Promise<void
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
-                title: '[ERROR] Invalid Configuration',
-                description: 'Kick threshold must be less than ban threshold.',
+                title: t('warnconfig.errorInvalidConfiguration2'),
+                description: t('warnconfig.kickThresholdMustBeLess'),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -135,8 +140,8 @@ async function handleSet(interaction: ChatInputCommandInteraction): Promise<void
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
-                title: '[ERROR] Invalid Configuration',
-                description: 'Mute threshold must be less than ban threshold.',
+                title: t('warnconfig.errorInvalidConfiguration3'),
+                description: t('warnconfig.muteThresholdMustBeLess2'),
                 timestamp: new Date().toISOString()
             }],
             flags: MessageFlags.Ephemeral
@@ -148,7 +153,7 @@ async function handleSet(interaction: ChatInputCommandInteraction): Promise<void
 
     const embed = new EmbedBuilder()
         .setColor('#00FF00')
-        .setTitle('[SUCCESS] Threshold Updated')
+        .setTitle(t('warnconfig.successThresholdUpdated'))
         .setDescription(
             warnings === 0
                 ? `Auto-**${action}** has been **disabled**.`
@@ -162,6 +167,8 @@ async function handleSet(interaction: ChatInputCommandInteraction): Promise<void
 }
 
 async function handleSetMuteDuration(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+    const t = i18n.getFixedT(resolved, 'moderation');
     const durationStr = interaction.options.getString('duration', true);
 
     const ms = parseDuration(durationStr);
@@ -170,7 +177,7 @@ async function handleSetMuteDuration(interaction: ChatInputCommandInteraction): 
         await interaction.reply({
             embeds: [{
                 color: 0xFF0000,
-                title: '[ERROR] Invalid Duration',
+                title: t('warnconfig.errorInvalidDuration'),
                 description: 'Please use a valid duration format: `1m`, `1h`, `1d`, `1w`',
                 timestamp: new Date().toISOString()
             }],
@@ -186,8 +193,8 @@ async function handleSetMuteDuration(interaction: ChatInputCommandInteraction): 
 
     const embed = new EmbedBuilder()
         .setColor('#00FF00')
-        .setTitle('[SUCCESS] Mute Duration Updated')
-        .setDescription(`Auto-mute duration set to **${formatDuration(ms)}**.`)
+        .setTitle(t('warnconfig.successMuteDurationUpdated'))
+        .setDescription(t('warnconfig.autoMuteDurationSetTo', { value: formatDuration(ms) }))
         .setTimestamp();
 
     await interaction.reply({ embeds: [embed] });
@@ -196,17 +203,19 @@ async function handleSetMuteDuration(interaction: ChatInputCommandInteraction): 
 }
 
 async function handleReset(interaction: ChatInputCommandInteraction): Promise<void> {
+    const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+    const t = i18n.getFixedT(resolved, 'moderation');
     await setGuildData('warnings-config', interaction.guild!.id, {});
 
     const embed = new EmbedBuilder()
         .setColor('#00FF00')
-        .setTitle('[SUCCESS] Configuration Reset')
-        .setDescription('Warning configuration has been reset to defaults.')
+        .setTitle(t('warnconfig.successConfigurationReset'))
+        .setDescription(t('warnconfig.warningConfigurationHasBeenReset'))
         .addFields(
-            { name: 'Auto-Mute', value: `${config.warnings.thresholds.mute} warnings`, inline: true },
-            { name: 'Auto-Kick', value: `${config.warnings.thresholds.kick} warnings`, inline: true },
-            { name: 'Auto-Ban', value: `${config.warnings.thresholds.ban} warnings`, inline: true },
-            { name: 'Mute Duration', value: formatDuration(config.warnings.muteDuration), inline: true }
+            { name: t('warnconfig.autoMute'), value: t('warnconfig.countWarnings', { count: config.warnings.thresholds.mute }), inline: true },
+            { name: t('warnconfig.autoKick'), value: t('warnconfig.countWarnings2', { count: config.warnings.thresholds.kick }), inline: true },
+            { name: t('warnconfig.autoBan'), value: t('warnconfig.countWarnings3', { count: config.warnings.thresholds.ban }), inline: true },
+            { name: t('warnconfig.muteDuration'), value: formatDuration(config.warnings.muteDuration), inline: true }
         )
         .setTimestamp();
 
@@ -274,6 +283,8 @@ export default {
     ],
 
     async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+        const resolved = await i18n.resolveLocale({ locale: interaction.locale, guildLocale: interaction.guildLocale ?? undefined, guildId: interaction.guildId ?? undefined });
+        const t = i18n.getFixedT(resolved, 'moderation');
         try {
             const subcommand = interaction.options.getSubcommand();
 
@@ -298,9 +309,9 @@ export default {
                 await interaction.reply({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '[ERROR] Command Failed',
-                        description: 'An error occurred while configuring warnings.',
-                        fields: [{ name: 'Error', value: (error as Error).message }],
+                        title: t('warnconfig.commandFailedTitle'),
+                        description: t('warnconfig.anErrorOccurredWhileConfiguring'),
+                        fields: [{ name: t('warnconfig.error'), value: (error as Error).message }],
                         timestamp: new Date().toISOString()
                     }],
                     flags: MessageFlags.Ephemeral
@@ -308,7 +319,7 @@ export default {
             }
 
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
+            const errorMessage = handleDiscordError(error) ?? t('warnconfig.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {
