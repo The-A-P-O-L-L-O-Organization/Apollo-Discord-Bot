@@ -62,5 +62,5 @@
     "reactionrole.roleNotFound": "Ruolo non trovato.",
     "reactionrole.hierarchy": "Non posso assegnare questo ruolo perché è più alto o eguale a mio ruolo più altoo.",
     "reactionrole.everyone": "Non puoi usare il @tutti ruolo per ruoli di reazione.",
-    "reactionrole.invalidChannel": "Canale invalido"
+    "reactionrole.invalidChannel": "Canale invalido."
 }
