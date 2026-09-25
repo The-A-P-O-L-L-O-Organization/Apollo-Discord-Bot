@@ -1,0 +1,95 @@
+Term [en],Description [en],Concept Note
+Apollo,The name of this Discord bot.,Do not translate. Brand name.
+Discord,The chat platform Apollo runs on.,Do not translate. Brand name.
+ping,Command that checks the bot is alive and reports latency.,Do not translate. Command name.
+help,Command that lists available commands.,Do not translate. Command name.
+ban,Command that permanently removes a member from the server.,Do not translate. Command name.
+kick,Command that removes a member from the server (they can rejoin).,Do not translate. Command name.
+mute,Command that prevents a member from speaking for a time.,Do not translate. Command name.
+warn,Command that records a formal warning against a member.,Do not translate. Command name.
+timeout,Command that temporarily restricts a member (Discord timeout).,Do not translate. Command name.
+purge,Command that bulk-deletes recent messages in a channel.,Do not translate. Command name.
+slowmode,Command that rate-limits how often members can send messages.,Do not translate. Command name.
+lock,Command that locks a channel so members cannot send messages.,Do not translate. Command name.
+unlock,Command that unlocks a previously locked channel.,Do not translate. Command name.
+automod,The automatic moderation system.,Do not translate. Feature name.
+NSFW,Not Safe For Work; age-restricted content flag.,Do not translate. Universal abbreviation.
+XP,Experience points earned through activity for leveling.,Do not translate. Universal abbreviation.
+ticket,A private support thread between a user and staff.,Translate consistently; always the same noun.
+panel,The message with buttons users press to open a ticket.,Translate consistently.
+claim,When a staff member takes ownership of a ticket.,Verb; same word on buttons and messages.
+reopen,To open a closed ticket again.,Verb.
+assign,To designate a staff member responsible for a ticket.,Verb.
+priority,"Urgency level of a ticket (e.g. low, high).",Noun.
+transcript,Saved log of everything said in a ticket.,Noun.
+rating,User score of ticket support quality.,Noun.
+moderation,The act of enforcing server rules.,Noun.
+moderator,A staff member who enforces server rules.,Noun.
+blacklist,List of banned words or items the filter acts on.,Noun.
+whitelist,List of allowed items exempt from the filter.,Noun.
+exempt,"Excluded from a rule (a channel, role or user).",Adjective/verb; keep consistent.
+threshold,The limit that triggers an automod action.,Noun.
+strike,A penalty point; enough strikes trigger punishment.,Noun; same word everywhere.
+warning,A formal recorded notice of rule-breaking.,Noun.
+unmute,To lift a mute before it expires.,Verb.
+unban,To lift a ban so the user can rejoin.,Verb.
+appeal,A request to reverse a moderation action.,Noun/verb.
+case,A numbered record of one moderation action.,Noun; e.g. Case 42.
+audit log,The record of moderation actions for staff review.,Noun.
+report,A user-submitted complaint about a message or member.,Noun/verb.
+raid,A sudden influx of malicious joiners.,Noun.
+spam,Unwanted bulk messages.,Noun.
+mention,Tagging a user or role with @.,Noun/verb.
+mass mention,Tagging many users or @everyone at once.,Noun.
+invite,A link letting someone join the server.,Noun.
+welcome,Greeting shown when a member joins.,Noun/adjective.
+farewell,Goodbye message when a member leaves.,Noun.
+auto-role,A role granted automatically on join.,Noun.
+leveling,The XP and levels activity system.,Noun.
+leaderboard,Ranked list of most active members.,Noun.
+cooldown,Waiting period before an action can be repeated.,Noun.
+latency,"Delay between the bot and Discord, in milliseconds.",Noun.
+round trip,Time for a message to go to Discord and back.,Noun.
+uptime,How long the bot has been running.,Noun.
+server info,Summary panel of server statistics.,Noun.
+member,A user who joined the server.,Noun.
+role,A named set of permissions members can hold.,Noun.
+channel,A place where messages are sent (text or voice).,Noun.
+category,A group of channels.,Noun.
+voice channel,A channel for voice chat.,Noun.
+permission,Something a role is allowed to do.,Noun.
+hierarchy,Role rank order; staff cannot act above their rank.,Noun.
+embed,A rich formatted message box sent by the bot.,Noun; Discord jargon.
+footer,Small text line at the bottom of an embed.,Noun.
+locale,A language-and-region code such as es-ES.,Noun.
+language,Human language selected for bot replies.,Noun.
+plugin,"A feature module of the bot (moderation, tickets, ...).",Noun.
+guild,Discord internal term for a server.,Always rendered as server in user-facing text.
+direct message,A private Discord conversation with the bot.,Noun; may abbreviate DM after first use.
+emoji,A small reaction image.,Noun.
+filter,An automod rule screening messages.,Noun.
+word filter,Automod rule screening banned words.,Noun.
+link filter,Automod rule screening posted links.,Noun.
+caps filter,Automod rule screening excessive capitals.,Noun.
+verification,Join checks such as captcha or account age.,Noun.
+logging,Recording events to a log channel.,Noun.
+statistics,Aggregated numbers shown on dashboards.,Noun.
+duration,How long an action lasts (e.g. mute length).,Noun.
+reason,The stated cause of a moderation action.,Noun.
+note,A private staff remark on a user record.,Noun.
+reminder,A scheduled nudge message.,Noun.
+word list,The set of words a filter checks.,Noun.
+scan,To check a message against all filters on demand.,Verb.
+export,To save a ticket transcript to a file.,Verb.
+server,A Discord community.,Noun; never translate as waiter/computer server.
+owner,The person who owns the Discord server.,Noun.
+staff,Moderators and helpers collectively.,Noun.
+enable,To turn a feature on.,Verb.
+disable,To turn a feature off.,Verb.
+configuration,Bot settings.,Noun.
+delete,To remove permanently.,Verb.
+create,"To make a new channel, ticket or role.",Verb.
+status,"Current state (open, closed, enabled).",Noun.
+active,Currently in effect or open.,Adjective.
+inactive,No longer in effect.,Adjective.
+everyone,All server members (@everyone).,Translate as Discord client does; keep @ form.
