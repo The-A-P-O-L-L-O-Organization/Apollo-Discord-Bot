@@ -1,0 +1,4 @@
+{
+    "description": "Check the bot's latency and response time",
+    "name": "ping"
+}
