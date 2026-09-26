@@ -284,8 +284,7 @@ const config = {
 
     // Operator Agreement (required to start the bot)
     operator: {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-        agreed: false as boolean,
+        agreed: parseBoolSafe(getEnv('OPERATOR_AGREEMENT')),
         contact: getEnv('OPERATOR_CONTACT') ?? '',
         requireAgreement: true,
         agreementUrl: 'https://github.com/CodeMaster013/Apollo-Discord-Bot/blob/main/legal/TOS.md',
