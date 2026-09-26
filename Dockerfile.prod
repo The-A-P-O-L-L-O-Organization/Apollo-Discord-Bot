@@ -56,18 +56,9 @@ COPY --from=builder /app/node_modules ./node_modules
 # Copy compiled output, CLI bundle, ALL src directories (for runtime plugin imports and manifest verification), and regenerated manifest
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/src ./src
-# Overlay compiled JS files onto src so imports like '../../core/Plugin.js' resolve
-COPY --from=builder /app/dist/core ./src/core
-COPY --from=builder /app/dist/utils ./src/utils
-COPY --from=builder /app/dist/i18n ./src/i18n
-COPY --from=builder /app/dist/db ./src/db
-COPY --from=builder /app/dist/types ./src/types
-COPY --from=builder /app/dist/queue ./src/queue
-COPY --from=builder /app/dist/config ./src/config
-COPY --from=builder /app/dist/gateway ./src/gateway
-COPY --from=builder /app/dist/cli ./src/cli
-# Overlay compiled plugins so intra-plugin imports (e.g. ./events/slaMonitor.js) resolve
-COPY --from=builder /app/dist/plugins ./src/plugins
+# Overlay compiled JS files onto src so ESM '.js' imports resolve at runtime.
+# Generic copy covers current and future subdirs (core, utils, plugins, generated, etc.).
+RUN cp -rf ./dist/. ./src/
 COPY --from=builder /app/plugin-manifest.json ./
 
 # Create directories for persistent data
