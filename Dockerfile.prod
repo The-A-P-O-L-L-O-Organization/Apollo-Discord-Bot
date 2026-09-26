@@ -57,8 +57,10 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/src ./src
 # Overlay compiled JS files onto src so ESM '.js' imports resolve at runtime.
-# Generic copy covers current and future subdirs (core, utils, plugins, generated, etc.).
-RUN cp -rf ./dist/. ./src/
+# Only '*.js' files are copied: '.d.ts'/'.map' files must not pollute src/
+# or the plugin command/event loader will try to import type declarations.
+# Generic find covers current and future subdirs (core, utils, plugins, generated, etc.).
+RUN cd ./dist && find . -type f -name '*.js' | while read -r f; do mkdir -p "../src/$(dirname "$f")"; cp "$f" "../src/$f"; done
 COPY --from=builder /app/plugin-manifest.json ./
 
 # Create directories for persistent data
