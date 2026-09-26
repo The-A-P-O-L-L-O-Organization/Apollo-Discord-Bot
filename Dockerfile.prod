@@ -53,9 +53,15 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* .npmrc* ./
 # Copy production node_modules from builder (native bindings built for alpine)
 COPY --from=builder /app/node_modules ./node_modules
 
-# Copy compiled output, CLI bundle, plugin sources (for manifest verification), and regenerated manifest
+# Copy compiled output, CLI bundle, plugin sources (for manifest verification), core modules, and regenerated manifest
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/src/plugins ./src/plugins
+COPY --from=builder /app/src/core ./src/core
+COPY --from=builder /app/src/utils ./src/utils
+COPY --from=builder /app/src/i18n ./src/i18n
+COPY --from=builder /app/src/db ./src/db
+COPY --from=builder /app/src/types ./src/types
+COPY --from=builder /app/src/queue ./src/queue
 COPY --from=builder /app/plugin-manifest.json ./
 
 # Create directories for persistent data
