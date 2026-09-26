@@ -63,6 +63,9 @@ COPY --from=builder /app/dist/i18n ./src/i18n
 COPY --from=builder /app/dist/db ./src/db
 COPY --from=builder /app/dist/types ./src/types
 COPY --from=builder /app/dist/queue ./src/queue
+COPY --from=builder /app/dist/config ./src/config
+COPY --from=builder /app/dist/gateway ./src/gateway
+COPY --from=builder /app/dist/cli ./src/cli
 COPY --from=builder /app/plugin-manifest.json ./
 
 # Create directories for persistent data
