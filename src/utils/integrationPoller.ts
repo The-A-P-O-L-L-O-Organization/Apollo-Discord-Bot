@@ -35,6 +35,10 @@ export function initIntegrationPoller(discordClient: Client, cfg: { integrations
     client = discordClient;
     integrationConfig = cfg.integrations;
 
+    if (!integrationConfig?.pollInterval) {
+        return;
+    }
+
     const pollers = [
         { type: 'twitch' as const, interval: integrationConfig.pollInterval.twitch, check: pollTwitchSubscriptions },
         { type: 'youtube' as const, interval: integrationConfig.pollInterval.youtube, check: pollYoutubeSubscriptions },
