@@ -4,8 +4,8 @@ import { logger } from '../utils/logger.js';
 import type { Attachment, Collection } from 'discord.js';
 import { safeFetch } from './safeFetch.js';
 import { getGuildData } from './db.js';
-import { createQueue } from '../queue/queue.js';
-import { JobNames } from '../queue/queue.js';
+import { createQueue, JobNames } from '../queue/queue.js';
+import type { NSFWAnalyzeJobData } from '../types/queue.js';
 import { config } from '../config/config.js';
 import { analyzeImageGrpc, isRustWorkerAvailable, getCircuitBreakerStatus, resetCircuitBreaker } from '../queue/nsfwClient.js';
 
@@ -49,7 +49,7 @@ export async function isNsfwDetectionAvailable(): Promise<boolean> {
  * @param url - Image URL
  * @returns Image buffer
  */
-async function downloadImage(url: string): Promise<Buffer> {
+async function _downloadImage(url: string): Promise<Buffer> {
     const result = await safeFetch(url, {
         maxBytes: 10 * 1024 * 1024,
         timeoutMs: 10000,
@@ -66,7 +66,7 @@ async function downloadImage(url: string): Promise<Buffer> {
 export async function analyzeImage(imageUrl: string, guildId = 'unknown', userId = 'unknown'): Promise<Record<string, number> | null> {
     try {
         const result = await analyzeImageGrpc(imageUrl, config.nsfw.threshold, guildId, userId);
-        if (!result || !result.predictions) {
+        if (!result?.predictions) {
             return null;
         }
 
@@ -187,15 +187,15 @@ export async function checkMessageAttachments(
  * @param threshold - NSFW threshold
  * @returns Job info
  */
-export async function enqueueNsfwAnalysis(imageUrl: string, guildId: string, threshold = 0.6): Promise<any> {
+export async function enqueueNsfwAnalysis(imageUrl: string, guildId: string, threshold = 0.6): Promise<NSFWAnalyzeJobData> {
     const queue = await createQueue(JobNames.NSFW_ANALYZE);
-    const job = await queue.add(JobNames.NSFW_ANALYZE, { imageUrl, guildId, threshold }, {
+    await queue.add(JobNames.NSFW_ANALYZE, { imageUrl, guildId, threshold }, {
         attempts: 2,
         backoff: { type: 'exponential', delay: 2000 },
         removeOnComplete: { age: 3600 },
         removeOnFail: { age: 86400, count: 100 }
     });
-    return job;
+    return { imageUrl, guildId, threshold };
 }
 
 /**

@@ -169,14 +169,14 @@ export async function analyzeImageGrpc(
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
         try {
             // Use proto field names (snake_case) for dynamic grpc-js client
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const request: any = {
+            // Use proto field names (snake_case) for dynamic grpc-js client with keepCase: true
+            const request = {
                 image_data: new Uint8Array(0),
                 image_url: imageUrl,
                 threshold,
                 guild_id: guildId,
                 user_id: userId
-            };
+            } as unknown as AnalyzeRequest;
 
             const response = await new Promise<AnalyzeResponse>((resolve, reject) => {
                 const timeout = setTimeout(() => {
@@ -197,11 +197,23 @@ export async function analyzeImageGrpc(
             // Normalize response keys: the dynamic grpc-js client (keepCase)
             // returns proto snake_case names; normalize to camelCase.
             const raw = response as unknown as Record<string, unknown>;
+            const getString = (key: string, fallback: string): string => {
+                const val = raw[key];
+                return typeof val === 'string' ? val : fallback;
+            };
+            const getNumber = (key: string, fallback: number): number => {
+                const val = raw[key];
+                return typeof val === 'number' ? val : fallback;
+            };
+            const getBool = (key: string, fallback: boolean): boolean => {
+                const val = raw[key];
+                return typeof val === 'boolean' ? val : fallback;
+            };
             return {
-                isNsfw: Boolean(raw['isNsfw'] ?? raw['is_nsfw'] ?? false),
+                isNsfw: getBool('isNsfw', getBool('is_nsfw', false)),
                 predictions: (raw['predictions'] ?? {}) as Record<string, number>,
-                maxConfidence: Number(raw['maxConfidence'] ?? raw['max_confidence'] ?? 0),
-                inferenceMs: String(raw['inferenceMs'] ?? raw['inference_ms'] ?? '0')
+                maxConfidence: getNumber('maxConfidence', getNumber('max_confidence', 0)),
+                inferenceMs: getString('inferenceMs', getString('inference_ms', '0'))
             };
         } catch (error) {
             lastError = error;
@@ -274,10 +286,18 @@ export async function healthCheckGrpc(): Promise<HealthCheckResponse> {
             } else {
                 // Normalize response keys (see analyzeImageGrpc).
                 const raw = response as unknown as Record<string, unknown>;
+                const getString = (key: string, fallback: string): string => {
+                    const val = raw[key];
+                    return typeof val === 'string' ? val : fallback;
+                };
+                const getBool = (key: string, fallback: boolean): boolean => {
+                    const val = raw[key];
+                    return typeof val === 'boolean' ? val : fallback;
+                };
                 resolve({
-                    healthy: Boolean(raw['healthy'] ?? false),
-                    modelVersion: String(raw['modelVersion'] ?? raw['model_version'] ?? ''),
-                    uptimeMs: String(raw['uptimeMs'] ?? raw['uptime_ms'] ?? '0')
+                    healthy: getBool('healthy', false),
+                    modelVersion: getString('modelVersion', getString('model_version', '')),
+                    uptimeMs: getString('uptimeMs', getString('uptime_ms', '0'))
                 });
             }
         });
