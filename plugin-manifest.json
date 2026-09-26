@@ -23,7 +23,7 @@
   "src/plugins/admin/events/messageReactionRemove.ts": "712c22c6361e4bb66735b88c72b7c2f18c543ecdf741e57b2d8247fdadda9767",
   "src/plugins/admin/events/messageUpdate.ts": "e0cad9e9d6603f1de9dda637b828ac632ffec47235f150d248a9082e1d01c8db",
   "src/plugins/admin/events/voiceStateUpdate.ts": "75cb419b01cf8fd40c364bd86cb418bc0a3c6dcad719841da22431243babad0a",
-  "src/plugins/admin/plugin.ts": "dde41e541df996bba4ef3f64c4851f9fa9f26263994b6b7bae40bfa89be8c2c2",
+  "src/plugins/admin/plugin.ts": "52d4f6f43ad47d6485eabdd0ab59e9c13c86822dd4279f9eac9170d4f5055603",
   "src/plugins/automod/cli/codemap.md": "da2c05b0d67d24b6e7aa790bd23cff9dd3a27cafa33d7ffa8d365ccc9bb3ce3a",
   "src/plugins/automod/cli/index.ts": "5f0239a7ebf173e9d5e7ad6b1b708f11dc12954ae18b599fcfd04ab292fed7c3",
   "src/plugins/automod/codemap.md": "e7aefe6588a1369c54026122768871dc2a609fd94117b92292ea863ec89abf65",
