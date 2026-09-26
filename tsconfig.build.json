@@ -13,6 +13,7 @@
     "exclude": [
         "tests/**",
         "tests/**/*",
-        "src/handlers/**"
+        "src/handlers/**",
+        "src/generated/nsfw/nsfw/v1/nsfw.ts"
     ]
 }

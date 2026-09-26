@@ -5,7 +5,7 @@
 // source: nsfw/v1/nsfw.proto
 
 /* eslint-disable */
-import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf";
 
 export const protobufPackage = "nsfw.v1";
 

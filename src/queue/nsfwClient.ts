@@ -6,7 +6,35 @@ import { loadPackageDefinition, credentials, type ClientOptions, type ChannelOpt
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { logger } from '../utils/logger.js';
-import type { AnalyzeRequest, AnalyzeResponse, HealthCheckRequest, HealthCheckResponse } from '../generated/nsfw/nsfw/v1/nsfw.js';
+
+// Type definitions for gRPC requests/responses (plain objects with snake_case/camelCase)
+interface AnalyzeRequest {
+    image_data: Uint8Array;
+    image_url: string;
+    threshold: number;
+    guild_id: string;
+    user_id: string;
+}
+
+interface AnalyzeResponse {
+    is_nsfw?: boolean;
+    isNsfw?: boolean;
+    predictions?: Record<string, number>;
+    max_confidence?: number;
+    maxConfidence?: number;
+    inference_ms?: string;
+    inferenceMs?: string;
+}
+
+type HealthCheckRequest = Record<string, never>;
+
+interface HealthCheckResponse {
+    healthy?: boolean;
+    model_version?: string;
+    modelVersion?: string;
+    uptime_ms?: string;
+    uptimeMs?: string;
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
