@@ -21,8 +21,6 @@ import (
 	goredis "github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 
 	"github.com/the-a-p-o-l-l-o-organization/apollo-discord-bot/services/interlink/gen/go/interlink/interlinkv1connect"
 	"github.com/the-a-p-o-l-l-o-organization/apollo-discord-bot/services/interlink/internal/auth"
@@ -65,7 +63,7 @@ func main() {
 
 	redisClient := goredis.NewClient(&goredis.Options{Addr: mr.Addr(), DisableIdentity: true})
 	reg := registry.NewRegistryWithClient(redisClient)
-	defer reg.Close()
+	defer func() { _ = reg.Close() }()
 
 	verifier := auth.NewVerifier(authKey, auth.NewInMemoryNonceStore())
 	limiter := ratelimit.NewLimiter(1000, 1000)
@@ -88,7 +86,13 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to listen")
 	}
 
-	httpSrv := &http.Server{Handler: h2c.NewHandler(mux, &http2.Server{})}
+	protos := &http.Protocols{}
+	protos.SetUnencryptedHTTP2(true)
+	protos.SetHTTP1(true)
+	httpSrv := &http.Server{
+		Handler:   mux,
+		Protocols: protos,
+	}
 	go func() {
 		if err := httpSrv.Serve(listener); err != nil && err != http.ErrServerClosed {
 			log.Fatal().Err(err).Msg("Server failed")
