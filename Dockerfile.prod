@@ -66,6 +66,8 @@ COPY --from=builder /app/dist/queue ./src/queue
 COPY --from=builder /app/dist/config ./src/config
 COPY --from=builder /app/dist/gateway ./src/gateway
 COPY --from=builder /app/dist/cli ./src/cli
+# Overlay compiled plugins so intra-plugin imports (e.g. ./events/slaMonitor.js) resolve
+COPY --from=builder /app/dist/plugins ./src/plugins
 COPY --from=builder /app/plugin-manifest.json ./
 
 # Create directories for persistent data
