@@ -8,7 +8,7 @@ import (
 
 	"connectrpc.com/connect"
 
-	interlinkv1 "github.com/apollo-bot/interlink/gen/go/interlink/v1"
+	interlinkv1 "github.com/the-a-p-o-l-l-o-organization/apollo-discord-bot/services/interlink/gen/go/interlink"
 )
 
 const testSecret = "test-secret-key-min-32-bytes-long!!"

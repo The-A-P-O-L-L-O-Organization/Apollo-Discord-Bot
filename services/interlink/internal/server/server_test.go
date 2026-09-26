@@ -13,11 +13,11 @@ import (
 	"github.com/alicebob/miniredis/v2"
 	goredis "github.com/redis/go-redis/v9"
 
-	interlinkv1 "github.com/apollo-bot/interlink/gen/go/interlink/v1"
-	"github.com/apollo-bot/interlink/gen/go/interlink/v1/interlinkv1connect"
-	"github.com/apollo-bot/interlink/internal/auth"
-	"github.com/apollo-bot/interlink/internal/ratelimit"
-	"github.com/apollo-bot/interlink/internal/registry"
+	interlinkv1 "github.com/the-a-p-o-l-l-o-organization/apollo-discord-bot/services/interlink/gen/go/interlink"
+	"github.com/the-a-p-o-l-l-o-organization/apollo-discord-bot/services/interlink/gen/go/interlink/interlinkv1connect"
+	"github.com/the-a-p-o-l-l-o-organization/apollo-discord-bot/services/interlink/internal/auth"
+	"github.com/the-a-p-o-l-l-o-organization/apollo-discord-bot/services/interlink/internal/ratelimit"
+	"github.com/the-a-p-o-l-l-o-organization/apollo-discord-bot/services/interlink/internal/registry"
 )
 
 const testSecret = "test-secret-key-min-32-bytes-long!!"

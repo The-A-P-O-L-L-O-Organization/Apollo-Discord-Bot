@@ -1,4 +1,4 @@
-module github.com/apollo-bot/interlink
+module github.com/the-a-p-o-l-l-o-organization/apollo-discord-bot/services/interlink
 
 go 1.25.0
 

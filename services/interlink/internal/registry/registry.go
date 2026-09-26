@@ -4,11 +4,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/redis/go-redis/v9"
+	goredis "github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	interlinkv1 "github.com/apollo-bot/interlink/gen/go/interlink/v1"
+	interlinkv1 "github.com/the-a-p-o-l-l-o-organization/apollo-discord-bot/services/interlink/gen/go/interlink"
 )
 
 const (
@@ -18,23 +18,23 @@ const (
 )
 
 type Registry struct {
-	client *redis.Client
+	client *goredis.Client
 }
 
 func NewRegistry(redisURL string) (*Registry, error) {
-	opt, err := redis.ParseURL(redisURL)
+	opt, err := goredis.ParseURL(redisURL)
 	if err != nil {
 		return nil, err
 	}
 	opt.DisableIdentity = true
-	return NewRegistryWithClient(redis.NewClient(opt)), nil
+	return NewRegistryWithClient(goredis.NewClient(opt)), nil
 }
 
-func NewRegistryWithClient(client *redis.Client) *Registry {
+func NewRegistryWithClient(client *goredis.Client) *Registry {
 	return &Registry{client: client}
 }
 
-func (r *Registry) Client() *redis.Client {
+func (r *Registry) Client() *goredis.Client {
 	return r.client
 }
 

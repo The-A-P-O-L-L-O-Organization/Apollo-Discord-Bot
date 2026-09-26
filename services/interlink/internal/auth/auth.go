@@ -18,13 +18,13 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/redis/go-redis/v9"
+	goredis "github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
-	interlinkv1 "github.com/apollo-bot/interlink/gen/go/interlink/v1"
+	interlinkv1 "github.com/the-a-p-o-l-l-o-organization/apollo-discord-bot/services/interlink/gen/go/interlink"
 )
 
 var (
@@ -336,10 +336,10 @@ func ExtractBotID(msg any) string {
 }
 
 type RedisNonceStore struct {
-	client *redis.Client
+	client *goredis.Client
 }
 
-func NewRedisNonceStore(client *redis.Client) *RedisNonceStore {
+func NewRedisNonceStore(client *goredis.Client) *RedisNonceStore {
 	return &RedisNonceStore{client: client}
 }
 

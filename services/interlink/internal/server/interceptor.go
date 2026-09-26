@@ -8,7 +8,7 @@ import (
 
 	"connectrpc.com/connect"
 
-	"github.com/apollo-bot/interlink/internal/telemetry"
+	"github.com/the-a-p-o-l-l-o-organization/apollo-discord-bot/services/interlink/internal/telemetry"
 )
 
 func (s *Server) AuthInterceptor() connect.UnaryInterceptorFunc {
