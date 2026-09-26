@@ -10,11 +10,18 @@ function hashFile(filePath: string): string {
     return createHash('sha256').update(readFileSync(filePath)).digest('hex');
 }
 
+function isCompiledOutput(name: string): boolean {
+    return name.endsWith('.js') || name.endsWith('.js.map') || name.endsWith('.d.ts') || name.endsWith('.d.ts.map');
+}
+
 function walk(dir: string, base: string, files: { rel: string; full: string }[] = []): { rel: string; full: string }[] {
     if (!existsSync(dir)) {
         return files;
     }
     for (const name of readdirSync(dir)) {
+        if (isCompiledOutput(name)) {
+            continue;
+        }
         const full = join(dir, name);
         if (statSync(full).isDirectory()) {
             walk(full, base, files);
