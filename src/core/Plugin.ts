@@ -96,7 +96,7 @@ export abstract class Plugin<C extends CommandModule = CommandModule, _E extends
 
         const cmdDir = path.join(this._dir, 'commands');
         let files: string[];
-        try { files = readdirSync(cmdDir).filter(f => f.endsWith('.ts') || f.endsWith('.js')); } catch { return; }
+        try { files = readdirSync(cmdDir).filter(f => (f.endsWith('.ts') || f.endsWith('.js')) && !f.endsWith('.d.ts')); } catch { return; }
 
         for (const file of files) {
             try {
@@ -132,7 +132,7 @@ export abstract class Plugin<C extends CommandModule = CommandModule, _E extends
 
         const evtDir = path.join(this._dir, 'events');
         let files: string[];
-        try { files = readdirSync(evtDir).filter(f => f.endsWith('.ts') || f.endsWith('.js')); } catch { return; }
+        try { files = readdirSync(evtDir).filter(f => (f.endsWith('.ts') || f.endsWith('.js')) && !f.endsWith('.d.ts')); } catch { return; }
 
         for (const file of files) {
             try {
