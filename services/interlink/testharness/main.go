@@ -24,11 +24,11 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 
-	"github.com/apollo-bot/interlink/gen/go/interlink/v1/interlinkv1connect"
-	"github.com/apollo-bot/interlink/internal/auth"
-	"github.com/apollo-bot/interlink/internal/ratelimit"
-	"github.com/apollo-bot/interlink/internal/registry"
-	"github.com/apollo-bot/interlink/internal/server"
+	"github.com/the-a-p-o-l-l-o-organization/apollo-discord-bot/services/interlink/gen/go/interlink/interlinkv1connect"
+	"github.com/the-a-p-o-l-l-o-organization/apollo-discord-bot/services/interlink/internal/auth"
+	"github.com/the-a-p-o-l-l-o-organization/apollo-discord-bot/services/interlink/internal/ratelimit"
+	"github.com/the-a-p-o-l-l-o-organization/apollo-discord-bot/services/interlink/internal/registry"
+	"github.com/the-a-p-o-l-l-o-organization/apollo-discord-bot/services/interlink/internal/server"
 )
 
 func dumpMiddleware(next http.Handler) http.Handler {

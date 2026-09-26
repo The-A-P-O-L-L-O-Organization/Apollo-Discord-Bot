@@ -7,7 +7,7 @@ import (
 	"github.com/alicebob/miniredis/v2"
 	goredis "github.com/redis/go-redis/v9"
 
-	interlinkv1 "github.com/apollo-bot/interlink/gen/go/interlink/v1"
+	interlinkv1 "github.com/the-a-p-o-l-l-o-organization/apollo-discord-bot/services/interlink/gen/go/interlink"
 )
 
 func testRegistry(t *testing.T) (*Registry, func()) {
