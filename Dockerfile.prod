@@ -56,6 +56,13 @@ COPY --from=builder /app/node_modules ./node_modules
 # Copy compiled output, CLI bundle, ALL src directories (for runtime plugin imports and manifest verification), and regenerated manifest
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/src ./src
+# Overlay compiled JS files onto src so imports like '../../core/Plugin.js' resolve
+COPY --from=builder /app/dist/core ./src/core
+COPY --from=builder /app/dist/utils ./src/utils
+COPY --from=builder /app/dist/i18n ./src/i18n
+COPY --from=builder /app/dist/db ./src/db
+COPY --from=builder /app/dist/types ./src/types
+COPY --from=builder /app/dist/queue ./src/queue
 COPY --from=builder /app/plugin-manifest.json ./
 
 # Create directories for persistent data
