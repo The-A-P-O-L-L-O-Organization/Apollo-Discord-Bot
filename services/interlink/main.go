@@ -13,9 +13,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
-
 	"github.com/the-a-p-o-l-l-o-organization/apollo-discord-bot/services/interlink/gen/go/interlink/interlinkv1connect"
 	"github.com/the-a-p-o-l-l-o-organization/apollo-discord-bot/services/interlink/internal/auth"
 	"github.com/the-a-p-o-l-l-o-organization/apollo-discord-bot/services/interlink/internal/ratelimit"
@@ -63,7 +60,7 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to Redis")
 	}
-	defer reg.Close()
+	defer func() { _ = reg.Close() }()
 
 	if err := reg.Ping(context.Background()); err != nil {
 		log.Fatal().Err(err).Msg("Redis ping failed")
@@ -94,14 +91,17 @@ func main() {
 		_, _ = w.Write([]byte("ok"))
 	})
 
-	h2s := &http2.Server{}
+	protos := &http.Protocols{}
+	protos.SetUnencryptedHTTP2(true)
+	protos.SetHTTP1(true)
 	httpSrv := &http.Server{
 		Addr:              *grpcAddr,
-		Handler:           h2c.NewHandler(mux, h2s),
+		Handler:           mux,
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       120 * time.Second,
+		Protocols:         protos,
 	}
 
 	go func() {
