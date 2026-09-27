@@ -1,19 +1,21 @@
-import { randomBytes } from 'node:crypto';import { createClient, type CallOptions, type Client } from '@connectrpc/connect';
+import { randomBytes } from 'node:crypto';
+import { createClient, type CallOptions, type Client } from '@connectrpc/connect';
 import { createConnectTransport } from '@connectrpc/connect-node';
 import { hmac } from '@noble/hashes/hmac.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { bytesToHex } from '@noble/hashes/utils.js';
-import { Message, type AnyMessage, type FieldList, type PartialMessage } from '@bufbuild/protobuf';
-import { InterlinkService } from '../../generated/interlink/interlink/v1/interlink_connect.js';
+import { clone, create, isMessage, toJson, type DescMessage, type MessageInitShape, type MessageShape } from '@bufbuild/protobuf';
+import { InterlinkService } from '../../generated/interlink/interlink/v1/interlink_pb.js';
 import {
-    Envelope,
-    GetBotInfoRequest,
-    HeartbeatRequest,
-    ListBotsRequest,
-    RegisterBotRequest,
-    SubscribeRequest,
-    UnregisterBotRequest,
+    EnvelopeSchema,
+    GetBotInfoRequestSchema,
+    HeartbeatRequestSchema,
+    ListBotsRequestSchema,
+    RegisterBotRequestSchema,
+    SubscribeRequestSchema,
+    UnregisterBotRequestSchema,
     type BotInfo,
+    type Envelope,
     type HeartbeatResponse,
     type ListBotsResponse,
     type RegisterBotResponse,
@@ -36,14 +38,19 @@ export interface InterlinkConnectClientOptions {
     client?: InterlinkServiceClient;
 }
 
+interface HashedBody<Desc extends DescMessage> {
+    schema: Desc;
+    message: MessageShape<Desc>;
+}
+
 export function emptyBodyHash(): string {
     return bytesToHex(sha256(new Uint8Array(0)));
 }
 
-export function bodyHashOf(message: AnyMessage): string {
-    const normalized = message.clone();
-    sortMapFields(normalized);
-    return bytesToHex(sha256(new TextEncoder().encode(JSON.stringify(normalized.toJson()))));
+export function bodyHashOf<Desc extends DescMessage>(schema: Desc, message: MessageShape<Desc>): string {
+    const normalized = clone(schema, message);
+    sortMapFields(schema, normalized);
+    return bytesToHex(sha256(new TextEncoder().encode(JSON.stringify(toJson(schema, normalized)))));
 }
 
 export function canonicalString(procedure: string, timestamp: string, nonce: string, bodyHash: string): string {
@@ -78,39 +85,38 @@ export function procedureFor(methodName: string): string {
 }
 
 function isMapRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value) && !(value instanceof Message) && !(value instanceof Uint8Array);
+    return typeof value === 'object' && value !== null && !Array.isArray(value) && !(value instanceof Uint8Array);
 }
 
-function sortMapFields(message: AnyMessage): void {
+function sortMapFields<Desc extends DescMessage>(schema: Desc, message: MessageShape<Desc>): void {
     const record = message as unknown as Record<string, unknown>;
-    const fields = (message.constructor as unknown as { fields: FieldList }).fields.list();
-    for (const field of fields) {
+    for (const field of schema.fields) {
         const value = record[field.localName];
-        if (field.kind === 'map' && isMapRecord(value)) {
+        if (field.fieldKind === 'map' && isMapRecord(value)) {
             const sorted: Record<string, unknown> = {};
             for (const key of Object.keys(value).sort()) {
                 const entry = value[key];
                 sorted[key] = entry;
-                if (entry instanceof Message) {
-                    sortMapFields(entry);
+                if (field.mapKind === 'message' && isMessage(entry, field.message)) {
+                    sortMapFields(field.message, entry);
                 }
             }
             record[field.localName] = sorted;
-        } else if (value instanceof Message) {
-            sortMapFields(value);
-        } else if (Array.isArray(value)) {
+        } else if (field.fieldKind === 'message' && isMessage(value, field.message)) {
+            sortMapFields(field.message, value);
+        } else if (field.fieldKind === 'list' && field.listKind === 'message' && Array.isArray(value)) {
             for (const item of value) {
-                if (item instanceof Message) {
-                    sortMapFields(item);
+                if (isMessage(item, field.message)) {
+                    sortMapFields(field.message, item);
                 }
             }
         }
     }
 }
 
-async function* withStreamIdentity(input: AsyncIterable<PartialMessage<Envelope>>): AsyncGenerator<Envelope> {
+async function* withStreamIdentity(input: AsyncIterable<MessageInitShape<typeof EnvelopeSchema>>): AsyncGenerator<Envelope> {
     for await (const partial of input) {
-        const envelope = partial instanceof Envelope ? partial : new Envelope(partial);
+        const envelope = isMessage(partial, EnvelopeSchema) ? partial : create(EnvelopeSchema, partial);
         if (envelope.nonce === '') {
             envelope.nonce = generateNonce();
         }
@@ -140,59 +146,59 @@ export class InterlinkConnectClient {
         this.client = createClient(InterlinkService, transport);
     }
 
-    private headersFor(procedure: string, message: AnyMessage | null): Record<string, string> {
+    private headersFor<Desc extends DescMessage>(procedure: string, body: HashedBody<Desc> | null): Record<string, string> {
         const timestamp = Date.now().toString();
         const nonce = generateNonce();
-        const bodyHash = message === null ? emptyBodyHash() : bodyHashOf(message);
+        const bodyHash = body === null ? emptyBodyHash() : bodyHashOf(body.schema, body.message);
         return {
             Authorization: `${INTERLINK_AUTH_SCHEME} ${signRequest(this.authKey, procedure, timestamp, nonce, bodyHash)}`,
             [INTERLINK_TIMESTAMP_HEADER]: timestamp,
             [INTERLINK_NONCE_HEADER]: nonce,
-            [INTERLINK_BOT_HEADER]: extractBotId(message) || this.botId
+            [INTERLINK_BOT_HEADER]: extractBotId(body?.message) || this.botId
         };
     }
 
-    private callOptions(procedure: string, message: AnyMessage | null, options?: CallOptions): CallOptions {
-        return { ...options, headers: this.headersFor(procedure, message) };
+    private callOptions<Desc extends DescMessage>(procedure: string, body: HashedBody<Desc> | null, options?: CallOptions): CallOptions {
+        return { ...options, headers: this.headersFor(procedure, body) };
     }
 
-    async send(envelope: PartialMessage<Envelope>, options?: CallOptions): Promise<SendResponse> {
-        const message = new Envelope(envelope);
-        return this.client.send(message, this.callOptions(procedureFor(InterlinkService.methods.send.name), message, options));
+    async send(envelope: MessageInitShape<typeof EnvelopeSchema>, options?: CallOptions): Promise<SendResponse> {
+        const message = create(EnvelopeSchema, envelope);
+        return this.client.send(message, this.callOptions(procedureFor(InterlinkService.method.send.name), { schema: EnvelopeSchema, message }, options));
     }
 
     subscribe(botId: string, messageTypes: string[] = [], options?: CallOptions): AsyncIterable<Envelope> {
-        const message = new SubscribeRequest({ botId, messageTypes });
-        return this.client.subscribe(message, this.callOptions(procedureFor(InterlinkService.methods.subscribe.name), message, options));
+        const message = create(SubscribeRequestSchema, { botId, messageTypes });
+        return this.client.subscribe(message, this.callOptions(procedureFor(InterlinkService.method.subscribe.name), { schema: SubscribeRequestSchema, message }, options));
     }
 
-    connect(input: AsyncIterable<PartialMessage<Envelope>>, options?: CallOptions): AsyncIterable<Envelope> {
-        return this.client.connect(withStreamIdentity(input), this.callOptions(procedureFor(InterlinkService.methods.connect.name), null, options));
+    connect(input: AsyncIterable<MessageInitShape<typeof EnvelopeSchema>>, options?: CallOptions): AsyncIterable<Envelope> {
+        return this.client.connect(withStreamIdentity(input), this.callOptions(procedureFor(InterlinkService.method.connect.name), null, options));
     }
 
-    async registerBot(request: PartialMessage<RegisterBotRequest>, options?: CallOptions): Promise<RegisterBotResponse> {
-        const message = new RegisterBotRequest(request);
-        return this.client.registerBot(message, this.callOptions(procedureFor(InterlinkService.methods.registerBot.name), message, options));
+    async registerBot(request: MessageInitShape<typeof RegisterBotRequestSchema>, options?: CallOptions): Promise<RegisterBotResponse> {
+        const message = create(RegisterBotRequestSchema, request);
+        return this.client.registerBot(message, this.callOptions(procedureFor(InterlinkService.method.registerBot.name), { schema: RegisterBotRequestSchema, message }, options));
     }
 
-    async heartbeat(request: PartialMessage<HeartbeatRequest>, options?: CallOptions): Promise<HeartbeatResponse> {
-        const message = new HeartbeatRequest(request);
-        return this.client.heartbeat(message, this.callOptions(procedureFor(InterlinkService.methods.heartbeat.name), message, options));
+    async heartbeat(request: MessageInitShape<typeof HeartbeatRequestSchema>, options?: CallOptions): Promise<HeartbeatResponse> {
+        const message = create(HeartbeatRequestSchema, request);
+        return this.client.heartbeat(message, this.callOptions(procedureFor(InterlinkService.method.heartbeat.name), { schema: HeartbeatRequestSchema, message }, options));
     }
 
     async unregisterBot(botId: string, options?: CallOptions): Promise<UnregisterBotResponse> {
-        const message = new UnregisterBotRequest({ botId });
-        return this.client.unregisterBot(message, this.callOptions(procedureFor(InterlinkService.methods.unregisterBot.name), message, options));
+        const message = create(UnregisterBotRequestSchema, { botId });
+        return this.client.unregisterBot(message, this.callOptions(procedureFor(InterlinkService.method.unregisterBot.name), { schema: UnregisterBotRequestSchema, message }, options));
     }
 
     async listBots(options?: CallOptions): Promise<ListBotsResponse> {
-        const message = new ListBotsRequest();
-        return this.client.listBots(message, this.callOptions(procedureFor(InterlinkService.methods.listBots.name), message, options));
+        const message = create(ListBotsRequestSchema);
+        return this.client.listBots(message, this.callOptions(procedureFor(InterlinkService.method.listBots.name), { schema: ListBotsRequestSchema, message }, options));
     }
 
     async getBotInfo(botId: string, options?: CallOptions): Promise<BotInfo> {
-        const message = new GetBotInfoRequest({ botId });
-        return this.client.getBotInfo(message, this.callOptions(procedureFor(InterlinkService.methods.getBotInfo.name), message, options));
+        const message = create(GetBotInfoRequestSchema, { botId });
+        return this.client.getBotInfo(message, this.callOptions(procedureFor(InterlinkService.method.getBotInfo.name), { schema: GetBotInfoRequestSchema, message }, options));
     }
 
     async close(): Promise<void> {

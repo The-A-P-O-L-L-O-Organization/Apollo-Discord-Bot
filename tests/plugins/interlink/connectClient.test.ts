@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createHash, createHmac } from 'node:crypto';
+import { create, isMessage, toJson } from '@bufbuild/protobuf';
 import {
     InterlinkConnectClient,
     bodyHashOf,
@@ -13,7 +14,7 @@ import {
     signRequest,
     type InterlinkServiceClient
 } from '../../../src/plugins/interlink/connectClient.js';
-import { Envelope, ListBotsRequest, RegisterBotRequest, SendResponse } from '../../../src/generated/interlink/interlink/v1/interlink_pb.js';
+import { EnvelopeSchema, ListBotsRequestSchema, RegisterBotRequestSchema, SendResponseSchema, SubscribeRequestSchema, type Envelope } from '../../../src/generated/interlink/interlink/v1/interlink_pb.js';
 
 const AUTH_KEY = 'test-auth-key';
 const BOT_ID = 'test-bot';
@@ -76,13 +77,13 @@ describe('Interlink ConnectRPC auth primitives', () => {
 
     it('hashes an empty message as sha256 of {}', () => {
         const expected = createHash('sha256').update('{}', 'utf8').digest('hex');
-        expect(bodyHashOf(new ListBotsRequest())).toBe(expected);
+        expect(bodyHashOf(ListBotsRequestSchema, create(ListBotsRequestSchema))).toBe(expected);
     });
 
     it('produces order-independent hashes for maps', () => {
-        const first = new RegisterBotRequest({ botId: 'a', capabilities: { z: '1', a: '2', m: '3' } });
-        const second = new RegisterBotRequest({ botId: 'a', capabilities: { m: '3', z: '1', a: '2' } });
-        expect(bodyHashOf(first)).toBe(bodyHashOf(second));
+        const first = create(RegisterBotRequestSchema, { botId: 'a', capabilities: { z: '1', a: '2', m: '3' } });
+        const second = create(RegisterBotRequestSchema, { botId: 'a', capabilities: { m: '3', z: '1', a: '2' } });
+        expect(bodyHashOf(RegisterBotRequestSchema, first)).toBe(bodyHashOf(RegisterBotRequestSchema, second));
     });
 
     it('matches node:crypto for signing', () => {
@@ -100,9 +101,9 @@ describe('Interlink ConnectRPC auth primitives', () => {
     });
 
     it('extracts bot identity from messages', () => {
-        expect(extractBotId(new Envelope({ source: 'bot-a' }))).toBe('bot-a');
-        expect(extractBotId(new RegisterBotRequest({ botId: 'bot-b' }))).toBe('bot-b');
-        expect(extractBotId(new ListBotsRequest())).toBe('');
+        expect(extractBotId(create(EnvelopeSchema, { source: 'bot-a' }))).toBe('bot-a');
+        expect(extractBotId(create(RegisterBotRequestSchema, { botId: 'bot-b' }))).toBe('bot-b');
+        expect(extractBotId(create(ListBotsRequestSchema))).toBe('');
         expect(extractBotId(null)).toBe('');
     });
 
@@ -114,13 +115,13 @@ describe('Interlink ConnectRPC auth primitives', () => {
 describe('InterlinkConnectClient', () => {
     it('signs unary send with independently verifiable headers', async () => {
         const { client, mock } = createClient();
-        mock.send.mockResolvedValue(new SendResponse({ accepted: true, messageId: 'm-1' }));
+        mock.send.mockResolvedValue(create(SendResponseSchema, { accepted: true, messageId: 'm-1' }));
         const result = await client.send({ source: 'bot-x', type: 'ping', target: 'all', id: '1' });
         expect(result.accepted).toBe(true);
         const request = firstCallArg<Envelope>(mock.send);
-        expect(request).toBeInstanceOf(Envelope);
+        expect(isMessage(request, EnvelopeSchema)).toBe(true);
         const headers = callHeaders(mock.send);
-        const bodyHash = createHash('sha256').update(JSON.stringify(request.toJson()), 'utf8').digest('hex');
+        const bodyHash = createHash('sha256').update(JSON.stringify(toJson(EnvelopeSchema, request)), 'utf8').digest('hex');
         expect(header(headers, 'Authorization')).toBe(expectedAuth('/interlink.v1.InterlinkService/Send', header(headers, 'X-Interlink-Timestamp'), header(headers, 'X-Interlink-Nonce'), bodyHash));
         expect(header(headers, 'X-Interlink-Timestamp')).toMatch(/^\d+$/);
         expect(header(headers, 'X-Interlink-Nonce')).toMatch(/^[0-9a-f]{32}$/);
@@ -140,7 +141,7 @@ describe('InterlinkConnectClient', () => {
     it('signs subscribe with the request body hash', async () => {
         const { client, mock } = createClient();
         async function* responses() {
-            yield new Envelope({ source: 'bot-y' });
+            yield create(EnvelopeSchema, { source: 'bot-y' });
         }
         mock.subscribe.mockReturnValue(responses());
         const seen: Envelope[] = [];
@@ -148,10 +149,10 @@ describe('InterlinkConnectClient', () => {
             seen.push(message);
         }
         expect(seen).toHaveLength(1);
-        const request = firstCallArg<{ botId: string; toJson(): unknown }>(mock.subscribe);
+        const request = firstCallArg<{ botId: string }>(mock.subscribe);
         expect(request.botId).toBe('bot-y');
         const headers = callHeaders(mock.subscribe);
-        const bodyHash = createHash('sha256').update(JSON.stringify(request.toJson()), 'utf8').digest('hex');
+        const bodyHash = createHash('sha256').update(JSON.stringify(toJson(SubscribeRequestSchema, create(SubscribeRequestSchema, { botId: 'bot-y', messageTypes: ['ping'] }))), 'utf8').digest('hex');
         expect(header(headers, 'Authorization')).toBe(expectedAuth('/interlink.v1.InterlinkService/Subscribe', header(headers, 'X-Interlink-Timestamp'), header(headers, 'X-Interlink-Nonce'), bodyHash));
         expect(header(headers, 'X-Interlink-Bot')).toBe('bot-y');
     });
@@ -162,12 +163,12 @@ describe('InterlinkConnectClient', () => {
         async function* responses(input: AsyncIterable<Envelope>) {
             for await (const envelope of input) {
                 stamped.push(envelope);
-                yield new Envelope({ source: 'remote' });
+                yield create(EnvelopeSchema, { source: 'remote' });
             }
         }
         mock.connect.mockImplementation(responses);
         async function* input() {
-            yield new Envelope({ source: BOT_ID, type: 'ping' });
+            yield create(EnvelopeSchema, { source: BOT_ID, type: 'ping' });
         }
         const seen: Envelope[] = [];
         for await (const message of client.connect(input())) {
