@@ -45,7 +45,7 @@
     "@discordjs/builders": "^1.14.1",
     "@discordjs/rest": "^2.6.3",
     "@grpc/grpc-js": "^1.14.5",
-    "@grpc/proto-loader": "^0.7.15",
+    "@grpc/proto-loader": "^0.8.1",
     "@noble/hashes": "^2.4.0",
     "@prometheus-io/client": "^0.16.1",
     "adm-zip": "^0.6.1",
