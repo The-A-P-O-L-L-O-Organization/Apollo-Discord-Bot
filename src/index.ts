@@ -1,7 +1,8 @@
 import 'dotenv/config';
 import { randomUUID, randomBytes } from 'node:crypto';
 import { MessageFlags, Client, GatewayIntentBits, Collection, Partials, type ChatInputCommandInteraction, type Interaction } from 'discord.js';
-import type { Redis as RedisType } from 'ioredis';
+import { createRedisClient, closeRedisClient as closeRedis } from './utils/redis.js';
+import type { RedisClient } from './utils/redisCluster.js';
 import { config } from './config/config.js';
 import PluginManager from './core/PluginManager.js';
 import EventBus from './core/EventBus.js';
@@ -16,7 +17,6 @@ import { close as closeDatabase, startWalCheckpointInterval } from './utils/db.j
 import { closeLockRedis } from './utils/lock.js';
 import { safeError } from './utils/safeError.js';
 import { assertDiscordToken, assertOperatorAgreement, assertEncryptionKey, validatePostgresPoolMax, warnUnverifiedPlugins, validateQueueHmacSecret } from './utils/startupChecks.js';
-import { createRedisClient, closeRedisClient as closeRedis } from './utils/redis.js';
 import { startHealthServer, stopHealthServer } from './utils/healthServer.js';
 import { createLogger } from './utils/logger.js';
 import type { TypedClient } from './core/PluginManager.js';
@@ -277,9 +277,9 @@ async function handleInteraction(interaction: Interaction): Promise<void> {
 
 const RUN_MODE = process.env['RUN_MODE'] ?? 'gateway';
 
-let eventPub: RedisType | undefined;
-let eventSub: RedisType | undefined;
-let leaderRedis: RedisType | undefined;
+let eventPub: RedisClient | undefined;
+let eventSub: RedisClient | undefined;
+let leaderRedis: RedisClient | undefined;
 
 if (RUN_MODE === 'worker') {
     logger.info('[INFO] Starting in WORKER mode');
@@ -294,8 +294,8 @@ if (RUN_MODE === 'worker') {
 } else {
     if (config.queue.enabled) {
         registerProcessCommand();
-        const pub = createRedisClient(`${shardConfig.redisPrefix}:eventbus-pub`);
-        const sub = createRedisClient(`${shardConfig.redisPrefix}:eventbus-sub`);
+        const pub = createRedisClient({ mode: 'standalone', url: process.env['REDIS_URL'] });
+        const sub = createRedisClient({ mode: 'standalone', url: process.env['REDIS_URL'] });
         await pub.connect();
         await sub.connect();
         eventPub = pub;
@@ -431,7 +431,7 @@ if (RUN_MODE === 'worker') {
     }
 
     if (config.queue.enabled) {
-        const redis = createRedisClient('leader');
+        const redis = createRedisClient({ mode: 'standalone', url: process.env['REDIS_URL'] });
         await redis.connect();
         leaderRedis = redis;
 

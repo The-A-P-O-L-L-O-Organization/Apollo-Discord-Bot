@@ -1,79 +1,51 @@
 // Centralized Redis Connection Factory
 // Provides createRedisClient factory for dependency injection
 import { logger } from './logger.js';
-
-import Redis from 'ioredis';
-import type { Redis as RedisType } from 'ioredis';
-
-const _Redis = Redis as unknown as new (options?: RedisClientOptions) => RedisType;
-
-interface RedisClientOptions {
-    maxRetriesPerRequest?: number | null;
-    retryStrategy?: (times: number) => number | null;
-    enableReadyCheck?: boolean;
-    lazyConnect?: boolean;
-    host?: string;
-    port?: number;
-    password?: string;
-    username?: string;
-    family?: number;
-    db?: number;
-    protocol?: number;
-    url?: string;
-}
-
-const DEFAULT_OPTIONS: RedisClientOptions = {
-    maxRetriesPerRequest: 3,
-    retryStrategy: (times) => {
-        if (times > 3) {
-            return null; // Stop retrying
-        }
-        return Math.min(times * 200, 2000);
-    },
-    enableReadyCheck: true,
-    lazyConnect: true
-};
+import { createRedisClient as createRedisClientNew, createRedisClientFromEnv, type RedisClient } from './redisCluster.js';
 
 /**
- * Creates a new Redis client instance
- * @param name - Connection name for logging
+ * Creates a new Redis client instance (legacy API)
+ * @param name - Connection name for logging (deprecated, kept for backward compatibility)
  * @param options - Redis connection options
  * @returns Redis client instance
+ * @deprecated Use createRedisClient or createRedisClientFromEnv from redisCluster.ts instead
  */
-export function createRedisClient(name: string, options: RedisClientOptions = {}): RedisType {
-    const config = {
-        ...DEFAULT_OPTIONS,
-        ...options,
-        protocol: 2
-    };
+export function createRedisClientLegacy(name: string, options: Record<string, unknown> = {}): RedisClient {
+    logger.warn('[REDIS] createRedisClient(name, options) is deprecated. Use createRedisClient(config) or createRedisClientFromEnv() from redisCluster.ts');
 
-    // @ts-expect-error ioredis v6 module export issue
-    const redis = new Redis(config);
+    // Convert old-style options to new config format
+    const url = options['url'] as string | undefined;
+    const mode = options['mode'] as 'standalone' | 'sentinel' | 'cluster' | undefined;
 
-    redis.on('error', (err: Error) => {
-        logger.error({ err, msg: `[REDIS:${name}] Connection error` });
+    if (mode === 'cluster') {
+        return createRedisClientNew({
+            mode: 'cluster',
+            urls: options['urls'] as string[] || [],
+            options: options
+        });
+    }
+
+    if (mode === 'sentinel') {
+        return createRedisClientNew({
+            mode: 'sentinel',
+            sentinelUrls: options['sentinelUrls'] as string[] || [],
+            sentinelName: options['sentinelName'] as string,
+            options: options
+        });
+    }
+
+    return createRedisClientNew({
+        mode: 'standalone',
+        url: url ?? process.env['REDIS_URL'] ?? 'redis://localhost:6379',
+        options: options
     });
-
-    redis.on('connect', () => {
-        logger.info(`[REDIS:${name}] Connected`);
-    });
-
-    redis.on('ready', () => {
-        logger.info(`[REDIS:${name}] Ready`);
-    });
-
-    redis.on('close', () => {
-        logger.info(`[REDIS:${name}] Connection closed`);
-    });
-
-    return redis;
 }
 
 /**
  * Closes a Redis connection
  * @param redis - Redis client instance
  */
-export async function closeRedisClient(redis: RedisType | undefined): Promise<void> {
+export async function closeRedisClient(redis: RedisClient | undefined): Promise<void> {
     if (redis && (redis.status === 'ready' || redis.status === 'connecting' || redis.status === 'wait')) {
         await redis.quit();
     }
@@ -84,7 +56,7 @@ export async function closeRedisClient(redis: RedisType | undefined): Promise<vo
  * @param redis - Redis client instance
  * @returns Health status
  */
-export async function checkRedisHealth(redis: RedisType | undefined): Promise<boolean> {
+export async function checkRedisHealth(redis: RedisClient | undefined): Promise<boolean> {
     try {
         await redis?.ping();
         return true;
@@ -98,11 +70,14 @@ export async function checkRedisHealth(redis: RedisType | undefined): Promise<bo
  * @param redis - Redis client instance
  * @returns Connection state
  */
-export function getConnectionState(redis: RedisType | undefined): { status: string } {
+export function getConnectionState(redis: RedisClient | undefined): { status: string } {
     if (redis) {
         return { status: redis.status };
     }
     return { status: 'not_initialized' };
 }
 
-export default { createRedisClient, closeRedisClient, checkRedisHealth, getConnectionState };
+// Re-export the new factory functions
+export { createRedisClientNew as createRedisClient, createRedisClientFromEnv, type RedisClient };
+
+export default { createRedisClient: createRedisClientNew, closeRedisClient, checkRedisHealth, getConnectionState };

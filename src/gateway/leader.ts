@@ -1,4 +1,5 @@
 import type { Redis as RedisType } from 'ioredis';
+import type { Cluster as ClusterType } from 'ioredis';
 import { createLogger } from '../utils/logger.js';
 import type { LeaderElectionConfig } from '../types/gateway.js';
 
@@ -18,7 +19,7 @@ export function shardLockKey(shardId: number | string): string {
     return `apollo:gateway:leader:shard-${shardId}`;
 }
 
-export type LeaderRedis = RedisType;
+export type LeaderRedis = RedisType | ClusterType;
 
 const RELEASE_SCRIPT = `
   if redis.call("get", KEYS[1]) == ARGV[1] then

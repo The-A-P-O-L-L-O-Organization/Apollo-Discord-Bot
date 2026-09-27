@@ -2,11 +2,11 @@
 // Redis-based distributed locks with automatic cleanup
 import { config } from '../config/config.js';
 import { createRedisClient, closeRedisClient } from './redis.js';
-import type { Redis } from 'ioredis';
+import type { RedisClient } from './redisCluster.js';
 
 const LOCK_PREFIX = 'apollo:lock:';
 
-let _lockRedis: Redis | null = null;
+let _lockRedis: RedisClient | null = null;
 
 /**
  * Gets or creates the lock Redis connection.
@@ -18,10 +18,10 @@ let _lockRedis: Redis | null = null;
  *
  * Callers should use closeLockRedis() during shutdown to clean up.
  */
-export async function getLockRedis(): Promise<Redis | null> {
+export async function getLockRedis(): Promise<RedisClient | null> {
     if (_lockRedis) {return _lockRedis;}
     if (!config.queue.enabled) {return null;}
-    _lockRedis = createRedisClient('lock');
+    _lockRedis = createRedisClient({ mode: 'standalone', url: process.env['REDIS_URL'] });
     await _lockRedis.connect();
     return _lockRedis;
 }
@@ -45,17 +45,17 @@ const RELEASE_SCRIPT = `
   end
 `;
 
-export async function acquireLock(redis: Redis, key: string, owner: string, ttlMs = 10000): Promise<boolean> {
+export async function acquireLock(redis: RedisClient, key: string, owner: string, ttlMs = 10000): Promise<boolean> {
     // @ts-expect-error ioredis v6 set overload issue with NX/PX options
     const result = await redis.set(`${LOCK_PREFIX}${key}`, owner, 'NX', 'PX', ttlMs);
     return result === 'OK';
 }
 
-export async function releaseLock(redis: Redis, key: string, owner: string): Promise<void> {
+export async function releaseLock(redis: RedisClient, key: string, owner: string): Promise<void> {
     await redis.eval(RELEASE_SCRIPT, 1, `${LOCK_PREFIX}${key}`, owner);
 }
 
-export async function withLock<T>(redis: Redis, key: string, owner: string, fn: () => Promise<T>, ttlMs = 10000): Promise<T | false> {
+export async function withLock<T>(redis: RedisClient, key: string, owner: string, fn: () => Promise<T>, ttlMs = 10000): Promise<T | false> {
     const acquired = await acquireLock(redis, key, owner, ttlMs);
     if (!acquired) {return false;}
     try {
