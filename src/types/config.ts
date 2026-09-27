@@ -67,6 +67,11 @@ export interface InterlinkConfig {
     grpcAddress: string;
     authKey: string;
     publicKey: string;
+    jwtSecret: string;
+    jwtExpiry: string;
+    tlsCert: string;
+    tlsKey: string;
+    caCert: string;
     rateLimit: {
         windowMs: number;
         maxRequests: number;

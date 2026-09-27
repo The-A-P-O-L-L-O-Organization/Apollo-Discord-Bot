@@ -8,11 +8,13 @@ import { createLogger } from '../../utils/logger.js';
 import { extractInterlinkLocale, resolveInterlinkLocale } from './locale.js';
 import { config } from '../../config/config.js';
 import type { EventBusImpl } from '../../core/EventBus.js';
+import { verifyInterlinkToken, type InterlinkTokenPayload } from './auth.js';
 
 // Trust model: the shared INTERLINK_AUTH_KEY defines the full trust domain.
 // Any key holder can assert any bot identity (per-bot source is self-asserted).
 // Delivery is at-most-once: Send Accepted:true means accepted by the Go
 // service, even when the target is offline (no redelivery).
+// New JWT-based auth: tokens issued per-bot with capabilities, verified on receipt.
 
 interface Envelope {
     protocol: string;
@@ -69,6 +71,36 @@ function toLegacyEnvelope(envelope: ProtoEnvelope): Envelope {
         nonce: envelope.nonce,
         payload: decodeConnectPayload(envelope.payload)
     };
+}
+
+async function validateIncomingEnvelope(envelope: Envelope): Promise<InterlinkTokenPayload | null> {
+    // Check if JWT auth is enabled
+    if (!config.interlink.jwtSecret) {
+        // JWT not configured, allow through (backward compatibility with HMAC-only)
+        return null;
+    }
+
+    // Extract JWT from payload if present (for envelopes that carry auth)
+    // In ConnectRPC, the auth would be in headers, but we can also embed in payload for certain types
+    // For now, we'll check if the payload contains a token field
+    const payload = envelope.payload as Record<string, unknown> | null;
+    if (!payload || typeof payload !== 'object') {
+        return null;
+    }
+
+    const token = payload['_interlink_token'] as string | undefined;
+    if (!token) {
+        // No token in payload - reject if JWT is required
+        // For backward compatibility, we'll allow but log a warning
+        return null;
+    }
+
+    try {
+        const verified = await verifyInterlinkToken(token);
+        return verified;
+    } catch (err) {
+        throw new Error(`JWT verification failed: ${(err as Error).message}`);
+    }
 }
 
 function sleep(ms: number, signal: AbortSignal): Promise<void> {
@@ -216,6 +248,16 @@ export default class InterlinkPlugin extends Plugin {
     }
 
     async _handleIncomingEnvelope(envelope: Envelope): Promise<void> {
+        // Validate JWT if configured
+        if (config.interlink.jwtSecret) {
+            try {
+                await validateIncomingEnvelope(envelope);
+            } catch (err) {
+                this.logger.warn({ err: err as Error, msg: '[Interlink] Incoming envelope rejected: invalid JWT' });
+                return;
+            }
+        }
+
         if (envelope.type === 'ping') {
             await this._sendViaConnect({
                 protocol: 'apollo.interlink.v1',

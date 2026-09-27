@@ -231,6 +231,11 @@ const config = {
         grpcAddress: getEnv('INTERLINK_GRPC_ADDR') ?? 'http://localhost:50052',
         authKey: getEnv('INTERLINK_AUTH_KEY') ?? '',
         publicKey: getEnv('INTERLINK_PUBLIC_KEY') ?? '',
+        jwtSecret: getEnv('INTERLINK_JWT_SECRET') ?? '',
+        jwtExpiry: getEnv('INTERLINK_JWT_EXPIRY') ?? '24h',
+        tlsCert: getEnv('INTERLINK_TLS_CERT') ?? '',
+        tlsKey: getEnv('INTERLINK_TLS_KEY') ?? '',
+        caCert: getEnv('INTERLINK_CA_CERT') ?? '',
         rateLimit: {
             windowMs: 60000,
             maxRequests: 100
