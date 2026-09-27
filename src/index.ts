@@ -15,7 +15,7 @@ import { stopPollScheduler } from './utils/pollScheduler.js';
 import { close as closeDatabase, startWalCheckpointInterval } from './utils/db.js';
 import { closeLockRedis } from './utils/lock.js';
 import { safeError } from './utils/safeError.js';
-import { assertDiscordToken, assertOperatorAgreement, assertEncryptionKey, validatePostgresPoolMax, warnUnverifiedPlugins } from './utils/startupChecks.js';
+import { assertDiscordToken, assertOperatorAgreement, assertEncryptionKey, validatePostgresPoolMax, warnUnverifiedPlugins, validateQueueHmacSecret } from './utils/startupChecks.js';
 import { createRedisClient, closeRedisClient as closeRedis } from './utils/redis.js';
 import { startHealthServer, stopHealthServer } from './utils/healthServer.js';
 import { createLogger } from './utils/logger.js';
@@ -399,6 +399,7 @@ if (RUN_MODE === 'worker') {
             assertDiscordToken(config.discord.token);
             assertEncryptionKey(config.ENCRYPTION_KEY);
             assertOperatorAgreement(config.operator);
+            await validateQueueHmacSecret();
             await i18n.init();
             if (process.env['NODE_ENV'] !== 'production') {
                 try {

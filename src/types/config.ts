@@ -59,6 +59,7 @@ export interface QueueConfig {
     name?: string;
     defaultJobOptions?: DefaultJobOptions;
     serializer?: JobSerializer;
+    hmacSecret?: string;
 }
 
 export interface InterlinkConfig {

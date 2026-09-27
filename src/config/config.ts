@@ -270,7 +270,8 @@ const config = {
             queuePrefixBase: getEnv('QUEUE_PREFIX') ?? 'apollo',
             socketPathBase: '/tmp/apollo.sock',
             redisKeyPrefixBase: 'apollo'
-        }
+        },
+        hmacSecret: getEnv('QUEUE_HMAC_SECRET')
     },
 
     // Reminders Configuration

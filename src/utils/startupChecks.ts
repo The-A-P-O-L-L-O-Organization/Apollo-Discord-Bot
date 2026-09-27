@@ -179,3 +179,20 @@ export async function validateRedisAuth(): Promise<void> {
         await redis.quit();
     }
 }
+
+export async function validateQueueHmacSecret(): Promise<void> {
+    const isProduction = process.env['NODE_ENV'] === 'production';
+    const { config } = await import('../config/config.js');
+
+    if (!isProduction || !config.queue.enabled) {
+        return;
+    }
+
+    if (!config.queue.hmacSecret) {
+        throw new Error(
+            '[FATAL] QUEUE_HMAC_SECRET is required in production when queue is enabled. ' +
+            'Generate a secure random secret (e.g., `openssl rand -hex 32`) ' +
+            'and set it in your .env file before starting.'
+        );
+    }
+}
