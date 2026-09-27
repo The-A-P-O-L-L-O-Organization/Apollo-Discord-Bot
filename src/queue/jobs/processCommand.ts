@@ -17,6 +17,8 @@ import { logger } from '../../utils/logger.js';
 import { i18n } from '../../i18n/index.js';
 import { encode } from 'msgpackr';
 import type { Job } from 'bullmq';
+import { NonceStore } from '../nonceStore.js';
+import { createRedisClientFromEnv } from '../../utils/redisCluster.js';
 
 export const JobNames = {
     PROCESS_COMMAND: 'process-command'
@@ -27,8 +29,17 @@ let rest: REST | null = null;
 // Command module cache to avoid re-importing on every job
 export const commandModuleCache = new Map<string, { execute: (_interaction: unknown) => Promise<unknown> }>();
 
-// Nonce store for HMAC replay protection (Redis-backed in production)
-const nonceStore = new Map<string, number>(); // In-memory fallback for dev; replace with Redis SET in production
+// Redis-backed nonce store for HMAC replay protection
+let nonceStore: NonceStore | null = null;
+
+async function getNonceStore(): Promise<NonceStore> {
+    if (!nonceStore) {
+        const redis = createRedisClientFromEnv();
+        nonceStore = new NonceStore(redis, { ttlSeconds: 600 }); // 10 minutes default
+        await nonceStore.initialize();
+    }
+    return nonceStore;
+}
 
 function getRest(): REST {
     rest ??= new REST({ version: '10' }).setToken(config.discord.token);
@@ -47,7 +58,7 @@ function signJobData(payload: Record<string, unknown>): Record<string, unknown> 
     return { ...payload, timestamp, nonce, hmac };
 }
 
-function verifyJobData(payload: Record<string, unknown>): boolean {
+async function verifyJobData(payload: Record<string, unknown>): Promise<boolean> {
     const secret = (config.queue as Record<string, unknown>)['hmacSecret'] as string | undefined;
     if (!secret) {
         // Backward compat: accept unsigned jobs in dev, warn
@@ -80,18 +91,14 @@ function verifyJobData(payload: Record<string, unknown>): boolean {
         return false;
     }
 
-    // Nonce deduplication (in-memory; for production use Redis SET with TTL)
-    const nonceKey = `${nonce as string}:${timestamp as number}`;
-    if (nonceStore.has(nonceKey)) {
-        logger.warn('[HMAC] Duplicate nonce — rejecting job');
+    // Nonce deduplication using Redis-backed NonceStore (atomic SET NX EX)
+    const store = await getNonceStore();
+    const nonceStr = nonce as string;
+    const timestampNum = timestamp as number;
+    const nonceSet = await store.checkAndSet(nonceStr, timestampNum);
+    if (!nonceSet) {
+        logger.warn('[HMAC] Duplicate nonce — rejecting job (replay attack)');
         return false;
-    }
-    nonceStore.set(nonceKey, now);
-    // Cleanup old nonces (older than 10 minutes)
-    for (const [key, ts] of nonceStore.entries()) {
-        if (now - ts > 10 * 60 * 1000) {
-            nonceStore.delete(key);
-        }
     }
 
     return true;
@@ -143,7 +150,7 @@ export default function register(): void {
         const data = job.data;
 
         // Verify HMAC signature
-        if (!verifyJobData(data)) {
+        if (!await verifyJobData(data)) {
             logger.warn('[Worker] Job HMAC verification failed — rejecting');
             return { status: 'error', reason: 'hmac_verification_failed' };
         }
