@@ -30,6 +30,7 @@ export interface HandlerEntry {
     filter: EventFilter | undefined;
     priority: number;
     once: boolean;
+    subscriptionId?: string;
 }
 
 interface ApiEntry {
@@ -71,6 +72,7 @@ export class EventBusImpl implements EventBus {
     private _publishedCount = 0;
     private _receivedCount = 0;
     private _errorCount = 0;
+    private _subscriptions = new Map<string, HandlerEntry>();
 
     constructor(options: EventBusImplOptions = {}) {
         this._redisPub = options.redisPub;
@@ -78,7 +80,7 @@ export class EventBusImpl implements EventBus {
         this._podId = options.podId;
     }
 
-    on<T = unknown>(event: string, handler: EventHandler<T>, pluginId: string, options?: SubscribeOptions): () => void {
+    on<T = unknown>(event: string, handler: EventHandler<T>, pluginId: string, options?: SubscribeOptions, subscriptionId?: string): () => void {
         if (!this._handlers.has(event)) {
             this._handlers.set(event, new Set());
         }
@@ -87,10 +89,15 @@ export class EventBusImpl implements EventBus {
             pluginId,
             filter: options?.filter,
             priority: options?.priority ?? 0,
-            once: options?.once ?? false
+            once: options?.once ?? false,
+            subscriptionId
         };
         const set = this._handlers.get(event)!;
         set.add(entry);
+
+        if (subscriptionId) {
+            this._subscriptions.set(subscriptionId, entry);
+        }
 
         if (this._crossPodEnabled && set.size === 1) {
             this._redisSub?.subscribe(`apollo:event:${event}`).catch(err => {
@@ -101,6 +108,9 @@ export class EventBusImpl implements EventBus {
         return () => {
             if (set.has(entry)) {
                 set.delete(entry);
+                if (subscriptionId) {
+                    this._subscriptions.delete(subscriptionId);
+                }
                 if (this._crossPodEnabled && set.size === 0) {
                     this._redisSub?.unsubscribe(`apollo:event:${event}`).catch(() => {
                         // ignore unsubscribe errors
@@ -266,6 +276,9 @@ export class EventBusImpl implements EventBus {
                 for (const entry of set) {
                     if (entry.pluginId === pluginId) {
                         set.delete(entry);
+                        if (entry.subscriptionId) {
+                            this._subscriptions.delete(entry.subscriptionId);
+                        }
                         if (set.size === 0) {
                             this._redisSub?.unsubscribe(`apollo:event:${event}`).catch(() => {
                                 // ignore unsubscribe errors
@@ -277,7 +290,12 @@ export class EventBusImpl implements EventBus {
         } else {
             for (const [, set] of this._handlers) {
                 for (const entry of set) {
-                    if (entry.pluginId === pluginId) { set.delete(entry); }
+                    if (entry.pluginId === pluginId) {
+                        if (entry.subscriptionId) {
+                            this._subscriptions.delete(entry.subscriptionId);
+                        }
+                        set.delete(entry);
+                    }
                 }
             }
         }
@@ -369,9 +387,10 @@ export class EventBusImpl implements EventBus {
 
     subscribe<T>(event: string, handler: EventHandler<T>, options?: SubscribeOptions): Promise<Subscription> {
         const pluginId = options?.filter?.sourcePlugin ?? 'unknown';
-        this.on(event, handler, pluginId, options);
+        const subscriptionId = crypto.randomUUID();
+        this.on(event, handler, pluginId, options, subscriptionId);
         return Promise.resolve({
-            id: crypto.randomUUID(),
+            id: subscriptionId,
             event,
             filter: options?.filter,
             priority: options?.priority ?? 0,
@@ -380,9 +399,23 @@ export class EventBusImpl implements EventBus {
         });
     }
 
-    unsubscribe(_subscription: Subscription): Promise<void> {
-        // Note: We can't easily find the exact entry without storing subscription ID
-        // This is a limitation - in practice we'd need to track subscriptions differently
+    unsubscribe(subscription: Subscription): Promise<void> {
+        const entry = this._subscriptions.get(subscription.id);
+        if (!entry) {
+            return Promise.resolve();
+        }
+
+        const set = this._handlers.get(subscription.event);
+        if (set?.has(entry)) {
+            set.delete(entry);
+            if (this._crossPodEnabled && set.size === 0) {
+                this._redisSub?.unsubscribe(`apollo:event:${subscription.event}`).catch(() => {
+                    // ignore unsubscribe errors
+                });
+            }
+        }
+
+        this._subscriptions.delete(subscription.id);
         return Promise.resolve();
     }
 
