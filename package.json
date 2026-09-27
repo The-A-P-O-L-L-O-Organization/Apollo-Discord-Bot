@@ -84,7 +84,7 @@
     "chokidar": "^5.0.0",
     "esbuild": "^0.28.2",
     "eslint": "^10.11.0",
-    "i18next-parser": "^9.4.0",
+    "i18next-cli": "^1.74.1",
     "madge": "^8.0.0",
     "supertest": "^7.3.0",
     "tsx": "^4.23.15",
