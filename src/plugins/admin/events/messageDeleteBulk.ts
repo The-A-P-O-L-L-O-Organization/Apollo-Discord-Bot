@@ -1,5 +1,4 @@
-// @ts-expect-error - JS file not yet migrated
-import { logEvent } from '../../../utils/logger.js';
+import { logEvent } from '../../../utils/guildLogging.js';
 
 export default {
     name: 'messageDeleteBulk',
@@ -75,6 +74,7 @@ export default {
                 });
             }
 
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             await logEvent(guild, 'messageDeleteBulk', embed);
 
         } catch (error) {

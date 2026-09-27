@@ -75,14 +75,14 @@ export async function getLogChannel(guild: Guild): Promise<{ isTextBased: () => 
  * @param eventType - The type of event
  * @param embed - The embed to send
  */
-export async function logEvent(guild: Guild, eventType: string, embed: EmbedBuilder): Promise<void> {
+export async function logEvent(guild: Guild, eventType: string, embed: EmbedBuilder | Record<string, unknown>): Promise<void> {
     if (!(await isEventEnabled(guild.id, eventType))) { return; }
 
     const logChannel = await getLogChannel(guild);
     if (!logChannel) { return; }
 
     try {
-        await logChannel.send({ embeds: [embed] });
+        await logChannel.send({ embeds: [embed as EmbedBuilder] });
     } catch (error) {
         const { logger } = await import('./logger.js');
         logger.error({ err: error, msg: `[ERROR] Failed to send log to ${guild.id}` });

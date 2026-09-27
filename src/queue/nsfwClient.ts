@@ -3,6 +3,7 @@
 
 import { loadSync } from '@grpc/proto-loader';
 import { loadPackageDefinition, credentials, type ClientOptions, type ChannelOptions } from '@grpc/grpc-js';
+import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { logger } from '../utils/logger.js';
@@ -39,30 +40,42 @@ interface HealthCheckResponse {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Proto file path
-const PROTO_PATH = join(__dirname, '../../protos/nsfw/v1/nsfw.proto');
-
-// Load proto definition
-const packageDefinition = loadSync(PROTO_PATH, {
-    keepCase: true,
-    longs: String,
-    enums: String,
-    defaults: true,
-    oneofs: true
-});
-
-const protoDescriptor = loadPackageDefinition(packageDefinition) as unknown as {
-    nsfw: {
-        v1: {
-            NsfwService: new (address: string, credentials: ClientOptions, options?: ChannelOptions) => {
-                Analyze(request: AnalyzeRequest, callback: (error: unknown, response: AnalyzeResponse) => void): void;
-                HealthCheck(request: HealthCheckRequest, callback: (error: unknown, response: HealthCheckResponse) => void): void;
-            };
-        };
-    };
+type NsfwServiceCtor = new (address: string, credentials: ClientOptions, options?: ChannelOptions) => {
+    Analyze(request: AnalyzeRequest, callback: (error: unknown, response: AnalyzeResponse) => void): void;
+    HealthCheck(request: HealthCheckRequest, callback: (error: unknown, response: HealthCheckResponse) => void): void;
 };
 
-const NsfwServiceClient = protoDescriptor.nsfw.v1.NsfwService;
+function resolveProtoPath(): string {
+    const override = process.env['NSFW_PROTO_PATH'];
+    if (override && existsSync(override)) { return override; }
+    const candidates = [
+        join(__dirname, '../../protos/nsfw/v1/nsfw.proto'),
+        join(__dirname, '../protos/nsfw/v1/nsfw.proto'),
+        join(process.cwd(), 'protos/nsfw/v1/nsfw.proto')
+    ];
+    const found = candidates.find((p) => existsSync(p));
+    if (!found) { throw new Error(`NSFW proto not found (searched ${candidates.join(', ')})`); }
+    return found;
+}
+
+let cachedClientCtor: NsfwServiceCtor | null = null;
+
+function getNsfwServiceClient(): NsfwServiceCtor {
+    if (!cachedClientCtor) {
+        const packageDefinition = loadSync(resolveProtoPath(), {
+            keepCase: true,
+            longs: String,
+            enums: String,
+            defaults: true,
+            oneofs: true
+        });
+        const protoDescriptor = loadPackageDefinition(packageDefinition) as unknown as {
+            nsfw: { v1: { NsfwService: NsfwServiceCtor } };
+        };
+        cachedClientCtor = protoDescriptor.nsfw.v1.NsfwService;
+    }
+    return cachedClientCtor;
+}
 
 // gRPC status codes that should trigger fail-open after retries
 const FAIL_OPEN_CODES = new Set([
@@ -139,9 +152,10 @@ function recordSuccess(): void {
 /**
  * Creates a gRPC client instance
  */
-function createClient(): InstanceType<typeof NsfwServiceClient> {
+function createClient(): InstanceType<NsfwServiceCtor> {
     const address = process.env['NSFW_GRPC_ADDR'] ?? 'localhost:50051';
-    return new NsfwServiceClient(address, credentials.createInsecure(), {
+    const Ctor = getNsfwServiceClient();
+    return new Ctor(address, credentials.createInsecure(), {
         'grpc.max_receive_message_length': 10 * 1024 * 1024, // 10MB
         'grpc.max_send_message_length': 10 * 1024 * 1024
     });

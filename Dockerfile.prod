@@ -23,6 +23,7 @@ RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
 # Copy TypeScript configs and source
 COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
+COPY protos ./protos
 COPY bin ./bin
 COPY scripts/generate-manifest.mjs ./scripts/generate-manifest.mjs
 COPY plugin-manifest.json ./
@@ -56,6 +57,7 @@ COPY --from=builder /app/node_modules ./node_modules
 # Copy compiled output, CLI bundle, ALL src directories (for runtime plugin imports and manifest verification), and regenerated manifest
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/src ./src
+COPY --from=builder /app/protos ./protos
 # Overlay compiled JS files onto src so ESM '.js' imports resolve at runtime.
 # Only '*.js' files are copied: '.d.ts'/'.map' files must not pollute src/
 # or the plugin command/event loader will try to import type declarations.

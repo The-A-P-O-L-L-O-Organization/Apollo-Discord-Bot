@@ -1,5 +1,4 @@
-// @ts-expect-error - JS file not yet migrated
-import { logEvent, createMessageDeleteEmbed } from '../../../utils/logger.js';
+import { logEvent, createMessageDeleteEmbed } from '../../../utils/guildLogging.js';
 
 export default {
     name: 'messageDelete',
@@ -20,7 +19,9 @@ export default {
             }
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         const embed = createMessageDeleteEmbed(message);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         await logEvent(message.guild, 'messageDelete', embed);
     }
 };

@@ -1,5 +1,4 @@
-// @ts-expect-error - JS file not yet migrated
-import { logEvent, createMessageEditEmbed } from '../../../utils/logger.js';
+import { logEvent, createMessageEditEmbed } from '../../../utils/guildLogging.js';
 
 export default {
     name: 'messageUpdate',
@@ -31,7 +30,9 @@ export default {
 
         if (!oldMessage.content && !newMessage.content) { return; }
 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         const embed = createMessageEditEmbed(oldMessage, newMessage);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         await logEvent(newMessage.guild, 'messageEdit', embed);
     }
 };

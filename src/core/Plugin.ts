@@ -96,7 +96,19 @@ export abstract class Plugin<C extends CommandModule = CommandModule, _E extends
 
         const cmdDir = path.join(this._dir, 'commands');
         let files: string[];
-        try { files = readdirSync(cmdDir).filter(f => (f.endsWith('.ts') || f.endsWith('.js')) && !f.endsWith('.d.ts')); } catch { return; }
+        try {
+            const raw = readdirSync(cmdDir).filter(f => (f.endsWith('.ts') || f.endsWith('.js')) && !f.endsWith('.d.ts'));
+            const rawSet = new Set(raw);
+            const seen = new Set<string>();
+            files = [];
+            for (const f of raw) {
+                if (f.endsWith('.ts') && rawSet.has(f.replace(/\.ts$/, '.js'))) { continue; }
+                const base = f.replace(/\.(ts|js)$/, '');
+                if (seen.has(base)) { continue; }
+                seen.add(base);
+                files.push(f);
+            }
+        } catch { return; }
 
         for (const file of files) {
             try {
@@ -132,7 +144,19 @@ export abstract class Plugin<C extends CommandModule = CommandModule, _E extends
 
         const evtDir = path.join(this._dir, 'events');
         let files: string[];
-        try { files = readdirSync(evtDir).filter(f => (f.endsWith('.ts') || f.endsWith('.js')) && !f.endsWith('.d.ts')); } catch { return; }
+        try {
+            const raw = readdirSync(evtDir).filter(f => (f.endsWith('.ts') || f.endsWith('.js')) && !f.endsWith('.d.ts'));
+            const rawSet = new Set(raw);
+            const seen = new Set<string>();
+            files = [];
+            for (const f of raw) {
+                if (f.endsWith('.ts') && rawSet.has(f.replace(/\.ts$/, '.js'))) { continue; }
+                const base = f.replace(/\.(ts|js)$/, '');
+                if (seen.has(base)) { continue; }
+                seen.add(base);
+                files.push(f);
+            }
+        } catch { return; }
 
         for (const file of files) {
             try {

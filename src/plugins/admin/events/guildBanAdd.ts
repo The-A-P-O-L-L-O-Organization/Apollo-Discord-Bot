@@ -1,5 +1,4 @@
-// @ts-expect-error - JS file not yet migrated
-import { logEvent } from '../../../utils/logger.js';
+import { logEvent } from '../../../utils/guildLogging.js';
 
 export default {
     name: 'guildBanAdd',
@@ -59,6 +58,7 @@ export default {
                 timestamp: new Date().toISOString()
             };
 
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             await logEvent(guild, 'ban', embed);
 
             console.log(`[MODERATION] User ${user.tag} was banned from ${guild.name}`);

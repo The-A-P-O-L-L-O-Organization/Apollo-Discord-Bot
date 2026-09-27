@@ -1,8 +1,4 @@
 import { defineConfig } from 'vitest/config';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
     test: {
@@ -31,17 +27,5 @@ export default defineConfig({
         pool: 'forks',
         maxWorkers: 1,
         fileParallelism: false
-    },
-    resolve: {
-        alias: {
-            '@core': path.resolve(__dirname, 'src/core'),
-            '@utils': path.resolve(__dirname, 'src/utils'),
-            '@plugins': path.resolve(__dirname, 'src/plugins'),
-            '@queue': path.resolve(__dirname, 'src/queue'),
-            '@db': path.resolve(__dirname, 'src/db'),
-            '@config': path.resolve(__dirname, 'src/config/config'),
-            '@types': path.resolve(__dirname, 'src/types'),
-            '@tests': path.resolve(__dirname, 'tests')
-        }
     }
 });

@@ -21,6 +21,7 @@ RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
 
 # Copy application source code
 COPY src ./src
+COPY protos ./protos
 COPY bin ./bin
 COPY scripts/deploy-commands.js ./
 COPY plugin-manifest.json ./

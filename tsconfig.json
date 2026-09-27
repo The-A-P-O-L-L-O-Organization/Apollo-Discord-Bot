@@ -20,17 +20,7 @@
         "isolatedModules": true,
         "verbatimModuleSyntax": true,
         "skipLibCheck": false,
-        "types": ["node", "vitest/globals", "@discordjs/builders"],
-        "paths": {
-            "@core/*": ["./src/core/*"],
-            "@utils/*": ["./src/utils/*"],
-            "@plugins/*": ["./src/plugins/*"],
-            "@queue/*": ["./src/queue/*"],
-            "@db/*": ["./src/db/*"],
-            "@config": ["./src/config/config"],
-            "@types/*": ["./src/types/*"],
-            "@tests/*": ["./tests/*"]
-        }
+        "types": ["node", "vitest/globals", "@discordjs/builders"]
     },
     "include": [
         "src/**/*",

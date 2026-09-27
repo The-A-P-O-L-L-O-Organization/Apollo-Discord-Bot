@@ -259,10 +259,11 @@ export default class PluginManager {
         let pluginDir = path.join(process.cwd(), baseDir, id);
         if (!PluginClass) {
             pluginDir = path.join(process.cwd(), baseDir, id);
-            let pluginPath = path.join(pluginDir, 'plugin.ts');
-            if (!existsSync(pluginPath)) {
-                pluginPath = path.join(pluginDir, 'plugin.js');
-            }
+            const preferJs = process.env['NODE_ENV'] === 'production';
+            const candidates = preferJs
+                ? [path.join(pluginDir, 'plugin.js'), path.join(pluginDir, 'plugin.ts')]
+                : [path.join(pluginDir, 'plugin.ts'), path.join(pluginDir, 'plugin.js')];
+            let pluginPath = candidates.find((p) => existsSync(p)) ?? candidates[0]!;
             if (!existsSync(pluginPath)) {
                 const optionalDir = path.join(
                     process.cwd(),
@@ -271,12 +272,13 @@ export default class PluginManager {
                 );
                 const optionalPath = path.join(optionalDir, 'plugin.ts');
                 const optionalPathJs = path.join(optionalDir, 'plugin.js');
-                if (existsSync(optionalPath)) {
+                const optionalCandidates = preferJs ? [optionalPathJs, optionalPath] : [optionalPath, optionalPathJs];
+                if (existsSync(optionalCandidates[0]!)) {
                     pluginDir = optionalDir;
-                    pluginPath = optionalPath;
-                } else if (existsSync(optionalPathJs)) {
+                    pluginPath = optionalCandidates[0]!;
+                } else if (existsSync(optionalCandidates[1]!)) {
                     pluginDir = optionalDir;
-                    pluginPath = optionalPathJs;
+                    pluginPath = optionalCandidates[1]!;
                 } else {
                     throw new Error(`Plugin ${id} not found at ${pluginPath}`);
                 }
