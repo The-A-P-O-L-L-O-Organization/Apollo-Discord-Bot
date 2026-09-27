@@ -51,3 +51,4 @@ docs/
 # Worktrees
 .worktrees/
 .slim/
+target/
