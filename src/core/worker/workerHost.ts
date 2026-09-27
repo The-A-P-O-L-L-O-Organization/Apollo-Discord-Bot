@@ -4,6 +4,7 @@ import { i18n } from '../../i18n/index.js';
 import { DEFAULT_LOCALE, isSupported } from '../../i18n/supportedLocales.js';
 import { isOversize } from './rpc.js';
 import type { RPCMessage } from './rpc.js';
+import { signCapabilities } from './capabilitySignature.js';
 
 const MAX_CONSECUTIVE_CRASHES = 5;
 const HEALTHY_WINDOW_MS = 10 * 60 * 1000;
@@ -117,10 +118,16 @@ export class WorkerHost {
         const maxYoungGenerationSizeMb = resourceLimits.maxYoungGenerationSizeMb ?? 64;
         const stackSizeMb = resourceLimits.stackSizeMb ?? 8;
 
+        const capabilitySecret = process.env['PLUGIN_CAPABILITY_SECRET'] ?? process.env['QUEUE_HMAC_SECRET'] ?? '';
+        if (!capabilitySecret) {
+            this._log?.('[WORKER] WARNING: PLUGIN_CAPABILITY_SECRET or QUEUE_HMAC_SECRET not set; capability signatures will not be verified');
+        }
+        const signedCapabilities = signCapabilities(pluginId, granted, capabilitySecret);
+
         const env: Record<string, string> = {
             PLUGIN_ID: pluginId,
             PLUGIN_DIR: dir,
-            PLUGIN_CAPABILITIES: JSON.stringify(granted),
+            PLUGIN_CAPABILITIES: JSON.stringify(signedCapabilities),
             NODE_ENV: process.env['NODE_ENV'] ?? ''
         };
 
