@@ -1,4 +1,5 @@
 import { fork, type ForkOptions, type ChildProcess } from 'node:child_process';
+import { mkdirSync, writeFileSync, existsSync, rmSync } from 'node:fs';
 import { logSecurityEvent } from '../../utils/securityLog.js';
 import { i18n } from '../../i18n/index.js';
 import { DEFAULT_LOCALE, isSupported } from '../../i18n/supportedLocales.js';
@@ -8,6 +9,7 @@ import { signCapabilities } from './capabilitySignature.js';
 
 const MAX_CONSECUTIVE_CRASHES = 5;
 const HEALTHY_WINDOW_MS = 10 * 60 * 1000;
+const CGROUP_BASE = '/sys/fs/cgroup/apollo/workers';
 
 export const HIGH_RISK_CAPABILITIES = new Set([
     'api:sendMessage',
@@ -72,7 +74,7 @@ export class WorkerHost {
 
     constructor({
         fork: forkImpl = fork,
-        log = console.log,
+        log = () => {},
         now = () => Date.now(),
         backoff = (attempt) => Math.min(1000 * 2 ** attempt, 60000)
     }: WorkerHostOptions = {}) {
@@ -117,6 +119,9 @@ export class WorkerHost {
         const maxOldGenerationSizeMb = resourceLimits.maxOldGenerationSizeMb ?? 256;
         const maxYoungGenerationSizeMb = resourceLimits.maxYoungGenerationSizeMb ?? 64;
         const stackSizeMb = resourceLimits.stackSizeMb ?? 8;
+
+        // Create cgroup for this worker
+        this.createCgroup(pluginId, resourceLimits);
 
         const capabilitySecret = process.env['PLUGIN_CAPABILITY_SECRET'] ?? process.env['QUEUE_HMAC_SECRET'] ?? '';
         if (!capabilitySecret) {
@@ -246,7 +251,79 @@ export class WorkerHost {
         this._workers.delete(pluginId);
         this._log?.(`[WORKER] Terminated worker for ${pluginId}`);
         logSecurityEvent({ event: 'plugin.terminated', pluginId });
+        this.cleanupCgroup(pluginId);
         return true;
+    }
+
+    private isCgroupV2Available(): boolean {
+        return existsSync('/sys/fs/cgroup/cgroup.controllers');
+    }
+
+    private createCgroup(pluginId: string, resourceLimits: WorkerManifest['resourceLimits']): void {
+        if (!this.isCgroupV2Available()) {
+            this._log?.('[WORKER] cgroup v2 not available, skipping resource limits');
+            return;
+        }
+
+        const cgroupPath = `${CGROUP_BASE}/${pluginId}`;
+        try {
+            mkdirSync(cgroupPath, { recursive: true });
+        } catch (err) {
+            this._log?.(`[WORKER] Failed to create cgroup for ${pluginId} (permission denied or unavailable): ${String(err)}`);
+            return;
+        }
+
+        // Enable memory and cpu controllers
+        try {
+            writeFileSync(`${cgroupPath}/cgroup.subtree_control`, '+memory +cpu');
+        } catch (err) {
+            this._log?.(`[WORKER] Failed to enable cgroup controllers for ${pluginId}: ${String(err)}`);
+            return;
+        }
+
+        // Set memory limit
+        if (resourceLimits?.maxOldGenerationSizeMb) {
+            const memoryBytes = resourceLimits.maxOldGenerationSizeMb * 1024 * 1024;
+            try {
+                writeFileSync(`${cgroupPath}/memory.max`, memoryBytes.toString());
+            } catch (err) {
+                this._log?.(`[WORKER] Failed to set memory.max for ${pluginId}: ${String(err)}`);
+            }
+        }
+
+        // Set CPU limit (quota in microseconds per period)
+        // CPU limit as percentage: 100% = 100000 microseconds per 100000 period
+        // Using a reasonable default if not specified
+        try {
+            writeFileSync(`${cgroupPath}/cpu.max`, '100000 100000');
+        } catch (err) {
+            this._log?.(`[WORKER] Failed to set cpu.max for ${pluginId}: ${String(err)}`);
+        }
+    }
+
+    private cleanupCgroup(pluginId: string): void {
+        if (!this.isCgroupV2Available()) {
+            return;
+        }
+
+        const cgroupPath = `${CGROUP_BASE}/${pluginId}`;
+        if (!existsSync(cgroupPath)) {
+            return;
+        }
+
+        // Move any remaining processes to parent cgroup
+        try {
+            writeFileSync(`${cgroupPath}/cgroup.procs`, '0');
+        } catch {
+            // Ignore errors moving processes
+        }
+
+        // Remove cgroup directory
+        try {
+            rmSync(cgroupPath, { recursive: true, force: true });
+        } catch (err) {
+            this._log?.(`[WORKER] Failed to cleanup cgroup for ${pluginId}: ${String(err)}`);
+        }
     }
 }
 
