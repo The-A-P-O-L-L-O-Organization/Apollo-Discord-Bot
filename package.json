@@ -86,7 +86,7 @@
     "eslint": "^10.11.0",
     "i18next-parser": "^9.4.0",
     "madge": "^8.0.0",
-    "supertest": "^7.2.2",
+    "supertest": "^7.3.0",
     "tsx": "^4.23.13",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.70.0",
