@@ -1,0 +1,145 @@
+name: discord.js v15 Pre-release Tracking
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-discordjs-v15:
+    name: Check for discord.js v15 pre-releases
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Fetch npm registry info for discord.js
+        id: npm-info
+        run: |
+          echo "Fetching discord.js versions from npm..."
+          VERSIONS=$(npm view discord.js versions --json 2>/dev/null)
+          echo "versions<<EOF" >> $GITHUB_OUTPUT
+          echo "$VERSIONS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Check for v15 pre-releases
+        id: check-v15
+        run: |
+          VERSIONS='${{ steps.npm-info.outputs.versions }}'
+          echo "Checking for v15 pre-releases..."
+          
+          # Extract v15 versions (including alpha, beta, rc)
+          V15_VERSIONS=$(echo "$VERSIONS" | jq -r '.[] | select(startswith("15."))' | sort -V)
+          
+          if [ -z "$V15_VERSIONS" ]; then
+            echo "No v15 versions found yet"
+            echo "has_v15=false" >> $GITHUB_OUTPUT
+            echo "latest_v15=" >> $GITHUB_OUTPUT
+            echo "all_v15=" >> $GITHUB_OUTPUT
+          else
+            LATEST_V15=$(echo "$V15_VERSIONS" | tail -1)
+            echo "Found v15 versions:"
+            echo "$V15_VERSIONS"
+            echo "Latest: $LATEST_V15"
+            echo "has_v15=true" >> $GITHUB_OUTPUT
+            echo "latest_v15=$LATEST_V15" >> $GITHUB_OUTPUT
+            echo "all_v15<<EOF" >> $GITHUB_OUTPUT
+            echo "$V15_VERSIONS" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check current discord.js version in package.json
+        id: current-version
+        run: |
+          CURRENT=$(jq -r '.dependencies["discord.js"]' package.json)
+          echo "Current version: $CURRENT"
+          echo "current=$CURRENT" >> $GITHUB_OUTPUT
+
+      - name: Create tracking issue if v15 pre-release found
+        if: steps.check-v15.outputs.has_v15 == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { latest_v15, all_v15, current } = {
+              latest_v15: '${{ steps.check-v15.outputs.latest_v15 }}',
+              all_v15: '${{ steps.check-v15.outputs.all_v15 }}',
+              current: '${{ steps.current-version.outputs.current }}'
+            };
+            
+            const existingIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: ['discord.js-v15', 'tracking']
+            });
+            
+            const existingIssue = existingIssues.data.find(issue => 
+              issue.title.includes('discord.js v15') && issue.title.includes(latest_v15)
+            );
+            
+            if (!existingIssue) {
+              const body = `## discord.js v15 Pre-release Detected
+              
+              **Latest v15 version:** ${latest_v15}
+              **Current version in package.json:** ${current}
+              
+              **All v15 versions found:**
+              ${all_v15.split('\n').map(v => v.trim()).filter(v => v).map(v => `- \`${v}\``).join('\n')}
+              
+              ### Action Required
+              - [ ] Review discord.js v15 changelog: https://github.com/discordjs/discord.js/releases/tag/v${latest_v15}
+              - [ ] Update migration checklist: \`docs/discordjs-v15-migration-checklist.md\`
+              - [ ] Update known breaking changes: \`docs/discordjs-v15-known-breaking-changes.md\`
+              - [ ] Test compatibility in a feature branch
+              - [ ] Update \`package.json\` when stable release is available
+              
+              ---
+              *This issue was created automatically by the weekly v15 tracking workflow.*`;
+              
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `[Tracking] discord.js v15 pre-release: ${latest_v15}`,
+                body: body,
+                labels: ['discord.js-v15', 'tracking', 'dependencies']
+              });
+              console.log('Created tracking issue for v15:', latest_v15);
+            } else {
+              console.log('Tracking issue already exists for:', latest_v15);
+            }
+
+      - name: Update audit document
+        if: steps.check-v15.outputs.has_v15 == 'true'
+        run: |
+          echo "## v15 Pre-release Detection Log" >> docs/discordjs-v15-audit.md
+          echo "" >> docs/discordjs-v15-audit.md
+          echo "### $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> docs/discordjs-v15-audit.md
+          echo "" >> docs/discordjs-v15-audit.md
+          echo "- **Workflow run:** ${GITHUB_RUN_ID}" >> docs/discordjs-v15-audit.md
+          echo "- **Latest v15 version:** ${{ steps.check-v15.outputs.latest_v15 }}" >> docs/discordjs-v15-audit.md
+          echo "- **All v15 versions:** ${{ steps.check-v15.outputs.all_v15 }}" >> docs/discordjs-v15-audit.md
+          echo "" >> docs/discordjs-v15-audit.md
+
+      - name: Commit audit updates
+        if: steps.check-v15.outputs.has_v15 == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/discordjs-v15-audit.md
+          git diff --staged --quiet || git commit -m "chore: update v15 tracking log [skip ci]"
+          git push origin HEAD:${{ github.ref_name }} || true
