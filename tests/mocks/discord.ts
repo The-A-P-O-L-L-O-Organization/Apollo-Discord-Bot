@@ -58,6 +58,10 @@ export type MockGuild = Guild & {
     };
     members: Guild['members'] & { fetch: MockFn };
     bannerURL: Guild['bannerURL'] & MockFn;
+    permissions: {
+        has: MockFn;
+        missing: MockFn;
+    };
 };
 
 export type MockTextChannel = TextChannel & {
@@ -184,7 +188,8 @@ export function createMockMember(options: MockMemberOptions = {}): MockGuildMemb
         : {
             has: vi.fn().mockImplementation((perm: string) => {
                 return Array.isArray(options['permissions']) ? (options['permissions'] as string[]).includes(perm) : false;
-            })
+            }),
+            bitfield: 0n
         };
 
     return {
@@ -210,6 +215,7 @@ export interface MockGuildOptions extends MockOptions {
     channels?: MockOptions & { cache?: unknown; create?: unknown; fetch?: unknown; find?: unknown };
     members?: MockOptions & { cache?: unknown; fetch?: unknown; me?: unknown };
     bans?: MockOptions;
+    roles?: MockOptions & { cache?: unknown; create?: unknown; fetch?: unknown; find?: unknown };
 }
 
 export function createMockGuild(options: MockGuildOptions = {}): MockGuild {
@@ -217,11 +223,13 @@ export function createMockGuild(options: MockGuildOptions = {}): MockGuild {
         channels: channelsOpt,
         members: membersOpt,
         bans: bansOpt,
+        roles: rolesOpt,
         ...rest
     } = options as MockGuildOptions & {
         channels?: MockOptions & { cache?: unknown; fetch?: (id: string) => Promise<unknown>; find?: (fn: (value: unknown) => boolean) => unknown };
         members?: MockOptions & { cache?: unknown; fetch?: (id: string) => Promise<unknown>; me?: unknown };
         bans?: MockOptions;
+        roles?: MockOptions & { cache?: unknown; fetch?: (id: string) => Promise<unknown>; find?: (fn: (value: unknown) => boolean) => unknown };
     };
 
     const channelCache = (channelsOpt as MockOptions)?.['cache']
@@ -261,6 +269,16 @@ export function createMockGuild(options: MockGuildOptions = {}): MockGuild {
             me: defaultMe
         };
 
+    const roleCache = (rolesOpt as MockOptions)?.['cache']
+        ? toMockCollection((rolesOpt as MockOptions)['cache'])
+        : toMockCollection(rolesOpt);
+    const roles = {
+        cache: roleCache,
+        create: vi.fn(),
+        fetch: vi.fn().mockImplementation((id: string) => Promise.resolve(roleCache.get(id) || null)),
+        find: vi.fn().mockImplementation((fn: (value: unknown) => boolean) => roleCache.find(fn))
+    };
+
     return {
         id: getOption(options, 'id', '987654321098765432'),
         name: getOption(options, 'name', 'Test Server'),
@@ -272,6 +290,11 @@ export function createMockGuild(options: MockGuildOptions = {}): MockGuild {
             create: vi.fn().mockResolvedValue({}),
             remove: vi.fn().mockResolvedValue({}),
             ...bansOpt
+        },
+        roles,
+        permissions: {
+            has: vi.fn().mockReturnValue(true),
+            missing: vi.fn().mockReturnValue([])
         },
         ...rest
     } as unknown as MockGuild;
