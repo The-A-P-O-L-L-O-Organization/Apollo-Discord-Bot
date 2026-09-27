@@ -1,9 +1,10 @@
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { lookup as dnsLookup } from 'node:dns';
 import { createHash } from 'node:crypto';
 import AdmZip from 'adm-zip';
+import { verifySigstoreSignature, SigstoreVerificationError } from './pluginSigstore.js';
 
 export interface IpRange {
     start: string;
@@ -32,6 +33,9 @@ export interface DownloadPluginOptions {
     fetchImpl?: PluginFetchImpl;
     expectedSha256?: string | null;
     skipDnsCheck?: boolean;
+    // Sigstore verification options
+    sigstorePublicKey?: string;
+    sigstoreBundleUrlBase?: string;
 }
 
 export interface DownloadPluginResult {
@@ -212,6 +216,33 @@ export async function downloadAndExtractPlugin(url: string, destDir: string, opt
 
     if (isZip) {
         extractZip(buffer, destDir, options);
+
+        // Verify sigstore signature if configured
+        if (options.sigstorePublicKey && options.sigstoreBundleUrlBase) {
+            // Find the plugin.ts file in the extracted directory
+            const pluginFilePath = join(destDir, 'plugin.ts');
+            if (existsSync(pluginFilePath)) {
+                const parsedUrl = new URL(url);
+                const pluginId = parsedUrl.pathname.split('/').pop()?.replace('.zip', '') || 'unknown';
+                const bundleUrl = `${options.sigstoreBundleUrlBase}/${pluginId}.sigstore.json`;
+
+                try {
+                    await verifySigstoreSignature({
+                        artifactPath: pluginFilePath,
+                        bundleUrl,
+                        publicKey: options.sigstorePublicKey
+                    });
+                } catch (err) {
+                    // Clean up on verification failure
+                    rmSync(destDir, { recursive: true, force: true });
+                    if (err instanceof SigstoreVerificationError) {
+                        throw err;
+                    }
+                    throw new SigstoreVerificationError(`Sigstore verification failed: ${err instanceof Error ? err.message : String(err)}`, 'DOWNLOAD_VERIFICATION_FAILED');
+                }
+            }
+        }
+
         return;
     }
 

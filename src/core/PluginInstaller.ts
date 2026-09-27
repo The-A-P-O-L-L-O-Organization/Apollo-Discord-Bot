@@ -3,16 +3,26 @@ import { parsePluginManifest } from './worker/pluginManifest.js';
 import { join, relative, sep } from 'node:path';
 import { existsSync, readFileSync, writeFileSync, mkdirSync, cpSync, rmSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { verifySigstoreSignature, SigstoreVerificationError } from './pluginSigstore.js';
 
 export interface PluginInstallerOptions {
     baseDir: string;
+    sigstore?: {
+        publicKey: string;
+        bundleUrlBase: string;
+    };
 }
 
 export class PluginInstaller {
     private baseDir: string;
+    private sigstore?: {
+        publicKey: string;
+        bundleUrlBase: string;
+    };
 
     constructor(options: PluginInstallerOptions) {
         this.baseDir = options.baseDir;
+        this.sigstore = options.sigstore;
     }
 
     async install(sourcePath: string, pluginId: string): Promise<PluginManifest> {
@@ -24,6 +34,27 @@ export class PluginInstaller {
         // Copy plugin source
         mkdirSync(targetDir, { recursive: true });
         cpSync(sourcePath, targetDir, { recursive: true });
+
+        // Verify sigstore signature if configured
+        if (this.sigstore) {
+            const pluginFilePath = join(targetDir, 'plugin.ts');
+            const bundleUrl = `${this.sigstore.bundleUrlBase}/${pluginId}.sigstore.json`;
+            
+            try {
+                await verifySigstoreSignature({
+                    artifactPath: pluginFilePath,
+                    bundleUrl,
+                    publicKey: this.sigstore.publicKey
+                });
+            } catch (err) {
+                // Clean up on verification failure
+                rmSync(targetDir, { recursive: true, force: true });
+                if (err instanceof SigstoreVerificationError) {
+                    throw err;
+                }
+                throw new SigstoreVerificationError(`Sigstore verification failed: ${err instanceof Error ? err.message : String(err)}`, 'INSTALL_VERIFICATION_FAILED');
+            }
+        }
 
         // Parse and verify manifest
         const manifest = await parsePluginManifest({ dir: targetDir });
