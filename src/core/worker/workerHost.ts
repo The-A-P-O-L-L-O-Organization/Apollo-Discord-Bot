@@ -7,8 +7,9 @@ import { isOversize } from './rpc.js';
 import type { RPCMessage } from './rpc.js';
 import { signCapabilities } from './capabilitySignature.js';
 
-const MAX_CONSECUTIVE_CRASHES = 5;
+const MAX_CRASHES = 5;
 const HEALTHY_WINDOW_MS = 10 * 60 * 1000;
+const COOLDOWN_MS = 60 * 1000;
 const CGROUP_BASE = '/sys/fs/cgroup/apollo/workers';
 
 export const HIGH_RISK_CAPABILITIES = new Set([
@@ -56,6 +57,14 @@ export interface I18nCallResult {
     error?: string;
 }
 
+export interface CircuitState {
+    crashes: number;
+    lastCrashAt: number;
+    state: 'closed' | 'open' | 'half-open';
+    nextAttemptAt: number;
+    healthySince: number | null;
+}
+
 type ForkFn = (modulePath: string, args: string[], options: ForkOptions) => ChildProcess;
 type LogFn = (msg: string) => void;
 type NowFn = () => number;
@@ -67,8 +76,7 @@ export class WorkerHost {
     private _now: NowFn;
     private _backoff: BackoffFn;
     private _workers: Map<string, WorkerInfo>;
-    private _crashes: Map<string, { count: number; lastCrashAt: number; healthySince: number | null }>;
-    private _disabled: Set<string>;
+    private _circuits: Map<string, CircuitState>;
     public onPluginDisabled?: (pluginId: string) => void;
     public onScheduleRestart?: (pluginId: string, delay: number) => void;
 
@@ -83,8 +91,119 @@ export class WorkerHost {
         this._now = now;
         this._backoff = backoff;
         this._workers = new Map();
-        this._crashes = new Map();
-        this._disabled = new Set();
+        this._circuits = new Map();
+    }
+
+    private getCircuit(pluginId: string): CircuitState {
+        const existing = this._circuits.get(pluginId);
+        if (existing) {
+            return existing;
+        }
+        const initial: CircuitState = {
+            crashes: 0,
+            lastCrashAt: 0,
+            state: 'closed',
+            nextAttemptAt: 0,
+            healthySince: null
+        };
+        this._circuits.set(pluginId, initial);
+        return initial;
+    }
+
+    private updateCircuitState(pluginId: string): void {
+        const circuit = this.getCircuit(pluginId);
+        const now = this._now();
+
+        if (circuit.state === 'open' && now >= circuit.nextAttemptAt) {
+            circuit.state = 'half-open';
+            this._circuits.set(pluginId, circuit);
+            this._log?.(`[WORKER] Circuit half-open for ${pluginId}`);
+        }
+    }
+
+    isCircuitOpen(pluginId: string): boolean {
+        this.updateCircuitState(pluginId);
+        const circuit = this.getCircuit(pluginId);
+        return circuit.state === 'open';
+    }
+
+    recordCrash(pluginId: string, code: number | null, signal: string | null): void {
+        const circuit = this.getCircuit(pluginId);
+        const now = this._now();
+
+        circuit.crashes += 1;
+        circuit.lastCrashAt = now;
+        circuit.healthySince = null;
+        this._circuits.set(pluginId, circuit);
+
+        logSecurityEvent({ event: 'plugin.crash', pluginId, reason: `consecutive=${circuit.crashes}`, exitCode: code, signal });
+
+        if (circuit.crashes >= MAX_CRASHES) {
+            circuit.state = 'open';
+            circuit.nextAttemptAt = now + COOLDOWN_MS;
+            this._circuits.set(pluginId, circuit);
+            this._log?.(`[WORKER] ${pluginId} disabled after ${circuit.crashes} consecutive crashes`);
+            logSecurityEvent({ event: 'plugin.disabled', pluginId, reason: 'crash threshold reached' });
+            if (this.onPluginDisabled) {
+                this.onPluginDisabled(pluginId);
+            }
+            return;
+        }
+
+        const delay = this._backoff(circuit.crashes - 1);
+        this._log?.(`[WORKER] ${pluginId} crashed (${circuit.crashes}/${MAX_CRASHES}); restarting in ${delay}ms`);
+        if (this.onScheduleRestart) {
+            this.onScheduleRestart(pluginId, delay);
+        }
+    }
+
+    recordSuccess(pluginId: string): void {
+        const circuit = this.getCircuit(pluginId);
+        const now = this._now();
+
+        if (circuit.state === 'half-open') {
+            // In half-open, a single success closes the circuit
+            circuit.state = 'closed';
+            circuit.crashes = 0;
+            circuit.lastCrashAt = 0;
+            circuit.nextAttemptAt = 0;
+            circuit.healthySince = now;
+            this._circuits.set(pluginId, circuit);
+            this._log?.(`[WORKER] Circuit closed for ${pluginId} after successful recovery`);
+            return;
+        }
+
+        if (circuit.state === 'closed') {
+            // In closed state, track healthy window
+            if (circuit.crashes > 0) {
+                if (!circuit.healthySince) {
+                    circuit.healthySince = circuit.lastCrashAt || now;
+                }
+                const elapsed = now - circuit.healthySince;
+                if (elapsed >= HEALTHY_WINDOW_MS) {
+                    // Healthy window elapsed, reset crash count
+                    circuit.crashes = 0;
+                    circuit.lastCrashAt = 0;
+                    circuit.healthySince = now;
+                    this._circuits.set(pluginId, circuit);
+                    this._log?.(`[WORKER] Crash count reset for ${pluginId} after healthy window`);
+                }
+            }
+        }
+    }
+
+    getConsecutiveCrashes(pluginId: string): number {
+        return this.getCircuit(pluginId).crashes;
+    }
+
+    getCircuitState(pluginId: string): CircuitState {
+        this.updateCircuitState(pluginId);
+        return this.getCircuit(pluginId);
+    }
+
+    isDisabled(pluginId: string): boolean {
+        this.updateCircuitState(pluginId);
+        return this.getCircuit(pluginId).state === 'open';
     }
 
     getGrantedCapabilities(manifest: WorkerManifest, requested: string[]): string[] {
@@ -112,6 +231,12 @@ export class WorkerHost {
         capabilities: string[];
         manifest: WorkerManifest;
     }): Promise<WorkerInfo> {
+        // Check circuit breaker before spawning
+        if (this.isCircuitOpen(pluginId)) {
+            this._log?.(`[WORKER] ${pluginId} spawn rejected: circuit is open`);
+            return Promise.reject(new Error(`Circuit breaker open for ${pluginId}`));
+        }
+
         const granted = this.getGrantedCapabilities(manifest, capabilities);
         const childEntry = new URL('./workerChild.js', import.meta.url).pathname;
 
@@ -162,47 +287,8 @@ export class WorkerHost {
         logSecurityEvent({ event: 'plugin.error', pluginId, error: error.message });
     }
 
-    recordCrash(pluginId: string, code: number | null, signal: string | null): void {
-        const prev = this._crashes.get(pluginId) ?? { count: 0, lastCrashAt: 0, healthySince: null };
-        prev.count += 1;
-        prev.lastCrashAt = this._now();
-        this._crashes.set(pluginId, prev);
-
-        logSecurityEvent({ event: 'plugin.crash', pluginId, reason: `consecutive=${prev.count}`, exitCode: code, signal });
-
-        if (prev.count >= MAX_CONSECUTIVE_CRASHES) {
-            this._disabled.add(pluginId);
-            this._log?.(`[WORKER] ${pluginId} disabled after ${prev.count} consecutive crashes`);
-            logSecurityEvent({ event: 'plugin.disabled', pluginId, reason: 'crash threshold reached' });
-            if (this.onPluginDisabled) {
-                this.onPluginDisabled(pluginId);
-            }
-            return;
-        }
-
-        const delay = this._backoff(prev.count - 1);
-        this._log?.(`[WORKER] ${pluginId} crashed (${prev.count}/${MAX_CONSECUTIVE_CRASHES}); restarting in ${delay}ms`);
-        if (this.onScheduleRestart) {
-            this.onScheduleRestart(pluginId, delay);
-        }
-    }
-
     markHealthy(pluginId: string): void {
-        const prev = this._crashes.get(pluginId);
-        if (prev) {
-            const elapsed = this._now() - (prev.healthySince ?? prev.lastCrashAt ?? this._now());
-            if (elapsed >= HEALTHY_WINDOW_MS || prev.count === 1) {
-                this._crashes.set(pluginId, { count: 0, lastCrashAt: 0, healthySince: this._now() });
-            }
-        }
-    }
-
-    getConsecutiveCrashes(pluginId: string): number {
-        return (this._crashes.get(pluginId) ?? { count: 0 }).count;
-    }
-
-    isDisabled(pluginId: string): boolean {
-        return this._disabled.has(pluginId);
+        this.recordSuccess(pluginId);
     }
 
     send(pluginId: string, message: RPCMessage): boolean {
