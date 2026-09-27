@@ -18,6 +18,7 @@ interface RedisClientOptions {
     username?: string;
     family?: number;
     db?: number;
+    protocol?: number;
 }
 
 const DEFAULT_OPTIONS: RedisClientOptions = {
@@ -41,7 +42,8 @@ const DEFAULT_OPTIONS: RedisClientOptions = {
 export function createRedisClient(name: string, options: RedisClientOptions = {}): RedisType {
     const config = {
         ...DEFAULT_OPTIONS,
-        ...options
+        ...options,
+        protocol: 2
     };
 
     // @ts-expect-error ioredis v6 module export issue
