@@ -63,7 +63,8 @@ export default {
                         host: config.queue.redis.host,
                         port: config.queue.redis.port,
                         password: config.queue.redis.password ?? undefined,
-                        maxRetriesPerRequest: null
+                        maxRetriesPerRequest: null,
+                        protocol: 2
                     });
                     const leader = await redis.get('apollo:gateway:leader');
                     await redis.quit();

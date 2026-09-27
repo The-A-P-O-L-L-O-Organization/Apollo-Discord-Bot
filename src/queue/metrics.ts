@@ -28,7 +28,8 @@ export async function getQueueMetrics(queueConfig: ApolloConfig['queue']): Promi
             host: queueConfig.redis.host,
             port: queueConfig.redis.port,
             password: queueConfig.redis.password ?? undefined,
-            maxRetriesPerRequest: null
+            maxRetriesPerRequest: null,
+            protocol: 2
         });
 
         const queue = new Queue(queueConfig.prefix, { connection });

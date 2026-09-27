@@ -19,6 +19,7 @@ interface RedisClientOptions {
     family?: number;
     db?: number;
     protocol?: number;
+    url?: string;
 }
 
 const DEFAULT_OPTIONS: RedisClientOptions = {

@@ -36,7 +36,8 @@ export async function startWorker(): Promise<Worker> {
         host: redis.host,
         port: redis.port,
         password: redis.password ?? undefined,
-        maxRetriesPerRequest: null
+        maxRetriesPerRequest: null,
+        protocol: 2
     });
 
     worker = new Worker(config.queue.prefix, async (job: Parameters<typeof handleJob>[0]) => {
