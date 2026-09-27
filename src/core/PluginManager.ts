@@ -8,11 +8,16 @@ import { WorkerHost } from './worker/workerHost.js';
 import { parsePluginManifest } from './worker/pluginManifest.js';
 import { buildLocalizedPayload } from '../i18n/commandPayload.js';
 import type { CommandInput } from '../i18n/commandPayload.js';
-import { commandModuleCache } from '../queue/jobs/processCommand.js';
 import type { Client, REST } from 'discord.js';
 import type { EventBusImpl } from '../core/EventBus.js';
 import type { Plugin as PluginBase } from '../core/Plugin.js';
 import type { ApolloConfig } from '../types/config.js';
+import type { ApolloClient } from '../types/shared.js';
+import { PluginLoader } from './PluginLoader.js';
+import { PluginEnabler } from './PluginEnabler.js';
+import { PluginDisabler } from './PluginDisabler.js';
+import { PluginReloader } from './PluginReloader.js';
+import { PluginInstaller } from './PluginInstaller.js';
 
 const ALL_PLUGIN_CAPABILITIES = [
     'events:ready',
@@ -61,6 +66,12 @@ export default class PluginManager {
     _capabilityIndex: Map<string, Set<string>>;
     _socketHandlers?: Map<string, (...args: unknown[]) => Promise<unknown>>;
 
+    private _loader: PluginLoader;
+    private _enabler: PluginEnabler;
+    private _disabler: PluginDisabler;
+    private _reloader: PluginReloader;
+    private _installer: PluginInstaller;
+
     constructor(client: TypedClient, bus: EventBusImpl) {
         this.client = client;
         this.bus = bus;
@@ -70,6 +81,13 @@ export default class PluginManager {
         this.config = null;
         this.workerHost = new WorkerHost();
         this._capabilityIndex = new Map();
+
+        // Initialize modular components
+        this._loader = new PluginLoader({ workerHost: this.workerHost, eventBus: this.bus });
+        this._enabler = new PluginEnabler({ workerHost: this.workerHost, eventBus: this.bus, commandSync: this });
+        this._disabler = new PluginDisabler({ workerHost: this.workerHost, eventBus: this.bus });
+        this._reloader = new PluginReloader({ loader: this._loader, disabler: this._disabler, enabler: this._enabler });
+        this._installer = new PluginInstaller({ baseDir: './data/plugins' });
     }
 
     async loadAll(config: ApolloConfig): Promise<void> {
@@ -255,6 +273,47 @@ export default class PluginManager {
     async loadPlugin(id: string, baseDir = './src/plugins'): Promise<PluginBase> {
         if (this.plugins.has(id)) { return this.plugins.get(id)!; }
 
+        const loaded = this._loader.getLoadedPlugin(id);
+        if (loaded) {
+            this.plugins.set(id, loaded.plugin);
+            return loaded.plugin;
+        }
+
+        // Check if this is an installed plugin (has plugin.json) or built-in
+        const manifestPath = path.join(process.cwd(), baseDir, id, 'plugin.json');
+        let plugin: PluginBase;
+
+        if (existsSync(manifestPath)) {
+            // Installed plugin - use PluginLoader
+            const result = await this._loader.load(id, baseDir, this.client, this);
+            plugin = result.plugin;
+        } else {
+            // Built-in plugin - use direct import (original behavior)
+            plugin = await this.loadBuiltinPlugin(id, baseDir);
+        }
+
+        // Register in PluginManager's registry and plugins map
+        const PluginClass = plugin.constructor as PluginConstructor;
+        this._pluginRegistry.set(id, PluginClass);
+        this.plugins.set(id, plugin);
+
+        // Set directory and call onLoad
+        plugin.setDirectory(plugin.directory ?? '');
+        await plugin.onLoad();
+        plugin.loaded = true;
+
+        const optionalDir = (this.client.config.plugins as { optionalDirectory?: string })?.optionalDirectory ?? './data/plugins';
+        const pluginDirValue = plugin.directory;
+        const isOptional = pluginDirValue?.startsWith(path.join(process.cwd(), optionalDir));
+        this.installedPlugins.set(id, {
+            origin: isOptional ? 'installed' : 'built-in',
+            dir: pluginDirValue ?? ''
+        });
+
+        return plugin;
+    }
+
+    async loadBuiltinPlugin(id: string, baseDir = './src/plugins'): Promise<PluginBase> {
         let PluginClass = this._pluginRegistry.get(id);
         let pluginDir = path.join(process.cwd(), baseDir, id);
         if (!PluginClass) {
@@ -285,9 +344,9 @@ export default class PluginManager {
             }
 
             // TOCTOU protection: verify plugin.js hash against manifest before import
-            const manifestPath = join(process.cwd(), 'plugin-manifest.json');
-            if (existsSync(manifestPath)) {
-                const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+            const manifestPathGlobal = join(process.cwd(), 'plugin-manifest.json');
+            if (existsSync(manifestPathGlobal)) {
+                const manifest = JSON.parse(readFileSync(manifestPathGlobal, 'utf8'));
                 const relPath = relative(process.cwd(), pluginPath).split(sep).join('/');
                 const expectedHash = manifest[relPath] as string | undefined;
                 if (expectedHash) {
@@ -306,18 +365,6 @@ export default class PluginManager {
 
         const plugin = new PluginClass(this.client, this);
         plugin.setDirectory(pluginDir);
-        await plugin.onLoad();
-        (plugin as any)._loaded = true;
-        this.plugins.set(id, plugin);
-
-        const optionalDir = (this.client.config.plugins as { optionalDirectory?: string })?.optionalDirectory ?? './data/plugins';
-        const pluginDirValue = (plugin as any)._dir;
-        const isOptional = pluginDirValue?.startsWith(path.join(process.cwd(), optionalDir));
-        this.installedPlugins.set(id, {
-            origin: isOptional ? 'installed' : 'built-in',
-            dir: pluginDirValue ?? ''
-        });
-
         return plugin;
     }
 
@@ -328,6 +375,7 @@ export default class PluginManager {
         await plugin.onUnload();
         (plugin as any)._loaded = false;
         this.plugins.delete(id);
+        this._loader.clearCache(id);
     }
 
     async enablePlugin(id: string): Promise<void> {
@@ -344,7 +392,10 @@ export default class PluginManager {
         }
 
         this.bus.removeAll(id);
-        await plugin.onEnable();
+        const loaded = this._loader.getLoadedPlugin(id);
+        const manifest = loaded?.manifest ?? { id, name: id, capabilities: [] };
+
+        await this._enabler.enable(id, plugin, manifest);
         (plugin as any)._enabled = true;
 
         // Update capability index for installed plugins with workers
@@ -363,7 +414,9 @@ export default class PluginManager {
         const plugin = this.plugins.get(id);
         if (!plugin) { throw new Error(`Plugin ${id} not loaded`); }
         if (!(plugin as any)._enabled) { return; }
-        await plugin.onDisable();
+
+        // For built-in plugins, we still need to call onDisable and remove events
+        await this._disabler.disable(id, plugin);
         this.bus.removeAll(id);
         (plugin as any)._enabled = false;
 
@@ -377,35 +430,9 @@ export default class PluginManager {
     }
 
     async reloadPlugin(id: string): Promise<void> {
-        await this.disablePlugin(id);
-        await this.unloadPlugin(id);
-        this._pluginRegistry.delete(id);
-        // Clear command module cache for this plugin
-        for (const key of commandModuleCache.keys()) {
-            if (key.startsWith(`${id}:`)) {
-                commandModuleCache.delete(key);
-            }
-        }
-        const installed = this.installedPlugins.get(id);
-        let baseDir = installed?.origin === 'installed'
-            ? (this.config?.plugins?.paths?.installed ?? './data/plugins')
-            : (this.config?.plugins?.paths?.core ?? './src/plugins');
-        // Check both .ts and .js for reload
-        const tsPath = path.join(process.cwd(), baseDir, id, 'plugin.ts');
-        const jsPath = path.join(process.cwd(), baseDir, id, 'plugin.js');
-        if (!existsSync(tsPath) && !existsSync(jsPath)) {
-            // Try the other directory
-            const otherBaseDir = installed?.origin === 'installed'
-                ? (this.config?.plugins?.paths?.core ?? './src/plugins')
-                : (this.config?.plugins?.paths?.installed ?? './data/plugins');
-            const otherTsPath = path.join(process.cwd(), otherBaseDir, id, 'plugin.ts');
-            const otherJsPath = path.join(process.cwd(), otherBaseDir, id, 'plugin.js');
-            if (existsSync(otherTsPath) || existsSync(otherJsPath)) {
-                baseDir = otherBaseDir;
-            }
-        }
-        await this.loadPlugin(id, baseDir);
-        await this.enablePlugin(id);
+        const result = await this._reloader.reload(id, './src/plugins', this.client as unknown as ApolloClient, this);
+        // Update the plugins map with the new plugin instance
+        this.plugins.set(id, result.plugin);
         await this._syncDiscordCommands(id);
     }
 

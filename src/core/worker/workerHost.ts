@@ -236,6 +236,18 @@ export class WorkerHost {
     getAllWorkers(): Map<string, WorkerInfo> {
         return new Map(this._workers);
     }
+
+    terminateWorker(pluginId: string): boolean {
+        const worker = this._workers.get(pluginId);
+        if (!worker) {
+            return false;
+        }
+        worker.child.kill();
+        this._workers.delete(pluginId);
+        this._log?.(`[WORKER] Terminated worker for ${pluginId}`);
+        logSecurityEvent({ event: 'plugin.terminated', pluginId });
+        return true;
+    }
 }
 
 export default WorkerHost;

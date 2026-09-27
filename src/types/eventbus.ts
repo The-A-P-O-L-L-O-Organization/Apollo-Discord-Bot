@@ -60,6 +60,7 @@ export interface EventBus {
     subscribe: <T>(event: string, handler: EventHandler<T>, options?: SubscribeOptions) => Promise<Subscription>;
     unsubscribe: (subscription: Subscription) => Promise<void>;
     unsubscribeAll: (event?: string) => Promise<void>;
+    unsubscribeAllForPlugin: (pluginId: string) => Promise<void>;
     getSubscriptions: (event?: string) => Promise<Subscription[]>;
     healthCheck: () => Promise<EventBusHealth>;
 }

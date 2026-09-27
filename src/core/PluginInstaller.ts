@@ -1,0 +1,84 @@
+import type { ParsedPluginManifest as PluginManifest } from './worker/pluginManifest.js';
+import { parsePluginManifest } from './worker/pluginManifest.js';
+import { join, relative, sep } from 'node:path';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, cpSync, rmSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+
+export interface PluginInstallerOptions {
+    baseDir: string;
+}
+
+export class PluginInstaller {
+    private baseDir: string;
+
+    constructor(options: PluginInstallerOptions) {
+        this.baseDir = options.baseDir;
+    }
+
+    async install(sourcePath: string, pluginId: string): Promise<PluginManifest> {
+        const targetDir = join(process.cwd(), this.baseDir, pluginId);
+        if (existsSync(targetDir)) {
+            throw new Error(`Plugin ${pluginId} already exists at ${targetDir}`);
+        }
+
+        // Copy plugin source
+        mkdirSync(targetDir, { recursive: true });
+        cpSync(sourcePath, targetDir, { recursive: true });
+
+        // Parse and verify manifest
+        const manifest = await parsePluginManifest({ dir: targetDir });
+
+        // Update plugin-manifest.json with hash
+        this.updateGlobalManifest(pluginId, targetDir);
+
+        return manifest;
+    }
+
+    uninstall(pluginId: string): Promise<void> {
+        const targetDir = join(process.cwd(), this.baseDir, pluginId);
+        if (!existsSync(targetDir)) {
+            throw new Error(`Plugin ${pluginId} not found at ${targetDir}`);
+        }
+
+        // Remove from global manifest
+        this.removeFromGlobalManifest(pluginId, targetDir);
+
+        // Delete plugin directory
+        rmSync(targetDir, { recursive: true, force: true });
+
+        return Promise.resolve();
+    }
+
+    private updateGlobalManifest(pluginId: string, pluginDir: string): void {
+        const manifestPath = join(process.cwd(), 'plugin-manifest.json');
+        let globalManifest: Record<string, string> = {};
+
+        if (existsSync(manifestPath)) {
+            globalManifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+        }
+
+        // Hash plugin.ts
+        const pluginPath = join(pluginDir, 'plugin.ts');
+        if (existsSync(pluginPath)) {
+            const content = readFileSync(pluginPath, 'utf8');
+            const hash = createHash('sha256').update(content).digest('hex');
+            const relPath = relative(process.cwd(), pluginPath).split(sep).join('/');
+            globalManifest[relPath] = hash;
+            writeFileSync(manifestPath, JSON.stringify(globalManifest, null, 4));
+        }
+    }
+
+    private removeFromGlobalManifest(pluginId: string, pluginDir: string): void {
+        const manifestPath = join(process.cwd(), 'plugin-manifest.json');
+        if (!existsSync(manifestPath)) {
+            return;
+        }
+
+        const globalManifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+        const pluginPath = join(pluginDir, 'plugin.ts');
+        const relPath = relative(process.cwd(), pluginPath).split(sep).join('/');
+
+        delete globalManifest[relPath];
+        writeFileSync(manifestPath, JSON.stringify(globalManifest, null, 4));
+    }
+}

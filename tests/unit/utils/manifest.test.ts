@@ -26,9 +26,9 @@ describe('verifyPluginManifest', () => {
     });
 
     it('should pass when files match the manifest', async() => {
-        writeFileSync(join(pluginsDir, 'alpha', 'plugin.js'), 'export default class A {}');
+        writeFileSync(join(pluginsDir, 'alpha', 'plugin.ts'), 'export default class A {}');
         const manifest = {
-            'src/plugins/alpha/plugin.js': hash('export default class A {}')
+            'src/plugins/alpha/plugin.ts': hash('export default class A {}')
         };
         const result = await verifyPluginManifest({ pluginsRoot: join(root, 'src'), manifestPath: join(root, 'manifest.json'), manifestData: manifest });
         expect(result.ok).toBe(true);
@@ -36,9 +36,9 @@ describe('verifyPluginManifest', () => {
     });
 
     it('should fail on hash mismatch', async() => {
-        writeFileSync(join(pluginsDir, 'alpha', 'plugin.js'), 'export default class A {}');
+        writeFileSync(join(pluginsDir, 'alpha', 'plugin.ts'), 'export default class A {}');
         const manifest = {
-            'src/plugins/alpha/plugin.js': hash('different content')
+            'src/plugins/alpha/plugin.ts': hash('different content')
         };
         const result = await verifyPluginManifest({ pluginsRoot: join(root, 'src'), manifestPath: join(root, 'manifest.json'), manifestData: manifest });
         expect(result.ok).toBe(false);
@@ -47,7 +47,7 @@ describe('verifyPluginManifest', () => {
 
     it('should fail on missing file', async() => {
         const manifest = {
-            'src/plugins/alpha/plugin.js': hash('export default class A {}')
+            'src/plugins/alpha/plugin.ts': hash('export default class A {}')
         };
         const result = await verifyPluginManifest({ pluginsRoot: join(root, 'src'), manifestPath: join(root, 'manifest.json'), manifestData: manifest });
         expect(result.ok).toBe(false);
@@ -55,10 +55,10 @@ describe('verifyPluginManifest', () => {
     });
 
     it('should fail on orphaned manifest entry', async() => {
-        writeFileSync(join(pluginsDir, 'alpha', 'plugin.js'), 'export default class A {}');
+        writeFileSync(join(pluginsDir, 'alpha', 'plugin.ts'), 'export default class A {}');
         const manifest = {
-            'src/plugins/alpha/plugin.js': hash('export default class A {}'),
-            'src/plugins/ghost.js': hash('nope')
+            'src/plugins/alpha/plugin.ts': hash('export default class A {}'),
+            'src/plugins/ghost.ts': hash('nope')
         };
         const result = await verifyPluginManifest({ pluginsRoot: join(root, 'src'), manifestPath: join(root, 'manifest.json'), manifestData: manifest });
         expect(result.ok).toBe(false);
@@ -73,9 +73,9 @@ describe('verifyPluginManifest', () => {
     });
 
     it('should read manifest from disk when manifestData not provided', async() => {
-        writeFileSync(join(pluginsDir, 'alpha', 'plugin.js'), 'export default class A {}');
+        writeFileSync(join(pluginsDir, 'alpha', 'plugin.ts'), 'export default class A {}');
         writeFileSync(join(root, 'manifest.json'), JSON.stringify({
-            'src/plugins/alpha/plugin.js': hash('export default class A {}')
+            'src/plugins/alpha/plugin.ts': hash('export default class A {}')
         }));
         const result = await verifyPluginManifest({ pluginsRoot: join(root, 'src'), manifestPath: join(root, 'manifest.json') });
         expect(result.ok).toBe(true);

@@ -428,6 +428,23 @@ export class EventBusImpl implements EventBus {
         return Promise.resolve();
     }
 
+    unsubscribeAllForPlugin(pluginId: string): Promise<void> {
+        for (const [event, set] of this._handlers) {
+            for (const entry of set) {
+                if (entry.pluginId === pluginId) {
+                    set.delete(entry);
+                    this._subscriptions.delete(entry.subscriptionId!);
+                }
+            }
+            if (this._crossPodEnabled && set.size === 0) {
+                this._redisSub?.unsubscribe(`apollo:event:${event}`).catch(() => {
+                    // ignore unsubscribe errors
+                });
+            }
+        }
+        return Promise.resolve();
+    }
+
     getSubscriptions(event?: string): Promise<Subscription[]> {
         const subscriptions: Subscription[] = [];
         const eventsToCheck = event ? [event] : Array.from(this._handlers.keys());

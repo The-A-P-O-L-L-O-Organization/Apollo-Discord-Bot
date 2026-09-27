@@ -193,6 +193,18 @@ export abstract class Plugin<C extends CommandModule = CommandModule, _E extends
     getCommands(): CommandModule[] {
         return [...this.commands.values()];
     }
+
+    get directory(): string | null {
+        return this._dir;
+    }
+
+    get loaded(): boolean {
+        return this._loaded;
+    }
+
+    set loaded(value: boolean) {
+        this._loaded = value;
+    }
 }
 
 export default Plugin;
