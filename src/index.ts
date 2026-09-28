@@ -17,6 +17,7 @@ import { close as closeDatabase, startWalCheckpointInterval } from './utils/db.j
 import { closeLockRedis } from './utils/lock.js';
 import { safeError } from './utils/safeError.js';
 import { assertDiscordToken, assertOperatorAgreement, assertEncryptionKey, validatePostgresPoolMax, warnUnverifiedPlugins, validateQueueHmacSecret } from './utils/startupChecks.js';
+import { initializeOtel, shutdownOtel } from './observability/otel.js';
 import { startHealthServer, stopHealthServer } from './utils/healthServer.js';
 import { createLogger } from './utils/logger.js';
 import type { TypedClient } from './core/PluginManager.js';
@@ -57,10 +58,22 @@ const basePartials = [
     Partials.Reaction
 ];
 
-const client = new Client({
-    intents: baseIntents,
-    partials: basePartials
-}) as ApolloClient;
+export function createBotClient(): ApolloClient {
+    const client = new Client({
+        intents: baseIntents,
+        partials: basePartials,
+        sweepers: {
+            messages: {
+                lifetime: 0,
+                interval: 60
+            }
+        }
+    }) as ApolloClient;
+
+    return client;
+}
+
+const client = createBotClient();
 
 client.commands = new Collection<string, CommandModule>();
 client.config = config;
@@ -356,6 +369,9 @@ if (RUN_MODE === 'worker') {
             logger.info('[INFO] Stopping health server...');
             await stopHealthServer();
 
+            logger.info('[INFO] Shutting down OpenTelemetry...');
+            await shutdownOtel();
+
             logger.info('[SUCCESS] Graceful shutdown completed');
         } catch (error) {
             logger.error({ err: error as Error }, '[ERROR] Error during shutdown');
@@ -417,6 +433,13 @@ if (RUN_MODE === 'worker') {
             }
 
             warnUnverifiedPlugins();
+
+            // Initialize OpenTelemetry if endpoint is configured
+            const otelEndpoint = process.env['OTEL_ENDPOINT'];
+            if (otelEndpoint) {
+                initializeOtel({ serviceName: 'apollo-bot', endpoint: otelEndpoint });
+                logger.info('[INFO] OpenTelemetry initialized');
+            }
         } catch (error) {
             logger.error((error as Error).message);
             process.exit(1);
