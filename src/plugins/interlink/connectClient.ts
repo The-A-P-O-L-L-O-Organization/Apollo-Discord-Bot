@@ -24,6 +24,8 @@ import {
 } from '../../generated/interlink/interlink/v1/interlink_pb.js';
 import { config } from '../../config/config.js';
 import { issueInterlinkToken } from './auth.js';
+import { injectTraceContext } from '../../observability/otel.js';
+import { context } from '@opentelemetry/api';
 
 export const INTERLINK_AUTH_SCHEME = 'HMAC-SHA256';
 export const INTERLINK_AUTH_SCHEME_JWT = 'Bearer';
@@ -178,12 +180,15 @@ export class InterlinkConnectClient {
         const timestamp = Date.now().toString();
         const nonce = generateNonce();
         const bodyHash = body === null ? emptyBodyHash() : bodyHashOf(body.schema, body.message);
-        
+
         const headers: Record<string, string> = {
             [INTERLINK_TIMESTAMP_HEADER]: timestamp,
             [INTERLINK_NONCE_HEADER]: nonce,
             [INTERLINK_BOT_HEADER]: extractBotId(body?.message) || this.botId
         };
+
+        // Inject trace context for cross-service tracing
+        injectTraceContext(context.active(), headers);
 
         if (this.useJwt) {
             const jwtToken = await this.ensureJwtToken();
