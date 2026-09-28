@@ -1,0 +1,180 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'tests/integration/**'
+      - 'src/gateway/**'
+      - 'src/plugins/interlink/**'
+      - 'src/core/worker/**'
+      - '.github/workflows/integration-tests.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'tests/integration/**'
+      - 'src/gateway/**'
+      - 'src/plugins/interlink/**'
+      - 'src/core/worker/**'
+  workflow_dispatch:
+    inputs:
+      test-suite:
+        description: 'Test suite to run'
+        required: false
+        type: choice
+        options:
+          - all
+          - redis-failover
+          - leader-election
+          - network-partition
+          - interlink-ha
+          - worker-circuit-breaker
+          - worker-cgroup
+
+jobs:
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    services:
+      # Redis for basic tests
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      # Redis Sentinel for failover tests
+      redis-sentinel:
+        image: redis:7-alpine
+        ports:
+          - 26379:26379
+        options: >-
+          --health-cmd "redis-cli -p 26379 ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        env:
+          - SENTINEL_MASTER_NAME=mymaster
+        # Sentinel needs a master to monitor, so we run it with a custom command
+        # that sets up the master and sentinel together
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build TypeScript
+        run: pnpm build
+
+      - name: Setup Redis Sentinel
+        run: |
+          # Configure Redis master
+          docker run -d --name redis-master \
+            -p 6380:6379 \
+            redis:7-alpine redis-server --appendonly yes
+          
+          # Wait for master to be ready
+          sleep 3
+          
+          # Configure Sentinel
+          cat > /tmp/sentinel.conf << 'EOF'
+          port 26379
+          sentinel monitor mymaster redis-master 6379 1
+          sentinel down-after-milliseconds mymaster 5000
+          sentinel failover-timeout mymaster 10000
+          sentinel parallel-syncs mymaster 1
+          EOF
+          
+          docker cp /tmp/sentinel.conf redis-sentinel:/etc/redis/sentinel.conf
+          docker restart redis-sentinel
+          
+          # Wait for sentinel to be ready
+          sleep 5
+          
+          # Verify setup
+          docker exec redis-sentinel redis-cli -p 26379 sentinel master mymaster
+        env:
+          DOCKER_HOST: unix:///var/run/docker.sock
+
+      - name: Set test environment variables
+        run: |
+          echo "REDIS_SENTINEL_URLS=redis://localhost:26379" >> $GITHUB_ENV
+          echo "TEST_SENTINEL_URLS=redis://localhost:26379" >> $GITHUB_ENV
+
+      - name: Run Redis Failover Tests
+        if: ${{ github.event.inputs.test-suite == 'all' || github.event.inputs.test-suite == 'redis-failover' || github.event.inputs.test-suite == '' }}
+        run: |
+          pnpm test tests/integration/redis-failover.test.ts --reporter=verbose
+        env:
+          REDIS_SENTINEL_URLS: redis://localhost:26379
+          TEST_SENTINEL_URLS: redis://localhost:26379
+
+      - name: Run Leader Election Failover Tests
+        if: ${{ github.event.inputs.test-suite == 'all' || github.event.inputs.test-suite == 'leader-election' || github.event.inputs.test-suite == '' }}
+        run: |
+          pnpm test tests/integration/leader-election-failover.test.ts --reporter=verbose
+        env:
+          REDIS_SENTINEL_URLS: redis://localhost:26379
+          TEST_SENTINEL_URLS: redis://localhost:26379
+
+      - name: Run Network Partition Tests
+        if: ${{ github.event.inputs.test-suite == 'all' || github.event.inputs.test-suite == 'network-partition' || github.event.inputs.test-suite == '' }}
+        run: |
+          pnpm test tests/integration/network-partition.test.ts --reporter=verbose
+        env:
+          REDIS_SENTINEL_URLS: redis://localhost:26379
+          TEST_SENTINEL_URLS: redis://localhost:26379
+
+      - name: Run Interlink HA Tests
+        if: ${{ github.event.inputs.test-suite == 'all' || github.event.inputs.test-suite == 'interlink-ha' || github.event.inputs.test-suite == '' }}
+        run: |
+          pnpm test tests/integration/interlink-ha.test.ts --reporter=verbose
+        env:
+          REDIS_SENTINEL_URLS: redis://localhost:26379
+          TEST_SENTINEL_URLS: redis://localhost:26379
+
+      - name: Run Worker Circuit Breaker Tests
+        if: ${{ github.event.inputs.test-suite == 'all' || github.event.inputs.test-suite == 'worker-circuit-breaker' || github.event.inputs.test-suite == '' }}
+        run: |
+          pnpm test tests/integration/worker-circuit-breaker.test.ts --reporter=verbose
+
+      - name: Run Worker Cgroup Tests
+        if: ${{ github.event.inputs.test-suite == 'all' || github.event.inputs.test-suite == 'worker-cgroup' || github.event.inputs.test-suite == '' }}
+        run: |
+          pnpm test tests/integration/worker-cgroup.test.ts --reporter=verbose
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: |
+            coverage/
+            test-results/
+          retention-days: 7
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker stop redis-master redis-sentinel || true
+          docker rm redis-master redis-sentinel || true
