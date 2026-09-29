@@ -17,10 +17,10 @@ permissions:
   pull-requests: write
 
 env:
-  NODE_VERSION: "22"
+  NODE_VERSION: "26"
   PNPM_VERSION: "11"
   RUST_VERSION: "1.88"
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE22: true
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE26: true
 
 jobs:
   setup:

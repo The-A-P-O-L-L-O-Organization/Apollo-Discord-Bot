@@ -4,7 +4,7 @@
   "description": "Modular Discord bot with plugin system, multi-instance HA, and Redis-backed queue architecture",
   "main": "dist/index.js",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=26.0.0"
   },
   "bin": {
     "apollo": "./dist/bin/apollo.js"

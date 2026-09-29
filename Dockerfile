@@ -2,7 +2,7 @@
 # Dockerfile for Apollo Discord Bot
 # Optimized for fast builds with BuildKit cache mounts
 
-FROM node:22-alpine
+FROM node:26-alpine
 
 # Install build dependencies for better-sqlite3 + pnpm in one layer
 RUN apk add --no-cache python3 make g++ sqlite-dev && \
