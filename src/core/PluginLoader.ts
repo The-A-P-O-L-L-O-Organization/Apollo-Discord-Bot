@@ -5,15 +5,19 @@ import { verifyPluginFile } from '../utils/manifest.js';
 import { pathToFileURL } from 'node:url';
 import { join, relative, sep } from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
+import type { ApolloClient, PluginManager } from '../types/shared.js';
+
+// PluginClass is the constructor type for Plugin subclasses
+type PluginClass = new (client: ApolloClient, manager: PluginManager) => Plugin;
 
 export interface PluginLoaderOptions {
-    workerHost: any;
-    eventBus: any;
+    workerHost: { spawnWorker: (id: string, manifest: PluginManifest) => Promise<{ granted: string[] }>; terminateWorker: (id: string) => Promise<void>; isDisabled: (id: string) => boolean };
+    eventBus: { subscribe: (name: string, handler: (...args: unknown[]) => void) => void; unsubscribeAllForPlugin: (pluginId: string) => Promise<void> };
 }
 
 export class PluginLoader {
-    private workerHost: any;
-    private eventBus: any;
+    private workerHost: { spawnWorker: (id: string, manifest: PluginManifest) => Promise<{ granted: string[] }>; terminateWorker: (id: string) => Promise<void>; isDisabled: (id: string) => boolean };
+    private eventBus: { subscribe: (name: string, handler: (...args: unknown[]) => void) => void; unsubscribeAllForPlugin: (pluginId: string) => Promise<void> };
     private loadedPlugins = new Map<string, { plugin: Plugin; manifest: PluginManifest }>();
 
     constructor(options: PluginLoaderOptions) {
@@ -21,7 +25,7 @@ export class PluginLoader {
         this.eventBus = options.eventBus;
     }
 
-    async load(pluginId: string, baseDir: string, client: any, manager: any): Promise<{ plugin: Plugin; manifest: PluginManifest }> {
+    async load(pluginId: string, baseDir: string, client: ApolloClient, manager: PluginManager): Promise<{ plugin: Plugin; manifest: PluginManifest }> {
         if (this.loadedPlugins.has(pluginId)) {
             return this.loadedPlugins.get(pluginId)!;
         }
@@ -52,11 +56,11 @@ export class PluginLoader {
         return { plugin, manifest };
     }
 
-    private async importPlugin(pluginId: string, pluginDir: string, client: any, manager: any): Promise<Plugin> {
+    private async importPlugin(pluginId: string, pluginDir: string, client: ApolloClient, manager: PluginManager): Promise<Plugin> {
         const pluginPath = join(pluginDir, 'plugin.ts');
         const url = pathToFileURL(pluginPath).href + (process.env['NODE_ENV'] === 'development' ? `?t=${Date.now()}` : '');
-        const mod = await import(url);
-        const PluginClass = mod.default as new (client: any, manager: any) => Plugin;
+        const mod = await import(url) as { default: PluginClass };
+        const PluginClass = mod.default;
         if (!PluginClass) {
             throw new Error(`Plugin ${pluginId} does not export a default class`);
         }
