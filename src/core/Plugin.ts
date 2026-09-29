@@ -1,8 +1,8 @@
-import type { Client } from 'discord.js';
+import type { Client, Interaction, AutocompleteInteraction, ChatInputCommandInteraction, CommandInteraction, ButtonInteraction, SelectMenuInteraction, ContextMenuCommandInteraction, Collection, SlashCommandBuilder, RESTPostAPIChatInputApplicationCommandsJSONBody, ClientOptions } from 'discord.js';
 import { logger } from '../utils/logger.js';
 import { i18n } from '../i18n/index.js';
 import type { CommandModule, EventHandlerModule } from '../types/plugin.js';
-import type { BasePlugin, PluginCapability, PluginInstance, PluginCommand, PluginEvent, CLICommand } from '../types/shared.js';
+import type { BasePlugin, PluginCapability, PluginInstance, PluginCommand, PluginEvent, CLICommand, PluginContext, PluginLogger } from '../types/shared.js';
 import type { EventBusImpl } from './EventBus.js';
 
 export type PluginDependencies = Record<string, string>;
@@ -18,10 +18,20 @@ export interface TypedClient extends Client {
     commands?: Map<string, CommandModule>;
 }
 
+// Type for dynamic command import
+interface CommandModuleDefault {
+    default: CommandModule;
+}
+
+// Type for dynamic event import
+interface EventHandlerModuleDefault {
+    default: EventHandlerModule;
+}
+
 // Forward reference to avoid circular dependency
 interface PluginManagerRef {
     bus: EventBusImpl;
-    registerSocketHandler(namespace: string, handler: (...args: any[]) => Promise<any>): void;
+    registerSocketHandler(namespace: string, handler: (...args: unknown[]) => Promise<unknown>): void;
 }
 
 export abstract class Plugin<C extends CommandModule = CommandModule, _E extends EventHandlerModule = EventHandlerModule> implements BasePlugin, PluginInstance {
@@ -115,10 +125,10 @@ export abstract class Plugin<C extends CommandModule = CommandModule, _E extends
                 const filePath = path.join(cmdDir, file);
                 const url = pathToFileURL(filePath).href + (process.env['NODE_ENV'] === 'development' ? '?t=' + Date.now() : '');
                 const mod = await import(url);
-                const commandModule = mod.default as C | undefined;
+                const commandModule = mod.default as CommandModule | undefined;
                 if (commandModule?.name) {
                     commandModule.pluginId = pluginId;
-                    this.commands.set(commandModule.name, commandModule);
+                    this.commands.set(commandModule.name, commandModule as C);
                     if (this.client.commands) {
                         this.client.commands.set(commandModule.name, commandModule);
                     }
@@ -165,10 +175,10 @@ export abstract class Plugin<C extends CommandModule = CommandModule, _E extends
                 const mod = await import(url);
                 if (!mod.default?.name || !mod.default.execute) { continue; }
 
-                const { name, once, execute } = mod.default;
+                const { name, once, execute } = mod.default as EventHandlerModule;
                 const handler = (...args: unknown[]) => execute(...args, this.client);
                 this.client[once ? 'once' : 'on'](name, handler);
-                this.eventHandlers.push({ name, handler, once });
+                this.eventHandlers.push({ name, handler, once: once ?? false });
             } catch (err) {
                 logger.error({ err, msg: `[Plugin] Failed to load event ${file}` });
             }
