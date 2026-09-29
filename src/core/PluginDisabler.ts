@@ -1,13 +1,22 @@
 import type { Plugin } from './Plugin.js';
 
+export interface WorkerHostLike {
+    terminateWorker: (pluginId: string) => Promise<void>;
+    isDisabled: (id: string) => boolean;
+}
+
+export interface EventBusLike {
+    unsubscribeAllForPlugin: (pluginId: string) => Promise<void>;
+}
+
 export interface PluginDisablerOptions {
-    workerHost: any;
-    eventBus: any;
+    workerHost: WorkerHostLike;
+    eventBus: EventBusLike;
 }
 
 export class PluginDisabler {
-    private workerHost: any;
-    private eventBus: any;
+    private workerHost: WorkerHostLike;
+    private eventBus: EventBusLike;
 
     constructor(options: PluginDisablerOptions) {
         this.workerHost = options.workerHost;
