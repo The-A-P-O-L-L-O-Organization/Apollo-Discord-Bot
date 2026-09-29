@@ -2,16 +2,28 @@ import type { Plugin } from './Plugin.js';
 import type { ParsedPluginManifest as PluginManifest } from './worker/pluginManifest.js';
 import { signCapabilities } from './worker/capabilitySignature.js';
 
+export interface WorkerHostLike {
+    spawnWorker: (pluginId: string, manifest: PluginManifest) => Promise<{ granted: string[] }>;
+}
+
+export interface EventBusLike {
+    subscribe: (name: string, handler: (...args: unknown[]) => void) => void;
+}
+
+export interface CommandSyncLike {
+    syncCommands: (pluginId: string, commands: unknown[]) => Promise<void>;
+}
+
 export interface PluginEnablerOptions {
-    workerHost: any;
-    eventBus: any;
-    commandSync: any;
+    workerHost: WorkerHostLike;
+    eventBus: EventBusLike;
+    commandSync: CommandSyncLike;
 }
 
 export class PluginEnabler {
-    private workerHost: any;
-    private eventBus: any;
-    private commandSync: any;
+    private workerHost: WorkerHostLike;
+    private eventBus: EventBusLike;
+    private commandSync: CommandSyncLike;
     private enabledPlugins = new Set<string>();
 
     constructor(options: PluginEnablerOptions) {
