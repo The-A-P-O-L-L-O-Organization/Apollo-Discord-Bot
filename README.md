@@ -3,7 +3,7 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D26-brightgreen.svg)](https://nodejs.org/)
 [![Discord.js](https://img.shields.io/badge/discord.js-v14-blue.svg)](https://discord.js.org/)
-[![Tests](https://img.shields.io/badge/tests-1572%20passing-brightgreen.svg)](https://github.com/The-A-P-O-L-L-O-Organization/Apollo-Discord-Bot)
+[![Tests](https://img.shields.io/badge/tests-1829%20passing-brightgreen.svg)](https://github.com/The-A-P-O-L-L-O-Organization/Apollo-Discord-Bot)
 
 A feature-rich, modular Discord bot built with discord.js v14. Designed for horizontal scaling with a plugin-based architecture, multi-instance support via Redis-backed work queues, and optional PostgreSQL for shared persistence.
 
@@ -244,6 +244,22 @@ Cross-pod (multi-instance) bridging uses Redis pub/sub via `enableCrossPod(redis
 - **pnpm 11+** (required — `npm`/`yarn` are not supported)
 - **Docker & Docker Compose** (recommended for deployment)
 - **Discord Bot Token** from [Discord Developer Portal](https://discord.com/developers/applications)
+
+### Hosting Requirements
+
+Apollo is lightweight by default — a single-instance deployment is one Node process with SQLite. Redis is not required unless the work queue is enabled, and PostgreSQL is optional. Measured footprint for a small deployment (~10 guilds): ~130 MB RSS and single-digit CPU percent.
+
+| Deployment | vCPU | RAM | Disk |
+|------------|------|-----|------|
+| Minimum (single instance, SQLite) | 1 (modern, 2.5 GHz+) | 1 GB (512 MB works) | 10 GB SSD |
+| Recommended (queue + Redis, or headroom) | 2 | 2 GB | 20 GB NVMe |
+| Production multi-instance (gateway + workers + PostgreSQL + Redis) | 4-8 | 16 GB | 80-160 GB NVMe |
+
+Notes:
+- Redis is only required when the queue is enabled (`QUEUE_ENABLED=true`) or for multi-instance deployments
+- SQLite (default) is well-suited to single-instance deployments with serialized writes; use PostgreSQL for multi-writer production
+- Discord mandates sharding at 2,500 guilds — below that, one process per deployment is sufficient
+- Sandboxed third-party plugin workers add ~256 MB each — factor that in when installing community plugins
 
 ### Quick Start with Docker Compose
 
@@ -705,7 +721,7 @@ RUN_MODE=worker POD_ID=worker-1 DB_TYPE=postgres \
 ### Test Suite Overview
 
 ```
-1572 tests | 124 files | 4 skipped | 0 failures
+1829 tests | 161 files | 0 failures
 ```
 
 | Category | Files | Focus |
