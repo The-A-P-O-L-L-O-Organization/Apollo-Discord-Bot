@@ -1,5 +1,13 @@
 import { getData } from '../../../utils/db.js';
 
+interface IntegrationSubscription {
+    id: string;
+    guild_id: string;
+    type: string;
+    target_id: string;
+    channel_id: string;
+}
+
 export default {
     name: 'integrations',
     description: 'Integration management',
@@ -8,9 +16,9 @@ export default {
             name: 'list',
             description: 'List all integrations',
             options: [],
-            execute: async (_args: any) => {
+            execute: async (_args: unknown) => {
                 const data = await getData('integrations') || {};
-                const subs = ((data['subscriptions'] as any[]) || []).map(s => ({
+                const subs = ((data['subscriptions'] as IntegrationSubscription[]) || []).map(s => ({
                     id: s.id,
                     guild_id: s.guild_id,
                     type: s.type,

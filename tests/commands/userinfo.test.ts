@@ -228,7 +228,7 @@ describe('Userinfo Command', () => {
             await userinfoCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0]![0];
-            expect(replyCall.embeds[0].data.title).toContain('[ONLINE]');
+            expect(replyCall.embeds[0].data.title).toContain('User Information - Online');
         });
 
         it('should show idle status', async() => {
@@ -237,7 +237,7 @@ describe('Userinfo Command', () => {
             await userinfoCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0]![0];
-            expect(replyCall.embeds[0].data.title).toContain('[IDLE]');
+            expect(replyCall.embeds[0].data.title).toContain('User Information - Idle');
         });
 
         it('should show dnd status', async() => {
@@ -246,7 +246,7 @@ describe('Userinfo Command', () => {
             await userinfoCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0]![0];
-            expect(replyCall.embeds[0].data.title).toContain('[DND]');
+            expect(replyCall.embeds[0].data.title).toContain('User Information - Do Not Disturb');
         });
 
         it('should show offline status', async() => {
@@ -255,7 +255,7 @@ describe('Userinfo Command', () => {
             await userinfoCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0]![0];
-            expect(replyCall.embeds[0].data.title).toContain('[OFFLINE]');
+            expect(replyCall.embeds[0].data.title).toContain('User Information - Offline');
         });
 
         it('should show offline when presence is null', async() => {
@@ -264,7 +264,7 @@ describe('Userinfo Command', () => {
             await userinfoCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
             const replyCall = mockInteraction.reply.mock.calls[0]![0];
-            expect(replyCall.embeds[0].data.title).toContain('[OFFLINE]');
+            expect(replyCall.embeds[0].data.title).toContain('User Information - Offline');
         });
     });
 
@@ -290,7 +290,7 @@ describe('Userinfo Command', () => {
             
             expect(mockInteraction.reply).toHaveBeenCalled();
             const replyCall = mockInteraction.reply.mock.calls[0]![0];
-            expect(replyCall.content).toContain('[ERROR]');
+            expect(replyCall.content).toContain('Could not find that user in this server');
             expect(replyCall.flags).toBe(64);
         });
     });

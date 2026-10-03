@@ -1,15 +1,15 @@
 import { logEvent } from '../../../utils/guildLogging.js';
+import type { GuildBan } from 'discord.js';
 
 export default {
     name: 'guildBanAdd',
     once: false,
-    async execute(ban: any, _client: any) {
+    async execute(ban: GuildBan, _client: unknown) {
         try {
             const guild = ban.guild;
             const user = ban.user;
 
             if (!guild || !user) {
-                console.log('[WARNING] guildBanAdd: Missing guild or user');
                 return;
             }
 
@@ -23,12 +23,12 @@ export default {
                 });
 
                 const banLog = auditLogs.entries.first();
-                if (banLog && banLog.target.id === user.id) {
+                if (banLog?.target?.id === user.id) {
                     executor = banLog.executor;
                     reason = banLog.reason ?? reason;
                 }
             } catch {
-                console.log('[INFO] Could not fetch audit log for ban');
+                // Ignore audit log errors
             }
 
             const embed = {
@@ -53,15 +53,13 @@ export default {
                     }
                 ],
                 thumbnail: {
-                    url: user.displayAvatarURL({ dynamic: true })
+                    url: user.displayAvatarURL()
                 },
                 timestamp: new Date().toISOString()
             };
 
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-            await logEvent(guild, 'ban', embed);
 
-            console.log(`[MODERATION] User ${user.tag} was banned from ${guild.name}`);
+            await logEvent(guild, 'ban', embed);
 
         } catch (error) {
             console.error('[ERROR] guildBanAdd event error:', error);

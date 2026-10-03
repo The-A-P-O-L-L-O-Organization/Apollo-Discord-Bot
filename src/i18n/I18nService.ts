@@ -64,7 +64,8 @@ export class I18nService {
                 interpolation: {
                     escapeValue: false
                 },
-                returnEmptyString: false
+                returnEmptyString: false,
+                overloadTranslationOptionHandler: (args: string[]) => ({ defaultValue: args[1] })
             })
             .then(() => this.instance.loadLanguages([...SUPPORTED_LOCALES]))
             .then(() => {

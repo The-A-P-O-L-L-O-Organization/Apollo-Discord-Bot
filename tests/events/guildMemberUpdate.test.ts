@@ -12,15 +12,15 @@ import {
 } from '../mocks/discord.js';
 import type { MockMemberOptions } from '../mocks/discord.js';
 
-// Mock the logger module
-vi.mock('../../src/utils/logger.js', () => ({
+// Mock the guildLogging module
+vi.mock('../../src/utils/guildLogging.js', () => ({
     logEvent: vi.fn().mockResolvedValue(undefined),
     createRoleChangeEmbed: vi.fn()
 }));
 
-import * as mockedLogger from '../../src/utils/logger.js';
+import * as mockedGuildLogging from '../../src/utils/guildLogging.js';
 
-const { logEvent, createRoleChangeEmbed } = mockedLogger as unknown as {
+const { logEvent, createRoleChangeEmbed } = mockedGuildLogging as unknown as {
     logEvent: ReturnType<typeof vi.fn>;
     createRoleChangeEmbed: ReturnType<typeof vi.fn>;
 };
@@ -87,6 +87,10 @@ describe('GuildMemberUpdate Event', () => {
     });
 
     describe('Success Cases', () => {
+        beforeEach(() => {
+            createRoleChangeEmbed.mockReturnValue({ toJSON: () => ({ title: 'Role Update' }) });
+        });
+
         it('should log role changes for non-bot users', async() => {
             await guildMemberUpdateEvent.execute(oldMember, newMember, mockClient);
             
@@ -128,6 +132,10 @@ describe('GuildMemberUpdate Event', () => {
     });
 
     describe('Role Added', () => {
+        beforeEach(() => {
+            createRoleChangeEmbed.mockReturnValue({ toJSON: () => ({ title: 'Role Update' }) });
+        });
+
         it('should detect when a role is added', async() => {
             await guildMemberUpdateEvent.execute(oldMember, newMember, mockClient);
             
@@ -137,6 +145,10 @@ describe('GuildMemberUpdate Event', () => {
     });
 
     describe('Role Removed', () => {
+        beforeEach(() => {
+            createRoleChangeEmbed.mockReturnValue({ toJSON: () => ({ title: 'Role Update' }) });
+        });
+
         it('should detect when a role is removed', async() => {
             // Swap old and new to simulate role removal
             await guildMemberUpdateEvent.execute(newMember, oldMember, mockClient);
@@ -160,6 +172,7 @@ describe('GuildMemberUpdate Event', () => {
         it('should handle logging errors gracefully', async() => {
             logEvent.mockRejectedValue(new Error('Logging failed'));
             
+            // The event handler awaits logEvent, so the error propagates
             await expect(
                 guildMemberUpdateEvent.execute(oldMember, newMember, mockClient)
             ).rejects.toThrow('Logging failed');

@@ -10,7 +10,7 @@ export default {
     name: 'interactionCreate',
     once: false,
 
-    async execute(interaction: ButtonInteraction, _client: any): Promise<void> {
+    async execute(interaction: ButtonInteraction, _client: unknown): Promise<void> {
         if (!interaction.isButton()) { return; }
 
         const customId = interaction.customId;
@@ -268,7 +268,7 @@ async function handleCloseTicket(interaction: ButtonInteraction): Promise<void> 
                 bot: msg.author.bot
             },
             content: msg.content,
-            attachments: msg.attachments.map((a: any) => ({
+            attachments: msg.attachments.map((a) => ({
                 name: a.name,
                 url: a.url,
                 size: a.size
@@ -280,7 +280,7 @@ async function handleCloseTicket(interaction: ButtonInteraction): Promise<void> 
     };
 
     const filename = `ticket-${ticket['ticketNumber'] as number}-${guildId}-${Date.now()}.json`;
-    writeToSubDir('transcripts', filename, transcript);
+    void writeToSubDir('transcripts', filename, transcript);
 
     await updateGuildData('tickets', guildId, (data: Record<string, unknown>) => {
         const currentOpenTickets = (data['openTickets'] as Record<string, unknown>[]) || [];

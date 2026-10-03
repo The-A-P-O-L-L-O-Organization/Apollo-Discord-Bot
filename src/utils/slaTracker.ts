@@ -31,14 +31,20 @@ interface TicketConfig {
     slaThresholds?: SLAThresholds;
 }
 
+interface SLAMetricsCategory {
+    count: number;
+    avgResponseTime: number;
+    responseTimes?: number[];
+}
+
 interface SLAMetrics {
     totalTickets: number;
     avgResponseTime: number;
     avgResolutionTime: number;
     slaMet: number;
     slaBreached: number;
-    byCategory: Record<string, { count: number; avgResponseTime: number }>;
-    byPriority: Record<string, { count: number; avgResponseTime: number }>;
+    byCategory: Record<string, SLAMetricsCategory>;
+    byPriority: Record<string, SLAMetricsCategory>;
     openTicketsBreached: number;
 }
 
@@ -142,16 +148,16 @@ export async function calculateSLAMetrics(guildId: string): Promise<SLAMetrics> 
         metrics.byCategory[category] ??= { count: 0, avgResponseTime: 0 };
         metrics.byCategory[category].count++;
         if (responseTime !== null) {
-            (metrics.byCategory[category] as any).responseTimes = (metrics.byCategory[category] as any).responseTimes ?? [];
-            (metrics.byCategory[category] as any).responseTimes.push(responseTime);
+            metrics.byCategory[category].responseTimes ??= [];
+            metrics.byCategory[category].responseTimes.push(responseTime);
         }
 
         const priority = ticket.priority ?? 'medium';
         metrics.byPriority[priority] ??= { count: 0, avgResponseTime: 0 };
         metrics.byPriority[priority].count++;
         if (responseTime !== null) {
-            (metrics.byPriority[priority] as any).responseTimes = (metrics.byPriority[priority] as any).responseTimes ?? [];
-            (metrics.byPriority[priority] as any).responseTimes.push(responseTime);
+            metrics.byPriority[priority].responseTimes ??= [];
+            metrics.byPriority[priority].responseTimes.push(responseTime);
         }
     });
 
@@ -165,16 +171,16 @@ export async function calculateSLAMetrics(guildId: string): Promise<SLAMetrics> 
 
     Object.keys(metrics.byCategory).forEach(category => {
         const cat = metrics.byCategory[category]!;
-        const times = ((cat as unknown as { responseTimes?: number[] }).responseTimes) ?? [];
+        const times = cat.responseTimes ?? [];
         if (times.length > 0) {
             cat.avgResponseTime = times.reduce((a: number, b: number) => a + b, 0) / times.length;
         }
-        delete (cat as unknown as { responseTimes?: number[] }).responseTimes;
+        delete cat.responseTimes;
     });
 
     Object.keys(metrics.byPriority).forEach(priority => {
         const pri = metrics.byPriority[priority]!;
-        const times = ((pri as unknown as { responseTimes?: number[] }).responseTimes) ?? [];
+        const times = pri.responseTimes ?? [];
         if (times.length > 0) {
             pri.avgResponseTime = times.reduce((a: number, b: number) => a + b, 0) / times.length;
         }

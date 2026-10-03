@@ -57,15 +57,15 @@ export function initAnalyticsCollector(client: Client): void {
 
     // Start the batch write interval
     batchIntervalId = setInterval(() => {
-        flushAnalyticsCache();
+        void flushAnalyticsCache();
     }, BATCH_INTERVAL);
 
     // Run cleanup on startup
-    cleanupOldAnalytics(client);
+    void cleanupOldAnalytics(client);
 
     // Schedule daily cleanup
     setInterval(() => {
-        cleanupOldAnalytics(client);
+        void cleanupOldAnalytics(client);
     }, 24 * 60 * 60 * 1000); // Once per day
 
     logger.info('[ANALYTICS] Analytics collector started successfully');
@@ -78,7 +78,7 @@ export function stopAnalyticsCollector(): void {
     logger.info('[ANALYTICS] Stopping analytics collector...');
 
     // Flush any remaining cached data
-    flushAnalyticsCache();
+    void flushAnalyticsCache();
 
     // Clear the interval
     if (batchIntervalId) {

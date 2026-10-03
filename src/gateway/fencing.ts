@@ -246,7 +246,7 @@ export class FencingTokenManager {
         };
 
         this.heartbeatTimer = setInterval(() => { void refresh(); }, this.ttlMs / 3);
-        
+
         // Initial heartbeat
         await refresh();
 

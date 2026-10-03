@@ -82,7 +82,7 @@ export class WorkerHost {
 
     constructor({
         fork: forkImpl = fork,
-        log = () => {},
+        log = () => undefined,
         now = () => Date.now(),
         backoff = (attempt) => Math.min(1000 * 2 ** attempt, 60000)
     }: WorkerHostOptions = {}) {
@@ -176,9 +176,7 @@ export class WorkerHost {
         if (circuit.state === 'closed') {
             // In closed state, track healthy window
             if (circuit.crashes > 0) {
-                if (!circuit.healthySince) {
-                    circuit.healthySince = circuit.lastCrashAt || now;
-                }
+                circuit.healthySince ??= circuit.lastCrashAt || now;
                 const elapsed = now - circuit.healthySince;
                 if (elapsed >= HEALTHY_WINDOW_MS) {
                     // Healthy window elapsed, reset crash count

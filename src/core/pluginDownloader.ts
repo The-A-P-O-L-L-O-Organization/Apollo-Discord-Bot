@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { lookup as dnsLookup } from 'node:dns';
@@ -223,7 +223,7 @@ export async function downloadAndExtractPlugin(url: string, destDir: string, opt
             const pluginFilePath = join(destDir, 'plugin.ts');
             if (existsSync(pluginFilePath)) {
                 const parsedUrl = new URL(url);
-                const pluginId = parsedUrl.pathname.split('/').pop()?.replace('.zip', '') || 'unknown';
+                const pluginId = parsedUrl.pathname.split('/').pop()?.replace('.zip', '') ?? 'unknown';
                 const bundleUrl = `${options.sigstoreBundleUrlBase}/${pluginId}.sigstore.json`;
 
                 try {

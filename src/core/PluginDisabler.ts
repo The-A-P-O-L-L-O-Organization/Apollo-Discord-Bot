@@ -1,7 +1,7 @@
 import type { Plugin } from './Plugin.js';
 
 export interface WorkerHostLike {
-    terminateWorker: (pluginId: string) => Promise<void>;
+    terminateWorker: (pluginId: string) => boolean;
     isDisabled: (id: string) => boolean;
 }
 
@@ -30,7 +30,7 @@ export class PluginDisabler {
         }
 
         // Terminate worker
-        await this.workerHost.terminateWorker(pluginId);
+        this.workerHost.terminateWorker(pluginId);
 
         // Unsubscribe all events (EventBus now supports this)
         await this.eventBus.unsubscribeAllForPlugin(pluginId);

@@ -1,15 +1,15 @@
 import { logEvent } from '../../../utils/guildLogging.js';
+import type { GuildBan } from 'discord.js';
 
 export default {
     name: 'guildBanRemove',
     once: false,
-    async execute(ban: any, _client: any) {
+    async execute(ban: GuildBan, _client: unknown) {
         try {
             const guild = ban.guild;
             const user = ban.user;
 
             if (!guild || !user) {
-                console.log('[WARNING] guildBanRemove: Missing guild or user');
                 return;
             }
 
@@ -22,11 +22,11 @@ export default {
                 });
 
                 const unbanLog = auditLogs.entries.first();
-                if (unbanLog && unbanLog.target.id === user.id) {
+                if (unbanLog?.target?.id === user.id) {
                     executor = unbanLog.executor;
                 }
             } catch {
-                console.log('[INFO] Could not fetch audit log for unban');
+                // Ignore audit log errors
             }
 
             const embed = {
@@ -46,15 +46,13 @@ export default {
                     }
                 ],
                 thumbnail: {
-                    url: user.displayAvatarURL({ dynamic: true })
+                    url: user.displayAvatarURL()
                 },
                 timestamp: new Date().toISOString()
             };
 
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-            await logEvent(guild, 'unban', embed);
 
-            console.log(`[MODERATION] User ${user.tag} was unbanned from ${guild.name}`);
+            await logEvent(guild, 'unban', embed);
 
         } catch (error) {
             console.error('[ERROR] guildBanRemove event error:', error);

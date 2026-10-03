@@ -145,7 +145,7 @@ describe('Embed Command', () => {
             expect(mockChannel.send).not.toHaveBeenCalled();
             
             const replyCall = mockInteraction.reply.mock.calls[0]![0];
-            expect(replyCall.content).toContain('must provide at least a title or description');
+            expect(replyCall.content).toContain('must provide at least a title or a description');
             expect(replyCall.flags).toBe(64);
         });
 
@@ -493,7 +493,7 @@ describe('Embed Command', () => {
             await embedCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
 
             const replyCall = mockInteraction.reply.mock.calls[0]![0];
-            expect(replyCall.content).toContain('Could not read');
+            expect(replyCall.content).toContain('Could not download or read the attached file');
             expect(mockChannel.send).not.toHaveBeenCalled();
         });
 

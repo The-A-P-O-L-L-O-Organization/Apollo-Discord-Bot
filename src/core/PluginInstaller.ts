@@ -39,7 +39,7 @@ export class PluginInstaller {
         if (this.sigstore) {
             const pluginFilePath = join(targetDir, 'plugin.ts');
             const bundleUrl = `${this.sigstore.bundleUrlBase}/${pluginId}.sigstore.json`;
-            
+
             try {
                 await verifySigstoreSignature({
                     artifactPath: pluginFilePath,

@@ -331,7 +331,7 @@ describe('Tag Command', () => {
             const replyCall = mockInteraction.reply.mock.calls[0]![0];
             const embed = replyCall.embeds[0];
             expect(embed.title).toContain('welcome');
-            expect(embed.fields).toContainEqual(expect.objectContaining({ value: '2 times' }));
+            expect(embed.fields).toContainEqual(expect.objectContaining({ value: 'Used 2 times' }));
         });
 
         it('should handle missing tag', async() => {

@@ -40,7 +40,8 @@ vi.mock('../../src/config/config.js', () => ({
 }));
 
 vi.mock('node:fs', () => ({
-    readFileSync: vi.fn()
+    readFileSync: vi.fn(),
+    existsSync: vi.fn().mockReturnValue(true)
 }));
 
 import { readFileSync } from 'node:fs';

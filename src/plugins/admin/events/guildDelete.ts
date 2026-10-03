@@ -1,11 +1,12 @@
 import { createLogger } from '../../../utils/logger.js';
+import type { Guild, Client } from 'discord.js';
 
 const logger = createLogger({ component: 'admin:guildDelete' });
 
 export default {
     name: 'guildDelete',
     once: false,
-    execute(guild: any, client: any) {
+    execute(guild: Guild, client: Client) {
         try {
             logger.info(`[INFO] Bot removed from server: ${guild.name} (${guild.id})`);
             logger.info(`[INFO] Server had ${guild.memberCount} members`);

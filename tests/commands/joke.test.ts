@@ -65,7 +65,7 @@ describe('Joke Command', () => {
             const replyCall = mockInteraction.reply.mock.calls[0]![0];
             const embed = replyCall.embeds[0];
 
-            expect(embed.title).toBe('😂 Random Joke');
+            expect(embed.title).toBe('Random Joke');
         });
 
         it('should include requester in fields', async() => {
@@ -76,7 +76,7 @@ describe('Joke Command', () => {
 
             expect(embed.fields).toBeDefined();
             expect(embed.fields).toHaveLength(1);
-            expect(embed.fields[0].name).toBe('[INFO] Requested by');
+            expect(embed.fields[0].name).toBe('Requested by');
             expect(embed.fields[0].value).toBe('TestUser#0001');
         });
 
@@ -116,7 +116,7 @@ describe('Joke Command', () => {
             expect(replyCall.embeds).toHaveLength(1);
 
             const embed = replyCall.embeds[0];
-            expect(embed.title).toBe('[ERROR] Command Failed');
+            expect(embed.title).toBe('Command Failed');
             expect(embed.color).toBe(0xFF0000);
 
             // Restore Math.random

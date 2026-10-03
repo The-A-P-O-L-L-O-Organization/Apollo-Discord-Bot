@@ -31,15 +31,7 @@ import type { CommandModule } from './types/discord.js';
 
 const logger = createLogger({ component: 'gateway' });
 
-const SHARD_ID = process.env['SHARD_ID'] ? parseInt(process.env['SHARD_ID'], 10) : undefined;
-const IS_SHARD_WORKER = typeof SHARD_ID !== 'undefined' && !isNaN(SHARD_ID);
-
-const shardConfig = {
-    queuePrefix: IS_SHARD_WORKER ? `${config.shard.queuePrefixBase}:shard-${SHARD_ID}` : config.queue.prefix,
-    socketPath: IS_SHARD_WORKER ? `${config.shard.socketPathBase}-shard-${SHARD_ID}.sock` : '/tmp/apollo.sock',
-    healthPort: IS_SHARD_WORKER && typeof SHARD_ID === 'number' ? 3000 + SHARD_ID : 3000,
-    redisPrefix: IS_SHARD_WORKER ? `${config.shard.redisKeyPrefixBase}:shard-${SHARD_ID}` : config.shard.redisKeyPrefixBase
-};
+const _SHARD_ID = process.env['SHARD_ID'] ? parseInt(process.env['SHARD_ID'], 10) : undefined;
 
 const uuid = randomUUID?.() ?? randomBytes(16).toString('hex');
 

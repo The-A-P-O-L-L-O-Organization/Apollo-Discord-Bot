@@ -141,7 +141,7 @@ export default {
                     fields: [
                         {
                             name: t('plugin.loaded', { count: plugins.length }),
-                            value: plugins.map((p: any) => {
+                            value: plugins.map((p: { id: string; version: string; loaded: boolean; enabled: boolean }) => {
                                 const installed = manager.installedPlugins.get(p.id);
                                 const workerStatus = installed?.origin === 'installed'
                                     ? ' (worker: ' + (manager.workerHost?.isDisabled(p.id) ? 'disabled after crashes' : 'running') + ')'
@@ -153,7 +153,7 @@ export default {
                         },
                         {
                             name: t('plugin.available'),
-                            value: discovered.filter((d: string) => !plugins.find((p: any) => p.id === d)).join(', ') ?? t('plugin.allLoaded'),
+                            value: discovered.filter((d: string) => !plugins.find((p: { id: string }) => p.id === d)).join(', ') ?? t('plugin.allLoaded'),
                             inline: false
                         }
                     ],
@@ -235,7 +235,7 @@ export default {
                         embeds: [{
                             color: 0x00FF00,
                             title: t('plugin.loadedTitle'),
-                            description: t('plugin.loadedDescription', { name, version: (plugin.constructor as any).version }),
+                            description: t('plugin.loadedDescription', { name, version: (plugin.constructor as { version?: string }).version ?? '1.0.0' }),
                             timestamp: new Date().toISOString()
                         }]
                     });
@@ -314,11 +314,11 @@ export default {
                         color: 0x00BFFF,
                         title: t('plugin.searchTitle', { query }),
                         description: results.length
-                            ? results.map((r: any) => '**' + r.id + '** v' + r.version + ' — ' + (r.name ?? r.id)).join('\n')
+                            ? results.map((r: { id: string; version: string; name?: string }) => '**' + r.id + '** v' + r.version + ' — ' + (r.name ?? r.id)).join('\n')
                             : t('plugin.noResults'),
                         fields: results.length ? [{
                             name: t('plugin.searchInstall'),
-                            value: results.map((r: any) => '`/plugin install ' + r.id + '`').join('\n')
+                            value: results.map((r: { id: string }) => '`/plugin install ' + r.id + '`').join('\n')
                         }] : [],
                         timestamp: new Date().toISOString()
                     }]

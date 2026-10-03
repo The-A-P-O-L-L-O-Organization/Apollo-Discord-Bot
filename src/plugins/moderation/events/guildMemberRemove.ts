@@ -10,7 +10,7 @@ export default {
     async execute(member: GuildMember, _client: unknown) {
         if (member.user.bot) { return; }
 
-        trackMemberChange(member.guild.id, false, member.guild.memberCount);
+        void trackMemberChange(member.guild.id, false, member.guild.memberCount);
 
         const rolePersistenceConfig = await getGuildData('role-persistence', member.guild.id);
 

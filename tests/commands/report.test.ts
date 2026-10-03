@@ -146,7 +146,7 @@ describe('Report Command', () => {
 
             expect(interaction.showModal).not.toHaveBeenCalled();
             expect(interaction.reply).toHaveBeenCalledWith({
-                content: '[ERROR] Could not find the message to report.',
+                content: 'Could not find the message to report.',
                 flags: MessageFlags.Ephemeral
             });
         });
@@ -159,7 +159,7 @@ describe('Report Command', () => {
 
             expect(interaction.showModal).not.toHaveBeenCalled();
             expect(interaction.reply).toHaveBeenCalledWith({
-                content: '[ERROR] You cannot report your own message.',
+                content: 'You cannot report your own message.',
                 flags: MessageFlags.Ephemeral
             });
         });
@@ -173,7 +173,7 @@ describe('Report Command', () => {
 
             expect(interaction.reply).toHaveBeenCalledWith({
                 embeds: [expect.objectContaining({
-                    title: '[ERROR] Report Failed',
+                    title: 'Report Failed',
                     color: 0xFF0000
                 })],
                 flags: MessageFlags.Ephemeral

@@ -31,12 +31,12 @@ export async function issueInterlinkToken(
 ): Promise<string> {
     const secret = getSecret();
     const expiry = getExpiry();
-    
-    return new SignJWT({ 
-        botId, 
+
+    return new SignJWT({
+        botId,
         capabilities,
         iss: ISSUER
-    } as InterlinkTokenPayload)
+    })
         .setProtectedHeader({ alg: ALGORITHM, typ: 'JWT' })
         .setIssuedAt()
         .setExpirationTime(expiry)
@@ -45,13 +45,13 @@ export async function issueInterlinkToken(
 
 export async function verifyInterlinkToken(token: string): Promise<InterlinkTokenPayload> {
     const secret = getSecret();
-    
+
     const { payload } = await jwtVerify<InterlinkTokenPayload>(token, secret, {
         issuer: ISSUER,
         algorithms: [ALGORITHM],
         clockTolerance: 30 // 30 seconds clock skew tolerance
     });
-    
+
     // Verify required claims
     if (!payload.botId || typeof payload.botId !== 'string') {
         throw new Error('Token missing required claim: botId');
@@ -62,6 +62,6 @@ export async function verifyInterlinkToken(token: string): Promise<InterlinkToke
     if (payload.iss !== ISSUER) {
         throw new Error('Token has invalid issuer');
     }
-    
+
     return payload;
 }

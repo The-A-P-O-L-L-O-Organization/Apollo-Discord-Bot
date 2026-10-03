@@ -4,7 +4,23 @@ import { getData, setData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { i18n } from '../../../i18n/index.js';
 
-async function resolveT(interaction: any) {
+interface IntegrationData {
+    nextId: number;
+    subscriptions: IntegrationSubscription[];
+}
+
+interface IntegrationSubscription {
+    id: number;
+    guild_id: string;
+    channel_id: string;
+    type: string;
+    target_id: string;
+    config: Record<string, unknown>;
+    last_checked: string | null;
+    created_at: string;
+}
+
+async function resolveT(interaction: ChatInputCommandInteraction) {
     const resolvedLocale = await i18n.resolveLocale({
         locale: interaction.locale ?? null,
         guildLocale: interaction.guildLocale ?? null,
@@ -95,25 +111,27 @@ export default {
     }
 };
 
-async function handleAdd(interaction: any): Promise<void> {
+async function handleAdd(interaction: ChatInputCommandInteraction): Promise<void> {
     const t = await resolveT(interaction);
     const type = interaction.options.getString('type');
     const target = interaction.options.getString('target');
     const channel = interaction.options.getChannel('channel');
 
-    if (!channel.isTextBased()) {
-        return interaction.reply({ content: t('integration.textChannel'), flags: MessageFlags.Ephemeral });
+    if (!channel || !('isTextBased' in channel) || !channel.isTextBased()) {
+        await interaction.reply({ content: t('integration.textChannel'), flags: MessageFlags.Ephemeral });
+        return;
     }
 
-    const data = (await getData('integrations')) || { nextId: 1, subscriptions: [] };
+    const rawData = await getData('integrations');
+    const data = (rawData as unknown as IntegrationData) || { nextId: 1, subscriptions: [] };
 
-    const id = (data['nextId'] as number)++;
-    (data['subscriptions'] as any[]).push({
+    const id = data.nextId++;
+    data.subscriptions.push({
         id,
-        guild_id: interaction.guildId,
+        guild_id: interaction.guildId ?? '',
         channel_id: channel.id,
-        type,
-        target_id: target,
+        type: type ?? '',
+        target_id: target ?? '',
         config: {},
         last_checked: null,
         created_at: new Date().toISOString()
@@ -124,38 +142,42 @@ async function handleAdd(interaction: any): Promise<void> {
     const typeNames = { twitch: 'Twitch', youtube: 'YouTube', github: 'GitHub', rss: 'RSS' };
 
     await interaction.reply({
-        content: t('integration.added', { type: typeNames[type as keyof typeof typeNames] || type, target, channel: String(channel), id }),
+        content: t('integration.added', { type: typeNames[type as keyof typeof typeNames] || (type ?? ''), target: target ?? '', channel: String(channel), id }),
         flags: MessageFlags.Ephemeral
     });
 }
 
-async function handleRemove(interaction: any): Promise<void> {
+async function handleRemove(interaction: ChatInputCommandInteraction): Promise<void> {
     const t = await resolveT(interaction);
     const id = interaction.options.getInteger('id');
-    const data = (await getData('integrations')) || { nextId: 1, subscriptions: [] };
+    const rawData = await getData('integrations');
+    const data = (rawData as unknown as IntegrationData) || { nextId: 1, subscriptions: [] };
 
-    const idx = (data['subscriptions'] as any[]).findIndex(
+    const idx = data.subscriptions.findIndex(
         s => s.id === id && s.guild_id === interaction.guildId
     );
 
     if (idx === -1) {
-        return interaction.reply({ content: t('integration.notFound', { id }), flags: MessageFlags.Ephemeral });
+        await interaction.reply({ content: t('integration.notFound', { id }), flags: MessageFlags.Ephemeral });
+        return;
     }
 
-    (data['subscriptions'] as any[]).splice(idx, 1);
+    data.subscriptions.splice(idx, 1);
     await setData('integrations', data);
 
     await interaction.reply({ content: t('integration.removed', { id }), flags: MessageFlags.Ephemeral });
 }
 
-async function handleList(interaction: any): Promise<void> {
+async function handleList(interaction: ChatInputCommandInteraction): Promise<void> {
     const t = await resolveT(interaction);
-    const data = (await getData('integrations')) || { nextId: 1, subscriptions: [] };
+    const rawData = await getData('integrations');
+    const data = (rawData as unknown as IntegrationData) || { nextId: 1, subscriptions: [] };
 
-    const guildSubs = (data['subscriptions'] as any[]).filter(s => s.guild_id === interaction.guildId);
+    const guildSubs = data.subscriptions.filter(s => s.guild_id === interaction.guildId);
 
     if (guildSubs.length === 0) {
-        return interaction.reply({ content: t('integration.empty'), flags: MessageFlags.Ephemeral });
+        await interaction.reply({ content: t('integration.empty'), flags: MessageFlags.Ephemeral });
+        return;
     }
 
     const lines = guildSubs.map(s =>

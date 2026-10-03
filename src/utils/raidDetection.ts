@@ -51,16 +51,17 @@ interface RaidState {
  * @param guildConfig - Guild automod config
  * @returns Raid thresholds
  */
-function getRaidThresholds(guildConfig: Record<string, any>): RaidThresholds {
+function getRaidThresholds(guildConfig: Record<string, unknown>): RaidThresholds {
     if (!guildConfig['raidThresholds']) {
         return DEFAULT_RAID_THRESHOLDS;
     }
+    const rt = guildConfig['raidThresholds'] as Record<string, unknown>;
     return {
-        joinCount: guildConfig['raidThresholds'].joinCount ?? DEFAULT_RAID_THRESHOLDS.joinCount,
-        timeWindow: guildConfig['raidThresholds'].timeWindow ?? DEFAULT_RAID_THRESHOLDS.timeWindow,
-        newAccountAge: guildConfig['raidThresholds'].newAccountAge ?? DEFAULT_RAID_THRESHOLDS.newAccountAge,
-        similarNameThreshold: guildConfig['raidThresholds'].similarNameThreshold ?? DEFAULT_RAID_THRESHOLDS.similarNameThreshold,
-        alertCooldown: guildConfig['raidThresholds'].alertCooldown ?? DEFAULT_RAID_THRESHOLDS.alertCooldown
+        joinCount: (rt['joinCount'] as number) ?? DEFAULT_RAID_THRESHOLDS.joinCount,
+        timeWindow: (rt['timeWindow'] as number) ?? DEFAULT_RAID_THRESHOLDS.timeWindow,
+        newAccountAge: (rt['newAccountAge'] as number) ?? DEFAULT_RAID_THRESHOLDS.newAccountAge,
+        similarNameThreshold: (rt['similarNameThreshold'] as number) ?? DEFAULT_RAID_THRESHOLDS.similarNameThreshold,
+        alertCooldown: (rt['alertCooldown'] as number) ?? DEFAULT_RAID_THRESHOLDS.alertCooldown
     };
 }
 
@@ -68,9 +69,19 @@ function getRaidThresholds(guildConfig: Record<string, any>): RaidThresholds {
  * Gets Redis client for raid detection
  * @returns Redis client or null if unavailable
  */
-async function getRaidRedis(): Promise<any> {
+interface RaidRedis {
+    zadd: (key: string, score: number, value: string) => Promise<number>;
+    expire: (key: string, seconds: number) => Promise<number>;
+    zremrangebyscore: (key: string, min: number | string, max: number | string) => Promise<number>;
+    zrange: (key: string, start: number, stop: number) => Promise<string[]>;
+    get: (key: string) => Promise<string | null>;
+    set: (key: string, value: string) => Promise<'OK'>;
+    del: (key: string) => Promise<number>;
+}
+
+async function getRaidRedis(): Promise<RaidRedis | null> {
     if (!config.queue?.enabled) {return null;}
-    return getLockRedis();
+    return (await getLockRedis()) as unknown as RaidRedis;
 }
 
 /**
@@ -111,7 +122,7 @@ export async function checkRaidPatternRedis(guildId: string, threshold: number, 
     const cutoff = now - intervalMs;
 
     await redis.zremrangebyscore(key, '-inf', cutoff);
-    const members = await redis.zrange(key, 0, -1) as string[];
+    const members = await redis.zrange(key, 0, -1);
 
     const recentJoins = members.length;
     if (recentJoins < threshold) {
@@ -175,7 +186,7 @@ export async function setRaidModeRedis(guildId: string, enabled: boolean): Promi
  * @param guildConfig - Guild automod config (optional, for custom thresholds)
  * @returns Whether raid was detected
  */
-export async function checkRaidPattern(guildId: string, member: GuildMember, guildConfig: Record<string, any> = {}): Promise<boolean> {
+export async function checkRaidPattern(guildId: string, member: GuildMember, guildConfig: Record<string, unknown> = {}): Promise<boolean> {
     const now = Date.now();
     const accountAge = now - member.user.createdTimestamp;
     const accountAgeDays = accountAge / (1000 * 60 * 60 * 24);
@@ -268,13 +279,13 @@ export async function handleRaidDetected(guild: Guild, member: GuildMember): Pro
     const redis = await getRaidRedis();
     if (redis) {
         const key = `${RAID_KEY_PREFIX}${guild.id}`;
-        const members = await redis.zrange(key, 0, -1) as string[];
+        const members = await redis.zrange(key, 0, -1);
         const parsedMembers = members.map(m => {
             try { return JSON.parse(m); } catch { return null; }
         }).filter(Boolean) as {userId: string; username: string; timestamp: number; accountAge: number}[];
 
         const lastAlertKey = `${RAID_KEY_PREFIX}${guild.id}:lastalert`;
-        const lastAlert = parseInt((await redis.get(lastAlertKey) as string | null) ?? '0', 10);
+        const lastAlert = parseInt((await redis.get(lastAlertKey)) ?? '0', 10);
 
         if (now - lastAlert < DEFAULT_RAID_THRESHOLDS.alertCooldown) {
             return; // Don't spam alerts

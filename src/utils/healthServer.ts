@@ -119,7 +119,8 @@ export async function performHealthCheck(client: Client): Promise<HealthCheckRes
         uptime: Date.now() - startupTime
     };
 
-    const healthy = checks.redis && checks.database && checks.discord;
+    const redisRequired = config.queue.enabled;
+    const healthy = (redisRequired ? checks.redis : true) && checks.database && checks.discord;
 
     return {
         status: healthy ? 'healthy' : 'unhealthy',
@@ -141,7 +142,8 @@ export async function performReadinessCheck(client: Client): Promise<ReadinessCh
         discord: checkDiscord(client)
     };
 
-    const ready = checks.redis && checks.database && checks.discord;
+    const redisRequired = config.queue.enabled;
+    const ready = (redisRequired ? checks.redis : true) && checks.database && checks.discord;
     isReady = ready;
 
     return {

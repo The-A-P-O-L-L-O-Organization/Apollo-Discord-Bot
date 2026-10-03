@@ -13,15 +13,15 @@ import {
 } from '../mocks/discord.js';
 import type { MockMessageOptions } from '../mocks/discord.js';
 
-// Mock the logger module
-vi.mock('../../src/utils/logger.js', () => ({
+// Mock the guildLogging module
+vi.mock('../../src/utils/guildLogging.js', () => ({
     logEvent: vi.fn().mockResolvedValue(undefined),
     createMessageEditEmbed: vi.fn().mockReturnValue({ toJSON: () => ({}) })
 }));
 
-import * as mockedLogger from '../../src/utils/logger.js';
+import * as mockedGuildLogging from '../../src/utils/guildLogging.js';
 
-const { logEvent, createMessageEditEmbed } = mockedLogger as unknown as {
+const { logEvent, createMessageEditEmbed } = mockedGuildLogging as unknown as {
     logEvent: ReturnType<typeof vi.fn>;
     createMessageEditEmbed: ReturnType<typeof vi.fn>;
 };

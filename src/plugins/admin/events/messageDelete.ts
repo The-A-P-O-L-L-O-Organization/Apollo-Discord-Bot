@@ -1,10 +1,11 @@
 import { logEvent, createMessageDeleteEmbed } from '../../../utils/guildLogging.js';
+import type { Message } from 'discord.js';
 
 export default {
     name: 'messageDelete',
     once: false,
 
-    async execute(message: any, _client: any) {
+    async execute(message: Message, _client: unknown) {
         if (!message.guild) { return; }
 
         if (!message.author) { return; }
@@ -19,9 +20,9 @@ export default {
             }
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
         const embed = createMessageDeleteEmbed(message);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
         await logEvent(message.guild, 'messageDelete', embed);
     }
 };

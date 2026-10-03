@@ -83,7 +83,7 @@ describe('8ball Command', () => {
             const replyCall = mockInteraction.reply.mock.calls[0]![0];
             const embed = replyCall.embeds[0];
 
-            expect(embed.title).toBe('🎱 Magic 8-Ball');
+            expect(embed.title).toBe('Magic 8-Ball');
         });
 
         it('should include requester in fields', async() => {
@@ -94,7 +94,7 @@ describe('8ball Command', () => {
 
             expect(embed.fields).toBeDefined();
             expect(embed.fields).toHaveLength(1);
-            expect(embed.fields[0].name).toBe('[INFO] Asked by');
+            expect(embed.fields[0].name).toBe('Asked by');
             expect(embed.fields[0].value).toBe('TestUser#0001');
         });
 

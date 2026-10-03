@@ -1,7 +1,7 @@
 // SLA Monitor Event
 // Periodically checks open tickets for SLA breaches and sends alerts
 import { logger } from '../../../utils/logger.js';
-import type { TextChannel, Guild } from 'discord.js';
+import type { TextChannel, Guild, Client } from 'discord.js';
 import { EmbedBuilder, ChannelType } from 'discord.js';
 import { hasBreachedSLA, DEFAULT_SLA_THRESHOLDS, formatTime, getPriorityColor, getPriorityEmoji } from '../../../utils/slaTracker.js';
 import type { Ticket, SLAThresholds } from '../../../utils/slaTracker.js';
@@ -23,15 +23,15 @@ const ALERT_COOLDOWN = 30 * 60 * 1000;
  * Starts the SLA monitor
  * @param {Client} client - Discord client
  */
-export function startSlaMonitor(client: any): void {
+export function startSlaMonitor(client: Client): void {
     logger.info({ msg: '[SLA] Starting SLA monitor...' });
 
     // Initial check
-    checkAllTickets(client);
+    void checkAllTickets(client);
 
     // Periodic checks
     setInterval(() => {
-        checkAllTickets(client);
+        void checkAllTickets(client);
     }, CHECK_INTERVAL);
 }
 
@@ -40,7 +40,7 @@ export function startSlaMonitor(client: any): void {
  * Uses per-guild polling to avoid loading all data at once
  * @param {Client} client - Discord client
  */
-async function checkAllTickets(client: any): Promise<void> {
+async function checkAllTickets(client: Client): Promise<void> {
     try {
         // Get all guild IDs that have tickets configured
         const guildIds = await getAllGuildIds('tickets');
@@ -50,7 +50,7 @@ async function checkAllTickets(client: any): Promise<void> {
         for (let i = 0; i < guildIds.length; i += BATCH_SIZE) {
             const batch = guildIds.slice(i, i + BATCH_SIZE);
 
-            await Promise.all(batch.map(async(guildId: string) => {
+            await Promise.all(batch.map(async (guildId: string) => {
                 try {
                     await checkGuildTickets(client, guildId);
                 } catch (error) {
@@ -73,7 +73,7 @@ async function checkAllTickets(client: any): Promise<void> {
  * @param {Client} client - Discord client
  * @param {string} guildId - Guild ID
  */
-async function checkGuildTickets(client: any, guildId: string): Promise<void> {
+async function checkGuildTickets(client: Client, guildId: string): Promise<void> {
     const ticketConfig = await getGuildData('tickets', guildId);
     const openTickets = (ticketConfig['openTickets'] as Record<string, unknown>[]) || [];
 
@@ -81,7 +81,7 @@ async function checkGuildTickets(client: any, guildId: string): Promise<void> {
         return;
     }
 
-    const guild = client.guilds.cache.get(guildId) as Guild | undefined;
+    const guild = client.guilds.cache.get(guildId);
     if (!guild) {
         return;
     }
@@ -102,7 +102,7 @@ async function checkGuildTickets(client: any, guildId: string): Promise<void> {
  * @param {object} slaThresholds - SLA thresholds
  * @param {Client} client - Discord client
  */
-async function handleSlaBreach(guild: Guild, ticket: Record<string, unknown>, slaThresholds: Record<string, number>, client: any): Promise<void> {
+async function handleSlaBreach(guild: Guild, ticket: Record<string, unknown>, slaThresholds: Record<string, number>, client: Client): Promise<void> {
     const now = Date.now();
 
     // Check if already alerted (with cooldown)

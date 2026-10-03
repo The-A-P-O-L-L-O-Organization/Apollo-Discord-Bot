@@ -1,6 +1,6 @@
 import { Plugin } from '../../core/Plugin.js';
 import type PluginManager from '../../core/PluginManager.js';
-import type { Client } from 'discord.js';
+import type { Client, Guild, GuildChannel, TextChannel, NewsChannel } from 'discord.js';
 import { initReminderScheduler, stopReminderScheduler } from '../../utils/reminderScheduler.js';
 import { initPollScheduler, stopPollScheduler } from '../../utils/pollScheduler.js';
 import { initAnalyticsCollector, stopAnalyticsCollector } from '../../utils/analyticsCollector.js';
@@ -50,9 +50,11 @@ export default class UtilityPlugin extends Plugin {
     }
 
     _registerSocketHandlers() {
-        this.manager.registerSocketHandler('utility.serverinfo', (_client: any, args: any) => {
-            const guild = _client.guilds.cache.get(args.guild);
-            if (!guild) { throw new Error(`Guild ${args.guild as string} not found`); }
+        this.manager.registerSocketHandler('utility.serverinfo', async (...args: unknown[]) => {
+            const [client, argsObj] = args as [unknown, { guild: string }];
+            const c = client as { guilds: { cache: Map<string, Guild> } };
+            const guild = c.guilds.cache.get(argsObj.guild);
+            if (!guild) { throw new Error(`Guild ${argsObj.guild} not found`); }
             return Promise.resolve({
                 name: guild.name,
                 id: guild.id,
@@ -64,86 +66,94 @@ export default class UtilityPlugin extends Plugin {
             });
         });
 
-        this.manager.registerSocketHandler('utility.userinfo', async (_client: any, args: any) => {
-            const guild = _client.guilds.cache.get(args.guild);
-            if (!guild) { throw new Error(`Guild ${args.guild as string} not found`); }
-            const member = await guild.members.fetch(args.user).catch(() => null);
-            if (!member) { throw new Error(`User ${args.user} not found in guild`); }
+        this.manager.registerSocketHandler('utility.userinfo', async (...args: unknown[]) => {
+            const [client, argsObj] = args as [unknown, { guild: string; user: string }];
+            const c = client as { guilds: { cache: Map<string, Guild> } };
+            const guild = c.guilds.cache.get(argsObj.guild);
+            if (!guild) { throw new Error(`Guild ${argsObj.guild} not found`); }
+            const member = await guild.members.fetch(argsObj.user).catch(() => null);
+            if (!member) { throw new Error(`User ${argsObj.user} not found in guild`); }
             return {
                 id: member.id,
                 tag: member.user.tag,
                 nickname: member.nickname,
                 joinedAt: member.joinedAt?.toISOString(),
-                roles: member.roles.cache.map((r: { name: string }) => r.name),
+                roles: member.roles.cache.map((r) => r.name),
                 permissions: member.permissions.toArray()
             };
         });
 
-        this.manager.registerSocketHandler('utility.ping', (_client: any, _args: any) => {
-            return Promise.resolve({ ping: _client.ws.ping, websocket: 'connected' });
+        this.manager.registerSocketHandler('utility.ping', async (...args: unknown[]) => {
+            const [client] = args as [unknown];
+            const c = client as { ws: { ping: number } };
+            return Promise.resolve({ ping: c.ws.ping, websocket: 'connected' });
         });
 
-        this.manager.registerSocketHandler('utility.embed', async (_client: any, args: any) => {
+        this.manager.registerSocketHandler('utility.embed', async (...args: unknown[]) => {
+            const [client, argsObj] = args as [unknown, {
+                channel: string;
+                file?: string;
+                title?: string;
+                description?: string;
+                color?: string;
+                image?: string;
+                thumbnail?: string;
+                footer?: string;
+                author?: string;
+                url?: string;
+                timestamp?: string | boolean;
+            }];
+            const c = client as { channels: { cache: Map<string, GuildChannel> } };
+            const channelId = argsObj.channel;
+            const channel = c.channels.cache.get(channelId);
+            if (!channel) { throw new Error(`Channel ${channelId} not found`); }
+            if (!channel.isTextBased()) { throw new Error(`Channel ${channelId} is not a text channel`); }
+
             const { EmbedBuilder } = await import('discord.js');
             const { parseMarkdownToEmbed } = await import('../../utils/markdownParser.js');
             const fs = await import('fs');
             const path = await import('path');
 
-            const channelId = args.channel as string;
-            const file = args.file as string | undefined;
-            const title = args.title as string | undefined;
-            const description = args.description as string | undefined;
-            const color = args.color as string | undefined;
-            const image = args.image as string | undefined;
-            const thumbnail = args.thumbnail as string | undefined;
-            const footer = args.footer as string | undefined;
-            const author = args.author as string | undefined;
-            const url = args.url as string | undefined;
-
-            const channel = _client.channels.cache.get(channelId);
-            if (!channel) { throw new Error(`Channel ${channelId} not found`); }
-            if (!channel.isTextBased()) { throw new Error(`Channel ${channelId} is not a text channel`); }
-
             const embed = new EmbedBuilder();
 
             let parsed: ParsedMarkdown | Record<string, unknown> = {};
-            if (file) {
+            if (argsObj.file) {
                 const DATA_ROOT = path.resolve(process.cwd(), 'data');
-                const targetPath = path.resolve(DATA_ROOT, file);
+                const targetPath = path.resolve(DATA_ROOT, argsObj.file);
                 if (!targetPath.startsWith(DATA_ROOT + path.sep)) {
                     throw new Error('File path must be within the data directory.');
                 }
-                let content;
+                let content: string;
                 try {
                     content = fs.readFileSync(targetPath, 'utf-8');
                 } catch {
-                    throw new Error(`Could not read file: ${file}`);
+                    throw new Error(`Could not read file: ${argsObj.file}`);
                 }
                 if (!content.trim()) { throw new Error('The file is empty'); }
-                parsed = parseMarkdownToEmbed(content, file, {
-                    title,
-                    description
+                parsed = parseMarkdownToEmbed(content, argsObj.file, {
+                    title: argsObj.title,
+                    description: argsObj.description
                 });
             }
 
-            if (parsed.title && !title) { embed.setTitle(parsed.title as string); } else if (title) { embed.setTitle(title); }
+            if (parsed.title && !argsObj.title) { embed.setTitle(parsed.title as string); } else if (argsObj.title) { embed.setTitle(argsObj.title); }
 
-            if (parsed.description && !description) { embed.setDescription(parsed.description as string); } else if (description) { embed.setDescription(description); }
+            if (parsed.description && !argsObj.description) { embed.setDescription(parsed.description as string); } else if (argsObj.description) { embed.setDescription(argsObj.description); }
 
-            if (color) {
+            if (argsObj.color) {
                 const hexRegex = /^#?([0-9A-Fa-f]{6})$/;
-                const match = hexRegex.exec(color);
+                const match = hexRegex.exec(argsObj.color);
                 if (match) { embed.setColor(`#${match[1]}`); } else { throw new Error('Invalid hex color format'); }
             } else {
                 embed.setColor('#3498DB');
             }
 
-            if (image) { embed.setImage(image); }
-            if (thumbnail) { embed.setThumbnail(thumbnail); }
-            if (footer) { embed.setFooter({ text: footer }); } else if (parsed.footer) { embed.setFooter(parsed.footer as { text: string }); }
-            if (author) { embed.setAuthor({ name: author }); }
-            if (url) { embed.setURL(url); }
-            if (args.timestamp === 'true' || args.timestamp === true) { embed.setTimestamp(); }
+            if (argsObj.image) { embed.setImage(argsObj.image); }
+            if (argsObj.thumbnail) { embed.setThumbnail(argsObj.thumbnail); }
+            if (argsObj.footer) { embed.setFooter({ text: argsObj.footer }); } else if (parsed.footer) { embed.setFooter(parsed.footer as { text: string }); }
+            if (argsObj.author) { embed.setAuthor({ name: argsObj.author }); }
+            if (argsObj.url) { embed.setURL(argsObj.url); }
+            if (argsObj.timestamp === 'true' || argsObj.timestamp === true) { embed.setTimestamp(); }
 
             if (parsed.fields) {
                 for (const field of parsed.fields as { name: string; value: string }[]) {
@@ -152,7 +162,8 @@ export default class UtilityPlugin extends Plugin {
             }
 
             try {
-                await channel.send({ embeds: [embed] });
+                const textChannel = channel as TextChannel | NewsChannel;
+                await textChannel.send({ embeds: [embed] });
                 return { success: true, message: 'Embed sent successfully' };
             } catch (err) {
                 throw new Error(`Failed to send embed: ${(err as Error).message}`);

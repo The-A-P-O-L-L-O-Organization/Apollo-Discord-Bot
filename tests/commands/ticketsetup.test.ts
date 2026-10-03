@@ -283,6 +283,8 @@ describe('Ticket Setup Command', () => {
             vi.mocked(getGuildData).mockResolvedValue({
                 supportRoleId: 'role123'
             });
+            // Ensure the role fetch returns the mock role
+            mockGuild.roles.fetch.mockResolvedValue(mockRole);
             
             await ticketsetupCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             

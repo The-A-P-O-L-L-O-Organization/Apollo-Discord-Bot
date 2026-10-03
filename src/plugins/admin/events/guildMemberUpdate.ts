@@ -1,16 +1,17 @@
 import { logEvent, createRoleChangeEmbed } from '../../../utils/guildLogging.js';
+import type { GuildMember } from 'discord.js';
 
 export default {
     name: 'guildMemberUpdate',
     once: false,
-    async execute(oldMember: any, newMember: any, _client: any) {
+    async execute(oldMember: GuildMember, newMember: GuildMember, _client: unknown) {
         if (newMember.user.bot) { return; }
 
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
         const embed = createRoleChangeEmbed(oldMember, newMember);
 
         if (embed) {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
             await logEvent(newMember.guild, 'roleChanges', embed);
         }
     }

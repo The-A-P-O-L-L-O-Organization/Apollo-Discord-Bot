@@ -19,6 +19,11 @@ beforeEach(() => {
 beforeAll(async () => {
     await resetTestDb();
     await runMigrations();
+    
+    // Initialize i18n for tests that use getFixedT
+    const { i18n } = await import('../src/i18n/index.js');
+    await i18n.init();
+    await i18n.loadNamespaces(['moderation', 'common', 'interlink', 'plugin', 'tickets', 'automod', 'utility', 'admin']);
 });
 
 // Close database after all tests

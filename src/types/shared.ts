@@ -323,7 +323,7 @@ export interface PluginManager {
     scanPlugins: (baseDir?: string) => string[];
     installPlugin: (name: string) => Promise<void>;
     uninstallPlugin: (name: string) => Promise<void>;
-    registerSocketHandler: (namespace: string, handler: (...args: any[]) => Promise<any>) => void;
+    registerSocketHandler: (namespace: string, handler: (...args: unknown[]) => Promise<unknown>) => void;
     installedPlugins: Map<string, { origin: 'built-in' | 'installed'; dir: string }>;
     workerHost?: { isDisabled: (id: string) => boolean };
 }

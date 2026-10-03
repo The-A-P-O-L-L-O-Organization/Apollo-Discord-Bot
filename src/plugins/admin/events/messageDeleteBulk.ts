@@ -1,9 +1,10 @@
 import { logEvent } from '../../../utils/guildLogging.js';
+import type { Message, Collection, GuildChannel } from 'discord.js';
 
 export default {
     name: 'messageDeleteBulk',
     once: false,
-    async execute(messages: any, channel: any, _client: any) {
+    async execute(messages: Collection<string, Message>, channel: GuildChannel, _client: unknown) {
         try {
             if (!channel.guild) { return; }
 
@@ -28,18 +29,18 @@ export default {
                 // Ignore audit log errors
             }
 
-            const oldestMessage = messages.reduce((oldest: any, msg: any) =>
+            const oldestMessage = messages.reduce((oldest: Message | null, msg: Message) =>
                 !oldest || msg.createdTimestamp < oldest.createdTimestamp ? msg : oldest
             , null);
 
-            const newestMessage = messages.reduce((newest: any, msg: any) =>
+            const newestMessage = messages.reduce((newest: Message | null, msg: Message) =>
                 !newest || msg.createdTimestamp > newest.createdTimestamp ? msg : newest
             , null);
 
             const embed = {
                 color: 0xFFA500,
                 title: '[MODERATION] Bulk Message Deletion',
-                description: `${messageCount} messages were deleted in ${channel}.`,
+                description: `${messageCount} messages were deleted in ${channel.name}.`,
                 fields: [
                     {
                         name: '[INFO] Channel',
@@ -74,7 +75,7 @@ export default {
                 });
             }
 
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
             await logEvent(guild, 'messageDeleteBulk', embed);
 
         } catch (error) {

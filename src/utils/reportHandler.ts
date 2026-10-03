@@ -5,8 +5,47 @@ import { updateGuildData, generateId } from './db.js';
 import { flushAnalyticsCritical } from './analyticsCollector.js';
 import { logger } from './logger.js';
 import { getLoggingConfig } from './guildLogging.js';
-import type { Message} from 'discord.js';
+import type { Message } from 'discord.js';
 import { MessageFlags, type TextChannel } from 'discord.js';
+
+interface ReportEmbed {
+    color: number;
+    title: string;
+    fields: { name: string; value: string; inline?: boolean }[];
+    timestamp: string;
+    footer: { text: string };
+    thumbnail?: { url: string };
+}
+
+interface GuildChannelCache {
+    get(id: string): { send(options: { embeds: unknown[]; components?: unknown[] }): Promise<unknown> } | undefined;
+}
+
+interface GuildChannels {
+    cache: GuildChannelCache;
+}
+
+interface GuildObject {
+    id: string;
+    channels: GuildChannels;
+}
+
+interface InteractionReplyOptions {
+    embeds?: unknown[];
+    flags?: number;
+    content?: string;
+}
+
+interface ModalSubmitInteraction {
+    isModalSubmit(): boolean;
+    customId: string;
+    fields: { getTextInputValue(name: string): string };
+    message?: { reference?: { messageId?: string } };
+    channel: { messages: { fetch(id: string): Promise<Message | null> } };
+    user: { id: string; tag: string };
+    guild: GuildObject;
+    reply(options: InteractionReplyOptions): Promise<unknown>;
+}
 
 interface ReportData {
     reportId: string;
@@ -27,17 +66,8 @@ interface ReportData {
 }
 
 export async function handleReportSubmission(
-    interaction: {
-        isModalSubmit(): boolean;
-        customId: string;
-        fields: { getTextInputValue(name: string): string };
-        message?: { reference?: { messageId?: string } };
-        channel: { messages: { fetch(id: string): Promise<Message | null> } };
-        user: { id: string; tag: string };
-        guild: { id: string; channels: { cache: Map<string, any> } };
-        reply(options: { embeds?: any[]; flags?: number; content?: string }): Promise<any>;
-    },
-    _client: any
+    interaction: ModalSubmitInteraction,
+    _client: unknown
 ): Promise<boolean> {
     try {
         if (!interaction.isModalSubmit()) { return false; }
@@ -101,9 +131,10 @@ export async function handleReportSubmission(
         };
 
         // Save report to database
-        await updateGuildData('reports', interaction.guild.id, (data: any) => {
-            data.reports ??= [];
-            data.reports.push(reportData);
+        await updateGuildData('reports', interaction.guild.id, (data: Record<string, unknown>) => {
+            const typedData = data as Record<string, ReportData[]>;
+            typedData['reports'] ??= [];
+            typedData['reports'].push(reportData);
             return data;
         });
 
@@ -138,7 +169,7 @@ export async function handleReportSubmission(
         await interaction.reply({ embeds: [successEmbed], flags: MessageFlags.Ephemeral });
 
         // Send report to moderators
-        const reportEmbed = {
+        const reportEmbed: ReportEmbed = {
             color: 0xFFA500,
             title: '[MODERATION] New Message Report',
             fields: [
@@ -189,7 +220,7 @@ export async function handleReportSubmission(
 
         // Add thumbnail if author has avatar
         if (author.displayAvatarURL()) {
-            (reportEmbed as any).thumbnail = {
+            reportEmbed.thumbnail = {
                 url: author.displayAvatarURL()
             };
         }

@@ -79,7 +79,7 @@ export class SocketServer {
             socket.write(JSON.stringify({ id, error: `Unknown command: ${String(command)}` }) + '\n');
             return;
         }
-        Promise.resolve().then(async () => {
+        void Promise.resolve().then(async () => {
             try {
                 const result = await handler(this.pluginManager.client, args);
                 socket.write(JSON.stringify({ id, result }) + '\n');

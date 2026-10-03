@@ -1,12 +1,13 @@
 import { logger } from '../../../utils/logger.js';
 import { setGuildData } from '../../../utils/db.js';
 import { config } from '../../../config/config.js';
+import type { Guild, GuildTextBasedChannel, Client } from 'discord.js';
 
 export default {
     name: 'guildCreate',
     once: false,
-    async execute(guild: any, client: any) {
-        const guildId = guild.id as string;
+    async execute(guild: Guild, client: Client) {
+        const guildId = guild.id;
         try {
             logger.info(`[SUCCESS] Bot joined new server: ${guild.name} (${guild.id})`);
             logger.info(`[INFO] Server has ${guild.memberCount} members`);
@@ -74,11 +75,14 @@ export default {
 
             // Try to send a welcome message to the system channel or first available text channel
             try {
+                const me = guild.members.me;
+                if (!me) {return;}
+
                 const welcomeChannel = guild.systemChannel ??
-                                      guild.channels.cache.find((ch: any) =>
-                                          ch.isTextBased() &&
-                                          ch.permissionsFor(guild.members.me).has('SendMessages')
-                                      );
+                                          guild.channels.cache.find((ch): ch is GuildTextBasedChannel =>
+                                              ch.isTextBased() &&
+                                              ch.permissionsFor(me).has('SendMessages')
+                                          );
 
                 if (welcomeChannel) {
                     const embed = {

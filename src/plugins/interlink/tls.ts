@@ -27,13 +27,13 @@ export function loadCertificates(): TlsCertificates | null {
     try {
         const cert = readFileSync(certPath, 'utf8');
         const key = readFileSync(keyPath, 'utf8');
-        
+
         const certs: TlsCertificates = { cert, key };
-        
+
         if (caPath) {
             certs.ca = readFileSync(caPath, 'utf8');
         }
-        
+
         return certs;
     } catch (err) {
         throw new Error(`Failed to load TLS certificates: ${(err as Error).message}`);

@@ -11,12 +11,12 @@ import type { ApolloClient, PluginManager } from '../types/shared.js';
 type PluginClass = new (client: ApolloClient, manager: PluginManager) => Plugin;
 
 export interface PluginLoaderOptions {
-    workerHost: { spawnWorker: (id: string, manifest: PluginManifest) => Promise<{ granted: string[] }>; terminateWorker: (id: string) => Promise<void>; isDisabled: (id: string) => boolean };
+    workerHost: { startPlugin: (opts: { pluginId: string; dir: string; capabilities: string[]; manifest: unknown }) => Promise<{ child: unknown; granted: string[]; manifest: unknown }>; terminateWorker: (id: string) => boolean; isDisabled: (id: string) => boolean };
     eventBus: { subscribe: (name: string, handler: (...args: unknown[]) => void) => void; unsubscribeAllForPlugin: (pluginId: string) => Promise<void> };
 }
 
 export class PluginLoader {
-    private workerHost: { spawnWorker: (id: string, manifest: PluginManifest) => Promise<{ granted: string[] }>; terminateWorker: (id: string) => Promise<void>; isDisabled: (id: string) => boolean };
+    private workerHost: { startPlugin: (opts: { pluginId: string; dir: string; capabilities: string[]; manifest: unknown }) => Promise<{ child: unknown; granted: string[]; manifest: unknown }>; terminateWorker: (id: string) => boolean; isDisabled: (id: string) => boolean };
     private eventBus: { subscribe: (name: string, handler: (...args: unknown[]) => void) => void; unsubscribeAllForPlugin: (pluginId: string) => Promise<void> };
     private loadedPlugins = new Map<string, { plugin: Plugin; manifest: PluginManifest }>();
 

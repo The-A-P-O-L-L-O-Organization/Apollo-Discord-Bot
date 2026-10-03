@@ -1,5 +1,6 @@
 import { EmbedBuilder } from 'discord.js';
 import type { GuildMember, GuildBasedChannel, TextChannel } from 'discord.js';
+import { logger } from '../../../utils/logger.js';
 import { config } from '../../../config/config.js';
 import { logEvent, createMemberJoinEmbed } from '../../../utils/guildLogging.js';
 import { getGuildData, getData, updateGuildData } from '../../../utils/db.js';
@@ -22,7 +23,7 @@ export default {
         const { guild } = member;
 
         // Track member join for analytics
-        trackMemberChange(guild.id, true, guild.memberCount);
+        void trackMemberChange(guild.id, true, guild.memberCount);
 
         // --- Raid Detection ---
         if (!member.user.bot) {
@@ -85,7 +86,7 @@ export default {
 
                     await member.user.send({ embeds: [dmEmbed] });
                 } catch (dmError) {
-                    console.log(`[INFO] Could not DM blacklisted user ${member.user.tag}: ${(dmError as Error).message}`);
+                    logger.debug({ user: member.user.tag, err: dmError }, 'Could not DM blacklisted user');
                 }
 
                 try {
@@ -105,9 +106,9 @@ export default {
                         }
                     });
 
-                    console.log(`[MODERATION] ${isGlobal ? 'Globally ' : ''}Blacklisted user ${member.user.tag} was banned on join${isGlobal ? ' (global)' : ''}. Reason: ${entry.reason}`);
+                    logger.info({ user: member.user.tag, guild: guild.name, global: isGlobal }, 'Blacklisted user was banned on join');
                 } catch (banError) {
-                    console.error(`[ERROR] Failed to ban blacklisted user ${member.user.tag}:`, banError);
+                    logger.error({ err: banError, user: member.user.tag }, 'Failed to ban blacklisted user');
                 }
 
                 return;

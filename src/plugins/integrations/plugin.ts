@@ -5,13 +5,14 @@ import { initIntegrationPoller, stopIntegrationPoller } from '../../utils/integr
 import type { IntegrationConfig } from '../../utils/integrationPoller.js';
 import { startWebhookServer, stopWebhookServer } from '../../utils/integrationWebhook.js';
 import { createLogger } from '../../utils/logger.js';
+import type { Logger } from 'pino';
 
 export default class IntegrationsPlugin extends Plugin {
     static override id = 'integrations';
     static override version = '1.0.0';
     static override dependencies: string[] = [];
 
-    public declare logger: any;
+    public declare logger: Logger;
 
     constructor(client: Client, manager: PluginManager) {
         super(client, manager);
@@ -23,8 +24,10 @@ export default class IntegrationsPlugin extends Plugin {
         await this._loadCommands();
         this._registerSocketHandlers();
 
-        const cfg = (this.client as any).config;
-        initIntegrationPoller(this.client, cfg as { integrations: IntegrationConfig });
+        const cfg = (this.client as { config?: { integrations?: IntegrationConfig } }).config;
+        if (cfg?.integrations) {
+            initIntegrationPoller(this.client, cfg as { integrations: IntegrationConfig });
+        }
 
         const webhookCfg = cfg?.integrations as { webhookPort?: number; githubSecret?: string } | undefined;
         if (webhookCfg?.webhookPort && webhookCfg?.githubSecret) {
@@ -44,12 +47,14 @@ export default class IntegrationsPlugin extends Plugin {
     }
 
     _registerSocketHandlers(): void {
-        this.manager.registerSocketHandler('integrations.add', (_client: any, args: any) => {
-            return Promise.resolve({ success: true, message: `Integration added (type: ${args.type})` });
+        this.manager.registerSocketHandler('integrations.add', (_client: unknown, args: unknown) => {
+            const a = args as { type: string };
+            return Promise.resolve({ success: true, message: `Integration added (type: ${a.type})` });
         });
 
-        this.manager.registerSocketHandler('integrations.remove', (_client: any, args: any) => {
-            return Promise.resolve({ success: true, message: `Integration ${args.id} removed` });
+        this.manager.registerSocketHandler('integrations.remove', (_client: unknown, args: unknown) => {
+            const a = args as { id: string };
+            return Promise.resolve({ success: true, message: `Integration ${a.id} removed` });
         });
     }
 }

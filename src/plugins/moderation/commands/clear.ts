@@ -1,4 +1,4 @@
-import type { ChatInputCommandInteraction} from 'discord.js';
+import type { ChatInputCommandInteraction, GuildTextBasedChannel } from 'discord.js';
 import { PermissionsBitField, MessageFlags, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { safeError } from '../../../utils/safeError.js';
@@ -19,8 +19,8 @@ interface ClearCommand {
         max_value?: number;
     }[];
     execute(interaction: ChatInputCommandInteraction): Promise<void>;
-    deleteMessages(interaction: ChatInputCommandInteraction, channel: any, amount: number): Promise<void>;
-    handleDeleteAll(interaction: ChatInputCommandInteraction, channel: any): Promise<void>;
+    deleteMessages(interaction: ChatInputCommandInteraction, channel: GuildTextBasedChannel, amount: number): Promise<void>;
+    handleDeleteAll(interaction: ChatInputCommandInteraction, channel: GuildTextBasedChannel): Promise<void>;
 }
 
 const clearCommand: ClearCommand = {
@@ -67,14 +67,16 @@ const clearCommand: ClearCommand = {
                 return;
             }
 
+            const textChannel = channel as GuildTextBasedChannel;
+
             if (deleteAll) {
-                await this.handleDeleteAll(interaction, channel);
+                await this.handleDeleteAll(interaction, textChannel);
                 return;
             }
 
             const finalAmount = amount ?? 5;
 
-            await this.deleteMessages(interaction, channel, finalAmount);
+            await this.deleteMessages(interaction, textChannel, finalAmount);
 
         } catch (error) {
             await interaction.reply({
@@ -89,7 +91,7 @@ const clearCommand: ClearCommand = {
         }
     },
 
-    async deleteMessages(interaction: ChatInputCommandInteraction, channel: any, amount: number) {
+    async deleteMessages(interaction: ChatInputCommandInteraction, channel: GuildTextBasedChannel, amount: number) {
         const fetched = await channel.messages.fetch({ limit: amount });
 
         if (fetched.size === 0) {
@@ -109,7 +111,7 @@ const clearCommand: ClearCommand = {
         const embed = new EmbedBuilder()
             .setColor(0x00FF00)
             .setTitle('[SUCCESS] Messages Cleared')
-            .setDescription(`Successfully deleted ${deleted.size} message(s) from ${channel}.`)
+            .setDescription(`Successfully deleted ${deleted.size} message(s) from ${channel.name}.`)
             .setTimestamp();
 
         await interaction.reply({ embeds: [embed] });
@@ -126,11 +128,11 @@ const clearCommand: ClearCommand = {
         });
     },
 
-    async handleDeleteAll(interaction: ChatInputCommandInteraction, channel: any) {
+    async handleDeleteAll(interaction: ChatInputCommandInteraction, channel: GuildTextBasedChannel) {
         const confirmEmbed = new EmbedBuilder()
             .setColor(0xFFAA00)
             .setTitle('[WARNING] Confirm Delete All')
-            .setDescription(`Are you sure you want to delete ALL messages in ${channel}?\n\nThis action cannot be undone.`)
+            .setDescription(`Are you sure you want to delete ALL messages in ${channel.name}?\n\nThis action cannot be undone.`)
             .addFields({
                 name: 'Instructions',
                 value: 'Click **Confirm** to delete all messages, or **Cancel** to abort.'
@@ -189,7 +191,7 @@ const clearCommand: ClearCommand = {
                     const successEmbed = new EmbedBuilder()
                         .setColor(0x00FF00)
                         .setTitle('[SUCCESS] All Messages Deleted')
-                        .setDescription(`Successfully deleted ${totalDeleted} message(s) from ${channel}.`);
+                        .setDescription(`Successfully deleted ${totalDeleted} message(s) from ${channel.name}.`);
 
                     await interaction.editReply({
                         embeds: [successEmbed],

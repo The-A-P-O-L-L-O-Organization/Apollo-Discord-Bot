@@ -109,11 +109,24 @@ describe('WorkerHost', () => {
     });
 
     it('should reset crash counter after a healthy window', () => {
-        (host as unknown as { now: () => number }).now = () => 1000;
-        host.recordCrash('demo', null, null);
-        (host as unknown as { now: () => number }).now = () => 1000 + 11 * 60 * 1000;
-        host.markHealthy('demo');
-        expect(host.getConsecutiveCrashes('demo')).toBe(0);
+        // Create a host with a mutable time function
+        let currentTime = 1000;
+        const hostWithMutableTime = new WorkerHost({
+            fork: fork as unknown as WorkerHostOptions['fork'],
+            log: () => {},
+            now: () => currentTime,
+            backoff: (attempt) => Math.min(1000 * 2 ** attempt, 60000)
+        });
+
+        // Record a crash at time 1000
+        hostWithMutableTime.recordCrash('demo', null, null);
+        
+        // Advance time by 11 minutes (past the 10-minute healthy window)
+        currentTime = 1000 + 11 * 60 * 1000;
+        
+        // Mark healthy - should reset crash counter
+        hostWithMutableTime.markHealthy('demo');
+        expect(hostWithMutableTime.getConsecutiveCrashes('demo')).toBe(0);
     });
 
     it('should send messages to a running worker', async() => {

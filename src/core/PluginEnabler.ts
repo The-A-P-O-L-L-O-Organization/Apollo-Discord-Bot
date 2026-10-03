@@ -3,11 +3,14 @@ import type { ParsedPluginManifest as PluginManifest } from './worker/pluginMani
 import { signCapabilities } from './worker/capabilitySignature.js';
 
 export interface WorkerHostLike {
-    spawnWorker: (pluginId: string, manifest: PluginManifest) => Promise<{ granted: string[] }>;
+    startPlugin: (opts: { pluginId: string; dir: string; capabilities: string[]; manifest: unknown }) => Promise<{ child: unknown; granted: string[]; manifest: unknown }>;
+    terminateWorker: (pluginId: string) => boolean;
+    isDisabled: (id: string) => boolean;
 }
 
 export interface EventBusLike {
     subscribe: (name: string, handler: (...args: unknown[]) => void) => void;
+    unsubscribeAllForPlugin: (pluginId: string) => Promise<void>;
 }
 
 export interface CommandSyncLike {
@@ -45,7 +48,7 @@ export class PluginEnabler {
 
         // Spawn worker if plugin has worker capabilities
         if (manifest.capabilities?.some((c) => c.startsWith('worker:'))) {
-            await this.workerHost.spawnWorker(pluginId, manifest);
+            await this.workerHost.startPlugin({ pluginId, dir: '', capabilities: manifest.capabilities, manifest });
         }
 
         // Sync commands

@@ -176,18 +176,88 @@ describe('Unmute Command', () => {
         });
 
         it('should remove mute role if exists', async() => {
-            mockGuild.roles.cache.find.mockReturnValue(muteRole);
+            // Create a proper mock role and add it to the guild's role cache
+            const mockMuteRole = {
+                id: muteRole.id,
+                name: muteRole.name,
+                color: 0x000000,
+                colors: {},
+                createdAt: new Date(),
+                createdTimestamp: Date.now(),
+                delete: vi.fn().mockResolvedValue({}),
+                editable: true,
+                equals: vi.fn().mockReturnValue(true),
+                flags: [],
+                guild: mockGuild,
+                hexColor: '#000000',
+                hoist: false,
+                icon: null,
+                managed: false,
+                mentionable: false,
+                members: new Map(),
+                permissions: { toArray: () => [], has: () => false, serialize: () => ({}) },
+                position: 1,
+                rawPosition: 1,
+                tags: null,
+                unicodeEmoji: null,
+                setName: vi.fn(),
+                setColor: vi.fn(),
+                setHoist: vi.fn(),
+                setPosition: vi.fn(),
+                setPermissions: vi.fn(),
+                setMentionable: vi.fn(),
+                setIcon: vi.fn(),
+                setUnicodeEmoji: vi.fn(),
+                toString: () => `<@&${muteRole.id}>`,
+                comparePositionTo: vi.fn().mockReturnValue(0)
+            };
+            mockGuild.roles.cache.set(muteRole.id, mockMuteRole as unknown as { id: string; name: string });
             targetMember.roles.cache.has.mockReturnValue(true);
             targetMember.isCommunicationDisabled.mockReturnValue(false);
             targetMember.roles.cache.some.mockReturnValue(true);
             
             await unmuteCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
-            expect(targetMember.roles.remove).toHaveBeenCalledWith(muteRole, 'Timeout served');
+            expect(targetMember.roles.remove).toHaveBeenCalledWith(mockMuteRole, 'Timeout served');
         });
 
         it('should remove both timeout and mute role', async() => {
-            mockGuild.roles.cache.find.mockReturnValue(muteRole);
+            // Create a proper mock role and add it to the guild's role cache
+            const mockMuteRole = {
+                id: muteRole.id,
+                name: muteRole.name,
+                color: 0x000000,
+                colors: {},
+                createdAt: new Date(),
+                createdTimestamp: Date.now(),
+                delete: vi.fn().mockResolvedValue({}),
+                editable: true,
+                equals: vi.fn().mockReturnValue(true),
+                flags: [],
+                guild: mockGuild,
+                hexColor: '#000000',
+                hoist: false,
+                icon: null,
+                managed: false,
+                mentionable: false,
+                members: new Map(),
+                permissions: { toArray: () => [], has: () => false, serialize: () => ({}) },
+                position: 1,
+                rawPosition: 1,
+                tags: null,
+                unicodeEmoji: null,
+                setName: vi.fn(),
+                setColor: vi.fn(),
+                setHoist: vi.fn(),
+                setPosition: vi.fn(),
+                setPermissions: vi.fn(),
+                setMentionable: vi.fn(),
+                setIcon: vi.fn(),
+                setUnicodeEmoji: vi.fn(),
+                toString: () => `<@&${muteRole.id}>`,
+                comparePositionTo: vi.fn().mockReturnValue(0)
+            };
+            mockGuild.roles.cache.set(muteRole.id, mockMuteRole as unknown as { id: string; name: string });
             targetMember.roles.cache.has.mockReturnValue(true);
             
             await unmuteCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
@@ -283,11 +353,46 @@ describe('Unmute Command', () => {
         });
 
         it('should detect user muted via role', async() => {
+            // Create a proper mock role and add it to the guild's role cache
+            const mockMuteRole = {
+                id: muteRole.id,
+                name: muteRole.name,
+                color: 0x000000,
+                colors: {},
+                createdAt: new Date(),
+                createdTimestamp: Date.now(),
+                delete: vi.fn().mockResolvedValue({}),
+                editable: true,
+                equals: vi.fn().mockReturnValue(true),
+                flags: [],
+                guild: mockGuild,
+                hexColor: '#000000',
+                hoist: false,
+                icon: null,
+                managed: false,
+                mentionable: false,
+                members: new Map(),
+                permissions: { toArray: () => [], has: () => false, serialize: () => ({}) },
+                position: 1,
+                rawPosition: 1,
+                tags: null,
+                unicodeEmoji: null,
+                setName: vi.fn(),
+                setColor: vi.fn(),
+                setHoist: vi.fn(),
+                setPosition: vi.fn(),
+                setPermissions: vi.fn(),
+                setMentionable: vi.fn(),
+                setIcon: vi.fn(),
+                setUnicodeEmoji: vi.fn(),
+                toString: () => `<@&${muteRole.id}>`,
+                comparePositionTo: vi.fn().mockReturnValue(0)
+            };
+            mockGuild.roles.cache.set(muteRole.id, mockMuteRole as unknown as { id: string; name: string });
             targetMember.isCommunicationDisabled.mockReturnValue(false);
             targetMember.roles.cache.some.mockImplementation((fn) => {
                 return fn({ name: 'Muted' });
             });
-            mockGuild.roles.cache.find.mockReturnValue(muteRole);
             targetMember.roles.cache.has.mockReturnValue(true);
             
             await unmuteCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);

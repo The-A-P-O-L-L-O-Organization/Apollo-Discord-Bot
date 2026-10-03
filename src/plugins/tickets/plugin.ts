@@ -33,20 +33,24 @@ export default class TicketsPlugin extends Plugin {
     }
 
     _registerSocketHandlers(): void {
-        this.manager.registerSocketHandler('tickets.create', (client: any, args: any) => {
-            return Promise.resolve({ success: true, message: `Ticket created for user ${args.user}` });
+        this.manager.registerSocketHandler('tickets.create', async (...args: unknown[]) => {
+            const [, argsObj] = args as [unknown, { user: string }];
+            return Promise.resolve({ success: true, message: `Ticket created for user ${argsObj.user}` });
         });
 
-        this.manager.registerSocketHandler('tickets.close', (client: any, args: any) => {
-            return Promise.resolve({ success: true, message: `Ticket ${args.id} closed` });
+        this.manager.registerSocketHandler('tickets.close', async (...args: unknown[]) => {
+            const [, argsObj] = args as [unknown, { id: string }];
+            return Promise.resolve({ success: true, message: `Ticket ${argsObj.id} closed` });
         });
 
-        this.manager.registerSocketHandler('tickets.add', (client: any, args: any) => {
-            return Promise.resolve({ success: true, message: `User ${args.user} added to ticket ${args.id}` });
+        this.manager.registerSocketHandler('tickets.add', async (...args: unknown[]) => {
+            const [, argsObj] = args as [unknown, { user: string; id: string }];
+            return Promise.resolve({ success: true, message: `User ${argsObj.user} added to ticket ${argsObj.id}` });
         });
 
-        this.manager.registerSocketHandler('tickets.remove', (client: any, args: any) => {
-            return Promise.resolve({ success: true, message: `User ${args.user} removed from ticket ${args.id}` });
+        this.manager.registerSocketHandler('tickets.remove', async (...args: unknown[]) => {
+            const [, argsObj] = args as [unknown, { user: string; id: string }];
+            return Promise.resolve({ success: true, message: `User ${argsObj.user} removed from ticket ${argsObj.id}` });
         });
     }
 }

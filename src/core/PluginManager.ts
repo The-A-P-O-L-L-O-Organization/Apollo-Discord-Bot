@@ -5,7 +5,8 @@ import { pathToFileURL } from 'url';
 import { Routes } from 'discord.js';
 import { verifyPluginManifest, verifyPluginFile } from '../utils/manifest.js';
 import { WorkerHost } from './worker/workerHost.js';
-import { parsePluginManifest } from './worker/pluginManifest.js';
+import { parsePluginManifest, type ParsedPluginManifest } from './worker/pluginManifest.js';
+import type { WorkerInfo } from './worker/workerHost.js';
 import { buildLocalizedPayload } from '../i18n/commandPayload.js';
 import type { CommandInput } from '../i18n/commandPayload.js';
 import type { Client, REST } from 'discord.js';
@@ -82,9 +83,9 @@ export default class PluginManager {
         this.workerHost = new WorkerHost();
         this._capabilityIndex = new Map();
 
-        // Initialize modular components
-        this._loader = new PluginLoader({ workerHost: this.workerHost, eventBus: this.bus });
-        this._enabler = new PluginEnabler({ workerHost: this.workerHost, eventBus: this.bus, commandSync: this });
+        // Initialize modular components - using type assertions to satisfy structural typing
+        this._loader = new PluginLoader({ workerHost: this.workerHost as unknown as { startPlugin: (opts: { pluginId: string; dir: string; capabilities: string[]; manifest: unknown }) => Promise<{ child: unknown; granted: string[]; manifest: unknown }>; terminateWorker: (id: string) => boolean; isDisabled: (id: string) => boolean }, eventBus: this.bus });
+        this._enabler = new PluginEnabler({ workerHost: this.workerHost as unknown as { startPlugin: (opts: { pluginId: string; dir: string; capabilities: string[]; manifest: unknown }) => Promise<{ child: unknown; granted: string[]; manifest: unknown }>; terminateWorker: (id: string) => boolean; isDisabled: (id: string) => boolean }, eventBus: this.bus, commandSync: this });
         this._disabler = new PluginDisabler({ workerHost: this.workerHost, eventBus: this.bus });
         this._reloader = new PluginReloader({ loader: this._loader, disabler: this._disabler, enabler: this._enabler });
         this._installer = new PluginInstaller({ baseDir: './data/plugins' });
@@ -270,6 +271,31 @@ export default class PluginManager {
         }
     }
 
+    async syncCommands(pluginId: string, commands: unknown[]): Promise<void> {
+        try {
+            const rest = this.client.rest;
+            const clientConfig = this.client.config as { discord: { clientId: string }; guildId?: string };
+            const CLIENT_ID = clientConfig.discord.clientId;
+            if (!CLIENT_ID) { return; }
+
+            const body = commands.map(cmd => buildLocalizedPayload(cmd as CommandInput));
+
+            if (clientConfig.guildId) {
+                await rest.put(
+                    Routes.applicationGuildCommands(CLIENT_ID, clientConfig.guildId),
+                    { body }
+                );
+            } else {
+                await rest.put(
+                    Routes.applicationCommands(CLIENT_ID),
+                    { body }
+                );
+            }
+        } catch (error) {
+            logger.error({ err: error, msg: `[ERROR] Failed to sync commands for plugin ${pluginId}` });
+        }
+    }
+
     async loadPlugin(id: string, baseDir = './src/plugins'): Promise<PluginBase> {
         if (this.plugins.has(id)) { return this.plugins.get(id)!; }
 
@@ -371,9 +397,9 @@ export default class PluginManager {
     async unloadPlugin(id: string): Promise<void> {
         const plugin = this.plugins.get(id);
         if (!plugin) { throw new Error(`Plugin ${id} not loaded`); }
-        if ((plugin as any)._enabled) { throw new Error(`Disable plugin ${id} before unloading`); }
+        if (plugin.enabled) { throw new Error(`Disable plugin ${id} before unloading`); }
         await plugin.onUnload();
-        (plugin as any)._loaded = false;
+        plugin.loaded = false;
         this.plugins.delete(id);
         this._loader.clearCache(id);
     }
@@ -381,12 +407,12 @@ export default class PluginManager {
     async enablePlugin(id: string): Promise<void> {
         const plugin = this.plugins.get(id);
         if (!plugin) { throw new Error(`Plugin ${id} not loaded`); }
-        if ((plugin as any)._enabled) { return; }
+        if (plugin.enabled) { return; }
 
         const PluginClass = (plugin.constructor as unknown as PluginConstructor);
         for (const depId of PluginClass.dependencies) {
             const dep = this.plugins.get(depId);
-            if (!dep || !(dep as any)._enabled) {
+            if (!dep?.enabled) {
                 throw new Error(`Dependency ${depId} not enabled for plugin ${id}`);
             }
         }
@@ -396,7 +422,7 @@ export default class PluginManager {
         const manifest = loaded?.manifest ?? { id, name: id, capabilities: [] };
 
         await this._enabler.enable(id, plugin, manifest);
-        (plugin as any)._enabled = true;
+        plugin.enabled = true;
 
         // Update capability index for installed plugins with workers
         const info = this.installedPlugins.get(id);
@@ -413,12 +439,12 @@ export default class PluginManager {
     async disablePlugin(id: string): Promise<void> {
         const plugin = this.plugins.get(id);
         if (!plugin) { throw new Error(`Plugin ${id} not loaded`); }
-        if (!(plugin as any)._enabled) { return; }
+        if (!plugin.enabled) { return; }
 
         // For built-in plugins, we still need to call onDisable and remove events
         await this._disabler.disable(id, plugin);
         this.bus.removeAll(id);
-        (plugin as any)._enabled = false;
+        plugin.enabled = false;
 
         // Remove from capability index
         const info = this.installedPlugins.get(id);
@@ -480,7 +506,7 @@ export default class PluginManager {
         logger.info({ msg: `[PluginManager] Successfully installed plugin ${id}` });
     }
 
-    async loadInstalledPlugin(pluginId: string, dir: string, manifest?: any): Promise<any> {
+    async loadInstalledPlugin(pluginId: string, dir: string, manifest?: ParsedPluginManifest): Promise<WorkerInfo> {
         manifest ??= await parsePluginManifest({ dir });
         const worker = await this.workerHost.startPlugin({
             pluginId,
@@ -530,15 +556,15 @@ export default class PluginManager {
 
     isEnabled(id: string): boolean {
         const p = this.plugins.get(id);
-        return p ? (p as any)._enabled : false;
+        return p ? p.enabled : false;
     }
 
     listPlugins(): { id: string; version: string; loaded: boolean; enabled: boolean }[] {
         return [...this.plugins.entries()].map(([id, p]) => ({
             id,
             version: (p.constructor as { version?: string }).version ?? '1.0.0',
-            loaded: (p as any)._loaded,
-            enabled: (p as any)._enabled
+            loaded: p.loaded,
+            enabled: p.enabled
         }));
     }
 
@@ -550,12 +576,12 @@ export default class PluginManager {
         });
     }
 
-    registerSocketHandler(namespace: string, handler: (...args: any[]) => Promise<any>): void {
+    registerSocketHandler(namespace: string, handler: (...args: unknown[]) => Promise<unknown>): void {
         this._socketHandlers ??= new Map();
         this._socketHandlers.set(namespace, handler);
     }
 
-    getSocketHandler(namespace: string): ((...args: any[]) => Promise<any>) | null {
+    getSocketHandler(namespace: string): ((...args: unknown[]) => Promise<unknown>) | null {
         if (!this._socketHandlers) { return null; }
         return this._socketHandlers.get(namespace) ?? null;
     }

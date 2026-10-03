@@ -140,7 +140,7 @@ export class InterlinkConnectClient {
     private readonly capabilities: Record<string, string>;
     private readonly useJwt: boolean;
     private jwtToken: string | null = null;
-    private jwtExpiry: number = 0;
+    private jwtExpiry = 0;
 
     constructor(options: InterlinkConnectClientOptions = {}) {
         this.botId = options.botId ?? config.discord.clientId ?? '';
@@ -169,7 +169,7 @@ export class InterlinkConnectClient {
         this.jwtToken = await issueInterlinkToken(this.botId, this.capabilities);
         // Parse expiry from token
         const parts = this.jwtToken.split('.');
-        if (parts.length >= 2) {
+        if (parts.length >= 2 && parts[1]) {
             const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
             this.jwtExpiry = payload.exp * 1000;
         }
@@ -227,17 +227,19 @@ export class InterlinkConnectClient {
             Authorization: `${INTERLINK_AUTH_SCHEME} ${signRequest(this.authKey, procedureFor(InterlinkService.method.subscribe.name), timestamp, nonce, bodyHash)}`,
             [INTERLINK_TIMESTAMP_HEADER]: timestamp,
             [INTERLINK_NONCE_HEADER]: nonce,
-            [INTERLINK_BOT_HEADER]: this.botId
+            [INTERLINK_BOT_HEADER]: botId
         };
         return this.client.subscribe(message, { ...options, headers });
     }
 
     connect(input: AsyncIterable<MessageInitShape<typeof EnvelopeSchema>>, options?: CallOptions): AsyncIterable<Envelope> {
         // For connect, we can't await in a sync function, so we'll use HMAC path
+        const timestamp = Date.now().toString();
+        const nonce = generateNonce();
         const headers = {
-            Authorization: `${INTERLINK_AUTH_SCHEME} ${signRequest(this.authKey, procedureFor(InterlinkService.method.connect.name), Date.now().toString(), generateNonce(), emptyBodyHash())}`,
-            [INTERLINK_TIMESTAMP_HEADER]: Date.now().toString(),
-            [INTERLINK_NONCE_HEADER]: generateNonce(),
+            Authorization: `${INTERLINK_AUTH_SCHEME} ${signRequest(this.authKey, procedureFor(InterlinkService.method.connect.name), timestamp, nonce, emptyBodyHash())}`,
+            [INTERLINK_TIMESTAMP_HEADER]: timestamp,
+            [INTERLINK_NONCE_HEADER]: nonce,
             [INTERLINK_BOT_HEADER]: this.botId
         };
         return this.client.connect(withStreamIdentity(input), { ...options, headers });

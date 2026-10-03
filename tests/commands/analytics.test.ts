@@ -1,4 +1,108 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
+
+// Mock the i18n module to provide fixed translations
+vi.mock('../../src/i18n/index.js', () => {
+    const mockT = (key: string, opts?: Record<string, unknown>) => {
+        const translations: Record<string, string> = {
+            'analytics.serverTitle': 'Server Analytics - Last {{days}} Days',
+            'analytics.serverDesc': 'Comprehensive statistics for **{{name}}**',
+            'analytics.activityOverview': 'Activity Overview',
+            'analytics.commandsRun': '**Commands Run:** {{count}}',
+            'analytics.messagesSent': '**Messages Sent:** {{count}}',
+            'analytics.automodActions': '**Automod Actions:** {{count}}',
+            'analytics.modActions': '**Mod Actions:** {{count}}',
+            'analytics.memberStats': 'Member Statistics',
+            'analytics.currentMembers': '**Current Members:** {{count}}',
+            'analytics.newJoins': '**New Joins:** {{count}}',
+            'analytics.membersLeft': '**Members Left:** {{count}}',
+            'analytics.netGrowth': '**Net Growth:** {{count}}',
+            'analytics.growthTrend': 'Member Growth Trend',
+            'analytics.recentChanges': 'Recent Daily Changes',
+            'analytics.noData': 'No data',
+            'analytics.dataFrom': 'Data from {{from}} to {{to}}',
+            'analytics.na': 'N/A',
+            'analytics.commandsTitle': 'Command Usage - Last {{days}} Days',
+            'analytics.commandsDesc': '**Total commands:** {{count}} across {{unique}} unique commands',
+            'analytics.topCommands': 'Top Commands',
+            'analytics.statsHeader': 'Statistics',
+            'analytics.totalCommands': '**Total Commands:** {{count}}',
+            'analytics.uniqueCommands': '**Unique Commands:** {{count}}',
+            'analytics.avgPerDay': '**Average per Day:** {{count}}',
+            'analytics.noCommandData': 'No command data available for the last {{days}} days.',
+            'analytics.commandUsage': 'Command Usage',
+            'analytics.activeUsers': 'Most Active Users',
+            'analytics.unknownUser': 'Unknown User',
+            'analytics.commandsSuffix': '{{count}} commands',
+            'analytics.activityTitle': 'Message Activity - Last {{days}} Days',
+            'analytics.activityDesc': '**Total messages:** {{messages}} from {{active}} active users',
+            'analytics.overview': 'Overview',
+            'analytics.totalMessages': '**Total Messages:** {{count}}',
+            'analytics.perDay': '**Messages per Day:** {{count}}',
+            'analytics.activeChannels': 'Active Channels',
+            'analytics.topChannels': 'Most Active Channels',
+            'analytics.unknown': 'Unknown',
+            'analytics.pattern': 'Activity Pattern (Last 24 Hours)',
+            'analytics.moderationTitle': 'Moderation Analytics - Last {{days}} Days',
+            'analytics.moderationDesc': 'Moderation team performance and statistics',
+            'analytics.actionsByType': 'Actions by Type',
+            'analytics.totalActions': '**Total Actions:** {{count}}',
+            'analytics.actionsPerDay': '**Actions per Day:** {{count}}',
+            'analytics.activeMods': '**Active Moderators:** {{count}}',
+            'analytics.noModActions': 'No moderation actions recorded for this period.',
+            'analytics.modActionsHeader': 'Moderator Actions',
+            'analytics.topMods': 'Most Active Moderators',
+            'analytics.modActionsSuffix': '{{count}} actions',
+            'analytics.violations': 'Automod Violations',
+            'analytics.ticketStats': 'Ticket Statistics',
+            'analytics.ticketsClosed': '**Tickets Closed:** {{count}}',
+            'analytics.avgResolution': '**Avg Resolution Time:** {{time}}',
+            'analytics.openNow': '**Currently Open:** {{count}}',
+            'analytics.warnings': 'Warnings',
+            'analytics.totalIssued': '**Total Issued:** {{count}}',
+            'analytics.automod': '**Automod:** {{count}}',
+            'analytics.manual': '**Manual:** {{count}}',
+            'analytics.userTitle': 'User Analytics - {{tag}}',
+            'analytics.userDesc': 'Statistics for the last {{days}} days',
+            'analytics.cmdUsage': 'Command Usage',
+            'analytics.serverRank': '**Server Rank:** {{rank}}',
+            'analytics.msgActivity': 'Message Activity',
+            'analytics.activeWarnings': '**Active Warnings:** {{count}}',
+            'analytics.recentWarnings': '**Recent Warnings:** {{count}}',
+            'analytics.allTime': '**Total All-Time:** {{count}}',
+            'analytics.userNotFound': 'User not found.',
+            'analytics.exportOk': 'Analytics exported successfully!\n**Format:** {{format}}\n**Period:** Last {{days}} days\n**Size:** {{size}} KB',
+            'analytics.exportFail': 'Failed to export analytics. Please try again later.',
+        };
+        
+        let result = translations[key] || key;
+        if (opts) {
+            for (const [k, v] of Object.entries(opts)) {
+                result = result.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), String(v));
+            }
+        }
+        return result;
+    };
+
+    return {
+        i18n: {
+            getFixedT: () => mockT,
+            resolveLocale: vi.fn().mockResolvedValue('en-US'),
+            init: vi.fn().mockResolvedValue(undefined),
+            loadNamespaces: vi.fn().mockResolvedValue(undefined),
+        }
+    };
+});
+
+// Debug test for i18n
+describe('i18n Debug', () => {
+    it('should have utility namespace loaded', async () => {
+        const { i18n } = await import('../../src/i18n/index.js');
+        const t = i18n.getFixedT('en-US', 'utility');
+        const result = t('analytics.userNotFound');
+        console.log('i18n debug result:', result);
+        expect(result).toBe('User not found.');
+    });
+});
 
 // Mock the utility functions
 vi.mock('../../src/utils/analyticsCollector.js', () => ({
@@ -30,10 +134,20 @@ vi.mock('../../src/utils/db.js', () => ({
     getUserData: vi.fn()
 }));
 
-vi.mock('fs', () => ({
-    readFileSync: vi.fn(),
-    statSync: vi.fn()
+// Also mock the path used by I18nService (../utils/db.js from i18n module)
+vi.mock('../../../src/utils/db.js', () => ({
+    getGuildData: vi.fn(),
+    getUserData: vi.fn()
 }));
+
+// Mock fs for export tests - using node:fs like interlink-jwt-auth.test.ts
+vi.mock('node:fs', () => ({
+    readFileSync: vi.fn().mockReturnValue(Buffer.from('')),
+    statSync: vi.fn().mockReturnValue({ size: 0 }),
+    existsSync: vi.fn().mockReturnValue(true)
+}));
+
+import { readFileSync } from 'node:fs';
 
 import {
     getCommandStats,
@@ -50,7 +164,6 @@ import {
 } from '../../src/utils/charts.js';
 import { exportAnalytics, getAnalyticsSummary } from '../../src/utils/exportAnalytics.js';
 import { getGuildData, getUserData } from '../../src/utils/db.js';
-import { readFileSync } from 'fs';
 import { MessageFlags } from 'discord.js';
 import type { ChatInputCommandInteraction } from 'discord.js';
 
@@ -59,7 +172,7 @@ interface AnalyticsTestUser { id: string; tag: string; displayAvatarURL: Analyti
 interface AnalyticsTestClient { users: { fetch: AnalyticsMockFn }; }
 interface AnalyticsTestGuild { id: string; name: string; channels: { cache: { get: AnalyticsMockFn } }; }
 interface AnalyticsTestOptions { getSubcommand: AnalyticsMockFn; getInteger: AnalyticsMockFn; getUser: AnalyticsMockFn; getString: AnalyticsMockFn; }
-interface AnalyticsTestInteraction { deferReply: AnalyticsMockFn; editReply: AnalyticsMockFn; reply: AnalyticsMockFn; options: AnalyticsTestOptions; guild: AnalyticsTestGuild; client: AnalyticsTestClient; user: AnalyticsTestUser; }
+interface AnalyticsTestInteraction { deferReply: AnalyticsMockFn; editReply: AnalyticsMockFn; reply: AnalyticsMockFn; options: AnalyticsTestOptions; guild: AnalyticsTestGuild; client: AnalyticsTestClient; user: AnalyticsTestUser; locale: string; guildLocale: string; guildId: string; }
 
 import analyticsCommand from '../../src/plugins/utility/commands/analytics.js';
 
@@ -69,7 +182,7 @@ describe('Analytics Command', () => {
     let guild: AnalyticsTestGuild;
     let user: AnalyticsTestUser;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         // Reset all mocks
         vi.clearAllMocks();
 
@@ -109,7 +222,10 @@ describe('Analytics Command', () => {
             },
             guild,
             client,
-            user
+            user,
+            locale: 'en-US',
+            guildLocale: 'en-US',
+            guildId: '123456789'
         };
 
         // Mock utility functions
@@ -136,6 +252,9 @@ describe('Analytics Command', () => {
 
         vi.mocked(formatNumber).mockImplementation((num: number) => num.toString());
         vi.mocked(formatDuration).mockImplementation((ms: number) => `${Math.floor(ms / 1000)}s`);
+
+        // Mock getGuildData to return locale for i18n.resolveLocale
+        vi.mocked(getGuildData).mockResolvedValue({ locale: 'en-US' });
     });
 
     describe('Command Structure', () => {
@@ -202,7 +321,7 @@ describe('Analytics Command', () => {
             await analyticsCommand.execute(interaction as unknown as ChatInputCommandInteraction);
 
             const embed = interaction.editReply.mock.calls[0]![0].embeds[0];
-            const trendField = embed.fields.find((f: { name: string; value: string }) => f.name === 'Statistics Member Growth Trend');
+            const trendField = embed.fields.find((f: { name: string; value: string }) => f.name === 'Member Growth Trend');
 
             expect(trendField).toBeDefined();
             expect(trendField.value).toContain('```');
@@ -260,7 +379,7 @@ describe('Analytics Command', () => {
             await analyticsCommand.execute(interaction as unknown as ChatInputCommandInteraction);
 
             const embed = interaction.editReply.mock.calls[0]![0].embeds[0];
-            const userField = embed.fields.find((f: { name: string; value: string }) => f.name === '👤 Most Active Users');
+            const userField = embed.fields.find((f: { name: string; value: string }) => f.name === 'Most Active Users');
 
             expect(userField).toBeDefined();
             expect(userField.value).toContain('Unknown');
@@ -322,7 +441,7 @@ describe('Analytics Command', () => {
             await analyticsCommand.execute(interaction as unknown as ChatInputCommandInteraction);
 
             const embed = interaction.editReply.mock.calls[0]![0].embeds[0];
-            const channelField = embed.fields.find((f: { name: string; value: string }) => f.name === 'Channel Most Active Channels');
+            const channelField = embed.fields.find((f: { name: string; value: string }) => f.name === 'Most Active Channels');
 
             expect(channelField.value).toContain('Unknown');
         });
@@ -393,7 +512,7 @@ describe('Analytics Command', () => {
             await analyticsCommand.execute(interaction as unknown as ChatInputCommandInteraction);
 
             const embed = interaction.editReply.mock.calls[0]![0].embeds[0];
-            const ticketField = embed.fields.find((f: { name: string; value: string }) => f.name === '🎫 Ticket Statistics');
+            const ticketField = embed.fields.find((f: { name: string; value: string }) => f.name === 'Ticket Statistics');
 
             expect(ticketField).toBeDefined();
             expect(formatDuration).toHaveBeenCalled();
@@ -450,7 +569,7 @@ describe('Analytics Command', () => {
             await analyticsCommand.execute(interaction as unknown as ChatInputCommandInteraction);
 
             const embed = interaction.editReply.mock.calls[0]![0].embeds[0];
-            const commandField = embed.fields.find((f: { name: string; value: string }) => f.name === '⚙️ Command Usage');
+            const commandField = embed.fields.find((f: { name: string; value: string }) => f.name === 'Command Usage');
 
             expect(commandField.value).toContain('150');
             expect(commandField.value).toContain('#1'); // Should be rank 1
@@ -459,6 +578,8 @@ describe('Analytics Command', () => {
 
     describe('Export Analytics Subcommand', () => {
         beforeEach(() => {
+            // Reset mock for each test
+            vi.mocked(readFileSync).mockReturnValue(Buffer.from('test,csv,data'));
             interaction.options.getSubcommand.mockReturnValue('export');
             interaction.options.getString.mockReturnValue('csv');
             interaction.options.getInteger.mockReturnValue(30);
@@ -469,8 +590,6 @@ describe('Analytics Command', () => {
                 size: 10240
                         };
                         vi.mocked(exportAnalytics).mockResolvedValue(mockData11 as unknown as Awaited<ReturnType<typeof exportAnalytics>>);
-
-            (readFileSync as unknown as AnalyticsMockFn).mockReturnValue(Buffer.from('test,csv,data'));
         });
 
         it('should handle export analytics subcommand', async() => {
@@ -499,7 +618,7 @@ describe('Analytics Command', () => {
             await analyticsCommand.execute(interaction as unknown as ChatInputCommandInteraction);
 
             expect(interaction.editReply).toHaveBeenCalledWith({
-                content: '[ERROR] Failed to export analytics. Please try again later.'
+                content: 'Failed to export analytics. Please try again later.'
             });
         });
 
@@ -550,7 +669,16 @@ describe('Analytics Command', () => {
             interaction.options.getSubcommand.mockReturnValue('user');
             interaction.options.getUser.mockReturnValue(null);
 
+            // Debug: check if i18n has the utility namespace
+            const { i18n } = await import('../../src/i18n/index.js');
+            const t = i18n.getFixedT('en-US', 'utility');
+            const before = t('analytics.userNotFound');
+            console.log('i18n test before execute:', before);
+
             await analyticsCommand.execute(interaction as unknown as ChatInputCommandInteraction);
+
+            const after = t('analytics.userNotFound');
+            console.log('i18n test after execute:', after);
 
             expect(interaction.editReply).toHaveBeenCalledWith({ content: 'User not found.' });
         });

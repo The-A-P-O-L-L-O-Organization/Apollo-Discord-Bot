@@ -1,11 +1,12 @@
 import { getGuildData } from '../../../utils/db.js';
 import { logger } from '../../../utils/logger.js';
+import type { MessageReaction, PartialMessageReaction, User, PartialUser, GuildMember } from 'discord.js';
 
 export default {
     name: 'messageReactionRemove',
     once: false,
 
-    async execute(reaction: any, user: any, _client: any) {
+    async execute(reaction: MessageReaction | PartialMessageReaction, user: User | PartialUser, _client: unknown) {
         if (user.bot) { return; }
 
         if (reaction.partial) {
@@ -20,7 +21,7 @@ export default {
         if (!reaction.message.guild) { return; }
 
         const guild = reaction.message.guild;
-        const guildId = guild.id as string;
+        const guildId = guild.id;
         const messageId = reaction.message.id;
 
         const emojiIdentifier = reaction.emoji.id
@@ -38,7 +39,7 @@ export default {
 
         if (!reactionRole) { return; }
 
-        let member;
+        let member: GuildMember;
         try {
             member = await guild.members.fetch(user.id);
         } catch (error) {

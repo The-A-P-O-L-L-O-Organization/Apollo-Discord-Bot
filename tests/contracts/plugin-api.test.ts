@@ -56,8 +56,9 @@ vi.mock('../../src/utils/manifest.js', () => ({
 }));
 
 vi.mock('../../src/core/worker/workerHost.js', () => ({
-    WorkerHost: vi.fn().mockImplementation(function (this: { startPlugin: unknown }) {
+    WorkerHost: vi.fn().mockImplementation(function (this: { startPlugin: unknown; terminateWorker: unknown }) {
         this.startPlugin = vi.fn().mockResolvedValue({ granted: [] });
+        this.terminateWorker = vi.fn().mockReturnValue(true);
     })
 }));
 
@@ -527,11 +528,8 @@ describe('Plugin API Contract', () => {
                 static override get id() { return 'test-integration'; }
                 static override get dependencies() { return []; }
 
-                public loaded = false;
-                public override enabled = false;
-
-                override async onLoad() { this.loaded = true; }
-                override async onEnable() { this.enabled = true; }
+                override async onLoad() { this._loaded = true; }
+                override async onEnable() { this._enabled = true; }
             }
             
             pluginManager._pluginRegistry.set('test-integration', TestPlugin as unknown as PluginConstructor);
@@ -540,7 +538,7 @@ describe('Plugin API Contract', () => {
             
             expect(plugin).toBeInstanceOf(TestPlugin);
             expect((plugin as unknown as { _loaded: boolean })._loaded).toBe(true);
-            expect((plugin as unknown as { loaded: boolean }).loaded).toBe(true);
+            expect(plugin.loaded).toBe(true);
             
             await pluginManager.enablePlugin('test-integration');
             
@@ -553,13 +551,10 @@ describe('Plugin API Contract', () => {
                 static override get id() { return 'test-disable-unload'; }
                 static override get dependencies() { return []; }
 
-                public loaded = false;
-                public override enabled = false;
-
-                override async onLoad() { this.loaded = true; }
-                override async onEnable() { this.enabled = true; }
-                override async onDisable() { this.enabled = false; }
-                override async onUnload() { this.loaded = false; }
+                override async onLoad() { this._loaded = true; }
+                override async onEnable() { this._enabled = true; }
+                override async onDisable() { this._enabled = false; }
+                override async onUnload() { this._loaded = false; }
             }
             
             pluginManager._pluginRegistry.set('test-disable-unload', TestPlugin as unknown as PluginConstructor);
@@ -573,7 +568,7 @@ describe('Plugin API Contract', () => {
             
             await pluginManager.unloadPlugin('test-disable-unload');
             expect((plugin as unknown as { _loaded: boolean })._loaded).toBe(false);
-            expect((plugin as unknown as { loaded: boolean }).loaded).toBe(false);
+            expect(plugin.loaded).toBe(false);
         });
 
         it('should list plugins with correct status', async() => {

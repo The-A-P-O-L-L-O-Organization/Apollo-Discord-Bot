@@ -1,4 +1,4 @@
-import { z, type ZodType, type ZodError } from 'zod';
+import type { ZodType, ZodError } from 'zod';
 
 export interface ValidationResult<T> {
     data: T;
@@ -14,7 +14,7 @@ export interface ValidationError {
 function formatZodError(error: ZodError): string {
     const formatted = error.format();
     const paths: string[] = [];
-    
+
     function extractPaths(obj: unknown, prefix = ''): void {
         if (obj && typeof obj === 'object') {
             for (const [key, value] of Object.entries(obj)) {
@@ -28,7 +28,7 @@ function formatZodError(error: ZodError): string {
             }
         }
     }
-    
+
     extractPaths(formatted);
     return paths.join(', ');
 }

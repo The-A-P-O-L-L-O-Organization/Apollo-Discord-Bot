@@ -1,8 +1,8 @@
-import type { Client, Interaction, AutocompleteInteraction, ChatInputCommandInteraction, CommandInteraction, ButtonInteraction, SelectMenuInteraction, ContextMenuCommandInteraction, Collection, SlashCommandBuilder, RESTPostAPIChatInputApplicationCommandsJSONBody, ClientOptions } from 'discord.js';
+import type { Client } from 'discord.js';
 import { logger } from '../utils/logger.js';
 import { i18n } from '../i18n/index.js';
 import type { CommandModule, EventHandlerModule } from '../types/plugin.js';
-import type { BasePlugin, PluginCapability, PluginInstance, PluginCommand, PluginEvent, CLICommand, PluginContext, PluginLogger } from '../types/shared.js';
+import type { BasePlugin, PluginCapability, PluginInstance, PluginCommand, PluginEvent, CLICommand } from '../types/shared.js';
 import type { EventBusImpl } from './EventBus.js';
 
 export type PluginDependencies = Record<string, string>;
@@ -19,12 +19,12 @@ export interface TypedClient extends Client {
 }
 
 // Type for dynamic command import
-interface CommandModuleDefault {
+interface _CommandModuleDefault {
     default: CommandModule;
 }
 
 // Type for dynamic event import
-interface EventHandlerModuleDefault {
+interface _EventHandlerModuleDefault {
     default: EventHandlerModule;
 }
 
@@ -52,7 +52,6 @@ export abstract class Plugin<C extends CommandModule = CommandModule, _E extends
     public readonly capabilities: PluginCapability[];
 
     // PluginInstance required properties
-    public enabled = false;
     public events = new Map<string, PluginEvent>();
     public cliCommands = new Map<string, CLICommand>();
     public rpcNamespace?: string;
@@ -176,7 +175,9 @@ export abstract class Plugin<C extends CommandModule = CommandModule, _E extends
                 if (!mod.default?.name || !mod.default.execute) { continue; }
 
                 const { name, once, execute } = mod.default as EventHandlerModule;
-                const handler = (...args: unknown[]) => execute(...args, this.client);
+                const handler = (...args: unknown[]) => {
+                    void execute(...args, this.client);
+                };
                 this.client[once ? 'once' : 'on'](name, handler);
                 this.eventHandlers.push({ name, handler, once: once ?? false });
             } catch (err) {
@@ -214,6 +215,14 @@ export abstract class Plugin<C extends CommandModule = CommandModule, _E extends
 
     set loaded(value: boolean) {
         this._loaded = value;
+    }
+
+    get enabled(): boolean {
+        return this._enabled;
+    }
+
+    set enabled(value: boolean) {
+        this._enabled = value;
     }
 }
 
