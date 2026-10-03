@@ -311,7 +311,7 @@ export default class PluginManager {
 
         if (existsSync(manifestPath)) {
             // Installed plugin - use PluginLoader
-            const result = await this._loader.load(id, baseDir, this.client, this);
+            const result = await this._loader.load(id, baseDir, this.client as unknown as ApolloClient, this);
             plugin = result.plugin;
         } else {
             // Built-in plugin - use direct import (original behavior)

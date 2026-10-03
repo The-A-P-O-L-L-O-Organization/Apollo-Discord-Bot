@@ -158,14 +158,16 @@ export async function validateRedisAuth(): Promise<void> {
         );
     }
 
-    const redis = createRedisClient('startup-check', {
-        host: config.queue.redis.host,
-        port: config.queue.redis.port,
-        password: config.queue.redis.password,
-        username: config.queue.redis.username,
-        maxRetriesPerRequest: 1,
-        retryStrategy: () => null,
-        lazyConnect: true
+    const redis = createRedisClient({
+        mode: 'standalone',
+        url: `redis://${config.queue.redis.host}:${config.queue.redis.port}`,
+        options: {
+            password: config.queue.redis.password,
+            username: config.queue.redis.username,
+            maxRetriesPerRequest: 1,
+            retryStrategy: () => null,
+            lazyConnect: true
+        }
     });
 
     try {

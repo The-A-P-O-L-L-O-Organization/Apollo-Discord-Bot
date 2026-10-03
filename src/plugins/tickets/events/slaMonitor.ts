@@ -130,7 +130,7 @@ async function handleSlaBreach(guild: Guild, ticket: Record<string, unknown>, sl
         const entries = Array.from(guildAlerted.entries());
         guildAlerted.clear();
         // Keep last 500
-        entries.slice(-500).forEach(([key, value]) => guildAlerted.set(key, value));
+        entries.slice(-500).forEach(([key, value]) => { guildAlerted.set(key, value); });
     }
 
     const priority = (ticket['priority'] as string) || 'medium';
@@ -206,7 +206,7 @@ async function handleSlaBreach(guild: Guild, ticket: Record<string, unknown>, sl
         await sendModLog(guild, {
             action: 'sla_breach',
             target: { id: ticket['userId'] as string, tag: `Ticket #${ticket['ticketNumber'] as number}`, displayAvatarURL: () => null },
-            moderator: { tag: 'SLA Monitor', id: client.user.id },
+            moderator: { tag: 'SLA Monitor', id: client.user?.id ?? '' },
             reason: `SLA breached for ticket #${ticket['ticketNumber'] as number} (${priority} priority)`,
             extra: {
                 'Ticket Number': `#${ticket['ticketNumber'] as number}`,

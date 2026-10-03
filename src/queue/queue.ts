@@ -47,10 +47,13 @@ export async function createQueue(name: string, queueConfig = config.queue): Pro
 
     let q: Queue | NoopQueue;
     if (queueConfig.enabled) {
-        const conn = createRedisClient('queue', {
-            family: 4,
-            password: config.queue.redis.password ?? undefined,
-            username: config.queue.redis.username ?? undefined
+        const conn = createRedisClient({
+            mode: 'standalone',
+            options: {
+                family: 4,
+                password: config.queue.redis.password ?? undefined,
+                username: config.queue.redis.username ?? undefined
+            }
         });
         await conn.connect();
 

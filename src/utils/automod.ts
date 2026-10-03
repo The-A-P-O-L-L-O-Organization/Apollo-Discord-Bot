@@ -149,7 +149,8 @@ const SPAM_KEY_PREFIX = 'apollo:spam:';
  */
 async function getSpamRedis(): Promise<Redis | null> {
     if (!config.queue.enabled) { return null; }
-    return getLockRedis();
+    const client = await getLockRedis();
+    return client as unknown as Redis;
 }
 
 /**
