@@ -98,8 +98,8 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
       bullmq:
-        specifier: ^6.3.9
-        version: 6.3.9(ioredis@6.0.0(supports-color@7.2.0))(pg@8.23.0)
+        specifier: ^6.3.11
+        version: 6.3.11(ioredis@6.0.0(supports-color@7.2.0))(pg@8.23.0)
       compression:
         specifier: ^1.8.2
         version: 1.8.2(supports-color@7.2.0)
@@ -1964,8 +1964,8 @@ packages:
     resolution: {integrity: sha512-lHblz4ahamxpTmnsk+MNTRWsjYKv965MwOrSJyeD588rR3Jcu7swE+0wN5F+PbL5cjgu/9ObkhfzEPuofEMwLA==}
     engines: {node: '>=10.0.0'}
 
-  bullmq@6.3.9:
-    resolution: {integrity: sha512-wBGk4tHZRFcQayZlC5DPRxg2EFfCqhgkJq0uQ8EvufMgh2hYmPeH8tK+1U4ffimNmnJzTUhwwW1PNUIQMhvSpQ==}
+  bullmq@6.3.11:
+    resolution: {integrity: sha512-ylSY3FYil6E9IjqVtT+WHcZvS1rgTZ0L3Aev62u45NXQFe+H37a1AuC3WDATR7ScNDet1Ah8MnP3lf8XaUbPUw==}
     engines: {node: '>=14.17.0'}
     peerDependencies:
       bullmq-otel: '>=2.0.0'
@@ -5915,7 +5915,7 @@ snapshots:
   buildcheck@0.0.7:
     optional: true
 
-  bullmq@6.3.9(ioredis@6.0.0(supports-color@7.2.0))(pg@8.23.0):
+  bullmq@6.3.11(ioredis@6.0.0(supports-color@7.2.0))(pg@8.23.0):
     dependencies:
       cron-parser: 5.10.1
       msgpackr: 2.1.0
