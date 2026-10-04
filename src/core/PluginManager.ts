@@ -19,6 +19,7 @@ import { PluginEnabler } from './PluginEnabler.js';
 import { PluginDisabler } from './PluginDisabler.js';
 import { PluginReloader } from './PluginReloader.js';
 import { PluginInstaller } from './PluginInstaller.js';
+import { sortByDependencies, enablePluginsParallel } from './PluginDependencyResolver.js';
 
 const ALL_PLUGIN_CAPABILITIES = [
     'events:ready',
@@ -125,62 +126,7 @@ export default class PluginManager {
      * Groups plugins by dependency level and enables each level in parallel
      */
     async _enablePluginsParallel(sortedIds: string[]): Promise<void> {
-        // Build dependency graph
-        const graph = new Map<string, string[]>();
-        const reverseGraph = new Map<string, Set<string>>(); // dependents
-        for (const id of sortedIds) {
-            const PluginClass = this._pluginRegistry.get(id);
-            const deps = PluginClass ? PluginClass.dependencies : [];
-            graph.set(id, deps.filter(d => sortedIds.includes(d)));
-            for (const dep of deps) {
-                if (!reverseGraph.has(dep)) { reverseGraph.set(dep, new Set()); }
-                reverseGraph.get(dep)!.add(id);
-            }
-        }
-
-        // Calculate dependency levels (topological levels)
-        const levels = new Map<string, number>(); // id -> level
-        const visited = new Set<string>();
-
-        function calculateLevel(id: string): number {
-            if (visited.has(id)) { return levels.get(id)!; }
-            visited.add(id);
-
-            const deps = graph.get(id) ?? [];
-            if (deps.length === 0) {
-                levels.set(id, 0);
-                return 0;
-            }
-
-            let maxLevel = 0;
-            for (const dep of deps) {
-                const depLevel = calculateLevel(dep);
-                maxLevel = Math.max(maxLevel, depLevel + 1);
-            }
-            levels.set(id, maxLevel);
-            return maxLevel;
-        }
-
-        for (const id of sortedIds) {
-            calculateLevel(id);
-        }
-
-        // Group by level
-        const levelGroups = new Map<number, string[]>();
-        for (const [id, level] of levels) {
-            if (!levelGroups.has(level)) { levelGroups.set(level, []); }
-            levelGroups.get(level)!.push(id);
-        }
-
-        // Enable level by level (parallel within level)
-        const maxLevel = Math.max(...levels.values());
-        for (let level = 0; level <= maxLevel; level++) {
-            const idsAtLevel = levelGroups.get(level) ?? [];
-            if (idsAtLevel.length === 0) { continue; }
-
-            // Enable all plugins at this level in parallel
-            await Promise.all(idsAtLevel.map(id => this.enablePlugin(id)));
-        }
+        await enablePluginsParallel(sortedIds, id => this._pluginRegistry.get(id)?.dependencies ?? [], id => this.enablePlugin(id));
     }
 
     _rebuildInstalledPlugins(): void {
@@ -201,33 +147,7 @@ export default class PluginManager {
     }
 
     _sortByDependencies(ids: string[]): string[] {
-        const idSet = new Set(ids);
-        const visited = new Set<string>();
-        const sorted: string[] = [];
-
-        function visit(id: string, graph: Map<string, string[]>, path: Set<string>): void {
-            if (path.has(id)) { throw new Error(`Circular dependency detected: ${[...path, id].join(' -> ')}`); }
-            if (visited.has(id)) { return; }
-            visited.add(id);
-            path.add(id);
-            for (const dep of graph.get(id) ?? []) {
-                if (idSet.has(dep)) { visit(dep, graph, path); }
-            }
-            path.delete(id);
-            sorted.push(id);
-        }
-
-        const graph = new Map<string, string[]>();
-        for (const id of ids) {
-            const PluginClass = this._pluginRegistry.get(id);
-            graph.set(id, PluginClass ? PluginClass.dependencies : []);
-        }
-
-        for (const id of ids) {
-            visit(id, graph, new Set());
-        }
-
-        return sorted;
+        return sortByDependencies(ids, id => this._pluginRegistry.get(id)?.dependencies ?? []);
     }
 
     async _syncDiscordCommands(changedPluginId: string | null = null): Promise<void> {
