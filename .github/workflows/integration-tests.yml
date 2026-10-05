@@ -60,7 +60,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
         env:
-          - SENTINEL_MASTER_NAME=mymaster
+          SENTINEL_MASTER_NAME: mymaster
         # Sentinel needs a master to monitor, so we run it with a custom command
         # that sets up the master and sentinel together
 
