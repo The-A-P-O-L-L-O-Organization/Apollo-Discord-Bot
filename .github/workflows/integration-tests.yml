@@ -40,7 +40,7 @@ jobs:
     services:
       # Redis for basic tests
       redis:
-        image: redis:7-alpine
+        image: redis:8-alpine
         ports:
           - 6379:6379
         options: >-
@@ -51,7 +51,7 @@ jobs:
       
       # Redis Sentinel for failover tests
       redis-sentinel:
-        image: redis:7-alpine
+        image: redis:8-alpine
         ports:
           - 26379:26379
         options: >-
@@ -91,7 +91,7 @@ jobs:
           # Configure Redis master
           docker run -d --name redis-master \
             -p 6380:6379 \
-            redis:7-alpine redis-server --appendonly yes
+            redis:8-alpine redis-server --appendonly yes
           
           # Wait for master to be ready
           sleep 3

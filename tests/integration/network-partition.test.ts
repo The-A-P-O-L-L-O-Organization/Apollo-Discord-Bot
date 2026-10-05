@@ -19,7 +19,7 @@ describe('Network Partition Prevention (Fencing)', () => {
     beforeAll(async () => {
         try {
             // Start master Redis
-            masterContainer = await new GenericContainer('redis:7-alpine')
+            masterContainer = await new GenericContainer('redis:8-alpine')
                 .withCommand(['redis-server', '--appendonly', 'yes'])
                 .withExposedPorts(6379)
                 .withWaitStrategy(Wait.forLogMessage('Ready to accept connections'))
@@ -29,7 +29,7 @@ describe('Network Partition Prevention (Fencing)', () => {
             sentinelHost = masterContainer.getHost();
 
             // Start Sentinel
-            sentinelContainer = await new GenericContainer('redis:7-alpine')
+            sentinelContainer = await new GenericContainer('redis:8-alpine')
                 .withCommand(['redis-sentinel', '/etc/redis/sentinel.conf'])
                 .withExposedPorts(26379)
                 .withWaitStrategy(Wait.forLogMessage('Sentinel runid'))

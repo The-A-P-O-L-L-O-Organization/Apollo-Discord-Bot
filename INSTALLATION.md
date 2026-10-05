@@ -571,7 +571,7 @@ volumes:
 # docker-compose.yml
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18.6-alpine
     environment:
       POSTGRES_DB: apollo
       POSTGRES_USER: apollo
@@ -579,10 +579,10 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
 
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     command: redis-server --requirepass apollo-dev
     ports:
       - "6379:6379"

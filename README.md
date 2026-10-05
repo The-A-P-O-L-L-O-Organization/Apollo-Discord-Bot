@@ -700,8 +700,8 @@ pnpm start            # Start bot (SQLite, single instance)
 
 ```bash
 # Terminal 1: Start infrastructure
-docker run -d --name redis -p 6379:6379 redis:7
-docker run -d --name postgres -p 5432:5432 -e POSTGRES_PASSWORD=pass postgres:16
+docker run -d --name redis -p 6379:6379 redis:8
+docker run -d --name postgres -p 5432:5432 -e POSTGRES_PASSWORD=pass postgres:18.6
 
 # Terminal 2: Gateway pod
 RUN_MODE=gateway POD_ID=gateway-1 DB_TYPE=postgres \

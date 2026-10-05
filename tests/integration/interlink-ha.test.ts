@@ -25,7 +25,7 @@ describe('Interlink HA (Redis Failover)', () => {
             authKey = 'test-auth-key-0123456789abcdef0123456789abcdef';
 
             // Start master Redis
-            masterContainer = await new GenericContainer('redis:7-alpine')
+            masterContainer = await new GenericContainer('redis:8-alpine')
                 .withCommand(['redis-server', '--appendonly', 'yes'])
                 .withExposedPorts(6379)
                 .withWaitStrategy(Wait.forLogMessage('Ready to accept connections'))
@@ -35,7 +35,7 @@ describe('Interlink HA (Redis Failover)', () => {
             sentinelHost = masterContainer.getHost();
 
             // Start Sentinel
-            sentinelContainer = await new GenericContainer('redis:7-alpine')
+            sentinelContainer = await new GenericContainer('redis:8-alpine')
                 .withCommand(['redis-sentinel', '/etc/redis/sentinel.conf'])
                 .withExposedPorts(26379)
                 .withWaitStrategy(Wait.forLogMessage('Sentinel runid'))
