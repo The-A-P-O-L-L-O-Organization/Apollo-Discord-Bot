@@ -48,21 +48,6 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-      
-      # Redis Sentinel for failover tests
-      redis-sentinel:
-        image: redis:8-alpine
-        ports:
-          - 26379:26379
-        options: >-
-          --health-cmd "redis-cli -p 26379 ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        env:
-          SENTINEL_MASTER_NAME: mymaster
-        # Sentinel needs a master to monitor, so we run it with a custom command
-        # that sets up the master and sentinel together
 
     steps:
       - name: Checkout repository
@@ -88,25 +73,30 @@ jobs:
 
       - name: Setup Redis Sentinel
         run: |
-          # Configure Redis master
+          # Master and Sentinel both run on host networking so the test runner
+          # (host) can reach the master address Sentinel reports. A plain
+          # bridge container would make Sentinel announce an internal IP that
+          # is unreachable from the host.
           docker run -d --name redis-master \
-            -p 6380:6379 \
-            redis:8-alpine redis-server --appendonly yes
+            --network host \
+            redis:8-alpine redis-server --port 6380 --appendonly yes
           
           # Wait for master to be ready
           sleep 3
           
-          # Configure Sentinel
+          # Configure Sentinel (quorum 1: single sentinel for CI)
           cat > /tmp/sentinel.conf << 'EOF'
           port 26379
-          sentinel monitor mymaster redis-master 6379 1
+          sentinel monitor mymaster 127.0.0.1 6380 1
           sentinel down-after-milliseconds mymaster 5000
           sentinel failover-timeout mymaster 10000
           sentinel parallel-syncs mymaster 1
           EOF
           
-          docker cp /tmp/sentinel.conf redis-sentinel:/etc/redis/sentinel.conf
-          docker restart redis-sentinel
+          docker run -d --name redis-sentinel \
+            --network host \
+            -v /tmp/sentinel.conf:/etc/redis/sentinel.conf \
+            redis:8-alpine redis-sentinel /etc/redis/sentinel.conf
           
           # Wait for sentinel to be ready
           sleep 5
