@@ -18,15 +18,15 @@ export class CommandSync {
     }
 
     async syncCommands(pluginId: string, commands: unknown[]): Promise<void> {
-        await this.putCommands(commands, `[ERROR] Failed to sync commands for plugin ${pluginId}`);
+        await this.putCommands(commands, `[ERROR] Failed to sync commands for plugin ${pluginId}`, this.client.config.guildId);
     }
 
     async syncAllCommands(): Promise<void> {
         const commands = [...(this.client.commands?.values() ?? [])];
-        await this.putCommands(commands, '[ERROR] Failed to sync commands with Discord');
+        await this.putCommands(commands, '[ERROR] Failed to sync commands with Discord', undefined);
     }
 
-    private async putCommands(commands: unknown[], errorMessage: string): Promise<void> {
+    private async putCommands(commands: unknown[], errorMessage: string, guildId?: string): Promise<void> {
         try {
             const rest = this.client.rest;
             const clientConfig = this.client.config;
@@ -35,9 +35,9 @@ export class CommandSync {
 
             const body = commands.map(cmd => buildLocalizedPayload(cmd as CommandInput));
 
-            if (clientConfig.guildId) {
+            if (guildId) {
                 await rest.put(
-                    Routes.applicationGuildCommands(CLIENT_ID, clientConfig.guildId),
+                    Routes.applicationGuildCommands(CLIENT_ID, guildId),
                     { body }
                 );
             } else {

@@ -65,7 +65,7 @@ The `src/utils` directory provides centralized utility functions and abstraction
   - `lock.js`: minimal dependency, implements Promise‑based mutex.
   - `lruCache.js`: simple LRU implementation.
   - `accessControl.js`: role and permission utilities, uses `db.js`.
-  - `automod.ts` (barrel over `automodConfig.ts`, `automodChecking.ts`, `automodSpam.ts`): rule‑engine for auto‑moderation. The config leaf reads via `db.js`; the spam leaf uses `redis.js` with an in-memory fallback.
+  - `automod.ts` (barrel over `automodConfig.ts`, `automodChecking.ts`, `automodSpam.ts`): rule‑engine for auto‑moderation. The config leaf reads via `db.js`; the spam leaf uses `lock.js` (`getLockRedis()`) with an in-memory fallback.
   - `integrationClients.js`: API‑specific SDKs (e.g., `octokit` for GitHub).
   - `integrationWebhook.js`: `discord.js` for sending webhooks, `safeFetch.js` for receiving.
   - `integrationPoller.js`: uses `integrationClients.js` and `safeFetch.js`.
@@ -73,7 +73,7 @@ The `src/utils` directory provides centralized utility functions and abstraction
   - `metrics.js`: collects metrics, may expose via `healthServer.js`.
   - `tracing.js`: OpenTelemetry or similar.
   - `healthServer.js`: `express` or `undici` based HTTP server.
-  - `raidDetection.ts` (barrel over `raidDetectionTypes.ts`, `raidDetectionRedis.ts`, `raidDetectionCore.ts`, `raidDetectionSimilarity.ts`): detects raid patterns; the core leaf uses `accessControl.js` and `logger.js`, the Redis leaf uses `redis.js`.
+  - `raidDetection.ts` (barrel over `raidDetectionTypes.ts`, `raidDetectionRedis.ts`, `raidDetectionCore.ts`, `raidDetectionSimilarity.ts`): detects raid patterns; the core leaf uses `accessControl.js` and `logger.js`, the Redis leaf uses `lock.js` (`getLockRedis()`).
   - `modLog.js`: moderation logging helper.
   - `redis.js`: wrapper around ioredis.
   - `encryption.js`: crypto utilities with key rotation support (comma-separated ENCRYPTION_KEYS, v1 format: version:salt:iv:authTag:ciphertext), decrypt tries all keys, reEncryptIfNeeded() for migration.

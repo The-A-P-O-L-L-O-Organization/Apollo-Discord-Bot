@@ -79,11 +79,6 @@ export function checkBurstSpam(
     // Compute SimHash for this message
     const hash = simhash(message.content);
 
-    // Filter old hashes outside the interval
-    tracker.hashes = tracker.hashes.filter(_h => {
-        return now - tracker.windowStart < intervalMs;
-    });
-
     // Update window start if needed
     if (now - tracker.windowStart >= intervalMs) {
         tracker.windowStart = now;

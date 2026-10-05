@@ -29,14 +29,9 @@ export function sortByDependencies(ids: string[], getDeps: (id: string) => strin
 
 export async function enablePluginsParallel(sortedIds: string[], getDeps: (id: string) => string[], enable: (id: string) => Promise<void>): Promise<void> {
     const graph = new Map<string, string[]>();
-    const reverseGraph = new Map<string, Set<string>>();
     for (const id of sortedIds) {
         const deps = getDeps(id).filter(d => sortedIds.includes(d));
         graph.set(id, deps);
-        for (const dep of getDeps(id)) {
-            if (!reverseGraph.has(dep)) { reverseGraph.set(dep, new Set()); }
-            reverseGraph.get(dep)!.add(id);
-        }
     }
 
     const levels = new Map<string, number>();

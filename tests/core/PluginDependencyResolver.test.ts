@@ -47,4 +47,15 @@ describe('enablePluginsParallel', () => {
         });
         expect(maxConcurrent).toBe(2);
     });
+
+    it('propagates an enable() rejection and stops later levels', async () => {
+        const registry = makeRegistry([['a', []], ['b', ['a']]]);
+        const getDeps = (id: string) => registry.get(id)?.dependencies ?? [];
+        const calls: string[] = [];
+        await expect(enablePluginsParallel(['a', 'b'], getDeps, async (id) => {
+            calls.push(id);
+            if (id === 'a') { throw new Error('enable failed'); }
+        })).rejects.toThrow('enable failed');
+        expect(calls).not.toContain('b');
+    });
 });

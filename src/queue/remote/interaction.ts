@@ -3,9 +3,8 @@ import { Routes, Collection } from 'discord.js';
 import type { REST } from 'discord.js';
 import { RemoteOptions } from './options.js';
 import { RemoteGuild } from './guild.js';
-import { RemoteChannel } from './channel.js';
+import { RemoteChannel, buildMessageBody } from './channel.js';
 import { DiscordAPI } from './discordApi.js';
-import { buildMessageBody } from './channel.js';
 
 export default class RemoteInteraction {
     _data: Record<string, unknown>;
