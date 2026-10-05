@@ -60,7 +60,10 @@ describe('Redis Cluster/Sentinel Failover', () => {
 
         const urls = process.env['REDIS_SENTINEL_URLS']!.split(',');
         redis = new _Redis({
-            sentinels: urls.map(url => new URL(url)),
+            sentinels: urls.map((url) => {
+                const parsed = new URL(url);
+                return { host: parsed.hostname, port: Number(parsed.port) || 26379 };
+            }),
             name: 'mymaster',
             maxRetriesPerRequest: 3,
             retryStrategy: (times: number) => {
@@ -98,7 +101,10 @@ describe('Redis Cluster/Sentinel Failover', () => {
         } else {
             const urls = process.env['REDIS_SENTINEL_URLS']!.split(',');
             redis = new _Redis({
-                sentinels: urls.map(url => new URL(url)),
+                sentinels: urls.map((url) => {
+                    const parsed = new URL(url);
+                    return { host: parsed.hostname, port: Number(parsed.port) || 26379 };
+                }),
                 name: 'mymaster',
                 maxRetriesPerRequest: 3,
                 retryStrategy: (times: number) => {
