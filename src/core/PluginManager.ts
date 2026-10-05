@@ -2,13 +2,10 @@ import { logger } from '../utils/logger.js';
 import { readdirSync, existsSync, rmSync, readFileSync } from 'fs';
 import path, { join, relative, sep } from 'path';
 import { pathToFileURL } from 'url';
-import { Routes } from 'discord.js';
 import { verifyPluginManifest, verifyPluginFile } from '../utils/manifest.js';
 import { WorkerHost } from './worker/workerHost.js';
 import { parsePluginManifest, type ParsedPluginManifest } from './worker/pluginManifest.js';
 import type { WorkerInfo } from './worker/workerHost.js';
-import { buildLocalizedPayload } from '../i18n/commandPayload.js';
-import type { CommandInput } from '../i18n/commandPayload.js';
 import type { Client, REST } from 'discord.js';
 import type { EventBusImpl } from '../core/EventBus.js';
 import type { Plugin as PluginBase } from '../core/Plugin.js';
@@ -20,6 +17,7 @@ import { PluginDisabler } from './PluginDisabler.js';
 import { PluginReloader } from './PluginReloader.js';
 import { PluginInstaller } from './PluginInstaller.js';
 import { sortByDependencies, enablePluginsParallel } from './PluginDependencyResolver.js';
+import { CommandSync } from './CommandSync.js';
 
 const ALL_PLUGIN_CAPABILITIES = [
     'events:ready',
@@ -69,6 +67,7 @@ export default class PluginManager {
     _socketHandlers?: Map<string, (...args: unknown[]) => Promise<unknown>>;
 
     private _loader: PluginLoader;
+    private _commandSync: CommandSync;
     private _enabler: PluginEnabler;
     private _disabler: PluginDisabler;
     private _reloader: PluginReloader;
@@ -86,7 +85,8 @@ export default class PluginManager {
 
         // Initialize modular components - using type assertions to satisfy structural typing
         this._loader = new PluginLoader({ workerHost: this.workerHost as unknown as { startPlugin: (opts: { pluginId: string; dir: string; capabilities: string[]; manifest: unknown }) => Promise<{ child: unknown; granted: string[]; manifest: unknown }>; terminateWorker: (id: string) => boolean; isDisabled: (id: string) => boolean }, eventBus: this.bus });
-        this._enabler = new PluginEnabler({ workerHost: this.workerHost as unknown as { startPlugin: (opts: { pluginId: string; dir: string; capabilities: string[]; manifest: unknown }) => Promise<{ child: unknown; granted: string[]; manifest: unknown }>; terminateWorker: (id: string) => boolean; isDisabled: (id: string) => boolean }, eventBus: this.bus, commandSync: this });
+        this._commandSync = new CommandSync(client);
+        this._enabler = new PluginEnabler({ workerHost: this.workerHost as unknown as { startPlugin: (opts: { pluginId: string; dir: string; capabilities: string[]; manifest: unknown }) => Promise<{ child: unknown; granted: string[]; manifest: unknown }>; terminateWorker: (id: string) => boolean; isDisabled: (id: string) => boolean }, eventBus: this.bus, commandSync: this._commandSync });
         this._disabler = new PluginDisabler({ workerHost: this.workerHost, eventBus: this.bus });
         this._reloader = new PluginReloader({ loader: this._loader, disabler: this._disabler, enabler: this._enabler });
         this._installer = new PluginInstaller({ baseDir: './data/plugins' });
@@ -151,69 +151,17 @@ export default class PluginManager {
     }
 
     async _syncDiscordCommands(changedPluginId: string | null = null): Promise<void> {
-        try {
-            const rest = this.client.rest;
-            const clientConfig = this.client.config as { discord: { clientId: string }; guildId?: string };
-            const CLIENT_ID = clientConfig.discord.clientId;
-            if (!CLIENT_ID) { return; }
-
-            if (changedPluginId) {
-                // Incremental sync for a single plugin
-                const plugin = this.plugins.get(changedPluginId);
-                if (!plugin) { return; }
-
-                const commands = plugin.getCommands?.() || [];
-                const body = commands.map(cmd => buildLocalizedPayload(cmd as unknown as CommandInput));
-
-                if (clientConfig.guildId) {
-                    // Guild-specific update (instant)
-                    await rest.put(
-                        Routes.applicationGuildCommands(CLIENT_ID, clientConfig.guildId),
-                        { body }
-                    );
-                } else {
-                    // Global update (up to 1h propagation)
-                    await rest.put(
-                        Routes.applicationCommands(CLIENT_ID),
-                        { body }
-                    );
-                }
-            } else {
-                // Full sync (startup only)
-                const body = [...(this.client.commands?.values() ?? [])].map((cmd: unknown) => buildLocalizedPayload(cmd as CommandInput));
-                await rest.put(
-                    Routes.applicationCommands(CLIENT_ID),
-                    { body }
-                );
-            }
-        } catch (error) {
-            logger.error({ err: error, msg: '[ERROR] Failed to sync commands with Discord' });
+        if (changedPluginId) {
+            const plugin = this.plugins.get(changedPluginId);
+            if (!plugin) { return; }
+            await this._commandSync.syncCommands(changedPluginId, plugin.getCommands?.() || []);
+        } else {
+            await this._commandSync.syncAllCommands();
         }
     }
 
     async syncCommands(pluginId: string, commands: unknown[]): Promise<void> {
-        try {
-            const rest = this.client.rest;
-            const clientConfig = this.client.config as { discord: { clientId: string }; guildId?: string };
-            const CLIENT_ID = clientConfig.discord.clientId;
-            if (!CLIENT_ID) { return; }
-
-            const body = commands.map(cmd => buildLocalizedPayload(cmd as CommandInput));
-
-            if (clientConfig.guildId) {
-                await rest.put(
-                    Routes.applicationGuildCommands(CLIENT_ID, clientConfig.guildId),
-                    { body }
-                );
-            } else {
-                await rest.put(
-                    Routes.applicationCommands(CLIENT_ID),
-                    { body }
-                );
-            }
-        } catch (error) {
-            logger.error({ err: error, msg: `[ERROR] Failed to sync commands for plugin ${pluginId}` });
-        }
+        await this._commandSync.syncCommands(pluginId, commands);
     }
 
     async loadPlugin(id: string, baseDir = './src/plugins'): Promise<PluginBase> {
