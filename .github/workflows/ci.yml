@@ -140,8 +140,7 @@ jobs:
           key: ${{ needs.setup.outputs.cache-key }}
 
       - name: Run pnpm lint
-        run: pnpm lint || echo "No lint script configured"
-        continue-on-error: true
+        run: pnpm lint
 
   test:
     name: Test
@@ -172,9 +171,6 @@ jobs:
 
       - name: Run tests
         run: pnpm test
-        continue-on-error: true
-        # TODO: Remove continue-on-error once pre-existing 494 i18next v26 mock failures are fixed
-        # See: https://github.com/The-A-P-O-L-L-O-Organization/Apollo-Discord-Bot/issues/XXX
 
       - name: Generate coverage report
         run: pnpm test:coverage
@@ -303,7 +299,6 @@ jobs:
 
       - name: Run security audit
         run: pnpm audit --audit-level=high
-        continue-on-error: true
 
   manifest-check:
     name: Manifest Drift Check
@@ -432,9 +427,9 @@ jobs:
     steps:
       - name: Check CI status
         run: |
-          # Test job uses continue-on-error due to 494 pre-existing i18next v26 mock failures
-          # Only fail CI for actual blocking issues
-          if [[ "${{ needs.rust-build.result }}" == "failure" ]] || [[ "${{ needs.rust-test.result }}" == "failure" ]] || [[ "${{ needs.buf-lint.result }}" == "failure" ]] || [[ "${{ needs.go-build.result }}" == "failure" ]] || [[ "${{ needs.go-test.result }}" == "failure" ]] || [[ "${{ needs.golangci-lint.result }}" == "failure" ]]; then
+          # Every required job must pass for CI to pass. Add new jobs here
+          # when they are added to the `needs` list above.
+          if [[ "${{ needs.lint.result }}" == "failure" ]] || [[ "${{ needs.test.result }}" == "failure" ]] || [[ "${{ needs.audit.result }}" == "failure" ]] || [[ "${{ needs.manifest-check.result }}" == "failure" ]] || [[ "${{ needs.rust-build.result }}" == "failure" ]] || [[ "${{ needs.rust-test.result }}" == "failure" ]] || [[ "${{ needs.buf-lint.result }}" == "failure" ]] || [[ "${{ needs.go-build.result }}" == "failure" ]] || [[ "${{ needs.go-test.result }}" == "failure" ]] || [[ "${{ needs.golangci-lint.result }}" == "failure" ]]; then
             echo "Critical CI job failed"
             exit 1
           fi
