@@ -1,8 +1,7 @@
 import { logger } from '../utils/logger.js';
-import { readdirSync, existsSync, rmSync, readFileSync } from 'fs';
-import path, { join, relative, sep } from 'path';
-import { pathToFileURL } from 'url';
-import { verifyPluginManifest, verifyPluginFile } from '../utils/manifest.js';
+import { readdirSync, existsSync, rmSync } from 'fs';
+import path from 'path';
+import { verifyPluginManifest } from '../utils/manifest.js';
 import { WorkerHost } from './worker/workerHost.js';
 import { parsePluginManifest, type ParsedPluginManifest } from './worker/pluginManifest.js';
 import type { WorkerInfo } from './worker/workerHost.js';
@@ -18,6 +17,7 @@ import { PluginReloader } from './PluginReloader.js';
 import { PluginInstaller } from './PluginInstaller.js';
 import { sortByDependencies, enablePluginsParallel } from './PluginDependencyResolver.js';
 import { CommandSync } from './CommandSync.js';
+import { BuiltinPluginLoader } from './BuiltinPluginLoader.js';
 
 const ALL_PLUGIN_CAPABILITIES = [
     'events:ready',
@@ -72,6 +72,7 @@ export default class PluginManager {
     private _disabler: PluginDisabler;
     private _reloader: PluginReloader;
     private _installer: PluginInstaller;
+    private _builtinLoader = new BuiltinPluginLoader();
 
     constructor(client: TypedClient, bus: EventBusImpl) {
         this.client = client;
@@ -211,49 +212,11 @@ export default class PluginManager {
         let PluginClass = this._pluginRegistry.get(id);
         let pluginDir = path.join(process.cwd(), baseDir, id);
         if (!PluginClass) {
-            pluginDir = path.join(process.cwd(), baseDir, id);
             const preferJs = process.env['NODE_ENV'] === 'production';
-            const candidates = preferJs
-                ? [path.join(pluginDir, 'plugin.js'), path.join(pluginDir, 'plugin.ts')]
-                : [path.join(pluginDir, 'plugin.ts'), path.join(pluginDir, 'plugin.js')];
-            let pluginPath = candidates.find((p) => existsSync(p)) ?? candidates[0]!;
-            if (!existsSync(pluginPath)) {
-                const optionalDir = path.join(
-                    process.cwd(),
-                    this.config?.plugins?.paths?.installed ?? './data/plugins',
-                    id
-                );
-                const optionalPath = path.join(optionalDir, 'plugin.ts');
-                const optionalPathJs = path.join(optionalDir, 'plugin.js');
-                const optionalCandidates = preferJs ? [optionalPathJs, optionalPath] : [optionalPath, optionalPathJs];
-                if (existsSync(optionalCandidates[0]!)) {
-                    pluginDir = optionalDir;
-                    pluginPath = optionalCandidates[0]!;
-                } else if (existsSync(optionalCandidates[1]!)) {
-                    pluginDir = optionalDir;
-                    pluginPath = optionalCandidates[1]!;
-                } else {
-                    throw new Error(`Plugin ${id} not found at ${pluginPath}`);
-                }
-            }
-
-            // TOCTOU protection: verify plugin.js hash against manifest before import
-            const manifestPathGlobal = join(process.cwd(), 'plugin-manifest.json');
-            if (existsSync(manifestPathGlobal)) {
-                const manifest = JSON.parse(readFileSync(manifestPathGlobal, 'utf8'));
-                const relPath = relative(process.cwd(), pluginPath).split(sep).join('/');
-                const expectedHash = manifest[relPath] as string | undefined;
-                if (expectedHash) {
-                    verifyPluginFile(pluginPath, expectedHash);
-                }
-            }
-
-            const url = pathToFileURL(pluginPath).href + (process.env['NODE_ENV'] === 'development' ? `?t=${Date.now()}` : '');
-            const mod = await import(url);
-            PluginClass = mod.default;
-            if (!PluginClass) {
-                throw new Error(`Plugin ${id} does not export a default class`);
-            }
+            const installedDir = this.config?.plugins?.paths?.installed ?? './data/plugins';
+            const result = await this._builtinLoader.load(id, baseDir, preferJs, installedDir);
+            PluginClass = result.PluginClass as unknown as PluginConstructor;
+            pluginDir = result.pluginDir;
             this._pluginRegistry.set(id, PluginClass);
         }
 
