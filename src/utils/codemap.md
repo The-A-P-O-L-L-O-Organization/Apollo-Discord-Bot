@@ -4,7 +4,7 @@ The `src/utils` directory provides centralized utility functions and abstraction
 # Design
 - **Adapter Pattern**: `db.js` abstracts PostgreSQL and SQLite backends with lazy singleton initialization.
 - **Logger Pattern**: `logger.js` offers a centralized logging service that creates embeds and sends them to configured channels based on guild settings; `structuredLogger.js` provides structured logging with levels.
-- **Strategy Pattern**: Moderation utilities (`moderation.js`, `nsfwDetection.js`, `openaiModeration.js`, `automod.js`) encapsulate interchangeable algorithms for permission checks and content analysis.
+- **Strategy Pattern**: Moderation utilities (`moderation.js`, `nsfwDetection.js`, `openaiModeration.js`, `automod.ts` barrel) encapsulate interchangeable algorithms for permission checks and content analysis. The automod barrel re-exports three focused leaves: `automodConfig.ts` (config loading via `getAutomodConfig`), `automodChecking.ts` (pure content checks: banned words, invites, links, mention/caps spam, account age, phishing), and `automodSpam.ts` (stateful burst/spam trackers with Redis-backed and in-memory paths).
 - **Factory/Helper Pattern**: Modules like `safeError.js`, `safeFetch.js`, `translation.js`, `markdownParser.js`, `duration.js`, `encryption.js`, `xp.js` export cohesive helper functions.
 - **Scheduler Pattern**: Files such as `reminderScheduler.js`, `tempRolesScheduler.js`, `tempbanScheduler.js`, `pollScheduler.js` implement timed task execution using node‑cron or setInterval.
 - **Lock Pattern**: `lock.js` provides a mutex implementation for concurrency control.
@@ -16,6 +16,8 @@ The `src/utils` directory provides centralized utility functions and abstraction
 - **Health Server**: `healthServer.js` exposes an HTTP endpoint for liveness/readiness probes.
 - **Access Control**: `accessControl.js` centralizes permission and role‑based access checks.
 - **Module Pattern**: Each utility file exports a focused API, minimizing coupling.
+- **Barrel Pattern (analytics)**: `analyticsCollector.ts` re-exports `analyticsCache.ts` (in-memory cache plus `track*` ingestion functions), `analyticsFlush.ts` (collector lifecycle `init`/`stop`, `flushAnalyticsCache`/`flushAnalyticsCritical`, collector stats), and `analyticsStats.ts` (read-side `get*Stats` queries over day windows). Dependency direction: leaves are independent of each other; callers import only the barrel.
+- **Barrel Pattern (raid)**: `raidDetection.ts` re-exports `raidDetectionTypes.ts` (threshold/result/state types and defaults), `raidDetectionRedis.ts` (Redis-backed join tracking and pattern checks), `raidDetectionCore.ts` (orchestration: `checkRaidPattern`, `handleRaidDetected`, raid-mode enable/disable), and `raidDetectionSimilarity.ts` (pure helpers: `levenshteinDistance`, `calculateSimilarity`, `countSimilarNames`). Dependency direction: core depends on the Redis and similarity leaves; callers import only the barrel.
 - **Dependency Injection**: Configuration is injected via `../config/config.js`; external libraries are imported locally.
 - **Observer/Pub‑Sub**: `logger.js` acts as an observer for events triggered elsewhere; `integrationPoller.js` polls external APIs and emits updates.
 
@@ -27,7 +29,7 @@ The `src/utils` directory provides centralized utility functions and abstraction
    - Permission checks use `accessControl.js.canModerate` and `moderation.js.canModerate`.
    - NSFW scanning uses `nsfwDetection.js.checkMessageAttachments` which downloads images via `safeFetch.js`, analyzes with TensorFlow model, and returns results.
    - AI‑based moderation uses `openaiModeration.js` to call OpenAI API.
-   - Automod utilities in `automod.js` provide rule‑based filtering.
+   - Automod utilities behind the `automod.ts` barrel provide rule‑based filtering: `automodChecking.ts` runs the pure content checks, `automodSpam.ts` tracks burst/spam state, and `automodConfig.ts` loads per-guild configuration.
 5. **Helper Invocation**: 
    - HTTP requests go through `safeFetch.js` (retry, timeout, size limits) with optional circuit breaker via `circuitBreaker.js`.
    - Errors are sanitized via `safeError.js` before user‑facing responses.
@@ -63,7 +65,7 @@ The `src/utils` directory provides centralized utility functions and abstraction
   - `lock.js`: minimal dependency, implements Promise‑based mutex.
   - `lruCache.js`: simple LRU implementation.
   - `accessControl.js`: role and permission utilities, uses `db.js`.
-  - `automod.js`: rule‑engine for auto‑moderation.
+  - `automod.ts` (barrel over `automodConfig.ts`, `automodChecking.ts`, `automodSpam.ts`): rule‑engine for auto‑moderation. The config leaf reads via `db.js`; the spam leaf uses `redis.js` with an in-memory fallback.
   - `integrationClients.js`: API‑specific SDKs (e.g., `octokit` for GitHub).
   - `integrationWebhook.js`: `discord.js` for sending webhooks, `safeFetch.js` for receiving.
   - `integrationPoller.js`: uses `integrationClients.js` and `safeFetch.js`.
@@ -71,7 +73,7 @@ The `src/utils` directory provides centralized utility functions and abstraction
   - `metrics.js`: collects metrics, may expose via `healthServer.js`.
   - `tracing.js`: OpenTelemetry or similar.
   - `healthServer.js`: `express` or `undici` based HTTP server.
-  - `raidDetection.js`: detects raid patterns, uses `accessControl.js` and `logger.js`.
+  - `raidDetection.ts` (barrel over `raidDetectionTypes.ts`, `raidDetectionRedis.ts`, `raidDetectionCore.ts`, `raidDetectionSimilarity.ts`): detects raid patterns; the core leaf uses `accessControl.js` and `logger.js`, the Redis leaf uses `redis.js`.
   - `modLog.js`: moderation logging helper.
   - `redis.js`: wrapper around ioredis.
   - `encryption.js`: crypto utilities with key rotation support (comma-separated ENCRYPTION_KEYS, v1 format: version:salt:iv:authTag:ciphertext), decrypt tries all keys, reEncryptIfNeeded() for migration.
@@ -79,7 +81,7 @@ The `src/utils` directory provides centralized utility functions and abstraction
   - `xp.js`: experience point calculations for leveling.
   - `manifest.js`: plugin manifest utilities.
   - `chart.js`: chart generation utilities (if present).
-  - `analyticsCollector.js`: collects analytics data.
+  - `analyticsCollector.ts` (barrel over `analyticsCache.ts`, `analyticsFlush.ts`, `analyticsStats.ts`): collects analytics data; the stats leaf reads via `db.js`.
   - `transcriptGenerator.js`: generates transcripts of conversations.
   - `reportHandler.js`: handles report submissions.
   - `tracing.js`: distributed tracing.

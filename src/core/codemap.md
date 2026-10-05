@@ -6,7 +6,10 @@ Manages plugin lifecycle, event communication, plugin registry, secure plugin do
 ## Design
 - **Plugin** (abstract class): base for all plugins; loads commands and events from its directory, implements lifecycle hooks (`onLoad`, `onUnload`, `onEnable`, `onDisable`), and stores internal maps for commands, event handlers, and schedulers.
 - **EventBus**: publish/subscribe system with plugin‑scoped handlers; supports state keys with watchers; optional cross‑pod replication via Redis; provides `on`, `once`, `emit`, `provide`, `call`, `provideState`, `getState`, `setState`, `watchState`, `removeAll`, `enableCrossPod`.
-- **PluginManager**: orchestrates plugin discovery, dependency resolution, loading, enabling/disabling, reloading, installing/uninstalling; syncs slash commands with Discord; manages `WorkerHost` for sandboxed plugins; includes parallel plugin enabling based on dependency levels.
+- **PluginManager** (coordinator): orchestrates plugin discovery, loading, enabling/disabling, reloading, installing/uninstalling; delegates dependency ordering to `PluginDependencyResolver`, Discord command sync to `CommandSync`, and built-in plugin file loading to `BuiltinPluginLoader`; manages `WorkerHost` for sandboxed plugins.
+- **PluginDependencyResolver**: pure functions `sortByDependencies` (topological sort of plugin ids) and `enablePluginsParallel` (enables plugins grouped by dependency level). Imported by `PluginManager`, which supplies id lists and callbacks.
+- **CommandSync**: class constructed with the Discord client; `syncAllCommands` performs full startup sync and `syncCommands` performs incremental per-plugin sync of `client.commands` to Discord application commands.
+- **BuiltinPluginLoader**: class with `load` resolving a built-in plugin file from disk (preferring compiled output) and verifying its hash against the manifest via `verifyPluginFile`. Used by `PluginManager` during discovery.
 - **PluginRegistry**: loads/maintains plugin manifest JSON; provides `listAvailable`, `get`, `search`, and `reload` methods; seeds with default plugins.
 - **WorkerHost** (master‑worker pattern): spawns child processes for plugins using Node `fork`, tracks crashes, enforces capability limits, and communicates via IPC. Includes security logging for high-risk capabilities and crash handling with backoff.
 - **WorkerChild**: runs inside each plugin sandbox, exposes a `host` object with capability‑checked `call` method, handles lifecycle and command/event messages via RPC.
@@ -21,10 +24,10 @@ Manages plugin lifecycle, event communication, plugin registry, secure plugin do
 4. **State flow**: `provideState` creates a key; `setState` updates value and notifies watchers; cross‑pod state changes are published/subscribed via Redis.
 5. **API flow**: `provide` registers a namespaced function; `call` invokes it with plugin‑scoped ownership.
 6. **Worker sandboxing** (for installed plugins): `PluginManager.loadInstalledPlugin` uses `WorkerHost.startPlugin` to fork a child process; the child runs `WorkerChild.runChild`, which loads the plugin, exposes a capability‑checked `host.call`, and relays lifecycle/command/event messages via IPC using the RPC module.
-7. **Command sync**: `_syncDiscordCommands` reads `this.client.commands` (populated by Plugin `_loadCommands`) and updates Discord application commands. Supports both full sync (startup) and incremental sync (single plugin changes).
+7. **Command sync**: `PluginManager` delegates to its `CommandSync` instance, which reads `this.client.commands` (populated by Plugin `_loadCommands`) and updates Discord application commands. `syncAllCommands` covers full sync (startup); `syncCommands` covers incremental sync (single plugin changes).
 8. **Plugin installation**: `installPlugin` downloads via `pluginDownloader`, validates directory via `validatePluginDirectory`, loads, enables, and syncs commands.
 9. **Cross‑pod communication**: when `enableCrossPod` is called, the EventBus subscribes to Redis channels for events and state, forwarding messages to local handlers and watchers.
-10. **Dependency management**: PluginManager sorts plugins by dependency topologically and enables them in parallel groups by dependency level to optimize startup time.
+10. **Dependency management**: PluginManager delegates to `sortByDependencies` (topological sort) and `enablePluginsParallel` (parallel groups by dependency level) from `PluginDependencyResolver` to optimize startup time.
 11. **Worker lifecycle**: WorkerHost tracks plugin crashes, implements exponential backoff restart logic, and disables plugins after consecutive crash thresholds. Includes health checking to reset crash counts after healthy periods.
 
 ## Integration
@@ -34,4 +37,5 @@ Manages plugin lifecycle, event communication, plugin registry, secure plugin do
 - **File system**: reads plugin directories, writes registry, extracts archives, removes plugin data on uninstall.
 - **Redis (optional)**: when `enableCrossPod` is called, uses pub/sub clients to forward events and state changes across pods.
 - **Internal utilities**: uses `../utils/securityLog.js` for logging security events and `../utils/manifest.js` for manifest verification.
+- **Coordinator modules**: `PluginManager` imports `sortByDependencies`/`enablePluginsParallel` from `./PluginDependencyResolver.js`, constructs `CommandSync` with the Discord client, and holds a `BuiltinPluginLoader` for manifest-verified built-in loads.
 - **Utilities**: Uses `../utils/logger.js` for consistent logging across the core module.

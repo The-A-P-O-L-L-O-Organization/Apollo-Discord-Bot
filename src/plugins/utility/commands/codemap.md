@@ -7,6 +7,7 @@ This folder contains general utility commands for the Apollo Discord Bot.
 Each command follows a standard pattern:
 - It exports a function with a specific signature that is handled by the plugin command handler.
 - It registers a slash command using the `registerCommand` function from `src/utils/startupChecks`.
+- Dispatcher pattern: `analytics.ts` defines the `/analytics` slash command (subcommands server, commands, activity, moderation, user, export) and delegates each to a dedicated handler module in `analytics/` (`serverStats.ts`, `commandStats.ts`, `activityStats.ts`, `moderationStats.ts`, `userStats.ts`, `exportStats.ts`, exporting `handleServerStats`, `handleCommandStats`, `handleActivityStats`, `handleModerationStats`, `handleUserStats`, `handleExport`). Dependency direction: `analytics.ts` imports the handlers; handlers do not import the dispatcher.
 
 ## Flow
 
@@ -15,6 +16,7 @@ A utility command flows through the following steps:
 - The interactionCreate event is routed to the plugin's command handler in `src/plugins/utility/index.js`.
 - The handler identifies the command name and imports the corresponding module from `src/plugins/utility/commands/`.
 - The handler calls the module's `execute(interaction)` async function.
+- For `/analytics`, `execute` switches on the subcommand name and calls the corresponding imported handler from `analytics/`; other commands implement `execute` inline in their own module.
 - The command function processes the interaction, potentially deferring the reply, performing logic (e.g., database queries via `src/utils/db.js`, utility functions), and constructing a response.
 - The command sends the response back to Discord via `interaction.editReply()` or `interaction.followUp()`.
 - Any errors are caught and logged, with an error message sent to the user.
@@ -26,6 +28,7 @@ Utility commands import various functions and modules from other parts of the bo
 - `src/utils/reminderScheduler.js`: Reminder scheduling functions.
 - `src/utils/pollScheduler.js`: Poll scheduling functions.
 - `src/utils/analyticsCollector.js`: Analytics collection functions.
+- `src/plugins/utility/commands/analytics/`: subcommand handler modules (`serverStats.ts`, `commandStats.ts`, `activityStats.ts`, `moderationStats.ts`, `userStats.ts`, `exportStats.ts`) imported by the `analytics.ts` dispatcher.
 - `src/utils/translation.js`: Translation functions.
 - `src/utils/charts.js`: Chart generation functions.
 - `src/utils/markdownParser.js`: Markdown parsing functions.
