@@ -32,8 +32,13 @@ describe('PluginLoader', () => {
     let testPluginDir: string
     let badPluginDir: string
     const fixturesDir = join('tests', 'fixtures', 'test-plugins')
+    const manifestPath = join(process.cwd(), 'plugin-manifest.json')
+    let originalManifest: string | null = null
 
     beforeEach(() => {
+        if (existsSync(manifestPath)) {
+            originalManifest = readFileSync(manifestPath, 'utf8')
+        }
         mockWorkerHost = { spawnWorker: vi.fn(), terminateWorker: vi.fn() }
         mockEventBus = { subscribe: vi.fn(), unsubscribe: vi.fn() }
         loader = new PluginLoader({ workerHost: mockWorkerHost, eventBus: mockEventBus })
@@ -102,13 +107,18 @@ describe('PluginLoader', () => {
         // Cleanup
         try { rmSync(testPluginDir, { recursive: true, force: true }) } catch {}
         try { rmSync(badPluginDir, { recursive: true, force: true }) } catch {}
+        if (originalManifest !== null) {
+            writeFileSync(manifestPath, originalManifest)
+            originalManifest = null
+        } else {
+            try { rmSync(manifestPath, { force: true }) } catch {}
+        }
     })
 
     it('loads plugin and verifies manifest', async () => {
-        // Create a real plugin-manifest.json in cwd for this test
-        const testManifestPath = join(process.cwd(), 'plugin-manifest.json')
+        // Create a real plugin-manifest.json in cwd for this test (restored in afterEach)
         const relPath = relative(process.cwd(), join(testPluginDir, 'test-plugin', 'plugin.ts')).split(sep).join('/')
-        writeFileSync(testManifestPath, JSON.stringify({ [relPath]: 'hash123' }))
+        writeFileSync(manifestPath, JSON.stringify({ [relPath]: 'hash123' }))
 
         vi.mocked(parsePluginManifest).mockResolvedValue({ id: 'test-plugin', name: 'Test Plugin', capabilities: [] })
 
@@ -118,16 +128,12 @@ describe('PluginLoader', () => {
         expect(result).toBeDefined()
         expect(result.manifest).toBeDefined()
         expect(result.manifest.id).toBe('test-plugin')
-
-        // Cleanup
-        rmSync(testManifestPath, { force: true })
     })
 
     it('rejects plugin with invalid manifest hash', async () => {
-        // Create a real plugin-manifest.json in cwd for this test
-        const testManifestPath = join(process.cwd(), 'plugin-manifest.json')
+        // Create a real plugin-manifest.json in cwd for this test (restored in afterEach)
         const relPath = relative(process.cwd(), join(badPluginDir, 'bad-plugin', 'plugin.ts')).split(sep).join('/')
-        writeFileSync(testManifestPath, JSON.stringify({ [relPath]: 'expected-hash' }))
+        writeFileSync(manifestPath, JSON.stringify({ [relPath]: 'expected-hash' }))
 
         vi.mocked(parsePluginManifest).mockResolvedValue({ id: 'bad-plugin', name: 'Bad Plugin', capabilities: [] })
 
@@ -138,8 +144,5 @@ describe('PluginLoader', () => {
         // Use relative path from cwd
         const baseDir = relative(process.cwd(), badPluginDir)
         await expect(loader.load('bad-plugin', baseDir, mockClient, mockManager)).rejects.toThrow('Manifest verification failed')
-
-        // Cleanup
-        rmSync(testManifestPath, { force: true })
     })
 })
