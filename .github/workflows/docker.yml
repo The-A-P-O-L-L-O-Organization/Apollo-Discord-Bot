@@ -279,6 +279,9 @@ jobs:
     needs: [build, build-interlink, build-nsfw]
     if: github.event_name == 'push'
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
+
       - name: Login to GitHub Container Registry
         uses: docker/login-action@0a596b2e7a325f0cedf8e9bd21ab002cbd3c9241
         with:
@@ -287,21 +290,21 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Scan bot image
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: ${{ needs.build.outputs.image }}@${{ needs.build.outputs.digest }}
           format: sarif
           output: bot-trivy.sarif
 
       - name: Scan interlink image
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: ${{ needs.build-interlink.outputs.image }}@${{ needs.build-interlink.outputs.digest }}
           format: sarif
           output: interlink-trivy.sarif
 
       - name: Scan nsfw image
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: ${{ needs.build-nsfw.outputs.image }}@${{ needs.build-nsfw.outputs.digest }}
           format: sarif
