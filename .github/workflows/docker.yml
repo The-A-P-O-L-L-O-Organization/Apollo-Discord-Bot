@@ -290,21 +290,21 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Scan bot image
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ needs.build.outputs.image }}@${{ needs.build.outputs.digest }}
           format: sarif
           output: bot-trivy.sarif
 
       - name: Scan interlink image
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ needs.build-interlink.outputs.image }}@${{ needs.build-interlink.outputs.digest }}
           format: sarif
           output: interlink-trivy.sarif
 
       - name: Scan nsfw image
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ needs.build-nsfw.outputs.image }}@${{ needs.build-nsfw.outputs.digest }}
           format: sarif
