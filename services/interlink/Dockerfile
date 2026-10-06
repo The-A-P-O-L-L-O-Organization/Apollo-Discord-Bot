@@ -17,7 +17,7 @@ COPY . .
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /interlink .
 
 # ─── Runtime Stage ──────────────────────────────────────────────────────
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM gcr.io/distroless/static-debian13:nonroot
 
 COPY --from=builder /interlink /usr/local/bin/interlink
 

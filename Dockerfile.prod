@@ -47,6 +47,11 @@ FROM node:26-alpine
 # Install runtime dependencies only
 RUN apk add --no-cache libstdc++
 
+# npm/npx ship with the base image but are never used at runtime
+# (deps come from the builder's pruned node_modules); removing them
+# drops their bundled vulnerable transitive deps from scanner findings.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
+
 WORKDIR /app
 
 ENV NODE_ENV=production
