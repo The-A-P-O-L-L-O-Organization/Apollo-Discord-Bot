@@ -13,7 +13,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { analyzeImageGrpc, healthCheckGrpc, resetCircuitBreaker, isRustWorkerAvailable } from '../src/queue/nsfwClient.js';
 import { createServer, type Server } from 'node:http';
 import { readFileSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join, dirname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const FIXTURE_DIR = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'nsfw');
@@ -118,10 +118,23 @@ describe('NSFW Rust Service Fidelity Test', () => {
 
         // Serve local fixtures over HTTP so the server fetches deterministic bytes.
         fixtureServer = createServer((req, res) => {
-            const file = (req.url ?? '/').replace(/^\//, '');
+            let requested: string;
             try {
-                const data = readFileSync(join(FIXTURE_DIR, file));
-                const ext = file.slice(file.lastIndexOf('.'));
+                requested = decodeURIComponent((req.url ?? '/').split('?')[0] ?? '').replace(/^\//, '');
+            } catch {
+                res.writeHead(400);
+                res.end('bad request');
+                return;
+            }
+            const resolved = resolve(FIXTURE_DIR, requested);
+            if (resolved !== FIXTURE_DIR && !resolved.startsWith(FIXTURE_DIR + sep)) {
+                res.writeHead(404);
+                res.end('not found');
+                return;
+            }
+            try {
+                const data = readFileSync(resolved);
+                const ext = requested.slice(requested.lastIndexOf('.'));
                 res.writeHead(200, { 'Content-Type': MIME[ext] ?? 'application/octet-stream' });
                 res.end(data);
             } catch {
