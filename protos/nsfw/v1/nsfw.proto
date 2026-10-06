@@ -1,7 +1,7 @@
 syntax = "proto3";
 package nsfw.v1;
 
-option go_package = "github.com/apollo-bot/nsfw-proto/gen/go;nsfwv1";
+option go_package = "github.com/the-a-p-o-l-l-o-organization/apollo-discord-bot/gen/go/nsfw/v1;nsfwv1";
 
 service NsfwService {
   rpc Analyze(AnalyzeRequest) returns (AnalyzeResponse);
