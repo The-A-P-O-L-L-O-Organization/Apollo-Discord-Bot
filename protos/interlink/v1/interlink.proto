@@ -1,7 +1,7 @@
 syntax = "proto3";
 package interlink.v1;
 
-option go_package = "github.com/apollo-bot/interlink/gen/go/interlink/v1;interlinkv1";
+option go_package = "github.com/the-a-p-o-l-l-o-organization/apollo-discord-bot/services/interlink/gen/go/interlink;interlinkv1";
 
 service InterlinkService {
   rpc Send(Envelope) returns (SendResponse);
