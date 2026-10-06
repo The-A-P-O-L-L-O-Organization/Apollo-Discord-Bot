@@ -53,10 +53,10 @@ export function generateHtmlTranscript(transcript: TranscriptData): string {
             return '';
         }
         return text
-            .replace(/&/g, '&')
-            .replace(/</g, '<')
-            .replace(/>/g, '>')
-            .replace(/"/g, '"')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;')
             .replace(/\//g, '&#x2F;')
             .replace(/`/g, '&#x60;')
