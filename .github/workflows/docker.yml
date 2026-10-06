@@ -186,9 +186,46 @@ jobs:
         run: |
           echo "## Interlink Docker Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image:** \`${{ steps.image.outputs.name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Digest:** \`${{ steps.build.outputs.digest }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** `${{ steps.image.outputs.name }}`" >> $GITHUB_STEP_SUMMARY
+          echo "**Digest:** `${{ steps.build.outputs.digest }}`" >> $GITHUB_STEP_SUMMARY
           echo "**Tags:**" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "```" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "```" >> $GITHUB_STEP_SUMMARY
+
+  scan:
+    name: Scan images
+    runs-on: ubuntu-latest
+    needs: [build, build-interlink]
+    if: github.event_name == 'push'
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@0a596b2e7a325f0cedf8e9bd21ab002cbd3c9241
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Scan bot image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          image-ref: ${{ needs.build.outputs.image }}@${{ needs.build.outputs.digest }}
+          format: sarif
+          output: bot-trivy.sarif
+
+      - name: Scan interlink image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          image-ref: ${{ needs.build-interlink.outputs.image }}@${{ needs.build-interlink.outputs.digest }}
+          format: sarif
+          output: interlink-trivy.sarif
+
+      - name: Merge SARIF reports
+        run: |
+          jq -s '{version: .[0].version, $schema: .[0]."$schema", runs: ([.[].runs] | add)}' bot-trivy.sarif interlink-trivy.sarif > trivy.sarif
+
+      - name: Upload SARIF results
+        uses: github/codeql-action/upload-sarif@486fec2a3ea2626afcd8c7e9208b4f515078dd7e
+        with:
+          sarif_file: trivy.sarif
+          category: trivy-container

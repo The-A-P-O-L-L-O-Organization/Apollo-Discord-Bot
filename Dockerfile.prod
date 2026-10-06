@@ -37,6 +37,10 @@ RUN pnpm build:cli
 # Regenerate plugin-manifest.json from current sources
 RUN pnpm manifest
 
+# Drop devDependencies so the runtime image ships production deps only
+# (smaller image, fewer scanner findings; runtime imports no devDeps)
+RUN pnpm prune --prod
+
 # Stage 2: Production stage (minimal)
 FROM node:26-alpine
 
