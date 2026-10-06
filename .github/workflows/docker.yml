@@ -222,7 +222,7 @@ jobs:
 
       - name: Merge SARIF reports
         run: |
-          jq -s '{version: .[0].version, "$schema": .[0]["$schema"], runs: ([.[].runs] | add)}' bot-trivy.sarif interlink-trivy.sarif > trivy.sarif
+          jq -s '.[0] as $a | .[1] as $b | ($a.runs[0].tool.driver.rules // [] | length) as $off | $a | .runs[0].results += ([$b.runs[0].results[] | if has("ruleIndex") then .ruleIndex += $off else . end]) | .runs[0].tool.driver.rules += ($b.runs[0].tool.driver.rules // [])' bot-trivy.sarif interlink-trivy.sarif > trivy.sarif
 
       - name: Upload SARIF results
         uses: github/codeql-action/upload-sarif@486fec2a3ea2626afcd8c7e9208b4f515078dd7e
