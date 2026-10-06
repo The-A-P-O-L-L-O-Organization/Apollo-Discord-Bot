@@ -1,41 +1,49 @@
-# Core Module Codemap
+# src/core/codemap.md
 
 ## Responsibility
-Manages plugin lifecycle, event communication, plugin registry, secure plugin downloading, and worker‑based sandboxing. Provides abstract base class for plugins, coordinates loading/enabling/disabling, handles cross‑pod messaging via Redis, and maintains plugin state, APIs, and command registration. Also manages worker processes for sandboxed plugin execution with capability-based security.
+Owns plugin lifecycle, cross-pod event distribution, and plugin integrity. Provides the `Plugin` base class, coordinates discovery/loading/enabling/disabling through `PluginManager`, distributes `plugin.action` domain events through `EventBus`, verifies manifests and Sigstore signatures, and sandboxes third-party plugins in worker child processes.
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `Plugin.ts` | Abstract Plugin base class with lifecycle hooks and command and event loading. |
+| `PluginManager.ts` | Coordinator delegating load, enable, disable, reload, install, and sync to helpers. |
+| `PluginLoader.ts` | Instantiation and manifest-verified loading of a single plugin. |
+| `PluginEnabler.ts` | Plugin enabling with capability signing and command sync. |
+| `PluginDisabler.ts` | Plugin disabling with onDisable and event unsubscription. |
+| `PluginReloader.ts` | Disable-then-enable reload of a single plugin. |
+| `PluginInstaller.ts` | Install from a source path with Sigstore verification and hashing. |
+| `PluginDependencyResolver.ts` | Topological sortByDependencies plus parallel enable groups. |
+| `CommandSync.ts` | Discord application-command REST sync per plugin and global. |
+| `BuiltinPluginLoader.ts` | First-party plugin class import with manifest hash check. |
+| `PluginRegistry.ts` | Manifest-backed third-party plugin registry with list, get, search, and reload. |
+| `pluginDownloader.ts` | HTTPS-only plugin archive download with hash and zip traversal checks. |
+| `pluginSigstore.ts` | Sigstore signature verification for plugin archives. |
+| `EventBus.ts` | EventBusImpl with local handlers plus optional Redis cross-pod replication. |
+
+Subdirectory `worker/` holds sandboxed third-party plugin execution; see `src/core/worker/codemap.md`.
 
 ## Design
-- **Plugin** (abstract class): base for all plugins; loads commands and events from its directory, implements lifecycle hooks (`onLoad`, `onUnload`, `onEnable`, `onDisable`), and stores internal maps for commands, event handlers, and schedulers.
-- **EventBus**: publish/subscribe system with plugin‑scoped handlers; supports state keys with watchers; optional cross‑pod replication via Redis; provides `on`, `once`, `emit`, `provide`, `call`, `provideState`, `getState`, `setState`, `watchState`, `removeAll`, `enableCrossPod`.
-- **PluginManager** (coordinator): orchestrates plugin discovery, loading, enabling/disabling, reloading, installing/uninstalling; delegates dependency ordering to `PluginDependencyResolver`, Discord command sync to `CommandSync`, and built-in plugin file loading to `BuiltinPluginLoader`; manages `WorkerHost` for sandboxed plugins.
-- **PluginDependencyResolver**: pure functions `sortByDependencies` (topological sort of plugin ids) and `enablePluginsParallel` (enables plugins grouped by dependency level). Imported by `PluginManager`, which supplies id lists and callbacks.
-- **CommandSync**: class constructed with the Discord client; `syncAllCommands` performs full startup sync and `syncCommands` performs incremental per-plugin sync of `client.commands` to Discord application commands.
-- **BuiltinPluginLoader**: class with `load` resolving a built-in plugin file from disk (preferring compiled output) and verifying its hash against the manifest via `verifyPluginFile`. Used by `PluginManager` during discovery.
-- **PluginRegistry**: loads/maintains plugin manifest JSON; provides `listAvailable`, `get`, `search`, and `reload` methods; seeds with default plugins.
-- **WorkerHost** (master‑worker pattern): spawns child processes for plugins using Node `fork`, tracks crashes, enforces capability limits, and communicates via IPC. Includes security logging for high-risk capabilities and crash handling with backoff.
-- **WorkerChild**: runs inside each plugin sandbox, exposes a `host` object with capability‑checked `call` method, handles lifecycle and command/event messages via RPC.
-- **RPC module**: defines request/response structures, correlation IDs, and oversize payload detection.
-- **pluginDownloader**: secure download/extract utilities; validates URLs (HTTPS only, public IPs), checks hash, extracts zip archives while preventing path traversal and symlink attacks.
-- **pluginManifest**: validates declared capabilities against a known set and parses `plugin.json`.
+- `Plugin.ts`: abstract class extending nothing external. Holds `commands`, `eventHandlers`, `schedulers` maps, lifecycle hooks `onLoad`, `onEnable`, `onDisable`, `onUnload`. Loads `commands/` and `events/` modules from its own directory. Exposes `manager.registerSocketHandler(namespace, handler)` reference for `namespace.action` socket RPC.
+- `PluginManager.ts`: coordinator delegating to focused helpers: `PluginLoader.ts`, `PluginEnabler.ts`, `PluginDisabler.ts`, `PluginReloader.ts`, `PluginInstaller.ts`, `PluginDependencyResolver.ts` (`sortByDependencies`, `enablePluginsParallel`), `CommandSync.ts`, `BuiltinPluginLoader.ts`. Tracks `plugins`, `installedPlugins`, `_capabilityIndex`, `_socketHandlers`. Owns a `WorkerHost` for sandboxed third-party plugins.
+- `EventBus.ts`: `EventBusImpl` with `on`, `once`, `emit`, `provide`, `call`, `provideState`, `getState`, `setState`, `watchState`. Event names use `plugin.action` form. Optional cross-pod replication via injected Redis pub/sub clients and `podId`.
+- `pluginSigstore.ts`: Sigstore signature verification for plugin archives.
+- `pluginDownloader.ts`: HTTPS-only download, hash check, zip extraction with traversal and symlink rejection.
+- `PluginRegistry.ts`: manifest-backed registry with `listAvailable`, `get`, `search`, `reload`.
+- `worker/workerHost.ts`, `worker/workerChild.ts`, `worker/rpc-schemas.ts`: sandboxed execution of installed third-party plugins. See `src/core/worker/codemap.md`.
+- Patterns: Template Method (`Plugin` base class with `onLoad`/`onEnable`/`onDisable` hooks), Observer/Pub-Sub (`EventBus` on/emit with Redis fan-out), Facade (PluginManager delegating to loader/enabler/disabler helpers), Registry (`PluginRegistry` plus `_capabilityIndex`), Proxy/Sandbox (worker host/child RPC boundary).
 
 ## Flow
-1. **Plugin registration**: `PluginManager.loadPlugin` reads `plugin.js`, instantiates the class, calls `onLoad`, sets `_loaded = true`, and registers commands/events with the discord client.
-2. **Enabling**: after dependency checks, `PluginManager.enablePlugin` calls `bus.removeAll(pluginId)`, invokes `onEnable`, sets `_enabled = true`, and registers listeners via `EventBus`. Updates capability index for installed plugins.
-3. **Event flow**: plugins register handlers with `bus.on(event, handler, pluginId)`; `bus.emit` invokes all handlers for an event, optionally rebroadcasting to other pods via Redis when cross‑pod is enabled.
-4. **State flow**: `provideState` creates a key; `setState` updates value and notifies watchers; cross‑pod state changes are published/subscribed via Redis.
-5. **API flow**: `provide` registers a namespaced function; `call` invokes it with plugin‑scoped ownership.
-6. **Worker sandboxing** (for installed plugins): `PluginManager.loadInstalledPlugin` uses `WorkerHost.startPlugin` to fork a child process; the child runs `WorkerChild.runChild`, which loads the plugin, exposes a capability‑checked `host.call`, and relays lifecycle/command/event messages via IPC using the RPC module.
-7. **Command sync**: `PluginManager` delegates to its `CommandSync` instance, which reads `this.client.commands` (populated by Plugin `_loadCommands`) and updates Discord application commands. `syncAllCommands` covers full sync (startup); `syncCommands` covers incremental sync (single plugin changes).
-8. **Plugin installation**: `installPlugin` downloads via `pluginDownloader`, validates directory via `validatePluginDirectory`, loads, enables, and syncs commands.
-9. **Cross‑pod communication**: when `enableCrossPod` is called, the EventBus subscribes to Redis channels for events and state, forwarding messages to local handlers and watchers.
-10. **Dependency management**: PluginManager delegates to `sortByDependencies` (topological sort) and `enablePluginsParallel` (parallel groups by dependency level) from `PluginDependencyResolver` to optimize startup time.
-11. **Worker lifecycle**: WorkerHost tracks plugin crashes, implements exponential backoff restart logic, and disables plugins after consecutive crash thresholds. Includes health checking to reset crash counts after healthy periods.
+1. Discovery: `PluginManager` scans built-in and installed directories, `BuiltinPluginLoader` verifies file hashes against the manifest.
+2. Load: instantiate plugin class, call `onLoad`, populate `commands` and `eventHandlers`.
+3. Enable: dependency order via `sortByDependencies`, parallel groups via `enablePluginsParallel`, call `onEnable`, subscribe `EventBus` handlers under the plugin id.
+4. Events: `bus.on(event, handler, pluginId)` then `bus.emit('plugin.action', payload)` runs local handlers and, when cross-pod is enabled, publishes over Redis pub/sub to other pods.
+5. Socket RPC: plugins call `manager.registerSocketHandler('namespace.action', handler)`; `src/cli/socket-server.ts` dispatches socket messages to those handlers.
+6. Installed plugins: `PluginInstaller` downloads via `pluginDownloader`, verifies via `pluginSigstore` and `worker/pluginManifest.ts`, then `WorkerHost.startPlugin` forks `workerChild.ts` with signed capabilities.
 
 ## Integration
-- **discord.js client**: accesses `client.commands` for command registration, `client.rest` for API calls, and registers event listeners via `client.on/once`.
-- **WorkerHost / WorkerChild / RPC**: used by `loadInstalledPlugin` to run plugins in isolated processes with capability‑based security.
-- **Configuration**: reads `client.config.plugins` for enabled lists, directories, and registry file path.
-- **File system**: reads plugin directories, writes registry, extracts archives, removes plugin data on uninstall.
-- **Redis (optional)**: when `enableCrossPod` is called, uses pub/sub clients to forward events and state changes across pods.
-- **Internal utilities**: uses `../utils/securityLog.js` for logging security events and `../utils/manifest.js` for manifest verification.
-- **Coordinator modules**: `PluginManager` imports `sortByDependencies`/`enablePluginsParallel` from `./PluginDependencyResolver.js`, constructs `CommandSync` with the Discord client, and holds a `BuiltinPluginLoader` for manifest-verified built-in loads.
-- **Utilities**: Uses `../utils/logger.js` for consistent logging across the core module.
+- Consumes `src/utils/logger.ts` (pino, never console), `src/utils/manifest.ts`, `src/utils/securityLog.ts`, `src/config/config.ts` (`config.plugins`), `src/types/plugin.ts` and `src/types/shared.ts`.
+- Drives `client.commands` on the discord.js v14 client and delegates Discord application-command sync to `CommandSync.ts`.
+- Publishes cross-pod `plugin.action` events over Redis when `enableCrossPod` is configured.
+- Spawns sandboxed third-party plugins via `worker/workerHost.ts` and `worker/workerChild.ts` with zod-validated RPC from `worker/rpc-schemas.ts`.

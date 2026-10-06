@@ -1,53 +1,44 @@
-# Responsibility
-Contains the test suite for the Apollo Discord Bot, including unit, integration, and contract tests. Configures the Vitest environment via setup.js, mocks external dependencies, and provides utilities for testing Discord interactions, plugins, core systems, and CLI functionality.
+# tests/
 
-# Design
-- **Test Framework**: Uses Vitest as the test runner with ES modules.
-- **Global Setup**: `setup.js` is configured via Vitest's `setupFiles` option to:
-  - Provide `vi` globally for mocking and spying.
-  - Mock `console.log` and `console.error` to reduce test noise.
-  - Extend `Discord.js EmbedBuilder.prototype` with getter properties for test assertions on embed fields.
-  - Manage database lifecycle: run migrations before tests and close connections after.
-  - Restore and clear mocks after each test for isolation.
-- **Test Organization**: 
-  - `unit/`: Isolated tests for individual utility functions.
-  - `core/`: Tests for core bot systems (PluginManager, worker, EventBus, etc.).
-  - `events/`: Tests for Discord event handlers (messageCreate, interactionCreate, etc.).
-  - `commands/`: Tests for slash command implementations.
-  - `cli/`: Tests for the bot's command-line interface.
-  - `contracts/`: Tests verifying plugin API compliance.
-  - `integration/`: Tests for cross-process interactions (worker isolation).
-  - `fixtures/`: Contains test fixtures, including sample worker plugins.
-  - `mocks/`: Manual mocks for external libraries (e.g., discord.js).
-  - `plugins/`: Tests for bundled plugins (e.g., interlink).
-  - `utils/`: Additional utility tests (may overlap with unit/ but organized by concern).
-- **Mocking Strategy**: Uses Vitest's `vi` for spying and mocking; manual mocks in `__mocks__` or `mocks/` directory for whole modules.
-- **Database Testing**: Uses a test database (SQLite in-memory or PostgreSQL) with Knex migrations run via `setup.js`.
+## Responsibility
+Vitest suite for the strict TypeScript bot, about 162 files matching `tests/**/*.test.ts`. Covers unit, integration, plugin, i18n matrix, queue, and contract behavior with deterministic mocks for Discord, Redis, database, timers, and network. Setup lives in `tests/setup.ts`, shared Discord mocks in `tests/mocks/discord.ts`, fixtures under `tests/fixtures/`.
 
-# Flow
-1. **Test Initialization**: Vitest automatically imports `setup.js` before any test files.
-2. **Setup Execution**:
-   - Imports Vitest utilities, Discord.js EmbedBuilder, and database helpers.
-   - Assigns `vi` to global scope for access in tests.
-   - Sets up `beforeEach` hooks to mock console methods.
-   - Runs `beforeAll` hooks to reset the test database and apply Knex migrations.
-   - Defines EmbedBuilder property getters for test assertions.
-3. **Test Execution**: Individual test files run, utilizing:
-   - Global `vi` for mocking.
-   - Extended EmbedBuilder getters to inspect embed properties.
-   - Database helpers (if needed) for DB-related tests.
-   - Mocks for external services (Redis, Discord API, etc.).
-4. **Teardown**:
-   - `afterEach` restores and clears all mocks.
-   - `afterAll` closes the database connection after all tests complete.
+## Files
 
-# Integration
-- **Source Code**: Tests import and test modules from `src/` (e.g., `src/core/PluginManager.js`, `src/utils/logger.js`).
-- **Configuration**: Vitest configuration (`vitest.config.js` in project root) specifies:
-  - `setupFiles: ['./tests/setup.js']`
-  - Test file pattern: `tests/**/*.test.js`
-  - Coverage excludes: `src/index.js` and `src/handlers/**`
-- **Dependencies**: Relies on Vitest, Discord.js, Knex, and other dev dependencies.
-- **CI Integration**: Test suite runs via `pnpm test` in CI pipelines (GitHub Actions).
-- **Plugin System**: Tests for plugins (in `tests/plugins/`) follow the same patterns as core tests, ensuring plugin compatibility.
-- **Worker Isolation**: Integration tests in `tests/integration/` verify BullMQ job processing and worker communication.
+| File | Purpose |
+|------|---------|
+| `setup.ts` | Vitest global setup with console silencing, isolated test DB migration, and i18n init. |
+| `command-payload.test.ts` | Localized command payload building and locale checks. |
+| `i18n-matrix-automod.test.ts` | Automod plugin locale key coverage matrix. |
+| `i18n-matrix-moderation.test.ts` | Moderation plugin locale key coverage matrix. |
+| `i18n-matrix-small.test.ts` | Small plugins plus shared choke points locale coverage matrix. |
+| `i18n-matrix-tickets.test.ts` | Tickets plugin locale key coverage matrix. |
+| `i18n-matrix-utility.test.ts` | Utility plugin locale key coverage remainder matrix. |
+| `i18n.test.ts` | Supported locales, third-party plugin locales, and i18n dictionaries. |
+| `language-command.test.ts` | Language command locale switching behavior. |
+| `locale-lint.test.ts` | Locale file lint for parity, empty values, interpolation, and source extraction. |
+| `nsfw-fidelity.test.ts` | NSFW Rust service fidelity checks. |
+| `queue-locale.test.ts` | Locale round-trip through queued command payloads. |
+| `utility-i18n-matrix.test.ts` | Utility plugin i18n matrix. |
+| `worker-i18n.test.ts` | Worker sandbox i18n capability plus interlink raw-locale handling. |
+
+Subdirectories `cli/`, `commands/`, `contracts/`, `core/`, `events/`, `fixtures/`, `integration/`, `mocks/`, `plugins/`, `queue/`, `unit/`, and `utils/` hold grouped test files mirroring the source layout.
+
+## Design
+- Runner is Vitest with TypeScript ESM, configured with `tests/setup.ts` as setup file. Style follows focused unit tests plus integration tests for cross-cutting flows.
+- Global setup mocks `console.log` and `console.error` to reduce noise, exposes `vi` globally, extends `EmbedBuilder` with getter properties for assertions, runs Knex migrations on an isolated temporary database via `src/db/knex.ts`, initializes i18next with plugin namespaces, and tears down with mock restore plus database close after each file.
+- Organization is flat with descriptive names (`queue-locale.test.ts`, `command-payload.test.ts`, `i18n-matrix-*.test.ts`, `locale-lint.test.ts`, `nsfw-fidelity.test.ts`, `worker-i18n.test.ts`) plus `mocks/` for discord.js doubles and `fixtures/` including worker plugin stubs. No `setup.js`, no `tests/**/*.test.js` pattern, no `src/handlers` coverage target.
+- Security-relevant changes require tests for auth, validation, signature verification, path containment, rate limiting, and safe error handling. Tests are never weakened to make changes pass.
+- Patterns: Test Double (mocks for Discord, Redis, database, timers, network), Fixture (`tests/setup.ts` isolated database plus i18n init).
+
+## Flow
+1. Vitest loads `tests/setup.ts`: reset isolated test database, run migrations, init i18n and load namespaces (moderation, common, interlink, plugin, tickets, automod, utility, admin).
+2. Each `tests/**/*.test.ts` file runs with `beforeEach` console silencing and `afterEach` mock restore plus clear for isolation.
+3. Tests import from `src/**/*.ts` directly (for example `src/core/PluginManager.ts`, `src/utils/logger.ts`), using manual mocks in `tests/mocks/discord.ts` and `vi` spies for Redis, Knex, fetch, and timers.
+4. `afterAll` closes the database connection. Coverage excludes `src/index.ts`, tests, binaries, scripts, generated code, and `dist/`.
+5. Developers run `pnpm test` for the full suite, `pnpm vitest run <path>` for a focused file, and `pnpm coverage` for coverage.
+
+## Integration
+- Source under test: `src/**/*.ts` including core lifecycle, queue jobs, gateway leader, database adapters, i18n payloads, and all 7 plugins.
+- Configuration: Vitest config references `tests/setup.ts`, test pattern `tests/**/*.test.ts`, coverage exclusions for entries, scripts, generated code, and `dist/`.
+- Dependencies: Vitest, discord.js v14, Knex with isolated SQLite or Postgres test database, ioredis mocks, plus CI execution via `pnpm test` in the ci and integration-tests workflows.

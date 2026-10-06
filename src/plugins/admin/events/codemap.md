@@ -1,30 +1,34 @@
-Responsibility
-This directory contains Discord event listeners for administrative and moderation-related events. It handles guild-level actions (bans, creation, deletion), member updates, message modifications, reaction-based role assignments, and voice state changes. Each listener processes incoming Discord events, performs necessary validation and data enrichment, and logs relevant actions via the logger utility for moderation and audit purposes.
+# src/plugins/admin/events/
 
-Design
-Follows the Discord.js event listener pattern: each file exports a default object with `name` (event identifier), `once` (false for persistent listeners), and an `async execute` function. The design leverages utility modules:
-- `logger.js` provides centralized logging (`logEvent`) and embed creation helpers (`create*Embed`).
-- `db.js` offers `getGuildData` and `setGuildData` for persistent guild-scoped storage.
-- `config.js` supplies configuration values (e.g., automod, reaction roles).
-Common patterns include early returns for bot users or partial data, audit log fetching to determine moderator intent, and delegation of embed formatting to logger functions to keep listeners focused on event handling.
+## Responsibility
+11 audit-log and automation listeners. Files present: `guildBanAdd.ts`, `guildBanRemove.ts`, `guildCreate.ts`, `guildDelete.ts`, `guildMemberUpdate.ts`, `messageDelete.ts`, `messageDeleteBulk.ts`, `messageReactionAdd.ts`, `messageReactionRemove.ts`, `messageUpdate.ts`, `voiceStateUpdate.ts`.
 
-Flow
-Data flow begins when the Discord client emits an event (e.g., `guildBanAdd`, `messageReactionAdd`). The corresponding listener’s `execute` function receives event-specific arguments:
-- Guild events: `(guild, client)` or `(ban, client)`.
-- Member events: `(oldMember, newMember, client)`.
-- Message events: `(message, client)` or `(oldMessage, newMessage, client)`.
-- Reaction events: `(reaction, user, client)`.
-- Voice state events: `(oldState, newState, client)`.
-Execution steps:
-1. Validate inputs (null checks, bot filtering, partial object fetching).
-2. Enrich data: fetch audit logs for moderator/reason (ban/bulk delete), retrieve guild configuration (reaction roles, logging).
-3. Construct embeds via logger helpers (`createRoleChangeEmbed`, `createMessageDeleteEmbed`, etc.).
-4. Persist logs via `logEvent(guild, eventType, embed)`.
-5. Perform side effects: role addition/removal for reaction roles, console logging for audit trails.
-State transitions are implicit: e.g., `guildMemberUpdate` detects role differences via `createRoleChangeEmbed`; `messageReactionAdd` adds a role when conditions match; `messageReactionRemove` removes the role.
+## Files
 
-Integration
-Dependencies:
-- Internal: `../../../utils/logger.js` (logEvent, create*Embed), `../../../utils/db.js` (getGuildData, setGuildData), `../../../config/config.js`.
-- External: discord.js (implicitly via client-passed objects).
-Consumers: The Discord client’s event registration mechanism (outside this directory) imports each listener and attaches it to the client using `client.on(listener.name, listener.execute)`. No other modules directly import these listeners; they are invoked solely by the Discord event system.
+| File | Purpose |
+|---|---|
+| `guildBanAdd.ts` | Logs ban events with audit-log moderator and reason enrichment. |
+| `guildBanRemove.ts` | Logs unban events with audit-log enrichment. |
+| `guildCreate.ts` | Handles new-guild setup (initial config and getting-started message). |
+| `guildDelete.ts` | Handles guild removal (cleanup and logging). |
+| `guildMemberUpdate.ts` | Logs role-change diffs for members. |
+| `messageDelete.ts` | Logs single message deletions. |
+| `messageDeleteBulk.ts` | Logs bulk message deletions. |
+| `messageReactionAdd.ts` | Applies reaction-role assignment on reaction add. |
+| `messageReactionRemove.ts` | Removes reaction-role assignment on reaction remove. |
+| `messageUpdate.ts` | Logs message edits (before/after content). |
+| `voiceStateUpdate.ts` | Logs voice channel join/leave/move transitions. |
+
+## Design
+- Each file exports `{ name, once: false, execute }`. Early returns for bots and partials, audit-log enrichment for moderator/reason, embed construction delegated to logger helpers, persistence via `logEvent`.
+- Patterns: Observer (handlers subscribed to Discord events by name).
+
+## Flow
+1. Discord emits event with entity plus client.
+2. Validate and fetch configuration (`getGuildData`) and audit logs where needed.
+3. Build embed, call `logEvent(guild, eventType, embed)`.
+4. Apply side effects: reaction-role add/remove; role-change diff logging; voice transition logging.
+
+## Integration
+- Dependencies: `src/utils/logger.ts`, `src/utils/db.ts`, `src/config/config.ts`, `discord.js`.
+- Consumed by `AdminPlugin._loadEvents` via Discord client registration.

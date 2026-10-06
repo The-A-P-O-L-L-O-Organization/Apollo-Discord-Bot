@@ -3,955 +3,504 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D26-brightgreen.svg)](https://nodejs.org/)
 [![Discord.js](https://img.shields.io/badge/discord.js-v14-blue.svg)](https://discord.js.org/)
-[![Tests](https://img.shields.io/badge/tests-1829%20passing-brightgreen.svg)](https://github.com/The-A-P-O-L-L-O-Organization/Apollo-Discord-Bot)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue.svg)](https://www.typescriptlang.org/)
 
-A feature-rich, modular Discord bot built with discord.js v14. Designed for horizontal scaling with a plugin-based architecture, multi-instance support via Redis-backed work queues, and optional PostgreSQL for shared persistence.
+A feature-rich, modular Discord bot built with TypeScript and discord.js v14. Designed for horizontal scaling with a plugin-based architecture, multi-instance support via Redis-backed work queues, and PostgreSQL or SQLite persistence.
 
 ## Table of Contents
 
 - [Features](#features)
 - [Architecture](#architecture)
-- [Commands](#commands-96-total)
+- [Commands](#commands)
 - [Installation](#installation)
 - [Configuration](#configuration)
-- [Environment Variables](#environment-variables)
 - [Project Structure](#project-structure)
 - [Plugin System](#plugin-system)
+- [Internationalization](#internationalization)
 - [Multi-Instance Deployment](#multi-instance-deployment)
 - [Development](#development)
 - [Testing](#testing)
-- [API Reference](#api-reference)
+- [Protobuf and Code Generation](#protobuf-and-code-generation)
+- [Observability](#observability)
 - [Docker](#docker)
 - [CI/CD](#cicd)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
+- [Legal](#legal)
 
 ## Features
 
 ### Core Platform
-- **Plugin System**: Modular architecture with lifecycle hooks (`onLoad`, `onUnload`, `onConfigChange`), runtime install/uninstall
-- **Inter-Plugin Communication**: EventBus with 3 layers — event emit/listen, API registry (`provide`/`call`/`unprovide`), reactive shared state (`provideState`/`setState`/`getState`/`watchState`)
-- **Cross-Pod Messaging**: Redis pub/sub bridging for EventBus events across gateway/worker instances
-- **Multi-Instance HA**: Gateway leader election via Redis SET NX PX locks, worker auto-scaling via BullMQ metrics
-- **Dual Database Support**: SQLite (better-sqlite3, default for development) or PostgreSQL (via Knex, for production multi-writer)
-- **Distributed Locking**: Redis-based `acquireLock`/`releaseLock`/`withLock` for scheduler coordination across pods
 
-### Moderation
-- **Kick/Ban/Unban**: Full moderation command suite with case tracking
-- **Timeout Mute**: Discord-native timeout with optional mute role fallback and role restoration on unmute
-- **Warnings**: Configurable threshold-based auto-punishments (mute/kick/ban)
-- **Purge**: Bulk message deletion with filters (user, amount)
-- **Blacklist**: Server and global blacklist with auto-ban on join and DM notification
-- **Case System**: Persistent moderation case IDs with search, editing, and deletion
+- **Plugin System**: Seven first-party plugins (`admin`, `automod`, `integrations`, `interlink`, `moderation`, `tickets`, `utility`) with lifecycle hooks (`onLoad`, `onEnable`, `onDisable`, `onUnload`), dependency resolution, hot reload, and signed third-party installs
+- **Inter-Plugin Communication**: EventBus with three layers — event emit/listen, API registry (`provide`/`call`/`unprovide`), reactive shared state (`provideState`/`setState`/`getState`/`watchState`)
+- **Cross-Pod Messaging**: Redis pub/sub bridging for EventBus events across gateway and worker instances
+- **Sandboxed Workers**: Third-party plugins run isolated in worker child processes with capability-gated RPC (`src/core/worker/`)
+- **Multi-Instance HA**: Gateway leader election with fencing (`src/gateway/leader.ts`, `fencing.ts`), worker auto-scaling via BullMQ metrics
+- **Dual Database Support**: SQLite via better-sqlite3 (default, single instance) or PostgreSQL via Knex (production multi-writer)
+- **Distributed Locking**: Redis-based `acquireLock`/`releaseLock`/`withLock` for scheduler coordination across pods
+- **Encrypted Storage**: AES encryption for sensitive guild data, with key rotation via comma-separated `ENCRYPTION_KEY` list
+- **Startup Guards**: Fail-fast validation of `DISCORD_TOKEN`, `OPERATOR_AGREEMENT`, `ENCRYPTION_KEY`, Postgres pool sizing, queue HMAC secret, and unverified-plugin warnings
+
+### Moderation (40 commands)
+
+Kick, ban, unban, forceban, softban, timeout, mute/unmute, voice mute/deafen/disconnect/move, mass kick/mute, purge/clear, slowmode, lock/unlock, lockdown, raidmode, autorole, role persistence, nickname, temprole, tempban, warn/strike systems with configurable thresholds, case tracking, notes, blacklist (server and global), user reports.
 
 ### Auto-Moderation
-- **Spam Detection**: Configurable rate limiting (in-memory + optional Redis tracking)
-- **Raid Detection**: Join burst detection with automatic lockdown (in-memory + optional Redis tracking)
-- **Banned Words**: Configurable word filters
-- **Discord Invite Filter**: Block invite links
-- **Link Filter**: Restrict external URL posting
-- **Mention Spam**: Limit mentions per message
-- **Caps Filter**: Threshold-based all-caps detection
-- **Account Age**: Minimum account age requirement on join
-- **Exempt Channels/Roles**: Bypass automod for specific channels or roles
 
-### Ticket System
-- **Panel Button**: Configurable ticket creation panel with category and support role
-- **Transcripts**: Full JSON transcripts with message history and attachments
-- **DM Notification**: Ticket creator receives close reason via DM
-- **History**: Closed ticket history (capped at 100 entries)
+Spam detection (in-memory plus optional Redis tracking), raid detection with join-burst lockdown and similarity scoring, banned words, Discord invite filter, link filter, mention spam cap, caps filter, minimum account age, exempt channels and roles, optional OpenAI moderation endpoint, optional Rust-backed NSFW image analysis over gRPC.
 
-### Utility
-- **Ping**: Latency check
-- **Help**: Dynamic help menu
-- **User Info**: User details including join date, roles, permissions
-- **Server Info**: Server statistics and configuration
-- **Stats**: Bot uptime, memory usage, guild count
-- **Embed Builder**: Custom embed creation via slash command
-- **Reminders**: Personal reminder system with scheduled execution
-- **Polls**: Multi-option polls with auto-tally on expiration
+### Ticket System (13 commands)
+
+Panel-driven ticket creation, templates, priorities, assignment, transfer, search, list, stats, ratings, SLA tracking, JSON transcripts with attachments, DM close notifications, closed-ticket history.
+
+### Utility (30 commands)
+
+Ping, help, userinfo, serverinfo, channelinfo, roleinfo, avatar, banner, stats, analytics, embed builder, reminders, polls, giveaways, tags, translate (LibreTranslate), XP levels and leaderboard, announcements, Apollo info actions, invite, report, data deletion, operator contact, SLA readout.
+
+### Admin (8 commands)
+
+Plugin lifecycle (`/plugin list/enable/disable/reload/load/install/uninstall/search/update`), language selection, logging toggles, log-channel setup, reaction roles, queue statistics, migration runner, system health dashboard.
+
+### Integrations
+
+GitHub webhook receiver with HMAC verification, Twitch and YouTube live polling, RSS polling, Discord announcement formatting, configurable webhook port and poll intervals.
+
+### Interlink
+
+Bot-to-bot RPC through a dedicated Go service (`services/interlink/`) over ConnectRPC/gRPC with HMAC auth, per-bot JWT, optional mTLS and Ed25519 identity advertisement, Redis-backed rate limiting, and at-most-once forwarding of selected core events.
 
 ### Logging
-- **Event Logger**: Guild member joins/leaves, message edits/deletes, role changes, voice state changes
-- **Mod Log**: Dedicated mod-action audit log channel
-- **Analytics Collector**: Member join/leave trend tracking (in-memory batching, BullMQ-ready)
 
-### Reaction Roles
-- Add/remove/list/clear self-assignable roles via message reactions
+Guild member join/leave, message edit/delete, role changes, voice state changes, dedicated mod-action audit channel, analytics collector with batched member trend tracking, structured pino logs with sampling.
 
 ## Architecture
 
-### Plugin System
+### Process Model
 
+```text
+src/index.ts          Main gateway process (default RUN_MODE=gateway)
+src/worker.ts         Queue worker process (RUN_MODE=worker)
+src/shard.ts          ShardingManager launcher (optional sharding)
+bin/apollo.ts         Admin CLI (Unix socket RPC to a running bot)
+scripts/deploy-commands.ts   Slash command registration
+services/interlink/   Standalone Go bot-to-bot relay service
 ```
+
+### Plugin Layout
+
+```text
 src/plugins/
-├── core/          # Foundational plugins (ping, help, stats, userinfo, etc.)
-├── moderation/    # Moderation commands, case system, blacklist
-├── automod/       # Auto-moderation, raid detection, spam filter
-├── tickets/       # Ticket system, transcripts, panels
-└── utility/       # Reminders, polls, reaction roles, embed builder, logging
+├── admin/           System administration and operator tooling
+├── automod/         Content filters, spam/raid detection, NSFW hooks
+├── integrations/    GitHub/Twitch/YouTube/RSS connectors
+├── interlink/       Cross-bot RPC client for the Go relay
+├── moderation/      Full moderation suite and case system
+├── tickets/         Support tickets, transcripts, SLA
+└── utility/         Info, fun, XP, reminders, polls, giveaways
 ```
 
-Each plugin is a class extending `Plugin` from `src/core/Plugin.js`:
+Each plugin is a class extending `Plugin` from `src/core/Plugin.ts`:
 
-```js
+```ts
 import { Plugin } from '../../core/Plugin.js';
+import type { EventBus } from '../../core/EventBus.js';
 
 export default class MyPlugin extends Plugin {
     constructor() {
         super('my-plugin');
     }
 
-    async onLoad(eventBus) {
-        // Register commands, events, APIs
-        eventBus.provide('my-plugin:doThing', async (arg) => { ... });
-        eventBus.on('some-event', handler);
+    async onLoad(eventBus: EventBus): Promise<void> {
+        eventBus.provide('my-plugin:doThing', async (arg: string) => {
+            return arg.toUpperCase();
+        });
+        eventBus.on('some-event', (payload) => {
+            void payload;
+        });
     }
 
-    async onUnload() {
-        // Cleanup resources
+    async onUnload(eventBus: EventBus): Promise<void> {
         eventBus.unprovide('my-plugin:doThing');
     }
 }
 ```
 
+Commands live in `src/plugins/<id>/commands/*.ts`, events in `src/plugins/<id>/events/*.ts`, optional CLI specs in `src/plugins/<id>/cli/`, and translations in `src/plugins/<id>/locales/<BCP47>/common.json`.
+
 ### Inter-Plugin Communication
 
-The EventBus (`src/core/EventBus.js`) provides three layers:
+The EventBus (`src/core/EventBus.ts`) provides three layers:
 
-| Layer | Method | Use Case |
-|-------|--------|----------|
+| Layer | Methods | Use Case |
+|-------|---------|----------|
 | Events | `emit(event, data)` / `on(event, handler)` | Fire-and-forget notifications |
 | API Registry | `provide(name, fn)` / `call(name, ...args)` / `unprovide(name)` | Request-response between plugins |
 | Reactive State | `provideState(key, initial)` / `setState(key, value)` / `getState(key)` / `watchState(key, cb)` | Shared mutable state with watchers |
 
-Cross-pod (multi-instance) bridging uses Redis pub/sub via `enableCrossPod(redisPub, redisSub, podId)`.
+Cross-pod bridging uses Redis pub/sub. Sandboxed third-party plugins reach host services through the capability-gated `api:*` RPC surface defined in `src/core/worker/rpc-schemas.ts`.
 
-### Multi-Instance Architecture
+### Multi-Instance Topology
 
-```
-┌──────────────────────────────┐     ┌──────────────────────────────┐
-│       Gateway Pod (1..N)     │     │       Worker Pods (1..N)     │
-│                              │     │                              │
-│  ┌────────────────────────┐  │     │  ┌────────────────────────┐  │
-│  │   Discord WebSocket    │  │     │  │   BullMQ Consumer      │  │
-│  │   (single connection)  │  │     │  │   (processCommand)     │  │
-│  └────────┬───────────────┘  │     │  └───────────┬────────────┘  │
-│           │                  │     │              │               │
-│  ┌────────▼───────────────┐  │     │  ┌───────────▼────────────┐  │
-│  │   gatewayRouter.js     │──┼─────┼─>│   BullMQ Queue         │  │
-│  │   (queueOrRun)         │  │     │  │   (Redis)              │  │
-│  └────────────────────────┘  │     │  └────────────────────────┘  │
-│                              │     │                              │
-│  ┌────────────────────────┐  │     │  ┌────────────────────────┐  │
-│  │   Leader Election      │  │     │  │   REST API Callbacks   │  │
-│  │   (Redis SET NX PX)    │  │     │  │   (interaction.followUp)│  │
-│  └────────────────────────┘  │     │  └────────────────────────┘  │
-└──────────────────────────────┘     └──────────────────────────────┘
-
-┌───────────────────────────────────────────────────────────────────┐
-│                        Shared Infrastructure                      │
-│                                                                   │
-│   ┌─────────────┐   ┌─────────────┐   ┌─────────────────────────┐│
-│   │  PostgreSQL  │   │    Redis    │   │   EventBus (pub/sub)    ││
-│   │  (guild_data,│   │  (queues,   │   │   (cross-pod events)   ││
-│   │   cases,     │   │   locks,    │   │                         ││
-│   │   settings)  │   │   spam/raid)│   │                         ││
-│   └─────────────┘   └─────────────┘   └─────────────────────────┘│
-└───────────────────────────────────────────────────────────────────┘
+```text
+Discord Gateway (WebSocket, single leader)
+        |
+Gateway pod(s) -- leader election via Redis SET NX PX + fencing
+        | enqueue (BullMQ, serialization in src/queue/)
+Worker pod(s) -- pull jobs, execute, reply via Discord REST
+        |
+PostgreSQL (shared state) + Redis (queues, locks, pub/sub)
+        |
+Go interlink relay (optional cross-bot traffic)
 ```
 
-**Run modes:**
-- `RUN_MODE=gateway` (default): Connects to Discord via WebSocket, handles interactions, enqueues expensive jobs, participates in leader election
-- `RUN_MODE=worker`: Connects to Redis/BullMQ, pulls jobs from queue, processes them, calls REST API to respond (no discord.js dependency)
+Run modes:
+
+- `RUN_MODE=gateway` (default): Discord WebSocket, interaction handling, enqueue expensive jobs, leader election participant
+- `RUN_MODE=worker`: BullMQ consumer, no gateway connection, responds through Discord REST
+- `tsx src/shard.ts`: ShardingManager launcher for fleets above the single-process guild range
 
 ### Database Layer
 
-```
-┌─────────────────────────────────────────────┐
-│             src/utils/db.js                  │
-│  Async bridge — conditional delegation       │
-├─────────────────────────────────────────────┤
-│  DB_TYPE=sqlite     │  DB_TYPE=postgres      │
-│  (default)          │  (production)          │
-├─────────────────────┼───────────────────────┤
-│  better-sqlite3     │  Knex + pg            │
-│  (synchronous,      │  (async, connection    │
-│   file-based)       │   pool, multi-writer)  │
-└─────────────────────┴───────────────────────┘
+```text
+src/utils/db.ts        High-level async bridge used by commands
+src/db/knex.ts         Knex connection factory (pg or better-sqlite3)
+src/db/adapter.ts      getGuildData/setGuildData/getUserData/setUserData
+src/db/migrations/    Knex migrations (*.cjs)
 ```
 
-## Commands (96 Total)
+Prefer atomic `updateGuildData(store, guildId, updater)` over read-mutate-write sequences. SQLite is file-based and single-writer; PostgreSQL is required for multi-pod deployments.
 
-### Utility Commands
+## Commands
 
-| Command | Description |
-|---------|-------------|
-| `/ping` | Check the bot's latency and response time |
-| `/help` | Shows the help menu with all available commands |
-| `/userinfo` | Displays information about a user |
-| `/serverinfo` | Display detailed server information |
-| `/stats` | Display bot statistics (uptime, memory, servers) |
-| `/embed` | Create custom embed messages |
-| `/remind` | Set a reminder (e.g., `/remind 1h Check the oven`) |
-| `/reminders` | List your active reminders |
-| `/cancelreminder` | Cancel a reminder by ID |
-| `/poll` | Create a poll with optional auto-tally |
+Commands are auto-discovered from `src/plugins/*/commands/*.ts` and registered with Discord via `scripts/deploy-commands.ts`. Counts move as plugins evolve; run `/help` in Discord for the authoritative list.
 
-### Moderation Commands
-
-| Command | Description |
-|---------|-------------|
-| `/kick` | Kick a user from the server |
-| `/ban` | Ban a user from the server |
-| `/unban` | Unban a previously banned user |
-| `/mute` | Temporarily mute a user (timeout or role) |
-| `/unmute` | Unmute a previously muted user |
-| `/purge` | Delete multiple messages from a channel |
-| `/warn` | Issue a warning to a user (auto-punishments at thresholds) |
-| `/warnings` | View a user's warnings |
-| `/clearwarnings` | Clear warnings for a user |
-| `/blacklist` | Add/remove/list blacklisted users (auto-ban on join) |
-| `/case` | Manage moderation cases (search, view, edit, delete) |
-| `/tempban` | Temporarily ban a user (auto-unban on expiration) |
-
-### Admin Commands
-
-| Command | Description |
-|---------|-------------|
-| `/warnconfig` | Configure warning thresholds for auto-punishments |
-| `/automod` | Configure auto-moderation settings |
-| `/setlogchannel` | Set the channel for server event logs |
-| `/logging` | Enable/disable specific log events |
-| `/reactionrole` | Setup reaction roles (add/remove/list/clear) |
-| `/ticketsetup` | Configure the ticket system |
-| `/ticket` | Create a support ticket |
-| `/closeticket` | Close a ticket and save transcript |
-
-### Owner Commands
-
-| Command | Description |
-|---------|-------------|
-| `/reload` | Reload a command (bot owner only) |
-
-*(And many more plugin-specific commands — run `/help` in Discord for the complete list)*
+| Plugin | Commands | Examples |
+|--------|----------|----------|
+| moderation | ~40 | `/ban`, `/kick`, `/timeout`, `/warn`, `/strikes`, `/case`, `/purge`, `/lockdown`, `/tempban`, `/blacklist` |
+| utility | ~30 | `/ping`, `/help`, `/userinfo`, `/serverinfo`, `/remind`, `/poll`, `/level`, `/translate`, `/giveaway`, `/tag` |
+| tickets | 13 | `/ticket`, `/ticketsetup`, `/closeticket`, `/assign`, `/ticketpriority`, `/ticketstats`, `/ticketratings` |
+| admin | 8 | `/plugin`, `/system`, `/queue`, `/migrate`, `/logging`, `/setlogchannel`, `/reactionrole`, `/language` |
+| automod | 2 | `/automod`, `/scanmessage` |
+| integrations | 1 | `/integration` |
+| interlink | 1 | `/interlink` |
 
 ## Installation
 
-### Prerequisites
-
-- **Node.js 26+** (tested on 26.7.0)
-- **pnpm 11+** (required — `npm`/`yarn` are not supported)
-- **Docker & Docker Compose** (recommended for deployment)
-- **Discord Bot Token** from [Discord Developer Portal](https://discord.com/developers/applications)
-
-### Hosting Requirements
-
-Apollo is lightweight by default — a single-instance deployment is one Node process with SQLite. Redis is not required unless the work queue is enabled, and PostgreSQL is optional. Measured footprint for a small deployment (~10 guilds): ~130 MB RSS and single-digit CPU percent.
-
-| Deployment | vCPU | RAM | Disk |
-|------------|------|-----|------|
-| Minimum (single instance, SQLite) | 1 (modern, 2.5 GHz+) | 1 GB (512 MB works) | 10 GB SSD |
-| Recommended (queue + Redis, or headroom) | 2 | 2 GB | 20 GB NVMe |
-| Production multi-instance (gateway + workers + PostgreSQL + Redis) | 4-8 | 16 GB | 80-160 GB NVMe |
-
-Notes:
-- Redis is only required when the queue is enabled (`QUEUE_ENABLED=true`) or for multi-instance deployments
-- SQLite (default) is well-suited to single-instance deployments with serialized writes; use PostgreSQL for multi-writer production
-- Discord mandates sharding at 2,500 guilds — below that, one process per deployment is sufficient
-- Sandboxed third-party plugin workers add ~256 MB each — factor that in when installing community plugins
-
-### Quick Start with Docker Compose
-
-```bash
-git clone https://github.com/The-A-P-O-L-L-O-Organization/Apollo-Discord-Bot.git
-cd Apollo-Discord-Bot
-cp .env.example .env
-# Edit .env with your DISCORD_TOKEN, CLIENT_ID, OWNER_IDS
-docker-compose up -d
-docker-compose logs -f
-```
-
-### Manual Installation
+See [INSTALLATION.md](INSTALLATION.md) for the full guide, including single-instance quick start, multi-instance profiles, Kubernetes notes, and upgrades.
 
 ```bash
 git clone https://github.com/The-A-P-O-L-L-O-Organization/Apollo-Discord-Bot.git
 cd Apollo-Discord-Bot
 pnpm install
 cp .env.example .env
-# Edit .env with your credentials
 ```
 
-**Set up your Discord server:**
-- Create a `#welcome` channel for welcome messages
-- Create a `#mod-logs` channel for moderation logs (optional)
-- Create a `Muted` role for the mute fallback (optional)
+Minimum `.env` for a first boot:
 
-**Deploy slash commands:**
-```bash
-node scripts/deploy-commands.js
+```env
+DISCORD_TOKEN=your_bot_token_here
+CLIENT_ID=your_client_id_here
+OWNER_IDS=your_discord_user_id
+ENCRYPTION_KEY=your-base64-encoded-32-byte-key
+OPERATOR_AGREEMENT=true
+OPERATOR_CONTACT=Discord: @you
 ```
 
-**Run tests:**
-```bash
-pnpm test
-```
+Then:
 
-**Start the bot:**
 ```bash
+pnpm build
+pnpm run deploy:commands
 pnpm start
 ```
 
-### Production Multi-Instance Deployment
-
-For production with horizontal scaling, you need additional infrastructure:
+For development with hot reload:
 
 ```bash
-# Start PostgreSQL + Redis + gateway + workers
-docker-compose -f docker-compose.prod.yml up -d
-
-# Or build the production image
-docker build -f Dockerfile.prod -t apollo-discord-bot .
-
-# Run gateway pod
-docker run -d --name apollo-gateway \
-  -e RUN_MODE=gateway \
-  -e DISCORD_TOKEN=... \
-  -e DB_TYPE=postgres \
-  -e DATABASE_URL=postgres://... \
-  -e REDIS_URL=redis://... \
-  apollo-discord-bot
-
-# Run worker pod(s)
-docker run -d --name apollo-worker-1 \
-  -e RUN_MODE=worker \
-  -e DB_TYPE=postgres \
-  -e DATABASE_URL=postgres://... \
-  -e REDIS_URL=redis://... \
-  apollo-discord-bot
+pnpm dev
 ```
 
 ## Configuration
 
+### Build, Run, and Maintenance Scripts
+
+| Script | Command | Purpose |
+|--------|---------|---------|
+| Start gateway | `pnpm start` | Run compiled bot from `dist/index.js` |
+| Start gateway explicitly | `pnpm start:gateway` | `RUN_MODE=gateway node dist/index.js` |
+| Start worker | `pnpm start:worker` | `RUN_MODE=worker node dist/index.js` |
+| Dev gateway | `pnpm dev` | `tsx watch src/index.ts` |
+| Dev worker | `pnpm dev:worker` | Worker mode with live reload |
+| Dev sharding | `pnpm dev:shard` | `tsx src/shard.ts` |
+| Build | `pnpm build` | `tsc -p tsconfig.build.json` into `dist/` |
+| Deploy commands | `pnpm run deploy:commands` | Register slash commands via Discord REST |
+| Lint | `pnpm lint` | ESLint over `src/**/*.ts` |
+| Locale lint | `pnpm lint:locales` | Translation parity and placeholder checks |
+| Typecheck | `pnpm typecheck` | `tsc --noEmit` over test project |
+| Tests | `pnpm test` | Vitest run |
+| Manifest | `pnpm manifest` | Regenerate `plugin-manifest.json` hashes |
+
 ### Environment Variables
 
-| Variable | Description | Required | Default |
-|----------|-------------|----------|---------|
-| `DISCORD_TOKEN` | Discord bot token | Yes | — |
-| `CLIENT_ID` | Discord application client ID | Yes | — |
-| `GUILD_ID` | Guild ID for dev (instant command sync) | No | — |
-| `OWNER_IDS` | Comma-separated bot owner IDs | No | — |
-| `NODE_ENV` | Environment mode (`development`/`production`) | No | `development` |
-| `RUN_MODE` | Pod mode (`gateway`/`worker`) | No | `gateway` |
-| `POD_ID` | Unique pod identifier for leader election | No | `gateway-{hostname}` |
-| `DB_TYPE` | Database type (`sqlite`/`postgres`) | No | `sqlite` |
-| `DATABASE_URL` | PostgreSQL connection string | For PG | — |
-| `REDIS_URL` | Redis connection string | For multi-instance | — |
-| `QUEUE_PREFIX` | BullMQ queue key prefix | No | `apollo` |
-| `GATEWAY_PORT` | REST API port for worker callbacks | No | `3000` |
+The authoritative template is `.env.example`. Required on every boot: `DISCORD_TOKEN`, `CLIENT_ID`, `OWNER_IDS`, `ENCRYPTION_KEY`, `OPERATOR_AGREEMENT=true`, `OPERATOR_CONTACT`.
 
-### Config File (`src/config/config.js`)
+| Group | Key Variables |
+|-------|---------------|
+| Runtime | `NODE_ENV`, `RUN_MODE`, `POD_ID`, `GUILD_ID`, `SHARD_COUNT`, `PLUGIN_DIR` |
+| Database | `DB_TYPE`, `DATABASE_URL`, `DB_POOL_MIN`, `DB_POOL_MAX` |
+| Redis and queue | `QUEUE_ENABLED`, `REDIS_HOST`, `REDIS_PORT`, `REDIS_USERNAME`, `REDIS_PASSWORD`, `QUEUE_PREFIX`, `QUEUE_STALLED_INTERVAL`, `QUEUE_HMAC_SECRET` |
+| Interlink | `INTERLINK_ENABLED`, `INTERLINK_GRPC_ADDR`, `INTERLINK_AUTH_KEY`, `INTERLINK_JWT_SECRET`, `INTERLINK_JWT_EXPIRY`, `INTERLINK_TLS_CERT`, `INTERLINK_TLS_KEY`, `INTERLINK_CA_CERT`, `INTERLINK_PUBLIC_KEY`, `INTERLINK_FORWARD_EVENTS` |
+| Integrations | `INTEGRATIONS_WEBHOOK_PORT`, `GITHUB_WEBHOOK_SECRET`, `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET`, `YOUTUBE_API_KEY`, `INTEGRATIONS_POLL_TWITCH`, `INTEGRATIONS_POLL_YOUTUBE`, `INTEGRATIONS_POLL_RSS` |
+| AI and translation | `OPENAI_API_KEY`, `TRANSLATION_API_BASE_URL`, `TRANSLATION_API_KEY`, `NSFW_USE_RUST`, `NSFW_GRPC_ADDR`, `NSFW_THRESHOLD`, `NSFW_RUST_TIMEOUT_MS` |
+| CLI and sockets | `APOLLO_GUILD_ID`, `APOLLO_SOCKET_PATH`, `APOLLO_SOCKET_TOKEN` |
+| Security | `SECURITY_LOG_RETENTION_DAYS`, `ALLOW_UNVERIFIED_PLUGINS`, `LOG_SAMPLE_RATE` |
 
-All settings are managed through `src/config/config.js`. Key sections:
-
-```javascript
-export const config = {
-    database: { type: process.env.DB_TYPE || 'sqlite' },
-    
-    queue: {
-        prefix: process.env.QUEUE_PREFIX || 'apollo',
-        defaultJobOptions: { attempts: 3, backoff: { type: 'exponential', delay: 1000 } }
-    },
-
-    redis: { url: process.env.REDIS_URL || 'redis://localhost:6379' },
-    
-    // Discord activity
-    activity: { name: 'for new members join', type: 'WATCHING' },
-    
-    // Welcome messages
-    welcome: { channelName: 'welcome', message: 'Welcome {user} to {server}!' },
-    
-    // Moderation settings
-    moderation: {
-        defaultReason: 'No reason provided',
-        muteRoleName: 'Muted',
-        muteDuration: 3600000,
-        maxMessagesPerPurge: 100,
-        logModerationActions: true,
-        moderationLogChannel: 'mod-logs'
-    },
-    
-    // Warning thresholds
-    warnings: { thresholds: { mute: 3, kick: 5, ban: 7 } },
-    
-    // Auto-moderation defaults
-    automod: {
-        enabled: false, maxMentions: 5, maxCapsPercent: 70,
-        filterInvites: true, filterLinks: false, spamThreshold: 5
-    },
-    
-    // Logging
-    logging: {
-        defaultEvents: {
-            messageDelete: true, messageEdit: true, memberJoin: true,
-            memberLeave: true, roleChanges: true, voiceChanges: false
-        }
-    },
-    
-    // Ticket system
-    tickets: { categoryName: 'Support Tickets', channelPrefix: 'ticket-' },
-    
-    // Schedulers
-    reminders: { checkInterval: 30000, maxDuration: 30 * 24 * 60 * 60 * 1000 },
-    polls: { defaultDuration: 24 * 60 * 60 * 1000, maxDuration: 7 * 24 * 60 * 60 * 1000, maxOptions: 10 }
-};
-```
+Runtime defaults live in `src/config/config.ts` (`ApolloConfig` type in `src/types/config.ts`). Environment parsing helpers tolerate missing values and fall back to documented defaults.
 
 ## Project Structure
 
-```
+```text
 Apollo-Discord-Bot/
-├── src/
-│   ├── index.js                     # Main entry point (RUN_MODE switching)
-│   ├── worker.js                    # Worker pod entry point (BullMQ consumer)
-│   │
-│   ├── core/
-│   │   ├── EventBus.js              # 3-layer IPC + cross-pod Redis pub/sub
-│   │   ├── Plugin.js                # Plugin base class with lifecycle hooks
-│   │   ├── PluginManager.js         # Plugin discovery, load, unload, install
-│   │   ├── PluginRegistry.js        # Remote plugin registry client
-│   │   └── pluginDownloader.js      # Plugin ZIP downloader
-│   │
-│   ├── config/
-│   │   └── config.js                # Environment-based configuration
-│   │
-│   ├── plugins/
-│   │   ├── core/                    # ping, help, userinfo, serverinfo, stats
-│   │   ├── moderation/              # kick, ban, unban, mute, unmute, purge,
-│   │   │                            # warn, warnings, clearwarnings, warnconfig,
-│   │   │                            # blacklist, case, tempban, automod
-│   │   ├── automod/                 # Auto-mod event handlers, raid detection
-│   │   ├── tickets/                 # Ticket system, panels, transcripts
-│   │   └── utility/                 # Reminders, polls, reaction roles,
-│   │                                # embed builder, logging, welcome
-│   │
-│   ├── gateway/
-│   │   └── leader.js                # Leader election (tryAcquireLock, heartbeat)
-│   │
-│   ├── queue/
-│   │   ├── queue.js                 # BullMQ queue factory (no-op fallback)
-│   │   ├── jobHandler.js            # Job handler registry
-│   │   ├── gatewayRouter.js         # queueOrRun helper
-│   │   ├── metrics.js               # Queue metrics for auto-scaling
-│   │   └── jobs/
-│   │       └── processCommand.js    # Command processing job with REST ack
-│   │
-│   ├── db/
-│   │   ├── knex.js                  # Knex connection factory
-│   │   ├── adapter.js               # Async PG adapter (getGuildData, etc.)
-│   │   └── migrations/
-│   │       └── 20260509_001_initial.cjs
-│   │
-│   └── utils/
-│       ├── db.js                    # PG/SQLite bridge (async, conditional)
-│       ├── lock.js                  # Distributed Redis locks
-│       ├── modLog.js                # Moderation audit logging
-│       ├── automod.js               # Spam detection, word filters
-│       ├── raidDetection.js         # Join burst detection
-│       ├── logger.js                # Event log embeds
-│       ├── reminderScheduler.js     # Locked reminder scheduler
-│       ├── pollScheduler.js         # Locked poll auto-tally
-│       ├── tempbanScheduler.js      # Locked tempban expiration
-│       ├── tempRolesScheduler.js    # Locked temprole expiration
-│       └── analyticsCollector.js    # Member join/leave trends
-│
+├── bin/apollo.ts              Admin CLI entry (dist/bin/apollo.js after build)
 ├── scripts/
-│   ├── deploy-commands.js           # Slash command registration
-│   ├── generate-manifest.mjs        # Plugin manifest generator
-│   └── utils/logger.js              # CLI logger utility
-│
-├── tests/
-│   ├── commands/                    # Command unit tests (72 test files)
-│   ├── events/                      # Event handler tests
-│   ├── utils/                       # Utility tests (db, lock, automod, etc.)
-│   ├── core/                        # Core tests (EventBus, Plugin, PluginManager)
-│   ├── queue/                       # Queue tests
-│   ├── gateway/                     # Leader election tests
-│   ├── mocks/
-│   │   └── discord.js               # Discord.js mock factories
-│   └── setup.js                     # Test bootstrap
-│
-├── data/                            # Runtime data directory
-│   ├── apollo.db                    # SQLite database (dev)
-│   ├── transcripts/                 # Ticket transcripts
-│   └── plugin-registry.json         # Registry manifest
-│
-├── docker-compose.yml               # Dev Docker Compose
-├── Dockerfile                       # Dev Dockerfile
-├── Dockerfile.prod                  # Multi-stage production build
-├── package.json                     # Dependencies and scripts
-├── pnpm-workspace.yaml              # Security overrides
-├── vitest.config.js                 # Vitest configuration
-├── plugin-manifest.json             # Plugin source hashes (integrity)
-└── .env.example                     # Environment template
+│   ├── deploy-commands.ts     Slash command registration
+│   ├── generate-manifest.mjs  Plugin integrity manifest
+│   ├── lint-locales.mjs       Translation parity gate
+│   └── audit-discordjs.mjs    Discord.js API audit helper
+├── protos/
+│   ├── interlink/v1/          Cross-bot RPC schema
+│   └── nsfw/v1/               NSFW analysis schema
+├── services/interlink/        Go relay service (main.go, go.mod)
+├── src/
+│   ├── index.ts               Gateway entry
+│   ├── worker.ts              Queue worker entry
+│   ├── shard.ts               Sharding launcher
+│   ├── cli/                   parse/format/discover/socket RPC
+│   ├── config/config.ts       ApolloConfig from environment
+│   ├── core/                  Plugin, PluginManager, EventBus, registry,
+│   │                          installer, loader, reloader, CommandSync,
+│   │                          dependency resolver, Sigstore verification
+│   ├── core/worker/           Sandbox host/child, capability RPC surface
+│   ├── db/                    Knex factory, adapter, migrations
+│   ├── gateway/               Leader election and fencing
+│   ├── generated/             buf-generated ConnectRPC clients
+│   ├── i18n/                  I18nService, locale cache, dictionaries
+│   ├── observability/         OpenTelemetry bootstrap
+│   ├── plugins/               Seven first-party plugins
+│   ├── queue/                 BullMQ factory, serializers, job handlers
+│   ├── types/                 Shared TypeScript types
+│   └── utils/                 DB bridge, locks, Redis, schedulers, logging,
+│                              analytics, moderation helpers, encryption,
+│                              transcripts, integrations, metrics, health
+├── tests/                     Vitest suite (~160 test files), mocks, fixtures
+├── docs/                      Architecture notes, i18n guide, runbooks
+├── legal/                     TOS, privacy policy, legal notice
+├── docker-compose.yml         Single-instance plus multi profile
+├── Dockerfile / Dockerfile.prod
+├── eslint.config.js           Flat config, strict TypeScript rules
+├── vitest.config.ts
+├── tsconfig.json / tsconfig.build.json / tsconfig.test.json
+└── plugin-manifest.json       SHA-256 plugin integrity manifest
 ```
 
 ## Plugin System
 
-### Anatomy of a Plugin
+### Anatomy of a Command
 
-```js
-import { Plugin } from '../../core/Plugin.js';
-import { SlashCommandBuilder } from 'discord.js';
+```ts
+import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
+import type { ChatInputCommandInteraction } from 'discord.js';
 
-export default class PingPlugin extends Plugin {
-    constructor() {
-        super('core:ping');             // Unique plugin ID
-        this.commands = [];             // Slash command builder objects
+export default {
+    name: 'example',
+    data: new SlashCommandBuilder()
+        .setName('example')
+        .setDescription('An example command')
+        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+    category: 'Utility',
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+        await interaction.reply({ content: 'Done!' });
     }
-
-    async onLoad(eventBus) {
-        // Register a slash command
-        this.commands.push({
-            data: new SlashCommandBuilder()
-                .setName('ping')
-                .setDescription('Check bot latency'),
-            async execute(interaction) {
-                await interaction.reply(`Pong! ${client.ws.ping}ms`);
-            }
-        });
-
-        // Provide an API for other plugins
-        eventBus.provide('ping:getLatency', () => client.ws.ping);
-
-        // React to events from other plugins
-        eventBus.on('moderation:action', ({ type, target }) => {
-            console.log(`Mod action: ${type} on ${target}`);
-        });
-    }
-
-    async onUnload(eventBus) {
-        eventBus.unprovide('ping:getLatency');
-        eventBus.removeAllListeners('moderation:action');
-    }
-}
+};
 ```
 
-### Plugin Lifecycle
+### Lifecycle and Discovery
 
-1. **Register**: Plugin class is instantiated and registered with PluginManager
-2. **onLoad(eventBus)**: Plugin initializes — registers commands, event listeners, provides APIs, sets up reactive state
-3. **Runtime**: Plugin operates, responds to commands/events, communicates via EventBus
-4. **onUnload(eventBus)**: Plugin cleans up — unregisters commands, removes listeners, unprovides APIs
+1. `PluginManager` discovers `src/plugins/*/plugin.ts`
+2. Dependencies resolve before load order is fixed
+3. `onLoad` registers commands, events, APIs, and namespaces
+4. `onEnable` starts timers, watchers, and subscriptions
+5. `onDisable` stops background work; `onUnload` releases EventBus handles
+6. `CommandSync` reconciles slash commands with Discord
 
-### Inter-Plugin Communication
+Third-party plugins install as signed archives, hash-pinned in `plugin-manifest.json`, and execute in worker sandboxes unless explicitly trusted.
 
-```js
-// --- Event layer (fire-and-forget) ---
-eventBus.emit('tickets:closed', { ticketId: 1, guildId: '123' });
-eventBus.on('tickets:closed', (data) => { /* react */ });
+## Internationalization
 
-// --- API registry (request-response) ---
-eventBus.provide('moderation:getCaseCount', async (guildId) => { /* ... */ });
-const count = await eventBus.call('moderation:getCaseCount', guildId);
+First-party strings use i18next with the plugin id as namespace. Canonical locale is `en-US`. Supported dictionaries ship for `en-US`, `es-ES`, `de`, `it`, `pl`, and `el`; see [docs/i18n.md](docs/i18n.md) for translator rules.
 
-// --- Reactive state (shared, watchable) ---
-eventBus.provideState('config:prefix', '!');
-eventBus.setState('config:prefix', '?');
-const current = eventBus.getState('config:prefix');
-eventBus.watchState('config:prefix', (newVal, oldVal) => { /* onChange */ });
+```bash
+pnpm lint:locales
 ```
 
-### Remote Plugin Installation
-
-Plugins can be installed from remote ZIP archives via the registry manifest at `data/plugin-registry.json`:
-
-```json
-{
-    "plugins": [
-        {
-            "id": "community:my-plugin",
-            "name": "My Plugin",
-            "version": "1.0.0",
-            "url": "https://example.com/plugins/my-plugin.zip",
-            "description": "A community plugin"
-        }
-    ]
-}
-```
-
-Commands: `/plugin install community:my-plugin`, `/plugin uninstall community:my-plugin`
+Locale-only pull requests touch JSON under `src/plugins/<id>/locales/` or `src/i18n/dictionaries/` and must keep `{{variable}}` placeholders identical across locales. Namespace loading happens once at plugin enable time; per-execution translation uses a locale-fixed `t` function.
 
 ## Multi-Instance Deployment
 
-### Architecture Components
+Single instance needs only Node, SQLite, and a Discord token. Enable the multi profile for Postgres plus Redis plus workers:
 
-| Component | Purpose | Run Mode |
-|-----------|---------|----------|
-| Gateway Pod(s) | Discord WebSocket connection, interaction handling | `RUN_MODE=gateway` |
-| Worker Pod(s) | Expensive job processing (command execution, DB writes) | `RUN_MODE=worker` |
-| PostgreSQL | Shared persistent storage (guild data, cases, settings) | External |
-| Redis | BullMQ queues, distributed locks, spam/raid tracking, cross-pod EventBus | External |
-
-### Leader Election
-
-Multiple gateway pods can run simultaneously, but only one holds the active Discord WebSocket connection. Leader election uses Redis:
-
-```redis
-SET apollo:lock:gateway <podId> NX PX 30000
+```bash
+docker compose --profile multi up -d
 ```
 
-The leader refreshes its lock every 15 seconds. If it crashes, the lock expires and another pod takes over.
+Production notes:
 
-### Worker Auto-Scaling
-
-Workers pull from a shared BullMQ queue. Metrics endpoint (`/metrics`) exposes queue depth for HPA (Horizontal Pod Autoscaler) in Kubernetes:
-
-```json
-{
-    "waiting": 42,
-    "active": 5,
-    "completed": 1500,
-    "failed": 3,
-    "delayed": 0
-}
-```
-
-### Scheduler Coordination
-
-All periodic schedulers (reminders, polls, tempbans, temproles) use distributed locks via `withLock()`:
-
-```js
-import { withLock, getLockRedis } from './lock.js';
-
-const redis = await getLockRedis();
-await withLock(redis, 'scheduler:reminders', podId, async () => {
-    // Only one pod executes this at a time
-    await checkReminders();
-});
-```
+- Use `DB_TYPE=postgres` with `DATABASE_URL` for every multi-writer deployment
+- Set `QUEUE_ENABLED=true` and shared Redis credentials on gateway and workers
+- Give each pod a unique `POD_ID` so leader election and heartbeats stay distinct
+- Run `pnpm build` before container builds; containers execute `dist/index.js`
+- Postgres 18 stores data at `/var/lib/postgresql`; snapshot before major upgrades
+- Discord requires sharding at 2,500 guilds; use `tsx src/shard.ts` or `SHARD_COUNT` planning from there
 
 ## Development
 
-### Getting Started
-
 ```bash
 pnpm install
-pnpm test             # Run tests once
-pnpm test:watch       # Watch mode for TDD
-pnpm test:coverage    # With coverage report
-pnpm start            # Start bot (SQLite, single instance)
+pnpm dev
+pnpm test
+pnpm lint
+pnpm typecheck
+pnpm lint:locales
 ```
 
-### Adding a New Command
+Conventions:
 
-1. Create the command file in the appropriate plugin:
-   ```bash
-   touch src/plugins/moderation/commands/mycommand.js
-   ```
+- pnpm only; npm and yarn are unsupported
+- ESM only with `.js`-suffixed relative imports in TypeScript sources
+- 4-space indent, single quotes, semicolons, no trailing commas, `eqeqeq`, `curly: all`
+- No `any` in `src/`; unused variables prefixed with `_`
+- No emojis in source or docs
+- `console.log` is a lint warning; use `createLogger({ component })`
 
-2. Implement the command using the plugin command format:
-   ```js
-   import { SlashCommandBuilder } from 'discord.js';
-   
-   export default {
-       name: 'mycommand',
-       data: new SlashCommandBuilder()
-           .setName('mycommand')
-           .setDescription('Does something'),
-       category: 'Moderation',
-       async execute(interaction) {
-           await interaction.reply('Done!');
-       }
-   };
-   ```
+Adding a command:
 
-3. Export it from the plugin's index or register directly in the plugin's `onLoad`:
-   ```js
-   this.commands.push(myCommand);
-   ```
-
-4. Write tests in `tests/commands/mycommand.test.js`
-
-### Adding a New Plugin
-
-1. Create the plugin directory:
-   ```bash
-   mkdir -p src/plugins/myplugin
-   ```
-
-2. Create the plugin class:
-   ```js
-   // src/plugins/myplugin/index.js
-   import { Plugin } from '../../core/Plugin.js';
-   
-   export default class MyPlugin extends Plugin {
-       constructor() {
-           super('myplugin');
-       }
-       async onLoad(eventBus) { /* ... */ }
-       async onUnload(eventBus) { /* ... */ }
-   }
-   ```
-
-3. PluginManager auto-discovers plugins in `src/plugins/*/index.js`
-
-### Running Multi-Instance Locally
-
-```bash
-# Terminal 1: Start infrastructure
-docker run -d --name redis -p 6379:6379 redis:8
-docker run -d --name postgres -p 5432:5432 -e POSTGRES_PASSWORD=pass postgres:18.6
-
-# Terminal 2: Gateway pod
-RUN_MODE=gateway POD_ID=gateway-1 DB_TYPE=postgres \
-    DATABASE_URL=postgres://postgres:pass@localhost:5432/apollo \
-    REDIS_URL=redis://localhost:6379 \
-    node src/index.js
-
-# Terminal 3: Worker pod
-RUN_MODE=worker POD_ID=worker-1 DB_TYPE=postgres \
-    DATABASE_URL=postgres://postgres:pass@localhost:5432/apollo \
-    REDIS_URL=redis://localhost:6379 \
-    node src/worker.js
-```
+1. Create `src/plugins/<id>/commands/mycommand.ts`
+2. Export `{ name, data, category, execute }`
+3. Add `tests/plugins/<id>/mycommand.test.ts` with mocked interaction and DB
+4. Run `pnpm run deploy:commands` for Discord registration
+5. Run `pnpm manifest` only when non-locale source files changed
 
 ## Testing
 
-### Test Suite Overview
-
-```
-1829 tests | 161 files | 0 failures
-```
-
-| Category | Files | Focus |
-|----------|-------|-------|
-| Command tests | 31 files | Each command's metadata validation and execute logic |
-| Event tests | 6 files | Event handler behavior (guildMemberAdd, messageCreate, etc.) |
-| Core tests | 4 files | EventBus (29 tests), Plugin, PluginManager |
-| Queue tests | 3 files | Queue factory, job handler, gateway router |
-| Gateway tests | 1 file | Leader election (tryAcquireLock, releaseLock, heartbeat) |
-| Component tests | 4 files | DB adapter, automod, raid detection, lock utility |
-| Utility tests | 23 files | DB bridge, modLog, schedulers, analytics, etc. |
-
-### Running Tests
+Vitest with `tests/setup.ts` bootstrap and `tests/mocks/discord.ts` factories. Configuration lives in `vitest.config.ts` with forked isolation and single-file parallelism for Discord mock determinism.
 
 ```bash
-pnpm test                 # Full suite
-pnpm test -- --reporter=verbose  # Verbose output
-pnpm test tests/commands/ping.test.js  # Single file
-pnpm test -- --coverage   # With coverage
-pnpm test:watch           # Watch mode
+pnpm test
+pnpm test:watch
+pnpm test:coverage
+pnpm test -- tests/plugins/moderation/ban.test.ts
 ```
 
-### Writing Tests
+Coverage excludes `src/index.ts`, legacy handler globs, tests, generated code, `bin/`, `scripts/`, and `dist/`. Bug fixes require regression tests; new commands require metadata, success, error, and edge-case coverage.
 
-Tests use Vitest with Discord.js mocks:
+## Protobuf and Code Generation
 
-```js
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import myCommand from '../../src/plugins/moderation/commands/mycommand.js';
-import { createMockInteraction, createMockUser } from '../mocks/discord.js';
+Schemas live in `protos/interlink/v1/interlink.proto` and `protos/nsfw/v1/nsfw.proto`. Generated ConnectRPC clients live in `src/generated/`. The Go relay consumes the same schemas from `services/interlink/`.
 
-vi.mock('../../src/utils/db.js', () => ({
-    getGuildData: vi.fn(),
-    updateGuildData: vi.fn((store, guildId, updater) =>
-        Promise.resolve(updater({ nextCaseId: 1 }))),
-}));
-
-describe('MyCommand', () => {
-    it('should have correct name', () => {
-        expect(myCommand.name).toBe('mycommand');
-    });
-    
-    it('should execute successfully', async () => {
-        const interaction = createMockInteraction({ /* ... */ });
-        await myCommand.execute(interaction);
-        expect(interaction.reply).toHaveBeenCalled();
-    });
-});
+```bash
+pnpm proto:lint
+pnpm proto:generate
+pnpm proto:generate:go
+pnpm proto:generate:ts
+pnpm proto:breaking
 ```
 
-### CI/CD Pipeline
+CI runs `buf lint`, Go builds and tests, Rust builds and tests for NSFW components, and a manifest drift check that fails when `plugin-manifest.json` is stale.
 
-GitHub Actions workflows:
+## Observability
 
-- **CI** (`ci.yml`): Lint + test on every push, pnpm 11, Node 26
-- **Docker CI** (`docker-ci.yml`): Build production image, Trivy scan, SBOM generation
-- **Security** (`security.yml`): Dependency audit, CodeQL analysis, SAST scanning
-- **Docker Release** (`docker-release.yml`): Multi-platform publish to GHCR on tag
-- **Deploy** (`deploy.yml`): Kubernetes rolling update on main
-- **Code Review** (`code-review.yml`): Automated PR review suggestions
+- OpenTelemetry bootstrap in `src/observability/otel.ts` with HTTP, Express, gRPC, and auto-instrumentations
+- Prometheus client metrics plus BullMQ queue depth for autoscaling
+- Health endpoint via `HEALTH_PORT`/`HEALTH_HOST` with Docker healthchecks
+- Pino structured logs with configurable sampling through `LOG_SAMPLE_RATE`
+- Tracing helpers in `src/utils/tracing.ts`
 
 ## Docker
 
-### Development
+Development image: `Dockerfile`. Production multi-stage image: `Dockerfile.prod`. Compose file `docker-compose.yml` runs a single bot by default and Postgres plus Redis plus workers under `--profile multi`.
 
 ```bash
-docker-compose up -d
-docker-compose logs -f
-docker-compose down
-```
-
-### Production Build
-
-```bash
+docker compose up -d
+docker compose --profile multi up -d
 docker build -f Dockerfile.prod -t apollo-discord-bot .
-
-# Run with SQLite (single instance)
-docker run -d --name apollo \
-  -e DISCORD_TOKEN=your-token \
-  apollo-discord-bot
-
-# Run with PostgreSQL + Redis (multi-instance)
-docker run -d --name apollo-gateway \
-  -e RUN_MODE=gateway \
-  -e DISCORD_TOKEN=your-token \
-  -e DB_TYPE=postgres \
-  -e DATABASE_URL=postgres://user:pass@host:5432/apollo \
-  -e REDIS_URL=redis://host:6379 \
-  apollo-discord-bot
 ```
 
-### GitHub Container Registry
+Published images are available at `ghcr.io/the-a-p-o-l-l-o-organization/apollo-discord-bot:latest`.
 
-```bash
-docker pull ghcr.io/the-a-p-o-l-l-o-organization/apollo-discord-bot:latest
-docker run -d --name apollo \
-  --restart unless-stopped \
-  -e DISCORD_TOKEN=your-token \
-  ghcr.io/the-a-p-o-l-l-o-organization/apollo-discord-bot:latest
-```
+## CI/CD
+
+Workflows in `.github/workflows/`:
+
+| Workflow | Purpose |
+|----------|---------|
+| `ci.yml` | Lint, Vitest, coverage, Rust build/test, Go build/test, buf lint, audit, manifest drift |
+| `docker.yml` | Image builds |
+| `deploy.yml` | Deployment automation |
+| `release.yml` | Release packaging |
+| `security.yml` | CodeQL, dependency review, SAST |
+| `semgrep.yml` | Static analysis rules |
+| `integration-tests.yml` | Redis-backed integration tests via testcontainers |
+| `setup.yml` | Shared setup workflow |
 
 ## Troubleshooting
 
-### Bot Won't Start
-- Verify `DISCORD_TOKEN` is set correctly in `.env`
-- Run `pnpm install` to ensure all dependencies are installed
-- Check Docker logs: `docker-compose logs -f`
-- For PostgreSQL: ensure `DATABASE_URL` is correct and DB is reachable
+### Bot refuses to start with an operator error
 
-### Commands Not Appearing
-- Run `node scripts/deploy-commands.js` to register slash commands
-- Global commands take up to 1 hour to propagate
-- Using `GUILD_ID` in `.env` makes commands appear instantly (dev only)
+Read `legal/TOS.md` and `legal/PRIVACY.md`, then set `OPERATOR_AGREEMENT=true` and a non-empty `OPERATOR_CONTACT`. Placeholder tokens are rejected.
 
-### Multi-Instance Issues
-- **Workers not processing**: Check `REDIS_URL` connectivity and BullMQ queue
-- **Leader not elected**: Verify Redis is running and `POD_ID` values are unique
-- **Cross-pod events not firing**: Ensure all pods share the same Redis instance
-- **Database conflicts**: SQLite does not support multi-writer — use PostgreSQL
+### Commands do not appear
 
-### Specific Features
-- **Welcome messages**: Create a `#welcome` channel, ensure bot has Send Messages permission
-- **Logging**: `/setlogchannel set #channel`, `/logging enable event_name`
-- **Tickets**: Run `/ticketsetup category` first, ensure bot has Manage Channels
-- **Mute role**: If Discord timeout fails, bot falls back to a `Muted` role (auto-created if missing)
-- **Tests failing**: `pnpm test` requires better-sqlite3 native build — run `pnpm rebuild better-sqlite3` if needed
+Run `pnpm run deploy:commands`. Global commands can take up to one hour; set `GUILD_ID` for instant guild-scoped registration during development.
 
-## Feature Details
+### better-sqlite3 fails after install
 
-### Warning System
-- Issue with `/warn @user reason`
-- Thresholds: 3 → mute, 5 → kick, 7 → ban (configurable per-server via `/warnconfig`)
-- View with `/warnings @user`, clear with `/clearwarnings @user`
+Run `pnpm rebuild better-sqlite3`. Native bindings must match the active Node 26 toolchain.
 
-### Auto-Moderation
-Configure with `/automod`:
-- Banned words, invite filter, link filter, mention spam, caps filter, spam detection, account age minimum
-- Exempt channels/roles bypass all filters
+### Workers idle while queue grows
 
-### Ticket System
-1. `/ticketsetup category`, `/ticketsetup supportrole`, `/ticketsetup panel`
-2. Users click panel button or use `/ticket`
-3. Staff close with `/closeticket` or close button
-4. Transcripts saved to `data/transcripts/` as JSON
+Confirm `QUEUE_ENABLED=true`, shared `REDIS_*` values, unique `POD_ID` values, and `RUN_MODE=worker` on consumers. Inspect `/queue` output and BullMQ metrics.
 
-### Reaction Roles
-- `/reactionrole add <messageId> <emoji> @role`
-- `/reactionrole remove <messageId> <emoji>`
-- `/reactionrole list`, `/reactionrole clear <messageId>`
+### Postgres pool warnings
 
-### Blacklist System
-- `/blacklist add @user reason` — user is auto-banned on future join attempts
-- `/blacklist remove @user`, `/blacklist list`
-- Optional global blacklist (all servers using the bot)
+`DB_POOL_MAX` above 80 percent of `max_connections` is capped automatically. Lower pool max or raise the database limit.
 
-### Polls
-- `/poll question:"Question" options:"A | B | C"` with optional `duration:1h`
-- Results auto-posted when duration expires (requires scheduler)
+### Locale CI fails
 
-### Case System
-- Every moderation action creates a case with a unique numeric ID
-- `/case view <id>`, `/case search <user>`, `/case edit <id>`, `/case delete <id>`
+Run `pnpm lint:locales` locally. Missing keys, empty values, or mismatched `{{placeholders}}` fail the gate.
 
-## API Reference
+### Manifest drift fails
 
-### EventBus Events
-
-| Event | Payload | Emitter | Description |
-|-------|---------|---------|-------------|
-| `moderation:action` | `{ type, targetId, moderatorId, reason }` | Moderation plugin | Any mod action taken |
-| `tickets:created` | `{ ticketNumber, guildId, userId }` | Tickets plugin | New ticket opened |
-| `tickets:closed` | `{ ticketNumber, guildId, userId }` | Tickets plugin | Ticket closed |
-| `automod:action` | `{ type, userId, guildId, details }` | Automod plugin | Auto-mod triggered |
-| `member:joined` | `{ userId, guildId, memberCount }` | Core events | Member joined |
-| `member:left` | `{ userId, guildId, memberCount }` | Core events | Member left |
-
-### Provided APIs
-
-| API | Parameters | Returns | Provider | Description |
-|-----|-----------|---------|----------|-------------|
-| `moderation:getCaseCount` | `(guildId)` | `number` | Moderation | Total cases in guild |
-| `moderation:getWarnings` | `(guildId, userId)` | `Array` | Moderation | User's warnings |
-| `tickets:getOpenTickets` | `(guildId)` | `Array` | Tickets | Open tickets count |
-| `automod:checkMessage` | `(message)` | `Object` | Automod | Message filter results |
-
-### Reactive State Keys
-
-| Key | Type | Provider | Description |
-|-----|------|----------|-------------|
-| `moderation:config` | `Object` | Moderation | Per-guild mod settings |
-| `automod:filters` | `Map` | Automod | Active filter state |
-| `tickets:panels` | `Map` | Tickets | Active ticket panels |
-
-## Bot Permissions
-
-When inviting the bot, ensure it has these permissions:
-- Send Messages, Embed Links
-- Manage Roles, Manage Messages, Manage Channels
-- Kick Members, Ban Members, Moderate Members (timeout)
-- View Channel, Add Reactions, Read Message History
-
-## Documentation
-
-For detailed setup guides, command references, developer guides, and troubleshooting, visit the **[Apollo Org documentation](https://the-a-p-o-l-l-o-organization.github.io/Apollo-Org-Docs/docs/projects/apollo/intro)**.
-
-## License
-
-This project is licensed under the GPLv3 License — see the LICENSE file for details.
-
-## Legal
-
-- [Privacy Policy](legal/PRIVACY.md) — How Apollo processes data when self-hosted
-- [Terms of Service](legal/TOS.md) — Terms governing use of the Bot
-- [NOTICE](NOTICE) — Third-party attributions and Discord policy references
-
-**Before running the bot**, you must read both the Terms of Service and Privacy Policy, then set `OPERATOR_AGREEMENT=true` and `OPERATOR_CONTACT` in your `.env` file. The bot will refuse to start otherwise.
+Run `pnpm manifest` after adding, moving, or deleting non-locale source files, then commit the updated `plugin-manifest.json`.
 
 ## Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+We welcome contributions. See [CONTRIBUTING.md](CONTRIBUTING.md) for environment setup, TypeScript style, test expectations, locale rules, and pull request checklists.
 
-1. Write tests for new features
-2. Ensure all tests pass: `pnpm test`
-3. Follow existing code style (ES modules, Vitest, discord.js v14 patterns)
-4. Update documentation as needed
+## Legal
+
+- [Privacy Policy](legal/PRIVACY.md)
+- [Terms of Service](legal/TOS.md)
+- [Legal Notice](legal/LEGAL.md)
+
+Before running the bot, read the Terms of Service and Privacy Policy, then set `OPERATOR_AGREEMENT=true` and `OPERATOR_CONTACT` in `.env`. The bot refuses to start otherwise.
 
 ## Acknowledgments
 
-- [discord.js](https://discord.js.org/) — Discord API library
-- [BullMQ](https://bullmq.io/) — Redis-backed job queues
-- [Knex](https://knexjs.org/) — SQL query builder
-- [Vitest](https://vitest.dev/) — Test framework
-- [Discord Developer Portal](https://discord.com/developers/applications) — Bot management
+- [discord.js](https://discord.js.org/)
+- [BullMQ](https://bullmq.io/)
+- [Knex](https://knexjs.org/)
+- [Vitest](https://vitest.dev/)
+- [OpenTelemetry](https://opentelemetry.io/)
+- [ConnectRPC](https://connectrpc.com/)
+- [Discord Developer Portal](https://discord.com/developers/applications)

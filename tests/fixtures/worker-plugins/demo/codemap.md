@@ -1,11 +1,28 @@
-Responsibility
-This directory contains a demo worker plugin that implements basic event handling and command response capabilities for the Apollo Discord Bot worker system.
+# tests/fixtures/worker-plugins/demo/
 
-Design
-The plugin follows the ES6 class pattern implementing the standard worker plugin interface. It defines a static getter for the plugin ID and implements the lifecycle methods: onLoad, onEvent, and onCommand. State is maintained in an instance property lastMessage to store the most recent message payload.
+## Responsibility
+Minimal worker plugin fixture that verifies event handling and command round-trips through the sandboxed worker host.
 
-Flow
-Event data enters the plugin through the host system invoking the onEvent method with a payload object containing event type and data. When the event matches 'events:messageCreate', the payload data is stored in the lastMessage property. Command data enters via the onCommand method receiving a payload object; the plugin processes the command and returns a response object with status and echoed command name. Data leaves the plugin through return values from onEvent (undefined) and onCommand (response object).
+## Files
 
-Integration
-The plugin declares dependencies in plugin.json requiring the 'events:messageCreate' event and 'api:sendMessage' API capability. It is integrated into the host system which calls the plugin's lifecycle methods (onLoad, onEvent, onCommand) and provides the event/api infrastructure. No external libraries or modules are imported within the plugin source.
+| File | Purpose |
+|------|---------|
+| `plugin.js` | Minimal DemoPlugin fixture storing last message and echoing commands |
+| `plugin.json` | Declares demo plugin identity and required capabilities |
+
+## Design
+- `plugin.js` exports a `DemoPlugin` class with static `id` of `demo`, a `host` reference, and `lastMessage` state holding the most recent payload.
+- Lifecycle surface is `onLoad`, `onEvent`, and `onCommand` matching the worker plugin interface.
+- `plugin.json` declares identity and required capabilities without extra metadata.
+- Patterns: Test Double - Stub (`DemoPlugin` echoes commands and stores the last event payload for assertions).
+
+## Flow
+1. Host loads the plugin and calls `onLoad`.
+2. Host invokes `onEvent` with a payload; when `event` equals `events:messageCreate`, the payload data is stored in `lastMessage`.
+3. Host invokes `onCommand` with a command payload and receives `{ ok: true, echoed: payload.name }`.
+4. Tests assert stored event state and echoed command responses.
+
+## Integration
+- Declares capabilities `events:messageCreate` and `api:sendMessage` in `plugin.json`.
+- Spawned via the parent `child-entry.ts` harness with `PLUGIN_DIR` set to this directory.
+- Exercises `src/core/worker/workerHost.ts` and `workerChild.ts` message paths; no external modules are imported.

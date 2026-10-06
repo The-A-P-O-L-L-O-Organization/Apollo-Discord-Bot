@@ -1,44 +1,29 @@
-# src/queue/jobs/
+# src/queue/jobs/codemap.md
 
 ## Responsibility
-Contains the job handler and enqueue utility for processing Discord slash commands asynchronously via BullMQ workers. Defines the PROCESS_COMMAND job type, serializes command interactions for queue transport, and reconstructs them in worker processes for execution.
+Defines the two worker job handlers: Discord slash-command execution and Rust-backed NSFW image analysis.
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `processCommand.ts` | Slash-command enqueue with HMAC signing plus worker-side verify and execute. |
+| `nsfwAnalyze.ts` | NSFW image analysis job calling Rust gRPC when enabled, else skipped. |
+
+No subdirectories; both handlers are top-level files in `src/queue/jobs/`.
 
 ## Design
-- **Job Encapsulation**: Uses a named constant `JobNames.PROCESS_COMMAND` for type-safe job identification.
-- **Producer-Consumer Pattern**: `enqueueCommand` (producer) adds jobs to the queue; registered handler (consumer) processes them.
-- **Command Module Caching**: Implements a Map-based cache (`commandModuleCache`) to avoid re-importing command modules on every job.
-- **Dependency Abstraction**: Relies on `createQueue` and `registerHandler` from `../queue.js` and `../jobHandler.js` for BullMQ integration.
-- **Serialization/Deserialization**: Uses `serializeInteraction` to flatten interaction data and `RemoteInteraction` to rebuild it in workers.
-- **Error Handling & Metrics**: Integrates with logging, metrics recording, and error embeds for observability.
+- `processCommand.ts`: producer `enqueueCommand` (serializes via `serializeInteraction.ts`, signs with `QUEUE_HMAC_SECRET` HMAC plus timestamp and nonce, enqueues `process-command` with interaction id deduplication) and consumer handler (verifies HMAC via `nonceStore.ts`, rebuilds `RemoteInteraction`, resolves the command module with `commandModuleCache`, executes `execute`). Uses `REST` from `@discordjs/rest`, `Collection` from `discord.js`, `registerHandler` from `jobHandler.ts`, `createQueue` from `queue.ts`, metrics (`recordCommand`, `recordCommandDuration`, `recordError`), pino `logger`, and `i18n`.
+- `nsfwAnalyze.ts`: handler for `nsfw:analyze` that calls `analyzeImageGrpc` in `nsfwClient.ts` when `NSFW_USE_RUST=true`, otherwise returns `skipped`. Returns `completed` with `isNsfw`, `predictions`, `inferenceMs`, `maxConfidence`, or `error`.
+- Patterns: Command (command modules with `execute` invoked by the worker), Producer-Consumer (gateway `enqueueCommand` plus worker handler), Registry (`registerHandler` job-name dispatch).
 
 ## Flow
-1. **Command Invocation**: A slash command interaction is received in the gateway/bot process.
-2. **Enqueue**: The command file calls `enqueueCommand(interaction)` (imported from this module).
-   - Serializes the interaction via `serializeInteraction`.
-   - Attaches `pluginId` for plugin-aware lookup.
-   - Adds a job of type `PROCESS_COMMAND` to the BullMQ queue with the interaction ID as job ID and deduplication TTL.
-3. **Worker Processing**: A BullMQ worker pulls the job and invokes the registered handler.
-   - Reconstructs a REST client and a `RemoteInteraction` from the serialized data.
-   - Attempts to import the command module using `importCommandModule`, checking plugin-specific paths then falling back to a global scan.
-   - Validates the exported module has an `execute` function.
-   - Executes the command, logging success/failure and recording metrics.
-   - On error, sends an error embed to the interaction (if possible) and returns an error status.
-4. **Completion**: The worker returns a status object (`completed` or `error`) which BullMQ records as job result.
+1. Command invocation arrives at the gateway; the command module calls `enqueueCommand(interaction)` with its `pluginId`.
+2. Payload is serialized, HMAC-signed, and added to the BullMQ queue.
+3. Worker dequeues, verifies signature and nonce, reconstructs REST client and `RemoteInteraction`, imports the command module (plugin path first, then global scan), validates `execute` exists, and runs it.
+4. NSFW path: attachment URL is enqueued as `nsfw:analyze`; the worker runs gRPC inference and returns the verdict for automod.
+5. Handler returns `completed`, `skipped`, or `error`; BullMQ records the result and error embeds are sent where possible.
 
 ## Integration
-- **Depends on**:
-  - `@discordjs/rest` (REST client)
-  - `discord.js` (Collection)
-  - `node:fs`, `node:path`, `node:url` (filesystem and URL utilities)
-  - `../../config/config.js` (application configuration)
-  - `../remoteInteraction.js` (Interaction reconstruction)
-  - `../serializeInteraction.js` (Interaction serialization)
-  - `../jobHandler.js` (Handler registration abstraction)
-  - `../queue.js` (Queue creation abstraction)
-  - `../../utils/metrics.js` (Prometheus metrics)
-  - `../../utils/logger.js` (Logging)
-- **Consumed by**:
-  - Command modules in `src/plugins/*/commands/` (via import of `enqueueCommand`).
-- **Interfaces with**:
-  - BullMQ queue system through the `createQueue` and `registerHandler` abstractions.
-  - Plugin system via `pluginId` lookup in `src/plugins/<pluginId>/commands/` and `data/plugins/<pluginId>/commands/`.
+- Depends on `../queue.ts`, `../jobHandler.ts`, `../serializeInteraction.ts`, `../remoteInteraction.ts`, `../nonceStore.ts`, `../nsfwClient.ts`, `src/config/config.ts`, `src/utils/metrics.ts`, `src/utils/logger.ts`.
+- Consumed by `src/plugins/*/commands/` (enqueue) and `src/worker.ts` (register handlers on startup). Reconstructed interactions are revalidated because queue payloads cross a trust boundary.

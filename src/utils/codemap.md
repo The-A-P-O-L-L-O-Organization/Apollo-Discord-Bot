@@ -1,96 +1,94 @@
-# Responsibility
-The `src/utils` directory provides centralized utility functions and abstractions for cross-cutting concerns including data persistence, logging, error handling, moderation, NSFW detection, translation, scheduling, HTTP requests, locking, analytics, integration with external services, security, and performance monitoring used across the Apollo Discord Bot.
+# src/utils/codemap.md
 
-# Design
-- **Adapter Pattern**: `db.js` abstracts PostgreSQL and SQLite backends with lazy singleton initialization.
-- **Logger Pattern**: `logger.js` offers a centralized logging service that creates embeds and sends them to configured channels based on guild settings; `structuredLogger.js` provides structured logging with levels.
-- **Strategy Pattern**: Moderation utilities (`moderation.js`, `nsfwDetection.js`, `openaiModeration.js`, `automod.ts` barrel) encapsulate interchangeable algorithms for permission checks and content analysis. The automod barrel re-exports three focused leaves: `automodConfig.ts` (config loading via `getAutomodConfig`), `automodChecking.ts` (pure content checks: banned words, invites, links, mention/caps spam, account age, phishing), and `automodSpam.ts` (stateful burst/spam trackers with Redis-backed and in-memory paths).
-- **Factory/Helper Pattern**: Modules like `safeError.js`, `safeFetch.js`, `translation.js`, `markdownParser.js`, `duration.js`, `encryption.js`, `xp.js` export cohesive helper functions.
-- **Scheduler Pattern**: Files such as `reminderScheduler.js`, `tempRolesScheduler.js`, `tempbanScheduler.js`, `pollScheduler.js` implement timed task execution using node‑cron or setInterval.
-- **Lock Pattern**: `lock.js` provides a mutex implementation for concurrency control.
-- **Cache Pattern**: `lruCache.js` implements an LRU cache for in‑memory storage.
-- **Data Store**: `dataStore.js` provides a key‑value store backed by Redis or fallback.
-- **Circuit Breaker**: `circuitBreaker.js` implements the circuit breaker pattern for external service calls.
-- **Metrics**: `metrics.js` collects and exposes application metrics.
-- **Tracing**: `tracing.js` provides distributed tracing utilities.
-- **Health Server**: `healthServer.js` exposes an HTTP endpoint for liveness/readiness probes.
-- **Access Control**: `accessControl.js` centralizes permission and role‑based access checks.
-- **Module Pattern**: Each utility file exports a focused API, minimizing coupling.
-- **Barrel Pattern (analytics)**: `analyticsCollector.ts` re-exports `analyticsCache.ts` (in-memory cache plus `track*` ingestion functions), `analyticsFlush.ts` (collector lifecycle `init`/`stop`, `flushAnalyticsCache`/`flushAnalyticsCritical`, collector stats), and `analyticsStats.ts` (read-side `get*Stats` queries over day windows). Dependency direction: leaves are independent of each other; callers import only the barrel.
-- **Barrel Pattern (raid)**: `raidDetection.ts` re-exports `raidDetectionTypes.ts` (threshold/result/state types and defaults), `raidDetectionRedis.ts` (Redis-backed join tracking and pattern checks), `raidDetectionCore.ts` (orchestration: `checkRaidPattern`, `handleRaidDetected`, raid-mode enable/disable), and `raidDetectionSimilarity.ts` (pure helpers: `levenshteinDistance`, `calculateSimilarity`, `countSimilarNames`). Dependency direction: core depends on the Redis and similarity leaves; callers import only the barrel.
-- **Dependency Injection**: Configuration is injected via `../config/config.js`; external libraries are imported locally.
-- **Observer/Pub‑Sub**: `logger.js` acts as an observer for events triggered elsewhere; `integrationPoller.js` polls external APIs and emits updates.
+## Responsibility
+Cross-cutting helpers for persistence, logging, security, scheduling, locking, external integrations, and observability. About 60 focused TypeScript modules with explicit imports and no hidden coupling.
 
-# Flow
-1. **Initialization**: On bot startup, `startupChecks.js` validates environment and operator agreement; `db.js` initializes database adapter lazily on first use; `dataStore.js` connects to Redis if configured.
-2. **Data Access**: Commands and event listeners call `db.js` functions (`getGuildData`, `setUserData`, etc.) which route to the appropriate adapter (PostgreSQL or SQLite) based on configuration; `dataStore.js` provides fast key‑value operations.
-3. **Logging**: When moderation actions occur, `logger.js` functions (`logEvent`, `create*Embed`) are invoked; they fetch logging configuration via `db.js`, format embeds, and send them to the designated channel; `structuredLogger.js` logs to console/file with levels.
-4. **Moderation & Content Analysis**: 
-   - Permission checks use `accessControl.js.canModerate` and `moderation.js.canModerate`.
-   - NSFW scanning uses `nsfwDetection.js.checkMessageAttachments` which downloads images via `safeFetch.js`, analyzes with TensorFlow model, and returns results.
-   - AI‑based moderation uses `openaiModeration.js` to call OpenAI API.
-   - Automod utilities behind the `automod.ts` barrel provide rule‑based filtering: `automodChecking.ts` runs the pure content checks, `automodSpam.ts` tracks burst/spam state, and `automodConfig.ts` loads per-guild configuration.
-5. **Helper Invocation**: 
-   - HTTP requests go through `safeFetch.js` (retry, timeout, size limits) with optional circuit breaker via `circuitBreaker.js`.
-   - Errors are sanitized via `safeError.js` before user‑facing responses.
-   - Multi‑language strings are retrieved via `translation.js`.
-   - Markdown content is parsed via `markdownParser.js` for safe rendering.
-   - Duration parsing/formatting via `duration.js`.
-   - Encryption/hashing via `encryption.js`.
-   - XP calculations via `xp.js`.
-6. **Scheduling & Automation**: 
-   - Scheduler files (`*Scheduler.js`) trigger at defined intervals, invoking related utilities (e.g., `exportAnalytics.js` generates reports, `reminderScheduler.js` sends reminders, `tempbanScheduler.js` unbans users).
-   - `integrationPoller.js` periodically fetches data from external services (GitHub, etc.) and updates internal state via `db.js` or `dataStore.js`.
-   - `healthServer.js` serves metrics and status endpoints.
-7. **State Persistence**: After processing, utilities persist changes via `db.js` setters or `dataStore.js`; cached data may be updated in `lruCache.js`.
-8. **Cleanup**: On shutdown, `db.js.close()` releases database connections; `dataStore.js` disconnects Redis; scheduler timers are cleared.
+## Files
 
-# Integration
-- **Consumers**: 
-  - Command modules in `src/plugins/*/commands/` import utilities directly (e.g., `db.js`, `logger.js`, `accessControl.js`, `moderation.js`).
-  - Event listeners in `src/plugins/*/events/` use `logger.js`, `safeFetch.js`, `integrationWebhook.js` for audit logging and webhook handling.
-  - Plugin core files (`src/plugins/*/index.js`) may initialize schedulers or load integration clients.
-- **Dependencies**: 
-  - `db.js`: `../config/config.js`, `better-sqlite3`, `pg` (via adapter).
-  - `dataStore.js`: `ioredis` (Redis), fallback to in‑memory.
-  - `logger.js`: `discord.js`, `db.js`, `../config/config.js`.
-  - `structuredLogger.js`: `pino` or similar.
-  - `safeFetch.js`: Node.js `undici` (global fetch), retry logic, `circuitBreaker.js`.
-  - `circuitBreaker.js`: implements circuit breaker pattern.
-  - `nsfwDetection.js`: `@tensorflow/tfjs-node`, `nsfwjs`, `safeFetch.js`, `db.js`.
-  - `openaiModeration.js`: `openai` API client, `safeFetch.js`.
-  - `translation.js`: `i18next` or custom JSON files.
-  - `markdownParser.js`: `markdown-it` or similar.
-  - Scheduler files: `node-cron` or native `setInterval`.
-  - `lock.js`: minimal dependency, implements Promise‑based mutex.
-  - `lruCache.js`: simple LRU implementation.
-  - `accessControl.js`: role and permission utilities, uses `db.js`.
-  - `automod.ts` (barrel over `automodConfig.ts`, `automodChecking.ts`, `automodSpam.ts`): rule‑engine for auto‑moderation. The config leaf reads via `db.js`; the spam leaf uses `lock.js` (`getLockRedis()`) with an in-memory fallback.
-  - `integrationClients.js`: API‑specific SDKs (e.g., `octokit` for GitHub).
-  - `integrationWebhook.js`: `discord.js` for sending webhooks, `safeFetch.js` for receiving.
-  - `integrationPoller.js`: uses `integrationClients.js` and `safeFetch.js`.
-  - `exportAnalytics.js`: generates reports, uses `db.js` and `metrics.js`.
-  - `metrics.js`: collects metrics, may expose via `healthServer.js`.
-  - `tracing.js`: OpenTelemetry or similar.
-  - `healthServer.js`: `express` or `undici` based HTTP server.
-  - `raidDetection.ts` (barrel over `raidDetectionTypes.ts`, `raidDetectionRedis.ts`, `raidDetectionCore.ts`, `raidDetectionSimilarity.ts`): detects raid patterns; the core leaf uses `accessControl.js` and `logger.js`, the Redis leaf uses `lock.js` (`getLockRedis()`).
-  - `modLog.js`: moderation logging helper.
-  - `redis.js`: wrapper around ioredis.
-  - `encryption.js`: crypto utilities with key rotation support (comma-separated ENCRYPTION_KEYS, v1 format: version:salt:iv:authTag:ciphertext), decrypt tries all keys, reEncryptIfNeeded() for migration.
-  - `duration.js`: human‑readable time parsing.
-  - `xp.js`: experience point calculations for leveling.
-  - `manifest.js`: plugin manifest utilities.
-  - `chart.js`: chart generation utilities (if present).
-  - `analyticsCollector.ts` (barrel over `analyticsCache.ts`, `analyticsFlush.ts`, `analyticsStats.ts`): collects analytics data; the stats leaf reads via `db.js`.
-  - `transcriptGenerator.js`: generates transcripts of conversations.
-  - `reportHandler.js`: handles report submissions.
-  - `tracing.js`: distributed tracing.
-  - `redis.js`: Redis client wrapper.
-  - `securityLog.js`: security event logging.
-  - `slaTracker.js`: SLA violation tracking.
-- **Hooks/Events**: No formal hook system; utilities are invoked imperatively by callers. The logger acts as an implicit observer of moderation events.
-- **API Endpoints**: 
-  - `integrationWebhook.js` exposes outgoing webhook endpoints for services like Discord, GitHub, and Trello.
-  - `integrationClients.js` encapsulates clients for external REST APIs (GitHub, Reddit, etc.) used by commands.
-  - `openaiModeration.js` calls the OpenAI Moderation API endpoint.
-  - `healthServer.js` exposes `/health`, `/metrics`, `/ready` endpoints.
+| File | Purpose |
+|------|---------|
+| `accessControl.ts` | Permission and role-hierarchy checks before moderation actions. |
+| `analyticsCache.ts` | In-memory analytics event cache with per-guild tracking helpers. |
+| `analyticsCollector.ts` | Barrel over analytics cache, flush, and stats plus the track entry point. |
+| `analyticsFlush.ts` | Periodic flush of cached analytics to the database with collector lifecycle. |
+| `analyticsStats.ts` | Read-side analytics queries for commands, messages, violations, and growth. |
+| `automod.ts` | Automod barrel re-exporting config, checking, and spam modules. |
+| `automodChecking.ts` | Pure content checks for banned words, invites, links, mentions, and caps. |
+| `automodConfig.ts` | Per-guild automod configuration loading with channel overrides. |
+| `automodSpam.ts` | Burst and spam detection with in-memory and Redis-backed counters. |
+| `charts.ts` | Chart rendering helpers for analytics exports. |
+| `circuitBreaker.ts` | Circuit breaker wrapper for external API calls with safe fallback. |
+| `commandValidator.ts` | Validation of Discord command options and inputs before execution. |
+| `dataStore.ts` | Redis-backed key-value store with in-memory fallback. |
+| `db.ts` | Sanctioned guild and user data-access bridge routing to the db adapter. |
+| `discordErrors.ts` | Shared i18n translators and common Discord error helpers. |
+| `duration.ts` | Human-readable duration parsing and formatting. |
+| `encryption.ts` | AES-256-GCM field encryption with ENCRYPTION_KEY rotation support. |
+| `exportAnalytics.ts` | Analytics export to CSV and embeds for admin commands. |
+| `featureFlags.ts` | NSFW and feature flag evaluation helpers. |
+| `guildLogging.ts` | Guild event logging config, log-channel resolution, and embed builders. |
+| `healthServer.ts` | HTTP liveness and readiness probe server. |
+| `integrationClients.ts` | Third-party integration API clients for GitHub, Twitch, and YouTube. |
+| `integrationFormatters.ts` | Embed formatters for integration events. |
+| `integrationPoller.ts` | Periodic polling of integration feeds for new events. |
+| `integrationWebhook.ts` | GitHub webhook receipt with HMAC verification, HTTPS-only except local. |
+| `lock.ts` | withLock single-pod scheduler coordination over Redis. |
+| `logger.ts` | Pino structured logger factory used everywhere instead of console. |
+| `lruCache.ts` | In-process LRU cache. |
+| `manifest.ts` | Plugin manifest hash verification helpers. |
+| `markdownParser.ts` | Markdown parsing and escaping for embeds and transcripts. |
+| `metrics.ts` | Prometheus counters, histograms, and gauges. |
+| `moderation.ts` | Shared moderation action helpers. |
+| `modLog.ts` | Moderation log embed builder and sender plus member fetching. |
+| `nsfwDetection.ts` | NSFW image detection orchestration with circuit breaker and queue enqueue. |
+| `openaiModeration.ts` | OpenAI moderation API text checks with violation formatting. |
+| `pollScheduler.ts` | Poll lifecycle scheduler with start, stop, and stats. |
+| `raidDetection.ts` | Raid detection barrel over types, Redis, core, and similarity modules. |
+| `raidDetectionCore.ts` | Core raid pattern checking plus raid-mode enable and disable. |
+| `raidDetectionRedis.ts` | Redis-backed join tracking and raid pattern checks. |
+| `raidDetectionSimilarity.ts` | Username similarity helpers using Levenshtein distance. |
+| `raidDetectionTypes.ts` | Raid threshold and state type definitions. |
+| `redis.ts` | Standalone ioredis client factory. |
+| `redisCluster.ts` | Redis standalone and cluster client factory with env-based construction. |
+| `reminderScheduler.ts` | Reminder due-check scheduler with start and stop. |
+| `reportHandler.ts` | User report intake handling. |
+| `safeError.ts` | Safe user-facing error summaries without stacks, SQL, paths, or secrets. |
+| `safeFetch.ts` | Bounded-timeout fetch with retry and size limits. |
+| `securityLog.ts` | Security event structured logging. |
+| `simhash.ts` | Simhash content fingerprinting for near-duplicate detection. |
+| `slaTracker.ts` | Ticket SLA tracking and breach detection. |
+| `startupChecks.ts` | Boot validation of required secrets, pool caps, and plugin flags. |
+| `structuredLogger.ts` | Structured log formatting helpers. |
+| `tempbanScheduler.ts` | Temporary ban expiry scheduler. |
+| `tempRolesScheduler.ts` | Temporary role expiry scheduler. |
+| `threatScore.ts` | Threat scoring for users and content. |
+| `tracing.ts` | OpenTelemetry tracing setup helpers. |
+| `transcriptGenerator.ts` | Ticket transcript HTML and markdown generation. |
+| `translation.ts` | Message translation helpers. |
+| `xp.ts` | XP and level calculation plus award helpers. |
+
+No subdirectories; all modules are top-level files in `src/utils/`.
+
+## Design
+- Persistence: `db.ts` routes `getGuildData`, `setGuildData`, `updateGuildData`, `getAllGuildData`, `getUserData`, `setUserData`, `getAllUserData`, `getData`, `setData` to `src/db/adapter.ts` plus `src/db/knex.ts` for Postgres or embedded `better-sqlite3` for SQLite. `dataStore.ts` is the Redis-backed key-value store with in-memory fallback. `lruCache.ts` is the in-process LRU.
+- Logging: `logger.ts` (`createLogger`, pino structured logs, never `console.log`) and `structuredLogger.ts`; `securityLog.ts` (`logSecurityEvent`); `guildLogging.ts`, `modLog.ts` build moderation embeds.
+- Security: `encryption.ts` (AES-256-GCM, `ENCRYPTION_KEY` rotation as comma-separated values with the first key active for encryption and all keys tried for decryption); `startupChecks.ts` (requires `DISCORD_TOKEN`, `OPERATOR_AGREEMENT=true`, `OPERATOR_CONTACT`, `ENCRYPTION_KEY`; rejects placeholder tokens; caps Postgres pool max near 80 percent of `max_connections`; warns on `ALLOW_UNVERIFIED_PLUGINS=1`); `accessControl.ts`, `commandValidator.ts`, `safeError.ts` (safe user-facing summaries), `safeFetch.ts` (bounded timeout, retry, size limits), `circuitBreaker.ts`, `threatScore.ts`, `simhash.ts`.
+- Concurrency: `lock.ts` (`withLock` plus `getLockRedis`) so schedulers run on one pod only; `redis.ts` and `redisCluster.ts` client factories.
+- Scheduling: `reminderScheduler.ts`, `pollScheduler.ts`, `tempbanScheduler.ts`, `tempRolesScheduler.ts`, `integrationPoller.ts`.
+- Content: `automod.ts` barrel over `automodConfig.ts`, `automodChecking.ts`, `automodSpam.ts`; `raidDetection.ts` barrel over `raidDetectionTypes.ts`, `raidDetectionRedis.ts`, `raidDetectionCore.ts`, `raidDetectionSimilarity.ts`; `moderation.ts`, `nsfwDetection.ts`, `openaiModeration.ts`, `translation.ts`, `markdownParser.ts`, `duration.ts`, `xp.ts`, `transcriptGenerator.ts`, `reportHandler.ts`.
+- Analytics: `analyticsCollector.ts` barrel over `analyticsCache.ts`, `analyticsFlush.ts`, `analyticsStats.ts`; `exportAnalytics.ts`, `charts.ts`.
+- Integrations: `integrationClients.ts`, `integrationFormatters.ts`, `integrationWebhook.ts` (GitHub HMAC verification, HTTPS-only except local).
+- Observability: `metrics.ts` (Prometheus counters, histograms, gauges), `healthServer.ts` (liveness and readiness), `tracing.ts` (OpenTelemetry), `slaTracker.ts`.
+- Misc: `manifest.ts` (plugin integrity), `discordErrors.ts` (shared translators, `getCommonT`), `featureFlags.ts`.
+- Patterns: Facade (`db.ts` sanctioned bridge over `src/db/adapter.ts`, barrel re-exports over automod/raid/analytics modules), Adapter (`dataStore.ts` Redis store with in-memory fallback), Circuit Breaker (`circuitBreaker.ts` with safe fallback for external calls), Distributed Lock (`lock.ts withLock` single-pod scheduler coordination).
+
+## Flow
+1. Startup: `startupChecks.ts` validates boot secrets and pool caps; `db.ts` lazily initializes the adapter; `dataStore.ts` connects Redis when configured.
+2. Commands and events call `db.ts` getters and setters for guild and user state, `logger.ts` child loggers for structured logs, and `accessControl.ts` plus `commandValidator.ts` before acting.
+3. External calls go through `safeFetch.ts` with circuit breaker, bounded timeouts, and safe fallbacks; user-facing errors pass through `safeError.ts` without stacks, SQL, paths, or secrets.
+4. Schedulers and pollers wrap each tick in `withLock` for single-pod execution and persist via `db.ts` or `dataStore.ts`.
+5. Shutdown closes database pools, disconnects Redis, and clears timers.
+
+## Integration
+- Consumed by `src/plugins/*/commands/`, `src/plugins/*/events/`, `src/core/*`, `src/queue/*`, `src/gateway/*`, `src/cli/*`, and `src/observability/*`.
+- Depends on `src/config/config.ts`, `discord.js`, `ioredis`, `i18next`, and service SDKs. `db.ts` is the only sanctioned path to guild and user data; direct Knex use is limited to `src/db/` internals and migrations.

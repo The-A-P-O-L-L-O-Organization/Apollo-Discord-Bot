@@ -1,39 +1,28 @@
-Responsibility
-The bin/ directory contains the command-line interface (CLI) entry point for the Apollo Discord Bot. It is responsible for bootstrapping the application, loading environment variables, discovering available CLI commands, and executing the selected command via the CLI layer.
+# bin/
 
-Design
-- Follows a standard Node.js CLI pattern with a shebang (`#!/usr/bin/env node`) and async main function.
-- Uses `dotenv/config` to load environment variables from `.env` at startup.
-- Implements separation of concerns: command discovery (`discoverCommands`) and command execution (`run`) are delegated to dedicated modules in `src/cli/`.
-- Imports a logger utility for consistent logger for output formatting (note: currently contains a duplicate import that should be refactored).
-- Centralized error handling in the top-level `main()` catch block, logging fatal errors with red coloring and exiting with code 1.
-- Minimal direct logic; acts as a thin wiring layer between environment setup, command discovery, and execution.
+## Responsibility
+CLI entry lane for the bot. Contains `bin/apollo.ts` only (plus this map), bootstrapping environment and delegating to the CLI layer in `src/cli/` for command discovery and execution.
 
-Flow
-1. Execute `node bin/apollo.js` (or `pnpm apollo`).
-2. Load environment variables via `dotenv/config`.
-3. Import required functions: `discoverCommands` from `../src/cli/discover.js`, `run` from `../src/cli/index.js`, and `logger` from `./utils/logger.js` (note: duplicate import of `../src/utils/logger.js` present).
-4. In `main()`:
-   - Slice `process.argv` to obtain CLI arguments (excluding `node` and script path).
-   - Await `discoverCommands()` to scan `src/cli/commands` and build a command map.
-   - Await `run(argv, commandMap)` to execute the command and generate output.
-   - Log the output via `logger.info()`.
-   - Exit with code 0 on success.
-5. If any asynchronous error occurs in `main()`:
-   - Log the error message prefixed with `[FATAL]` in red.
-   - Exit with code 1.
+## Files
 
-Integration
-- Dependencies: `dotenv` package.
-- Internal imports:
-  - `../src/cli/discover.js` (for `discoverCommands`)
-  - `../src/cli/index.js` (for `run`)
-  - `./utils/logger.js` (logger instance)
-  - `../src/utils/logger.js` (duplicate logger import; should be removed)
-- Consumed by: 
-  - `pnpm apollo` script (defined in `package.json`)
-  - Direct execution via `node bin/apollo.js`
-  - Integrated with the CLI layer (`src/cli/`) for command discovery and execution.
-- No explicit hooks or events; serves as the primary entry point for CLI-based interactions with the bot (e.g., deploying commands, running utilities).
+| File | Purpose |
+|---|---|
+| `apollo.ts` | CLI entrypoint loading env, discovering commands, and running the selected command. |
 
-Note: The duplicate logger import (lines 5-6 in `apollo.js`) is a code issue that should be addressed separately, but the current state is reflected here for accuracy.
+## Design
+- Strict TypeScript ESM with shebang, run via `pnpm apollo` or `node --import tsx bin/apollo.ts`. Loads `dotenv/config` first so `src/config/config.ts` validation sees required keys.
+- Thin wiring layer: imports `discoverCommands` from `src/cli/discover.ts`, `run` from `src/cli/index.ts`, and `logger` from `src/utils/logger.ts`. No business logic, no direct Discord calls, no duplicated logger imports.
+- Centralized error handling in async `main()` with non-zero exit on fatal errors, structured pino logging instead of console output.
+- Patterns: Facade (thin wiring over `src/cli/discover.ts` and `src/cli/index.ts` with no business logic of its own).
+
+## Flow
+1. Invoke `pnpm apollo -- <args>` which executes `bin/apollo.ts`.
+2. Load environment from `.env` via `dotenv/config`.
+3. Await `discoverCommands()` to scan CLI command sources and build the command map.
+4. Await `run(argv, commandMap)` with sliced `process.argv` to execute the selected command.
+5. Log formatted output and exit 0, or log fatal error and exit 1 on exception.
+
+## Integration
+- Depends on `dotenv`, `src/cli/discover.ts`, `src/cli/index.ts`, and `src/utils/logger.ts`.
+- Consumed by operators via the `pnpm apollo` script defined in `package.json` and by plugin `cli/` extensions discovered through the CLI layer.
+- Uses Unix socket client path when commands target a running gateway via `/tmp/apollo.sock` or `APOLLO_SOCKET_PATH`.

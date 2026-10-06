@@ -1,32 +1,36 @@
-Responsibility
-Provides Discord slash command implementations for ticket management functionality within the Apollo Discord bot, handling ticket creation, modification, querying, lifecycle operations, and reporting. Commands cover opening tickets, assigning agents, closing tickets, adding users, setting priority, listing tickets, searching, configuring ticket system, managing templates, transferring tickets, and generating statistics.
+# src/plugins/tickets/commands/
 
-Design
-Follows the Command pattern where each file exports a command object conforming to the plugin interface: includes metadata (name, description, category, options, permissions) and an async execute(interaction) handler. Uses discord.js SlashCommandBuilder for command registration where applicable. Commands are stateless; state is managed via external data store (Knex/PostgreSQL or SQLite) accessed through utility functions (getGuildData, updateGuildData, writeToSubDir). Shared logic such as permission checks, error handling, transcript generation, and SLA tracking is abstracted into utility modules (discordErrors.js, slaTracker.js, logger.js). The module leverages discord.js structures (EmbedBuilder, ButtonBuilder, ActionRowBuilder, ChannelType, PermissionFlagsBits) for rich interactions.
+## Responsibility
+13 slash-command modules. Files present: `assign.ts`, `closeticket.ts`, `ticket.ts`, `ticketadd.ts`, `ticketinfo.ts`, `ticketlist.ts`, `ticketpriority.ts`, `ticketratings.ts`, `ticketsearch.ts`, `ticketsetup.ts`, `ticketstats.ts`, `tickettemplate.ts`, `tickettransfer.ts`.
 
-Flow
-Data flow begins with a Discord interaction (slash command invocation) routed to the respective command's execute(interaction) handler. The handler typically:
-1. Extracts options and user/guild IDs from the interaction.
-2. Validates permissions (e.g., ManageChannels, specific roles) and preconditions (e.g., ticket already open, setup completed).
-3. Fetches guild-specific ticket configuration and data from the database via getGuildData('tickets', guildId).
-4. Performs business logic:
-   - For ticket creation: checks for existing open ticket, determines channel parent, creates a text channel with appropriate permission overwrites, sends an initial embed with action buttons, stores ticket metadata.
-   - For ticket modification (assign, priority, add user): updates channel permissions, sends notifications, updates stored ticket data.
-   - For ticket closure: fetches channel messages, generates a transcript (JSON/text), stores transcript via writeToSubDir, updates ticket record, notifies ticket creator via DM, schedules channel deletion.
-   - For listing/searching: queries ticket data, formats results into embeds or lists.
-   - For configuration/setup: updates guild ticket settings (category ID, transcript channel, role mappings, etc.).
-5. Persists any changes using updateGuildData or writeToSubDir.
-6. Responds to the interaction with an appropriate reply (ephemeral for errors/confirmations, non‑ephemeral for public messages) using safeReply/safeFollowUp helpers.
-Throughout, errors are caught and logged via logger and handleDiscordError to prevent crashes.
+## Files
 
-Integration
-Dependencies:
-- discord.js (EmbedBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder, MessageFlags)
-- ../../../utils/db.js (getGuildData, updateGuildData, writeToSubDir, generateId)
-- ../../../config/config.js (global configuration)
-- ../../../utils/slaTracker.js (getPriorityColor, getPriorityEmoji)
-- ../../../utils/discordErrors.js (handleDiscordError, safeReply, safeFollowUp)
-- ../../../utils/logger.js (logger)
-Consumed by the bot's command registration system (likely src/plugins/index.js or similar) which imports each command file and registers its data with the Discord client.
-No direct HTTP endpoints; interacts with Discord via Gateway (events) and REST API (channel/message management) through discord.js.
-Integrates with other plugin systems indirectly via shared utilities and database tables (e.g., ticket data may be read by reporting or admin plugins).
+| File | Purpose |
+|---|---|
+| `assign.ts` | Assigns the current ticket to a staff member. |
+| `closeticket.ts` | Closes the current ticket with reason and transcript generation. |
+| `ticket.ts` | Opens a new ticket channel from a reason and optional category. |
+| `ticketadd.ts` | Adds a user to the current ticket channel. |
+| `ticketinfo.ts` | Shows detailed information about the current or numbered ticket. |
+| `ticketlist.ts` | Lists open tickets with status, priority, and category filters. |
+| `ticketpriority.ts` | Changes the priority of the current ticket. |
+| `ticketratings.ts` | Shows ticket rating statistics. |
+| `ticketsearch.ts` | Searches the ticket archive by user, category, or assigned staff. |
+| `ticketsetup.ts` | Configures the ticket system (panel, category, support role, status). |
+| `ticketstats.ts` | Shows comprehensive ticket statistics. |
+| `tickettemplate.ts` | Creates, deletes, lists, and views ticket templates. |
+| `tickettransfer.ts` | Transfers the current ticket to another staff member. |
+
+## Design
+- Each file default-exports `{ data | name, description, options }` plus `async execute`. Stateless handlers; state in `src/utils/db.ts` guild ticket store. Permission checks for ManageChannels/support roles, duplicate-ticket guards, and setup preconditions.
+- Patterns: Command (each module encapsulates an action with `execute`), State Machine (handlers drive open/assigned/priority/closed ticket transitions).
+
+## Flow
+1. Extract options and guild/user ids, validate permissions and preconditions.
+2. Load ticket config/data via `getGuildData('tickets', guildId)`.
+3. Branch: create channel with overwrites, modify permissions/priority/assignee, query/list/search, update setup/templates, or close with transcript generation.
+4. Persist via `updateGuildData` or transcript writer; reply ephemerally on errors via `safeReply`/`safeFollowUp`.
+
+## Integration
+- Dependencies: `discord.js`, `src/utils/db.ts`, `src/config/config.ts`, `src/utils/slaTracker.ts`, `src/utils/discordErrors.ts`, `src/utils/logger.ts`.
+- Consumed by `TicketsPlugin._loadCommands` and `scripts/deploy-commands.ts`.

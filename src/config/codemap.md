@@ -1,52 +1,28 @@
 # src/config/codemap.md
 
 ## Responsibility
-Centralizes application configuration by providing a singleton configuration object that aggregates environment variables, default values, and feature-specific settings for the Discord bot. Manages configuration for core bot functionality, plugins, database, queue, interlink, sharding, and operator agreements.
+Builds the immutable `ApolloConfig` singleton in `config.ts` from environment variables with typed defaults. Covers discord, activity, welcome, moderation, warnings, automod, levels, tickets, logging, reminders, polls, reaction roles, webhooks, GitHub, Twitch, YouTube, plugins, database, queue, interlink, shard, operator agreement, and NSFW flags.
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `config.ts` | Immutable ApolloConfig singleton built from environment variables with typed defaults. |
+
+No subdirectories; the singleton is the only module in `src/config/`.
 
 ## Design
-Implements a modular configuration pattern using a single exported `config` object with nested namespaces (e.g., `welcome`, `moderation`, `levels`, `database`, `queue`, `interlink`, `shard`). Includes a `parseIntSafe` utility function for robust environment variable parsing. Follows immutable singleton pattern after module initialization. Configuration is divided into logical sections:
-- Core Discord settings (token, client ID, guild ID, encryption)
-- Feature modules (welcome, moderation, warnings, automod, levels, tickets, logging, reminders, polls, reaction roles)
-- System integrations (webhooks, GitHub, Twitch, YouTube)
-- Plugin system configuration
-- Database (PostgreSQL/SQLite) connection pooling
-- Interlink cross-bot communication
-- Queue (BullMQ/Redis) configuration
-- Operator agreement and contact
-- Sharding and leader election settings
-- Security hardening: socket token, Redis auth, interlink bind, HMAC queue signing, encryption key rotation
+- `config.ts`: single exported `config` object typed as `ApolloConfig` from `src/types/config.ts`. Helpers `parseIntSafe`, `parseBoolSafe`, `getEnv`. No runtime mutation after module init; consumers read by property traversal.
+- Sections include `discord` (token, clientId, clientSecret, shardCount), `activity` (name, type), `welcome` (channelName, message), `moderation` (defaultReason, muteRoleName, muteDuration, purge limits, log channel), `warnings` thresholds, feature modules, `database` (postgres versus sqlite plus pool), `queue` (enabled, redis, prefix, hmacSecret), `interlink`, `shard` (queuePrefixBase, leader election), `operator` (agreed, contact), and `nsfw` (`NSFW_USE_RUST`, `NSFW_GRPC_ADDR`, `NSFW_THRESHOLD`, `NSFW_RUST_TIMEOUT_MS`).
+- Patterns: Singleton (single frozen `config` object built once at module init with no runtime mutation).
 
 ## Flow
-1. Module loads and defines `parseIntSafe` helper.
-2. Constructs `config` object by reading `process.env` with fallbacks to hardcoded defaults.
-3. Exports `config` as ES module singleton.
-4. Consumer modules import `config` to access settings; no runtime mutation occurs after export.
-5. Settings are accessed via property traversal (e.g., `config.discord_token`, `config.moderation.muteRoleName`, `config.database.postgres.connectionString`).
-6. During bot startup, `src/index.js` and other modules consume relevant config sections:
-   - Discord client initialization uses token, client ID, guild ID, activity.
-   - Plugin manager reads `config.plugins` for enabled plugin list and directories.
-   - Database adapter uses `config.database` for connection type and parameters.
-   - Queue system reads `config.queue` for Redis connection and job processing.
-    - Interlink ConnectRPC client uses `config.interlink` for Go service address and shared auth key.
-   - Sharding logic reads `config.shard` for leader election and task distribution.
-   - Operator agreement validated via `config.operator.agreed`.
-7. Security startup checks validate production requirements:
-   - `APOLLO_SOCKET_TOKEN` required in production (startupChecks.validateSocketToken)
-    - `REDIS_PASSWORD` required in production (startupChecks.validateRedisAuth)
-   - `QUEUE_HMAC_SECRET` required for job signing in production
-   - `ENCRYPTION_KEY` supports comma-separated rotation keys
+1. Module loads, reads `process.env` with `getEnv`, applies `parseIntSafe` and `parseBoolSafe` fallbacks.
+2. Exports the frozen-shape `config` singleton.
+3. `src/index.ts` uses `discord`, `activity`, `operator`, and `shard` sections at startup.
+4. `PluginManager` reads `config.plugins`; `src/db/knex.ts` reads `config.database`; `src/queue/queue.ts` reads `config.queue` (`QUEUE_PREFIX`, `QUEUE_HMAC_SECRET`); `src/gateway/leader.ts` reads shard and election settings; interlink plugins read `config.interlink`.
+5. `src/utils/startupChecks.ts` enforces production requirements: `DISCORD_TOKEN`, `OPERATOR_AGREEMENT`, `OPERATOR_CONTACT`, `ENCRYPTION_KEY`, socket token, Redis auth, and Postgres pool capping.
 
 ## Integration
-- **Dependencies**: Node.js `process.env` for environment variables.
-- **Consumers**: 
-  - `src/index.js` (bot entry point) for token, client ID, guild ID, activity, operator agreement, sharding.
-  - `src/utils/startupChecks.js` for security validation (socket token, Redis auth, interlink bind).
-  - `src/db/adapter.js` for database type and connection settings.
-  - `src/queue/queue.js` for BullMQ/Redis configuration.
-  - `src/gateway/leader.js` for sharding leader election configuration.
-  - `src/plugins/interlink/` for HTTP server and Redis settings.
-  - Plugin system (`src/plugins/*`) for feature toggles and settings via `config.welcome`, `config.moderation`, etc.
-  - Command files (e.g., moderation, tickets, levels) for behavior configuration.
-  - Event listeners (e.g., messageDelete, memberJoin) for logging and automation.
-  - Utility modules (e.g., database, queue, interlink) for connection parameters.
-  - CLI (`bin/apollo.js`) for operator contact and agreement checks.
+- Depends only on `process.env` and `src/types/config.ts` (plus `discordErrors.ts` for a shared translator).
+- Consumed by entry points (`src/index.ts`, `src/shard.ts`, `src/worker.ts`, `bin/apollo.ts`), `src/utils/startupChecks.ts`, `src/db/*`, `src/queue/*`, `src/gateway/*`, and every first-party plugin (`admin`, `automod`, `integrations`, `interlink`, `moderation`, `tickets`, `utility`).

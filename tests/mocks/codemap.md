@@ -1,27 +1,29 @@
 # tests/mocks/
 
 ## Responsibility
-Provides mock implementations of Discord.js objects for unit and integration testing, enabling isolated testing of bot logic without external API calls.
+Provides deterministic discord.js v14 mocks for unit and integration tests, enabling isolated testing of bot logic without Discord API calls.
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `discord.ts` | Typed discord.js mock factories with vitest spies for isolated tests |
 
 ## Design
-- Factory pattern: Functions like `createMockUser`, `createMockMember`, `createMockGuild`, `createMockChannel`, `createMockMessage`, `createMockInteraction`, `createMockClient`, `createMockVoiceState`, and `createRolesCache` generate configurable mock objects.
-- MockCollection class extends Map with Vitest vi.fn spies on collection methods (get, filter, find, etc.) to track interactions.
-- toMockCollection utility converts Maps, Arrays, or existing MockCollections to MockCollection instances.
-- Each mock factory returns plain objects with properties settable via options and vi.fn stubbed methods (e.g., send, reply, delete) for behavior verification.
+- Single implementation module `discord.ts` with typed factory functions `createMockUser`, `createMockMember`, `createMockGuild`, `createMockChannel`, `createMockMessage`, `createMockInteraction`, `createMockClient`, `createMockVoiceState`, and collection helpers.
+- Typed mock aliases (`MockUser`, `MockGuildMember`, `MockGuild`, `MockTextChannel`, `MockMessage`) intersect discord.js types with `vi.fn()` spies for behavior verification.
+- `MockCollection` extends `Map` with spied collection methods and `toMockCollection` normalizes Maps, Arrays, or existing collections.
+- ESLint-ignored directory; mock files do not need to pass source lint. Spies come from Vitest `vi`.
+- Patterns: Factory (typed `createMock*` factory functions), Test Double (mock aliases with `vi.fn()` spies verifying behavior).
 
 ## Flow
-1. Test code imports desired mock factory from this module.
-2. Factory function invoked with optional overrides to shape the mock (e.g., IDs, timestamps, specific method return values).
-3. Factory constructs a mock object:
-   - Primitives and nested objects (user, guild, channel) are created via other factories or defaults.
-   - Methods are replaced with vi.fn() spies, optionally configured with mockReturnValue or mockResolvedValue.
-   - Collection-like properties (roles.cache, channels.cache) are MockCollection instances to spy on collection interactions.
-4. The returned mock is passed to the system under test (e.g., command executor, event handler).
-5. During execution, calls to mock methods are recorded by Vitest, allowing assertions on call counts, arguments, and return values.
-6. After test execution, spies can be inspected or reset via Vitest utilities.
+1. Test imports the needed factory from `tests/mocks/discord.ts`.
+2. Factory is invoked with optional overrides for IDs, nested objects, and method return values.
+3. Factory builds nested graph via sibling factories and replaces methods with `vi.fn()` stubs, using `MockCollection` for cache-like properties.
+4. Mock is passed to the system under test such as a command executor or event handler.
+5. Vitest records calls for assertions on counts, arguments, and return values; `tests/setup.ts` restores and clears mocks after each test.
 
 ## Integration
-- Consumed by test files across the codebase (e.g., src/plugins/*/tests/*.test.js).
-- Depends on Vitest (`vi`) for spy creation.
-- Mirrors Discord.js API surfaces: User, GuildMember, Guild, TextChannel, Message, Interaction (slash command), Client, VoiceState, role collections.
-- No external runtime dependencies; purely test‑time constructs.
+- Consumed by `tests/**/*.test.ts` suites, approximately 162 files configured in `tests/setup.ts`.
+- Mirrors discord.js v14 surfaces for User, GuildMember, Guild, TextChannel, Message, Interaction, Client, and VoiceState.
+- No production code depends on this directory; purely test-time constructs with isolated temporary databases managed by setup.

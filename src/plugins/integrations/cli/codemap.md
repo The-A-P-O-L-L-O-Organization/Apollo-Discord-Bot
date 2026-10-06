@@ -1,18 +1,21 @@
-Responsibility
-Provides CLI-based integration management commands for listing, adding, and removing integrations via a plugin architecture.
+# src/plugins/integrations/cli/
 
-Design
-Plugin pattern: exports default object with name, description, and commands array.
-Each command follows a handler interface: name, description, options, optional execute (async) or needsSocket flag.
-Abstraction: command handler encapsulates argument parsing and execution logic.
+## Responsibility
+CLI registry in `cli/index.ts` for `list`, `add`, and `remove` integration management.
 
-Flow
-Data enters via command invocation with args object.
-- list command: calls getData('integrations') from db utility, maps subscription objects, returns {count, subscriptions}.
-- add/remove commands: set needsSocket:true, indicating they delegate to socket layer for server communication (execution not shown).
-State transitions: none; commands are stateless, returning results or triggering socket messages.
+## Files
 
-Integration
-Dependencies: ../../../utils/db.js (getData function).
-Consumers: main application plugin loader registers commands from this module.
-Interacts with socket layer for commands flagged needsSocket:true (add, remove).
+| File | Purpose |
+|------|---------|
+| `index.ts` | CLI registry for local integration listing plus socket-backed add and remove |
+
+## Design
+- Exports default `{ name, description, commands[] }` with `{ name, description, options, execute?, needsSocket? }`. `list` executes locally via `getData('integrations')` returning count plus subscriptions; `add`/`remove` set `needsSocket: true` and delegate to `integrations.*` socket handlers.
+- Patterns: Command (each CLI entry encapsulates an action), Strategy (local-read versus socket-mutation execution strategies).
+
+## Flow
+1. Dispatcher invokes `list` with args and returns structured result.
+2. Mutations forward over socket for server-side persistence.
+
+## Integration
+- Depends on `src/utils/db.ts`; consumed by `bin/apollo.ts` dispatcher and plugin manager socket registry.

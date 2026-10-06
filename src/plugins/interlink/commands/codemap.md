@@ -1,18 +1,24 @@
-Responsibility
-Provide owner-restricted Discord slash command interface for managing cross-bot communication, including bot registration, listing, messaging, broadcasting, API key rotation, and override activation.
+# src/plugins/interlink/commands/
 
-Design
-Implements the command pattern with subcommand routing; uses getInterlinkClient for Go-service-backed registry and transport; employs guard functions isOwner/getOwnerIds for authorization; handles errors via safeError and discord error utilities; sends sensitive data via DM to avoid exposure in channel logs.
+## Responsibility
+Single owner-only slash module `interlink.ts` with subcommands `list`, `register`, `remove`, `send`, `broadcast`, `rotate-key` (retired guidance), and `override`.
 
-Flow
-1. Interaction received and deferred ephemerally.
-2. Authorization verified via isOwner checking OWNER_IDS.
-3. Subcommand extracted from interaction options.
-4. Dispatch to corresponding private handler (_list, _register, _remove, _send, _broadcast, _rotateKey, _override).
-5. Handlers call InterlinkConnectClient RPCs (register/unregister/send/list) against the Go service as needed.
-6. Results formatted into embeds and sent via editReply/followUp.
-7. Errors caught and returned as error embeds via safeError/discord error handling.
+## Files
 
-Integration
-Dependencies: ../connectClient.js (getInterlinkClient, InterlinkConnectClient), ../../db/knex.js (getDb), ../../utils/safeError.js, ../../utils/accessControl.js (isOwner, getOwnerIds), ../../utils/discordErrors.js, ../../utils/logger.js, discord.js (MessageFlags).
-Consumed by: ../plugin.js (loads command module).
+| File | Purpose |
+|---|---|
+| `interlink.ts` | Owner-only cross-bot management (list/register/remove/send/broadcast/rotate-key/override). |
+
+## Design
+- Default-exports `{ data | name, description, options }` plus `async execute`. Owner gating via `isOwner`/`getOwnerIds`; Go-backed RPCs via `getInterlinkClient`; sensitive output directed to ephemeral replies/DMs; errors sanitized with `safeError`.
+- Patterns: Command (module encapsulates the cross-bot action with `execute`), Facade (single command surface over `InterlinkConnectClient` RPCs).
+
+## Flow
+1. Defer ephemerally, verify owner against `OWNER_IDS`.
+2. Extract subcommand and dispatch to list/register/remove/send/broadcast/rotate-key/override handler.
+3. Call `InterlinkConnectClient` (`listBots`, `registerBot`, `unregisterBot`, `send`); `broadcast` and `override` use target `*` fan-out.
+4. Format embed result via `editReply`/`followUp`.
+
+## Integration
+- Dependencies: `./connectClient.ts`, `src/db/knex.ts`, `src/utils/safeError.ts`, `src/utils/accessControl.ts`, `src/utils/discordErrors.ts`, `src/utils/logger.ts`, `discord.js`.
+- Consumed by `InterlinkPlugin` command loader.

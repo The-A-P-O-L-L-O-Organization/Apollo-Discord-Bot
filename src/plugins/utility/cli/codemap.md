@@ -1,11 +1,22 @@
-Responsibility
-Defines the structure and behavior of utility-related CLI commands for the Discord bot, providing a registry of command metadata and executable subcommand logic.
+# src/plugins/utility/cli/
 
-Design
-Uses the Command Registry pattern to export a command tree object. Each command may contain subcommands following the Subcommand Pattern. Asynchronous execution is handled via async execute functions that interact with a data access layer. The module abstracts persistence through getGuildData and setGuildData interfaces.
+## Responsibility
+CLI registry in `cli/index.ts` for tag CRUD plus socket-backed info actions.
 
-Flow
-Data enters via the args object passed to an execute subcommand, containing guild ID and user-provided options. The flow proceeds: (1) extract guild and options from args, (2) invoke getGuildData('tags', guild) to retrieve persisted tag map, (3) perform CRUD operations on the in‑memory map, (4) for mutating operations call setGuildData('tags', guild, updatedMap) to persist changes, (5) return a result object indicating success or failure with relevant payload. Read‑only subcommands skip the setGuildData step. Non‑tag commands (serverinfo, userinfo, ping, embed) declare needsSocket: true and rely on external socket‑based handlers; they define only metadata and options.
+## Files
 
-Integration
-Dependencies: reads from ../../../utils/db.js (getGuildData, setGuildData). Consumed by the command dispatcher or handler that maps incoming CLI interactions to this registry, invoking the appropriate execute function based on command and subcommand hierarchy. No internal hooks or events are defined; integration is purely data‑driven via the returned result objects.
+| File | Purpose |
+|------|---------|
+| `index.ts` | CLI registry for local tag CRUD plus socket-backed info actions |
+
+## Design
+- Exports command array with `{ name, description, options, subcommands? }`. `tags` subcommands (`list` and related CRUD) execute locally via `getGuildData`/`setGuildData` on the `tags` key; `serverinfo`, `userinfo`, `ping`, `embed` declare `needsSocket: true` and delegate to `utility.*` socket handlers.
+- Patterns: Command (each CLI entry encapsulates an action), Strategy (local versus socket-backed execution strategies).
+
+## Flow
+1. CLI dispatcher passes `args` with `guild` plus options.
+2. Tag reads mutate an in-memory map then persist via `setGuildData`; reads skip persistence.
+3. Socket commands forward over `/tmp/apollo.sock` and return structured results.
+
+## Integration
+- Depends on `src/utils/db.ts`; consumed by `bin/apollo.ts` dispatcher and plugin manager socket registry.

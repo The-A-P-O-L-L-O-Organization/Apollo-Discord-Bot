@@ -1,3 +1,7 @@
+# AGENTS.md — Apollo Discord Bot v3 Agent Guide
+
+This file is the operating contract for AI coding agents working in this repository. Read it before planning, editing, testing, reviewing, or committing. It supplements `README.md`, `INSTALLATION.md`, `CONTRIBUTING.md`, `SECURITY.md`, and the codemaps. If instructions conflict, prefer safe behavior, current TypeScript sources, and explicit user direction.
+
 ## Repository Map
 
 A full codemap is available at `codemap.md` in the project root.
@@ -9,59 +13,320 @@ Before working on any task, read `codemap.md` to understand:
 
 For deep work on a specific folder, also read that folder's `codemap.md`.
 
-## Stack & Conventions
+## Table of Contents
 
-- **pnpm only** — this project uses pnpm workspaces. Do not use npm or yarn. Install with `pnpm install`, run scripts with `pnpm <script>`.
-- **ESM only** (`"type": "module"` in `package.json`). Use `import`/`export`, not `require`.
-- **Node.js**, **discord.js v14**, **BullMQ** + **ioredis** for queue, **Knex** for DB (PostgreSQL or SQLite via `config.db`).
-- **pnpm** workspace. `pnpm-workspace.yaml` declares `bot` as a workspace package and whitelists native builds (`better-sqlite3`, `@tensorflow/tfjs-node`, `core-js`, `msgpackr-extract`).
-- **Lint**: `pnpm lint` runs ESLint flat config (`eslint.config.js`). Style: 4-space indent, single quotes, semicolons, no trailing commas, `eqeqeq`, `curly: all`. Unused args prefixed with `_` are allowed.
-- **Test**: `pnpm test` runs Vitest. Tests live in `tests/**/*.test.js`. Setup file: `tests/setup.js` (mocks console, extends `EmbedBuilder` with getters). Coverage excludes `src/index.js` and `src/handlers/**`.
-- **No emojis** in source or docs. No code comments unless explicitly requested.
+- [1. Repository Map and Required Reading](#1-repository-map-and-required-reading)
+- [2. Stack and Runtime Truth](#2-stack-and-runtime-truth)
+- [3. Entry Points and Run Modes](#3-entry-points-and-run-modes)
+- [4. Commands Agents Must Use](#4-commands-agents-must-use)
+- [5. TypeScript and Style Contract](#5-typescript-and-style-contract)
+- [6. Logging, Errors, and Async Rules](#6-logging-errors-and-async-rules)
+- [7. Plugin System](#7-plugin-system)
+- [8. Queue, Gateway, Workers, and EventBus](#8-queue-gateway-workers-and-eventbus)
+- [9. Database Contract](#9-database-contract)
+- [10. i18n Contract](#10-i18n-contract)
+- [11. Protobuf and Generated Code](#11-protobuf-and-generated-code)
+- [12. Observability Contract](#12-observability-contract)
+- [13. Tests and Fixtures](#13-tests-and-fixtures)
+- [14. Environment and Secrets](#14-environment-and-secrets)
+- [15. Security Rules for Agents](#15-security-rules-for-agents)
+- [16. Performance and Multi-Instance Rules](#16-performance-and-multi-instance-rules)
+- [17. Documentation and Codemap Duties](#17-documentation-and-codemap-duties)
+- [18. Git, Commits, and Pull Requests](#18-git-commits-and-pull-requests)
+- [19. Verification Before Completion](#19-verification-before-completion)
+- [20. Toolchain and Workflow Conventions](#20-toolchain-and-workflow-conventions)
+- [21. Gotchas and Prohibited Actions](#21-gotchas-and-prohibited-actions)
 
-## Entry Points & Run Modes
+## 1. Repository Map and Required Reading
 
-- `src/index.js` — main bot. `pnpm start` runs it.
-- `RUN_MODE=gateway pnpm start` — gateway leader-election mode (`src/gateway/leader.js`).
-- `RUN_MODE=worker pnpm start` — worker mode (processes BullMQ jobs).
-- `bin/apollo.js` — CLI entry. `pnpm apollo` or `node bin/apollo.js`.
-- `deploy-commands.js` — registers slash commands with Discord. Requires `DISCORD_TOKEN` and `CLIENT_ID` in `.env`. If `GUILD_ID` is set, deploys to that guild (instant); otherwise global (up to 1h propagation).
+A full repository atlas lives at `codemap.md` in the project root. Subdirectory behavior is documented in per-folder `codemap.md` files.
 
-## Plugin System
+Before working on any task:
 
-- Plugins live in `src/plugins/<name>/` with `plugin.js` (exports class extending `src/core/Plugin.js`), `commands/`, `events/`, optional `cli/`.
-- `PluginManager` (`src/core/PluginManager.js`) discovers, loads, and enables plugins. Lifecycle: `onLoad` → `onEnable` → `onDisable` → `onUnload`.
-- Installed (third-party) plugins run sandboxed in worker processes via `src/core/worker/workerHost.js` + `workerChild.js`. Capability checks via `pluginManifest.js`.
-- Socket handlers: `manager.registerSocketHandler('namespace.action', handler)` for admin-style RPC over Unix socket `/tmp/apollo.sock` (or `APOLLO_SOCKET_PATH`).
+1. Read root `codemap.md` for architecture, entry points, directory responsibilities, and integration points.
+2. Read the target folder's `codemap.md` for deep work, especially `src/`, `src/core/`, `src/plugins/`, `src/queue/`, `src/db/`, `src/config/`, `src/utils/`, `src/i18n/`, `src/observability/`, `src/types/`, `scripts/`, `protos/`, `services/interlink/`, and `tests/`.
+3. Read `README.md` for features, architecture, command inventory, environment reference, and runbooks.
+4. Read `INSTALLATION.md` before changing startup, Docker, migration, environment, or deployment behavior.
+5. Read `CONTRIBUTING.md` before writing code, tests, migrations, locales, protobuf changes, or docs.
+6. Read `SECURITY.md` before handling secrets, auth, plugins, interlink, webhooks, database access, subprocesses, filesystem access, or network calls.
+7. Inspect `package.json` scripts and the referenced implementation files before claiming a workflow exists.
 
-## Queue & Interlink
+Do not rely on stale memory. JavaScript v2 paths such as `src/index.js`, `src/handlers/`, `src/worker.js`, or `deploy-commands.js` are obsolete. The active implementation is TypeScript under `src/**/*.ts`, built to `dist/`, with scripts under `scripts/*.ts` and `scripts/*.mjs`.
 
-- BullMQ queues created in `src/queue/queue.js`. Jobs processed by `src/queue/jobs/processCommand.js`.
-- `serializeInteraction.js` flattens Discord interactions for queue transport; `remoteInteraction.js` reconstructs them in workers.
-- Interlink (`src/plugins/interlink/`) is a separate HTTP/Express server for bot-to-bot RPC with Redis-backed rate limiting and auth.
+## 2. Stack and Runtime Truth
 
-## Database
+- **Runtime:** Node.js 22 or later; CI and production target Node.js 26.
+- **Package manager:** pnpm only. Never use npm or yarn. Install with `pnpm install`; run scripts with `pnpm <script>`.
+- **Language:** Strict TypeScript with ESM (`"type": "module"`). Use `import` and `export`; do not use `require`.
+- **Bot framework:** discord.js v14. Stay compatible with the v15 audit in `docs/discordjs-v15-audit.md`; do not introduce v15-only APIs.
+- **Queue:** BullMQ plus ioredis. Redis is required for queue, cross-pod EventBus, schedulers, spam counters, and interlink state.
+- **Database:** Knex with PostgreSQL for shared deployments or SQLite through better-sqlite3 for single instance. Selection is controlled by `config.db`.
+- **Dev execution:** `tsx` for TypeScript entry points.
+- **Production execution:** compiled JavaScript in `dist/` generated by `tsc`.
+- **Protobuf:** `buf` for lint and breaking-change detection; generated TypeScript lives under `src/generated/`.
+- **Auxiliary services:** Rust NSFW service and Go interlink relay under `services/interlink/`.
+- **Observability:** OpenTelemetry plus Prometheus metrics plus structured pino logs.
+- **Tests:** Vitest with TypeScript tests under `tests/**/*.test.ts`.
+- **Lint:** ESLint flat config in `eslint.config.js`.
+- **Native builds:** `better-sqlite3` and related packages are allow-listed in `pnpm-workspace.yaml` and rebuilt in `postinstall`.
 
-- Knex migrations in `src/db/migrations/` (`.cjs` files). Run via `pnpm run migrate` or admin `/migrate` command.
-- Adapter pattern in `src/db/adapter.js` provides `getGuildData`/`setGuildData`/`getUserData`/`setUserData` with JSON serialization.
-- `src/utils/db.js` is the high-level wrapper used by commands.
+## 3. Entry Points and Run Modes
 
-## Environment
+- `src/index.ts`: main bot entry. `pnpm start` executes `tsx src/index.ts`.
+- `RUN_MODE=gateway pnpm start`: gateway and leader-election role using `src/gateway/leader.ts`.
+- `RUN_MODE=worker pnpm start`: queue worker role processing BullMQ jobs.
+- `pnpm dev`: watch-mode development with `tsx watch src/index.ts`.
+- `bin/apollo.ts`: administrative CLI. `pnpm apollo` or `node --import tsx bin/apollo.ts`.
+- `scripts/deploy-commands.ts`: Discord slash-command registration. Requires `DISCORD_TOKEN` and `CLIENT_ID`; guild-scoped when `GUILD_ID` is set, otherwise global with propagation delay.
+- `src/shard.ts`: sharding entry where configured.
+- `src/worker.ts`: worker entry for queue-processing deployments.
+- Production containers run `node dist/index.js` after `pnpm build`.
 
-- `.env` required. Copy from `.env.example`. `dotenv/config` is imported at the top of `src/index.js` and `bin/apollo.js`.
-- `src/utils/startupChecks.js` validates `DISCORD_TOKEN` and operator agreement on boot.
-- Redis required for queue + interlink + cross-pod EventBus.
+Do not add new entry points without updating `package.json`, Docker images, `README.md`, `INSTALLATION.md`, and relevant codemaps.
 
-## CI & Deploy
+## 4. Commands Agents Must Use
 
-- `.github/workflows/`: `ci.yml` (lint + test), `docker.yml`, `deploy.yml`, `release.yml`, `security.yml`, `setup.yml`.
-- Docker: `Dockerfile` (dev), `Dockerfile.prod` (production). `docker-compose.yml` orchestrates bot + Redis + Postgres.
-- `pnpm manifest` regenerates `plugin-manifest.json` (SHA-256 hashes of source files for integrity verification).
+Use these pnpm scripts; do not invent equivalents.
 
-## Gotchas
+| Task | Command |
+|------|---------|
+| Install | `pnpm install` |
+| Start production sources | `pnpm start` |
+| Development watch | `pnpm dev` |
+| Build | `pnpm build` |
+| Typecheck | `pnpm typecheck` |
+| Lint sources | `pnpm lint` |
+| Lint locales | `pnpm lint:locales` |
+| Test | `pnpm test` |
+| Focused test file | `pnpm vitest run <path>` |
+| Coverage | `pnpm coverage` |
+| Migrate database | `pnpm migrate` |
+| Register commands | `pnpm deploy-commands` |
+| Regenerate manifest | `pnpm manifest` |
+| Admin CLI | `pnpm apollo -- <args>` |
+| Proto lint | `pnpm proto:lint` |
+| Proto breaking check | `pnpm proto:breaking` |
+| Dependency audit | `pnpm audit` |
 
-- `src/data/` is gitignored — runtime data (SQLite DB, logs) lives there.
-- `tests/mocks/` is ESLint-ignored — mock files don't need to pass lint.
-- `src/handlers/` is excluded from coverage — legacy/auto-generated handlers.
-- `pnpm rebuild better-sqlite3` runs in `postinstall` — required for native binding.
-- Plugin commands must `export default` an object with `data` (SlashCommandBuilder) or `name`/`description`/`options` for `deploy-commands.js` to pick them up.
+`postinstall` runs `pnpm rebuild better-sqlite3`. `preinstall` restricts installs to pnpm. Respect both.
+
+## 5. TypeScript and Style Contract
+
+- Strict mode is mandatory. `noUncheckedIndexedAccess` is enabled; handle possibly undefined indexing explicitly.
+- Relative ESM imports must include the `.js` suffix even in `.ts` sources, for example `../utils/logger.js`.
+- Use `import type` for type-only imports.
+- `no-explicit-any` is an error in `src/`; use `unknown`, precise unions, zod schemas, or narrowly scoped helpers.
+- Floating promises are errors. Await or explicitly void every promise.
+- Style is 4-space indentation, single quotes, semicolons, no trailing commas, `eqeqeq`, and `curly: all`.
+- Unused function arguments must use an underscore prefix.
+- Do not use emojis in source, tests, docs, codemaps, commit messages, or PR text.
+- Do not add code comments unless explicitly requested. Prefer self-descriptive names and tests over explanatory comments.
+- Prefer existing utilities in `src/utils/` over duplicated helpers.
+- Keep modules focused. Prefer small, testable units with explicit dependencies and injected clients where practical.
+
+Formatting and lint checks are verification gates, not optional polish.
+
+## 6. Logging, Errors, and Async Rules
+
+- Use structured pino loggers from `src/utils/logger.ts`. Never use `console.log`, `console.warn`, or `console.error` in runtime code.
+- Child loggers should include plugin, command, guild, or operation context where useful.
+- User-facing Discord errors must be safe summaries. Never leak stack traces, SQL, filesystem paths, Redis errors, token fragments, queue payloads, or upstream secrets.
+- Validate Discord options, button IDs, modal fields, webhook payloads, queue jobs, RPC messages, config values, durations, snowflakes, quantities, role and channel targets, and file paths before use.
+- Handle null guilds, missing channels, missing members, partial messages, hierarchy failures, and permission denials explicitly.
+- Timeouts, retries, and external API calls must have bounded timeouts and safe fallbacks.
+- Background work must be awaited, cancellable, or lifecycle-managed. Do not leave unhandled rejections.
+
+## 7. Plugin System
+
+Plugins live under `src/plugins/<name>/` with:
+
+- `plugin.ts` exporting a class extending `src/core/Plugin.ts`
+- `commands/` containing command modules
+- `events/` containing event handlers
+- Optional `cli/` extensions
+- Locale files under `src/i18n/<locale>/<plugin>.json`
+
+First-party plugins are: `admin`, `automod`, `integrations`, `interlink`, `moderation`, `tickets`, and `utility`.
+
+Lifecycle order is `onLoad`, `onEnable`, `onDisable`, and `onUnload`. Keep transitions idempotent and reversible.
+
+Installed third-party plugins may run sandboxed in worker child processes through `src/core/worker/workerHost.ts` and `workerChild.ts`. Capability checks use `pluginManifest.ts`. Plugin commands must export a default object with either a SlashCommandBuilder `data` property or `name`, `description`, and `options`.
+
+Socket RPC handlers use:
+
+```ts
+manager.registerSocketHandler('namespace.action', handler);
+```
+
+The socket defaults to `/tmp/apollo.sock` or `APOLLO_SOCKET_PATH`.
+
+Regenerate integrity data with `pnpm manifest` after plugin source changes and keep manifest updates in focused commits. Never bypass verification with `ALLOW_UNVERIFIED_PLUGINS=1` except for explicitly local development.
+
+## 8. Queue, Gateway, Workers, and EventBus
+
+- BullMQ queues are created in `src/queue/queue.ts`; command execution jobs are processed by `src/queue/jobs/processCommand.ts`.
+- `serializeInteraction.ts` flattens Discord interactions for transport; `remoteInteraction.ts` reconstructs them in workers.
+- Keep payload serializable and minimal. Revalidate reconstructed interactions because queue data crosses a trust boundary.
+- Redis-backed EventBus in `src/core/EventBus.ts` carries cross-pod lifecycle and domain events. Event names should use `plugin.action` form.
+- Gateway leader election lives in `src/gateway/leader.ts` with Redis fencing. Only the leader connects to Discord and runs schedulers.
+- Reused schedulers include reminders, polls, giveaways, SLA checks, analytics aggregation, NSFW model polling, translation polling, transcript cleanup, and utility cleanup.
+- Every recurring task must use `withLock` coordination so only one pod executes it.
+- Queue health commands and metrics must remain accurate; do not change queue names, prefixes, job options, or failure semantics without updating workers, docs, dashboards, and tests.
+
+## 9. Database Contract
+
+- Use `src/utils/db.ts` for guild and user data access. Do not bypass it with direct Knex calls except inside the bridge and migrations.
+- Adapter methods include `getGuildData`, `setGuildData`, `getUserData`, and `setUserData`, with JSON serialization handled centrally.
+- Updates must be atomic read-modify-write operations. Read-modify-write races must use transactions, conditional updates, or locking.
+- Migrations live in `src/db/migrations/*.cjs` and must run on both SQLite and Postgres when shared tables change.
+- Migrations must be reversible, tested forward and backward, and must not lose data without an explicit backup and operator action.
+- `src/data/` is gitignored runtime state. Never commit databases, logs, transcripts, or local runtime files.
+- Tests must use isolated temporary databases. Never touch development or production data.
+
+## 10. i18n Contract
+
+Internationalization uses i18next with 6 supported locales and `en-US` as canonical.
+
+- Namespace equals plugin ID. Always call `t('plugin:key')`, for example `t('moderation:ban.success')`.
+- Keep `en-US` complete; do not ship features with missing canonical strings.
+- Preserve `{{variable}}` placeholders exactly across locales.
+- Preserve pluralization suffixes and formatting conventions.
+- Use fixed translators for concurrent operations to avoid locale leakage.
+- German user-facing copy uses informal `du`, not formal `Sie`.
+- Validate locale changes with `pnpm lint:locales`.
+- Do not edit generated translation snapshots or unsupported locale files to make checks pass.
+
+Detailed translator guidance lives in `docs/i18n.md`.
+
+## 11. Protobuf and Generated Code
+
+- Source contracts live in `protos/interlink/` and `protos/nsfw/`.
+- Generated TypeScript lives under `src/generated/` and must not be hand-edited.
+- Regenerate with the documented buf workflow, then run `pnpm proto:lint` and `pnpm proto:breaking`.
+- Breaking changes require a major version or explicit compatibility plan.
+- Keep generated code, checked-in manifests, and runtime parsing behavior synchronized.
+- Interlink relay code lives in `services/interlink/` and has its own Go module. Coordinate TypeScript and Go changes carefully.
+
+## 12. Observability Contract
+
+- Tracing uses OpenTelemetry configured through `src/observability/`.
+- Metrics use Prometheus conventions. New user-facing workflows should expose meaningful counters, histograms, or gauges where appropriate.
+- Health endpoints must remain accurate and lightweight.
+- Structured logs must remain queryable; preserve field names and avoid free-form secret-bearing messages.
+- Sampling is controlled by `LOG_SAMPLE_RATE`. Lower it only after confirming incident investigation remains possible.
+- Do not add high-cardinality labels, unbounded log fields, expensive synchronous telemetry, or user content to traces and metrics.
+
+## 13. Tests and Fixtures
+
+- Tests live in `tests/**/*.test.ts`. There are approximately 162 test files.
+- Setup is in `tests/setup.ts`. Shared Discord mocks live in `tests/mocks/discord.ts`.
+- Coverage excludes `src/index.ts`, `src/handlers/**`, tests, binaries, scripts, generated code, and `dist`.
+- Follow existing Vitest structure and naming. Prefer focused unit tests plus integration tests for cross-cutting behavior.
+- Mock Discord.js, filesystem, network, Redis, database, timers, and randomness deterministically.
+- Security-relevant changes require tests for auth, authorization, validation, signature verification, path containment, rate limiting, and safe error handling.
+- Do not weaken tests, snapshots, or coverage thresholds to make a change pass.
+- Run relevant tests before completion. Run broader suites when touching shared utilities, core lifecycle, queue, database, i18n, protobuf, or observability.
+
+## 14. Environment and Secrets
+
+- `.env` is required. Copy from `.env.example`; `dotenv/config` is loaded by `src/index.ts` and `bin/apollo.ts`.
+- Startup validation in `src/utils/startupChecks.ts` requires `DISCORD_TOKEN`, operator agreement, operator contact, and `ENCRYPTION_KEY`.
+- Never read, print, echo, paste, or commit secret values. Use EnvSitter tools for key existence, shape, fingerprint, and mutation workflows.
+- Required boot secrets include `DISCORD_TOKEN`, `CLIENT_ID`, `OWNER_IDS`, `OPERATOR_AGREEMENT=true`, `OPERATOR_CONTACT`, and `ENCRYPTION_KEY`.
+- Production also needs accurate `NODE_ENV`, database settings, Redis settings, queue HMAC secrets, socket tokens where applicable, integration credentials actually used, and interlink secrets where enabled.
+- Rotation supports comma-separated `ENCRYPTION_KEY` values with the current key first. Remove old keys after re-encryption completes.
+- Keep development, test, staging, and production credentials separate.
+
+## 15. Security Rules for Agents
+
+- Treat Discord input, webhook bodies, queue payloads, RPC messages, plugin archives, file paths, and external API responses as untrusted.
+- Use parameterized database access. Raw SQL requires explicit justification and bound parameters.
+- Escape HTML and markdown in transcripts, embeds, announcements, analytics exports, and user-controlled content.
+- Constrain file operations to intended directories. Reject traversal, absolute-path escapes, oversized uploads, and symlink surprises.
+- Require HTTPS for plugin downloads and external APIs. Plain HTTP is acceptable only for explicitly local endpoints.
+- Verify GitHub webhook HMAC signatures before parsing; preserve raw bodies through proxies.
+- Keep interlink shared secrets distinct per trust group. Anyone holding them can impersonate trusted bots.
+- Do not bypass plugin verification, capability checks, permission checks, rate limits, idempotency, or audit logging.
+- Report suspected vulnerabilities privately; do not create public issues or PRs with exploit details.
+
+## 16. Performance and Multi-Instance Rules
+
+- Prefer database indexes and bounded queries over in-memory filtering of large datasets.
+- Use pagination for Discord message fetches, member lists, audit logs, and large result sets.
+- Preserve Redis TTLs on spam, raid, rate-limit, lock, and coordination keys.
+- Keep BullMQ payloads small and job options explicit.
+- Scheduler and poller work must remain idempotent because at-most-once delivery and failover retries can duplicate execution.
+- Multi-instance deployments require `DB_TYPE=postgres`, `DATABASE_URL`, `QUEUE_ENABLED=true`, and Redis. SQLite does not support concurrent writers.
+- Test sharding, leader failover, worker restarts, Redis outages, and Postgres failover behavior when changing lifecycle, queue, scheduler, or state code.
+
+## 17. Documentation and Codemap Duties
+
+Agents must keep docs synchronized with implementation:
+
+- Update `README.md` for features, commands, architecture, environment, scripts, deployment, or troubleshooting changes.
+- Update `INSTALLATION.md` for prerequisites, Discord setup, environment, Docker, database, Redis, interlink, upgrade, or verification changes.
+- Update `CONTRIBUTING.md` for workflow, style, plugin, test, migration, locale, protobuf, review, or release changes.
+- Update `SECURITY.md` for threat model, secret handling, auth, plugin, interlink, webhook, database, logging, infrastructure, or CI changes.
+- Update root `codemap.md` for new directories, entry points, responsibilities, flows, or integration points.
+- Update the relevant per-folder `codemap.md` using its Responsibility, Design, Flow, and Integration sections.
+- Update `docs/i18n.md`, `docs/architecture/`, and `docs/runbooks/` when their subjects change.
+- Never use emojis in docs or codemaps. Never add code comments unless explicitly requested.
+
+## 18. Git, Commits, and Pull Requests
+
+- Only commit, amend, push, or create PRs when explicitly requested.
+- Before committing, inspect `git status`, `git diff`, and recent log entries. Stage only intended files and never commit secrets, `.env`, runtime data, logs, transcripts, or local SQLite files.
+- Write concise commit messages matching repository style. Keep manifest regeneration in a separate focused commit.
+- Do not update git config, skip hooks, use interactive staging, force-push, or create empty commits unless explicitly requested.
+- If a commit fails or hooks reject it, fix the issue and create a new commit; do not amend failed commits.
+- Before creating a PR, inspect status, diff, remote tracking, recent commits, and base-branch diff. Review all included commits, not only the latest.
+- Use `gh` for GitHub tasks and return the PR URL when done.
+- Keep PRs focused. Separate unrelated refactors, dependency updates, manifest regeneration, generated-code updates, and docs-only changes where practical.
+
+## 19. Verification Before Completion
+
+Run the smallest set of checks needed to establish correctness, then quote their output before reporting success. Missing tools mean blocked, not passed.
+
+Required gates depend on the change:
+
+| Change | Required verification |
+|--------|-----------------------|
+| TypeScript sources | `pnpm lint`, `pnpm typecheck`, relevant Vitest files |
+| Plugin behavior | `pnpm lint`, relevant plugin tests, `pnpm manifest` when source hashes change |
+| Database or migration | migration forward/backward test, both SQLite and Postgres where applicable, adapter tests |
+| Queue, worker, gateway, scheduler | queue tests, worker tests, integration tests where applicable |
+| Locales | `pnpm lint:locales` plus i18n tests |
+| Protobuf or generated code | `pnpm proto:lint`, `pnpm proto:breaking`, generated-code tests |
+| Rust NSFW | Rust build/test commands |
+| Go interlink | Go build/test/lint commands |
+| Docker or deployment | image build validation and Compose checks |
+| Docs or codemaps only | markdown consistency review and link verification |
+
+Do not run verification after every edit. Complete the intended change, then run batched checks once. Do not repeat successful checks unless later edits invalidate them.
+
+## 20. Toolchain and Workflow Conventions
+
+- Use pnpm only. Never substitute npm, npx, yarn, or bun.
+- Use the fnm environment first for Node workflows so the correct toolchain is active.
+- Use tool `workdir` parameters rather than `cd <dir> && <cmd>`.
+- Put temporary work in `/tmp/opencode/`, never in the repository or home directory.
+- View files with `bat --style=numbers`; diff with `delta --side-by-side` where available.
+- Use Context7 MCP for current library, framework, SDK, API, CLI, or cloud-service documentation, even for familiar projects.
+- Use the reviewer pattern after implementation: request a read-only review, address findings, then run lint, format, typecheck, and tests before finishing.
+- JavaScript and TypeScript formatting uses Biome with Prettier as fallback; Python uses Ruff check plus format. Agents run check-only commands unless explicitly asked to write fixes.
+
+## 21. Gotchas and Prohibited Actions
+
+- `src/data/` is gitignored runtime state. Do not commit it.
+- `tests/mocks/` is ESLint-ignored. Mock files do not need to pass source lint.
+- `src/handlers/` is excluded from coverage because it is legacy or generated; do not treat its absence as a missing feature.
+- `pnpm rebuild better-sqlite3` runs in `postinstall`; native binding failures usually mean a toolchain or architecture issue.
+- Plugin commands must export a default object with `data` or `name`, `description`, and `options`, or `scripts/deploy-commands.ts` will ignore them.
+- `ENCRYPTION_KEY` rotation uses comma-separated values; keep the active key first.
+- Startup caps Postgres pool maximums near 80 percent of `max_connections`; do not override this guard with an unbounded pool.
+- Interlink delivery is at-most-once; do not assume remote actions succeeded without confirmation.
+- Leader election has a failover window; brief real-time disruption during gateway transition is expected.
+- Postgres 18 stores data at `/var/lib/postgresql`; upgrades from older majors require dump/restore or `pg_upgrade` into a fresh volume.
+- `plugin-manifest.json` drift fails CI; regenerate and review hash diffs rather than editing hashes manually.
+- Coverage excludes generated code, binaries, scripts, tests, and `dist`; do not chase coverage in those paths.
+- Do not create documentation files unless explicitly requested, except when this guide or an explicit docs task requires README, INSTALLATION, CONTRIBUTING, SECURITY, or codemap updates.

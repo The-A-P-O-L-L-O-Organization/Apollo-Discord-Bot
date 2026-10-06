@@ -1,11 +1,22 @@
-# Responsibility
-Defines CLI command specifications for ticket management subsystem.
+# src/plugins/tickets/cli/
 
-# Design
-Command registry pattern: exports default object with `name`, `description`, and `commands` array. Each command includes `name`, `description`, optional `needsSocket` boolean, `options` array for argument schema, and for read-only commands an `execute` async function.
+## Responsibility
+CLI registry in `cli/index.ts` for ticket administration: `list` locally plus socket-backed `create`, `close`, `add`, `remove`.
 
-# Flow
-Input: command dispatcher passes `args` object containing `guild` and other parameters. For `list` command, `execute` invokes `getGuildData('tickets', args.guild)`, transforms ticket records into `open` and `closed` arrays, returns counts and lists. For mutating commands (`create`, `close`, `add`, `remove`), `needsSocket: true` indicates handling via WebSocket layer; no local execute; socket consumer validates options and performs state mutation via backend services.
+## Files
 
-# Integration
-Dependencies: `../../../utils/db.js` (getGuildData). Consumers: command dispatcher (e.g., `src/plugins/base/commandHandler.js`), socket processor (e.g., `src/plugins/tickets/socketHandler.js`).
+| File | Purpose |
+|------|---------|
+| `index.ts` | CLI registry for local ticket listing plus socket-backed mutations |
+
+## Design
+- Exports default `{ name, description, commands[] }` with `{ name, description, needsSocket, options, execute? }`. `list` executes via `getGuildData('tickets', guild)` returning open/closed counts and details; mutating commands set `needsSocket: true`.
+- Patterns: Command (each CLI entry encapsulates an action), Strategy (local-read versus socket-mutation execution strategies).
+
+## Flow
+1. Dispatcher passes `args` with `guild` and ids/reason.
+2. `list` transforms stored records without mutation.
+3. Mutations forward to `tickets.*` socket handlers for validation and persistence.
+
+## Integration
+- Depends on `src/utils/db.ts`; consumed by `bin/apollo.ts` dispatcher and plugin manager socket registry.

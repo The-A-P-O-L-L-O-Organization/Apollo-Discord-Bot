@@ -1,19 +1,23 @@
-Responsibility
-Provide slash command interface for managing external service integrations (Twitch, YouTube, GitHub, RSS) including subscription creation, removal, and listing.
+# src/plugins/integrations/commands/
 
-Design
-Implements the command pattern with subcommand structure (add, remove, list). Uses a data access abstraction via getData/setData utilities for persistent storage. Follows Discord.js interaction handler pattern with async execute function. Includes error handling via discordErrors utility and logging via logger utility.
+## Responsibility
+Single slash module `integration.ts` with subcommands `add`, `remove`, `list` for Twitch, YouTube, GitHub, and RSS subscriptions.
 
-Flow
-1. Interaction received via Discord.js interactionCreate event.
-2. Command handler routes to integration.js execute function.
-3. execute extracts subcommand and delegates to corresponding handler (handleAdd, handleRemove, handleList).
-4. Handlers interact with data layer: getData retrieves integration store, setData persists changes.
-5. State transitions: add increments nextId and appends subscription; remove filters and splices; list reads and formats.
-6. Handlers construct interaction replies with appropriate content/embeds and return promises.
-7. Error handling: catches exceptions, formats via handleDiscordError, and replies via safeReply/safeFollowUp.
+## Files
 
-Integration
-Dependencies: discord.js (PermissionFlagsBits, Interaction, MessageFlags), ../../../utils/db.js (getData, setData), ../../../utils/discordErrors.js (handleDiscordError, safeReply, safeFollowUp), ../../../utils/logger.js (logger).
-Consumed by: Command loader/invoker (typically via index.js in parent commands directory).
-Hooks: Registered as a command module; triggered on interactionCreate when command name matches 'integration'.
+| File | Purpose |
+|---|---|
+| `integration.ts` | Adds, removes, and lists Twitch/YouTube/GitHub/RSS subscriptions. |
+
+## Design
+- Default-exports `{ data | name, description, options }` plus `async execute`. Subcommand dispatch to `handleAdd`, `handleRemove`, `handleList` with `getData`/`setData` persistence, permission gating, and sanitized error replies.
+- Patterns: Command (module encapsulates the integration action with `execute`), Strategy (add/remove/list handlers selected by subcommand).
+
+## Flow
+1. Interaction routed to `integration.ts` execute.
+2. `add` validates target, increments id, appends subscription; `remove` filters by id and guild; `list` reads guild subscriptions and formats embed.
+3. Replies via `safeReply`/`safeFollowUp`; errors via `handleDiscordError`.
+
+## Integration
+- Dependencies: `discord.js`, `src/utils/db.ts`, `src/utils/discordErrors.ts`, `src/utils/logger.ts`.
+- Consumed by `IntegrationsPlugin._loadCommands` and `scripts/deploy-commands.ts`.

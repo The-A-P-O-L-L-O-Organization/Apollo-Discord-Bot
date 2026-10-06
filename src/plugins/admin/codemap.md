@@ -1,42 +1,31 @@
-# Responsibility
-The admin plugin provides administrative capabilities for managing other plugins, logging settings, and system operations within the application. It includes slash commands for moderation, configuration, and plugin lifecycle management, event listeners for audit logging and automated moderation (e.g., reaction roles), and a CLI interface for administrative tasks.
+# src/plugins/admin/
 
-# Design
-- **Plugin Architecture**: Extends the base `Plugin` class (`../../core/Plugin.js`) to integrate with the bot's plugin system, following the lifecycle (`onEnable`/`onDisable`).
-- **Modular Subsystems**: 
-  - `commands/`: Administrative slash commands using Discord.js `SlashCommandBuilder` with subcommand patterns.
-  - `events/`: Discord event listeners following the `name`, `once`, `execute` pattern for audit logging and automated actions.
-  - `cli/`: Command-line interface definitions for administrative tasks, consumed by the core command handler.
-- **Socket Interface**: Registers RPC-style handlers over Unix socket (`admin.*`) for remote plugin management and logging configuration.
-- **Dependencies**: Utilizes core utilities for logging (`logger.js`), database access (`db.js`), configuration (`config.js`), and plugin registry (`PluginRegistry.js`).
+## Responsibility
+Bot administration: plugin lifecycle, logging configuration, queue inspection, migrations, system health, language, and reaction roles. Backed by `commands/` (8 files), `events/` (11 files), and `cli/`.
 
-# Flow
-1. **Enable**: 
-   - Loads all slash commands from `commands/` via `_loadCommands()`.
-   - Loads all event listeners from `events/` via `_loadEvents()`.
-   - Registers socket handlers for plugin management (`admin.plugin.*`) and logging configuration (`admin.logging.set`).
-2. **Runtime**:
-   - Slash commands are invoked through Discord interactions, handled by the core command system.
-   - Event listeners react to Discord events (e.g., `guildBanAdd`, `messageReactionAdd`) to perform logging, role assignments, or audit actions.
-   - Socket handlers allow external processes (via Unix socket) to trigger plugin enable/disable/reload/install/uninstall and update logging settings.
-3. **Disable**:
-   - Unloads commands and events to clean up resources.
-   - Socket handlers are automatically removed when the plugin is disabled.
+## Files
 
-# Integration
-- **Internal Dependencies**:
-  - Core Plugin system (`../../core/Plugin.js`) for lifecycle management.
-  - Command handler (`../../core/CommandHandler.js`) for slash command registration and execution.
-  - Event system (Discord client) for listener attachment.
-  - Socket handler registry (`manager.socketHandlerRegistry`) for RPC exposure.
-  - Utility modules: `logger.js` (logging), `db.js` (guild/user data), `config.js` (configuration).
-  - Plugin registry (`../../core/PluginRegistry.js`) for plugin metadata in management commands.
-- **External Integrations**:
-  - Discord.js for command interactions and event handling.
-  - Unix socket (`/tmp/apollo.sock` or `APOLLO_SOCKET_PATH`) for administrative RPC.
-  - Database (via Knex) for persistent guild/user settings modified by commands.
-  - Redis (indirectly via BullMQ) for queue-related admin commands.
-- **Consumers**:
-  - End-users via Discord slash commands (admin/moderation).
-  - External scripts or admin tools via socket interface.
-  - CLI tool (`bin/apollo.js`) for command-line administrative operations.
+| File | Purpose |
+|------|---------|
+| `plugin.ts` | Defines AdminPlugin class with admin socket handler registration |
+
+Subdirectories: `commands/`, `events/`, `cli/`, `locales/`.
+
+## Design
+- Class `AdminPlugin` in `plugin.ts` extends `src/core/Plugin.ts` (`id = 'admin'`, `version 1.0.0`). `onEnable` loads commands/events and registers `admin.*` socket handlers; `onDisable` unloads. Idempotent.
+- Commands default-export `{ data | name, description, options }` with owner/permission guards (`requireOwner` where applicable).
+- Events export `{ name, once, execute }` for audit logging and reaction-role automation.
+- i18n namespace `admin`, locales in `locales/<locale>/common.json` (6 locales, `en-US` canonical, fixed translators, informal `du`).
+- Patterns: Template Method (plugin lifecycle hooks), Command (command modules with `execute`), Observer (event handlers subscribed by name).
+
+## Flow
+1. Enable: `_loadCommands`, `_loadEvents`, register `admin.plugin.*` and `admin.logging.*` socket RPC.
+2. Slash path: permission guard, subcommand dispatch, read `src/utils/db.ts` or service state, mutate, persist, embed reply.
+3. Event path: validate partials and bot filtering, enrich via audit logs, build embed via logger helpers, persist via `logEvent`, apply role side effects.
+4. Socket path: external scripts trigger enable/disable/reload and logging updates over `/tmp/apollo.sock`.
+5. Disable: unload commands/events.
+
+## Integration
+- Core `src/core/Plugin.ts`, `src/core/PluginRegistry.ts`; utils `src/utils/logger.ts`, `src/utils/db.ts`, `src/config/config.ts`, `src/utils/accessControl.ts`.
+- Queue metrics via `src/queue/metrics.ts`, migrations via `src/db/knex.ts`, Redis via `ioredis` for system checks.
+- Consumers: Discord slash router, `bin/apollo.ts` CLI, Unix socket RPC clients.

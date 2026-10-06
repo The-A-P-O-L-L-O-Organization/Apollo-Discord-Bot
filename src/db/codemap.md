@@ -1,36 +1,29 @@
-Responsibility
-Manages database connectivity, schema migrations, and data access for persistent storage of guild, user, and interlink bot data using Knex.js. Supports both PostgreSQL and SQLite (better-sqlite3) with environment-driven configuration. Provides encrypted storage for sensitive fields and a test utility to reset the database.
+# src/db/codemap.md
 
-Design
-- Singleton Pattern: Knex instance is initialized once via `getDb()` in knex.js and reused throughout the application.
-- Adapter Pattern: adapter.js abstracts table-specific CRUD operations with automatic JSON serialization/deserialization and transparent encryption/decryption of sensitive fields.
-- Modular Migrations: Each migration file (in `src/db/migrations/`) defines `up` and `down` schema changes in CommonJS format, loaded via Knex migration API.
-- Configuration-Driven Client Selection: Knex client ('pg' or 'better-sqlite3') and connection details are selected based on `config.database.type`.
-- Testability: Includes `resetTestDb()` to wipe the SQLite file between test runs; uses in-memory SQLite when `NODE_ENV` or `VITEST` indicates testing.
-- Encryption Integration: Leverages `../utils/encryption.js` to encrypt/decrypt fields listed in `SENSITIVE_GUILD_FIELDS` and `SENSITIVE_USER_FIELDS` before storage/retrieval.
+## Responsibility
+Provides Knex connectivity and the guild/user data bridge. Supports PostgreSQL (`pg`) for shared deployments and SQLite (`better-sqlite3`) for single instance, selected by `config.db`, with field-level encryption and reversible migrations.
 
-Flow
-1. Application imports `getDb()` from `src/db/knex.js` to obtain the Knex singleton.
-2. On startup, `runMigrations()` executes pending migrations via `Knex.migrate.latest()`.
-3. Modules requiring persistent state import adapter functions (e.g., `getGuildData`, `setUserData`) from `src/db/adapter.js`.
-4. Adapter functions:
-   - Receive store name, identifiers, and optional data payload.
-   - Deserialize JSON data from the `data` column.
-   - Decrypt sensitive fields using `decryptFields()` before returning to caller.
-   - For write operations, encrypt sensitive fields with `encryptFields()` then serialize to JSON.
-   - Perform insert/update/select on appropriate tables: `guild_store`, `guild_user_store`, `interlink_bots`.
-5. `updateGuildData` combines read-modify-write by fetching current data, applying an updater function, then persisting the result.
-6. On shutdown, `closeDb()` destroys the Knex connection pool.
-7. In test environments, `resetTestDb()` may be called to delete the SQLite file and force a fresh in-memory database.
+## Files
 
-Integration
-- Dependencies:
-  - `../config/config.js` for database configuration (type, connection strings, pool settings).
-  - `../utils/encryption.js` for field-level encryption/decryption.
-  - `../utils/logger.js` for migration and lifecycle logging.
-- Consumers: Any module (e.g., command plugins, interlink, gateway) needing persistent guild/user state imports adapter functions.
-- Internal:
-  - `knex.js` exports `getDb`, `runMigrations`, `closeDb`, and `resetTestDb` for lifecycle and test control.
-  - `adapter.js` exports CRUD helpers for `guild_store`, `guild_user_store`, and global data (`__global__` store).
-  - Migrations directory contains versioned schema files applied via Knex.
-- No explicit hooks or events; data flow is synchronous promise‑based via adapter calls.
+| File | Purpose |
+|------|---------|
+| `knex.ts` | Knex getDb singleton, runMigrations, closeDb, and resetTestDb for Postgres and SQLite. |
+| `adapter.ts` | Guild and user data bridge with JSON serialization and field-level encryption. |
+
+Subdirectory `migrations/` holds reversible `*.cjs` migration scripts; see `src/db/migrations/codemap.md`.
+
+## Design
+- `knex.ts`: `getDb()` singleton, `runMigrations()` via `Knex.migrate.latest()`, `closeDb()`, `resetTestDb()` for isolated tests. Postgres path uses `config.database.postgres` host, port, database, user, password, ssl, and pool; SQLite path uses a file under `src/data/` (gitignored) or `:memory:` when `NODE_ENV=test` or `VITEST=true`. Migration directory is `./migrations` with `cjs` extension.
+- `adapter.ts`: `createAdapter(db)` plus `getGuildData`, `setGuildData`, `updateGuildData`, `getAllGuildData`, `getUserData`, `setUserData`, `getAllUserData`, `getData`, `setData`. JSON serialization is central; sensitive guild fields (`interlink_api_key`, `webhook_url`, `api_key`, `secret`, `token`, `password`) and user fields (`access_token`, `refresh_token`, `api_key`, `secret`, `token`, `password`) pass through `encryptFields` and `decryptFields` in `src/utils/encryption.ts`. Tables are `guild_store`, `guild_user_store`, and `interlink_bots`.
+- Patterns: Singleton (`getDb()` shared Knex instance), Adapter/Facade (`adapter.ts` bridge with JSON serialization and field encryption over Knex), Factory (`createAdapter(db)` initializing the bridge).
+
+## Flow
+1. Startup calls `getDb()` then `runMigrations()` to apply pending `migrations/*.cjs`.
+2. Callers use `src/utils/db.ts` (`getGuildData`, `setGuildData`, `getUserData`, `setUserData`), which routes to this adapter for Postgres or to embedded `better-sqlite3` for SQLite.
+3. Reads deserialize the `data` column and decrypt sensitive fields; writes encrypt then upsert on the compound primary key.
+4. `updateGuildData` performs read-modify-write; concurrent writers require Postgres transactions or conditional updates because SQLite does not support concurrent writers.
+5. Shutdown calls `closeDb()`; tests call `resetTestDb()` against temporary databases only.
+
+## Integration
+- Depends on `knex`, `pg`, `better-sqlite3`, `src/config/config.ts`, `src/utils/encryption.ts`, `src/utils/logger.ts`.
+- Consumed exclusively through `src/utils/db.ts` except inside the bridge itself and migrations. Migration scripts live in `src/db/migrations/`; see `src/db/migrations/codemap.md`.
