@@ -31,6 +31,9 @@ on:
           - worker-circuit-breaker
           - worker-cgroup
 
+permissions:
+  contents: read
+
 jobs:
   integration-tests:
     name: Integration Tests
