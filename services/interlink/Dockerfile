@@ -8,13 +8,16 @@ RUN apk add --no-cache git ca-certificates
 
 WORKDIR /app
 
-# Cache modules
+# Cache modules (GOMODCACHE mount keeps downloads warm across source-only changes)
 COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
-# Copy source and build static binary
+# Copy source and build static binary (go-build mount keeps the compile cache)
 COPY . .
-RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /interlink .
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 go build -ldflags="-s -w" -o /interlink .
 
 # ─── Runtime Stage ──────────────────────────────────────────────────────
 FROM gcr.io/distroless/static-debian13:nonroot
