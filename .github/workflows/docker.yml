@@ -295,6 +295,7 @@ jobs:
           image-ref: ${{ needs.build.outputs.image }}@${{ needs.build.outputs.digest }}
           format: sarif
           output: bot-trivy.sarif
+          version: 'v0.75.0'
 
       - name: Scan interlink image
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
@@ -302,6 +303,7 @@ jobs:
           image-ref: ${{ needs.build-interlink.outputs.image }}@${{ needs.build-interlink.outputs.digest }}
           format: sarif
           output: interlink-trivy.sarif
+          version: 'v0.75.0'
 
       - name: Scan nsfw image
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
@@ -309,6 +311,7 @@ jobs:
           image-ref: ${{ needs.build-nsfw.outputs.image }}@${{ needs.build-nsfw.outputs.digest }}
           format: sarif
           output: nsfw-trivy.sarif
+          version: 'v0.75.0'
 
       - name: Merge SARIF reports
         run: |
