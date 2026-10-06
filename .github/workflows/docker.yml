@@ -11,13 +11,24 @@ on:
       - '.npmrc'
       - 'src/**'
       - 'bin/**'
-      - 'scripts/deploy-commands.js'
+      - 'scripts/deploy-commands.ts'
       - 'plugin-manifest.json'
       - 'Dockerfile'
       - 'Dockerfile.prod'
       - '.dockerignore'
       - '.github/workflows/docker.yml'
       - 'services/interlink/**'
+      - 'tsconfig.json'
+      - 'tsconfig.build.json'
+      - 'buf.yaml'
+      - 'buf.gen.yaml'
+      - 'buf.gen.ts.yaml'
+      - 'buf.gen.go.yaml'
+      - 'protos/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'crates/**'
+      - 'crates/nsfw-server/Dockerfile'
   pull_request:
     branches: [main]
     paths:
@@ -27,13 +38,24 @@ on:
       - '.npmrc'
       - 'src/**'
       - 'bin/**'
-      - 'scripts/deploy-commands.js'
+      - 'scripts/deploy-commands.ts'
       - 'plugin-manifest.json'
       - 'Dockerfile'
       - 'Dockerfile.prod'
       - '.dockerignore'
       - '.github/workflows/docker.yml'
       - 'services/interlink/**'
+      - 'tsconfig.json'
+      - 'tsconfig.build.json'
+      - 'buf.yaml'
+      - 'buf.gen.yaml'
+      - 'buf.gen.ts.yaml'
+      - 'buf.gen.go.yaml'
+      - 'protos/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'crates/**'
+      - 'crates/nsfw-server/Dockerfile'
   workflow_dispatch:
 
 concurrency:
@@ -63,9 +85,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@288220e341e5c445ddb6d73e19a57a9012ceca88
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e
@@ -137,9 +156,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@288220e341e5c445ddb6d73e19a57a9012ceca88
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e
 
@@ -193,10 +209,74 @@ jobs:
           echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
           echo "```" >> $GITHUB_STEP_SUMMARY
 
+  build-nsfw:
+    name: Build NSFW
+    runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+      image: ${{ steps.image.outputs.name }}
+      tags: ${{ steps.meta.outputs.tags }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e
+
+      - name: Login to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@0a596b2e7a325f0cedf8e9bd21ab002cbd3c9241
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lowercase image name
+        id: image
+        run: echo "name=$(echo ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-nsfw | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@703896b4f30f62d53f5530a80bcdc589a3f702bc
+        with:
+          images: ${{ steps.image.outputs.name }}
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref_name == 'main' }}
+            type=raw,value=experimental,enable=${{ github.ref_name == 'experimental' }}
+            type=ref,event=pr
+            type=sha,prefix=sha-
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+
+      - name: Build and push nsfw image
+        id: build
+        uses: docker/build-push-action@2ca78c6bec76527009825f31aae0532b4d40d820
+        with:
+          context: .
+          file: ./crates/nsfw-server/Dockerfile
+          platforms: linux/amd64
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Export build digest
+        run: |
+          echo "## NSFW Docker Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** \`${{ steps.image.outputs.name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Digest:** \`${{ steps.build.outputs.digest }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags:**" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
   scan:
     name: Scan images
     runs-on: ubuntu-latest
-    needs: [build, build-interlink]
+    needs: [build, build-interlink, build-nsfw]
     if: github.event_name == 'push'
     steps:
       - name: Login to GitHub Container Registry
@@ -220,9 +300,18 @@ jobs:
           format: sarif
           output: interlink-trivy.sarif
 
+      - name: Scan nsfw image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          image-ref: ${{ needs.build-nsfw.outputs.image }}@${{ needs.build-nsfw.outputs.digest }}
+          format: sarif
+          output: nsfw-trivy.sarif
+
       - name: Merge SARIF reports
         run: |
           jq -s '.[0] as $a | .[1] as $b | ($a.runs[0].tool.driver.rules // [] | length) as $off | $a | .runs[0].results += ([$b.runs[0].results[] | if has("ruleIndex") then .ruleIndex += $off else . end]) | .runs[0].tool.driver.rules += ($b.runs[0].tool.driver.rules // [])' bot-trivy.sarif interlink-trivy.sarif > trivy.sarif
+          jq -s '.[0] as $a | .[1] as $b | ($a.runs[0].tool.driver.rules // [] | length) as $off | $a | .runs[0].results += ([$b.runs[0].results[] | if has("ruleIndex") then .ruleIndex += $off else . end]) | .runs[0].tool.driver.rules += ($b.runs[0].tool.driver.rules // [])' trivy.sarif nsfw-trivy.sarif > trivy-merged.sarif
+          mv trivy-merged.sarif trivy.sarif
 
       - name: Upload SARIF results
         uses: github/codeql-action/upload-sarif@486fec2a3ea2626afcd8c7e9208b4f515078dd7e
