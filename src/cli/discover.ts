@@ -1,4 +1,4 @@
-import { readdirSync } from 'node:fs';
+import { readdirSync, type Dirent } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { CommandMap, CommandSpec, PluginCLI, ResolvedCommand } from '../types/cli.js';
@@ -15,7 +15,7 @@ function isPluginCLI(value: unknown): value is PluginCLI {
 export async function discoverCommands(): Promise<CommandMap> {
     const commandMap: CommandMap = {};
 
-    let pluginDirs;
+    let pluginDirs: Dirent[];
     try {
         pluginDirs = readdirSync(PLUGINS_DIR, { withFileTypes: true })
             .filter((d) => d.isDirectory());

@@ -500,7 +500,7 @@ export function createMockVoiceState(options: MockVoiceStateOptions = {}): Voice
 
 export function createRolesCache(roles: Array<{ id: string }> = []): { cache: MockCollection<{ id: string }>; has: (id: string) => boolean } {
     const cache = new MockCollection<{ id: string }>();
-    roles.forEach((role) => cache.set(role.id, role));
+    roles.forEach((role) => { cache.set(role.id, role); });
 
     return {
         cache,
