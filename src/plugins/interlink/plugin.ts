@@ -165,7 +165,7 @@ export default class InterlinkPlugin extends Plugin {
             return;
         }
         if (authKey.length < MIN_AUTH_KEY_LENGTH) {
-            this.logger.warn(`[Interlink] INTERLINK_AUTH_KEY is only ${authKey.length} chars (recommended min ${MIN_AUTH_KEY_LENGTH}). Anyone holding this key is fully trusted.`);
+            this.logger.warn(`[Interlink] INTERLINK_AUTH_KEY is shorter than the recommended minimum (${MIN_AUTH_KEY_LENGTH} chars). Anyone holding this key is fully trusted.`);
         }
         const botId = config.discord.clientId || 'apollo';
         resetInterlinkClient();
