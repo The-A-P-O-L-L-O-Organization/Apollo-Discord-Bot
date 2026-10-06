@@ -2,20 +2,24 @@
 # Multi-stage build for NSFW Detection gRPC Server
 
 # ─── Builder Stage ──────────────────────────────────────────────────────
-# Use Ubuntu noble (24.04) with Rust 1.88+ for glibc 2.39 compatibility with ort binaries
+# Ubuntu noble (24.04): REQUIRED even for the builder. ort's prebuilt
+# onnxruntime binaries reference glibc 2.38+ versioned symbols
+# (__isoc23_strtol, _M_replace_cold) and fail to LINK on older distros
+# such as Debian bookworm (glibc 2.36) — verified by a failed build.
 FROM ubuntu:noble AS builder
 
-# Install Rust
+# Install Rust (minimal profile: skips rust-docs, the bulk of the download)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
-    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.88 \
+    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain 1.88 \
     && rm -rf /var/lib/apt/lists/*
 
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-# Install build dependencies + wget for grpc_health_probe
+# Install build dependencies + wget for grpc_health_probe in a single layer
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
     protobuf-compiler \
     cmake \
     libssl-dev \
@@ -31,15 +35,25 @@ RUN wget -qO /bin/grpc_health_probe "https://github.com/grpc-ecosystem/grpc-heal
 
 WORKDIR /app
 
-# Copy entire workspace
+# Copy manifests first so dependency downloads cache independently of sources
 COPY Cargo.toml Cargo.lock ./
+COPY crates/nsfw-server/Cargo.toml ./crates/nsfw-server/Cargo.toml
+COPY crates/nsfw-proto/Cargo.toml ./crates/nsfw-proto/Cargo.toml
+# Stub targets so `cargo fetch` can parse workspace members without sources
+# (the real `COPY crates` below overwrites these stubs before compiling)
+RUN mkdir -p ./crates/nsfw-server/src ./crates/nsfw-proto/src \
+    && echo 'fn main() {}' > ./crates/nsfw-server/src/main.rs \
+    && echo '' > ./crates/nsfw-proto/src/lib.rs
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    cargo fetch --locked
+# Copy sources (invalidates only the compile step below, not the fetch above)
 COPY crates ./crates
 COPY protos ./protos
 
 # Build the nsfw-server binary and copy to artifacts in same step (cache mount doesn't persist target dir)
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/app/target \
-    cargo build --release -p nsfw-server && \
+    cargo build --locked --release -p nsfw-server && \
     mkdir -p /artifacts && cp /app/target/release/nsfw-server /artifacts/
 
 # ─── Runtime Stage ──────────────────────────────────────────────────────
