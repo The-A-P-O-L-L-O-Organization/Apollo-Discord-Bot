@@ -1,51 +1,32 @@
 # src/
 
 ## Responsibility
-The src/ directory is the application source root containing the main entry points and core modules of the Apollo Discord Bot. It initializes the Discord client, loads plugins, manages sharding, processes queue jobs, and provides core services such as event bus, database access, logging, and configuration. This folder coordinates all high-level bot functionality and serves as the central hub for system integration.
+Application source root for the strict TypeScript ESM bot. Holds top-level entries `src/index.ts`, `src/shard.ts`, and `src/worker.ts`, plus subsystems `config/`, `core/`, `cli/`, `db/`, `gateway/`, `queue/`, `utils/`, `i18n/`, `observability/`, `types/`, `generated/`, and `plugins/` (admin, automod, integrations, interlink, moderation, tickets, utility). Coordinates Discord client lifecycle, plugin loading, sharding, queue execution, persistence, and telemetry.
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `index.ts` | Main bot entry wiring validation, Discord client, RUN_MODE branching, and shutdown. |
+| `shard.ts` | ShardingManager entry spawning shard processes with respawn. |
+| `worker.ts` | Queue worker entry registering job handlers and consuming BullMQ jobs. |
+
+Subdirectories `config/`, `core/`, `cli/`, `db/`, `gateway/`, `queue/`, `utils/`, `i18n/`, `observability/`, `types/`, `generated/`, and `plugins/` hold the subsystems; `PERSISTENCE.md` documents persistence notes.
 
 ## Design
-- **Modular Architecture**: Separation of concerns via distinct modules (index.js for main bot, shard.js for sharding management, worker.js for queue processing, config/ for configuration, core/ for plugin system, utils/ for shared utilities, db/ for database abstraction, queue/ for BullMQ integration, plugins/ for extensible functionality).
-- **Plugin System**: Core/pluginManager.js dynamically loads and manages plugins, exposing capabilities via an EventBus and worker-host RPC for sandboxed execution of third-party plugins.
-- **Sharding Support**: Uses discord.js ShardingManager to spawn multiple shard workers; src/shard.js handles leader election and cross-shard communication via Unix socket RPC.
-- **Queue-Based Job Processing**: BullMQ workers (src/worker.js) process commands and background jobs serialized from Discord interactions, ensuring safe execution across processes.
-- **Event-Driven Communication**: Core/EventBus.js facilitates loose-coupling between modules; events are forwarded to plugins via worker host for isolated handling.
-- **Configuration Management**: Centralized config/config.js provides environment-driven settings with validation and defaults for all subsystems.
-- **Dependency Injection**: Key services (database adapter, logger, plugin manager) are instantiated and passed where needed, promoting testability and modularity.
+- Entries are TypeScript only: `src/index.ts` is the main bot entry run by tsx in dev and `node dist/index.js` in production, `src/shard.ts` is the sharding entry via ShardingManager, `src/worker.ts` is the queue worker entry. No `src/index.js`, `src/worker.js`, or `src/handlers/` paths exist.
+- Modular separation: `config/` env singleton with startup validation, `core/` PluginManager plus EventBus plus worker sandbox (`workerHost.ts`, `workerChild.ts`), `queue/` BullMQ creation plus `serializeInteraction.ts` plus `remoteInteraction.ts` plus `jobs/processCommand.ts`, `db/` Knex adapters plus `migrations/*.cjs`, `gateway/leader.ts` Redis fencing, `utils/` shared helpers (logger pino, db bridge, lock, healthServer, schedulers), `i18n/` namespaced translators, `observability/` OpenTelemetry plus Prometheus.
+- Plugin contract: each plugin under `src/plugins/<name>/` exports `plugin.ts` extending `src/core/Plugin.ts` with `onLoad`, `onEnable`, `onDisable`, `onUnload`, plus `commands/` and `events/` and optional `cli/`. Commands export a default object with SlashCommandBuilder `data` or `name`, `description`, `options`.
+- Type safety: strict mode with `noUncheckedIndexedAccess`, `.js` suffix relative imports, `import type` for types, no explicit any in `src/`, all promises awaited or voided, 4-space single-quote semicolon style.
+- Patterns: Template Method (Plugin lifecycle hooks), Command (command modules with `execute`), Observer/Pub-Sub (EventBus plus Redis fan-out), Factory (`createQueue`), Singleton (config and db instances), Proxy/Sandbox (worker host/child boundary), Leader Election (gateway lock with fencing).
 
 ## Flow
-1. **Startup**: 
-   - src/index.js loads environment variables, validates configuration, and creates Discord client with base intents.
-   - Instantiates EventBus and PluginManager, attaching them to the client.
-   - On `clientReady`, loads plugins via PluginManager.loadAll(), starts health and socket servers, and registers event forwarders to plugins.
-
-2. **Sharding (if enabled)**:
-   - src/shard.js validates sharding config, creates ShardingManager, and spawns shard workers (each running src/index.js with --shard flag).
-   - Workers register for leader election and execute per-shard tasks (reminders, polls, etc.) while global tasks run on the elected leader.
-
-3. **Worker Mode**:
-   - When RUN_MODE=worker, src/worker.js initializes database, registers job handlers, and connects to Redis-backed BullMQ queues.
-   - Jobs (e.g., command processing) are pulled from queues and executed via handleJob(), with results reported back.
-
-4. **Request Handling**:
-   - Discord interactions (slash commands, buttons, etc.) are received by the client in index.js.
-   - Interactions are serialized (via src/queue/serializeInteraction.js) and sent as jobs to the command queue.
-   - Workers deserialize and execute commands, potentially calling plugin commands or core utilities.
-   - Plugins emit events via EventBus, which are forwarded to worker-hosted plugin instances for isolated processing.
-
-5. **Graceful Shutdown**:
-   - SIGTERM/SIGINT triggers cleanup: closing queues, database connections, Redis locks, health servers, and shard broadcast eval (if sharding).
+1. `src/index.ts` loads `dotenv/config`, validates `DISCORD_TOKEN`, operator agreement, operator contact, and `ENCRYPTION_KEY` via `src/utils/startupChecks.ts`, then builds a discord.js v14 client with base intents and partials.
+2. Runtime branches on `RUN_MODE`: gateway acquires the global leader lock, connects to Discord, loads plugins, starts health and socket servers and schedulers; worker initializes database and BullMQ job handlers and consumes the command queue.
+3. Discord interactions arrive at the gateway, are serialized to minimal JSON, enqueued, revalidated after crossing the trust boundary, and executed by workers against plugin commands and utilities.
+4. `src/shard.ts` spawns shard processes when configured, each running the index entry with shard identity, coordinated through leader election and Unix socket RPC.
+5. Shutdown on SIGTERM or SIGINT closes queues, Redis, database, health servers, schedulers, and OpenTelemetry in lifecycle order.
 
 ## Integration
-- **Internal Modules**: 
-  - index.js integrates with config/, core/, utils/, db/, queue/, and plugins/.
-  - shard.js coordinates multiple index.js instances via ShardingManager.
-  - worker.js consumes jobs from queues and uses db/ and utils/ for execution.
-  - core/PluginManager manages plugin lifecycle and capability routing.
-  - queue/ defines BullMQ connections and job serialization/deserialization utilities.
-- **External Systems**:
-  - Discord API via discord.js library (gateway and REST).
-  - Redis for BullMQ queuing, inter-bot communication (Interlink), locking, and event forwarding.
-  - PostgreSQL/SQLite via Knex for persistent storage (managed through db/ and utils/db.js).
-  - Filesystem for plugin storage, logs, and runtime data (src/data/ is gitignored).
-  - Unix domain sockets (/tmp/apollo.sock or shard-specific) for RPC between gateway and worker plugins.
-  - HTTP interface (Interlink plugin) for bot-to-bot communication (optional).
+- Internal: `src/index.ts` wires `config/`, `core/PluginManager`, `core/EventBus`, `queue/queue.ts`, `utils/db.ts`, `utils/logger.ts`, `utils/healthServer.ts`, `cli/socket-server.ts`, `i18n/`, `observability/otel.ts`, and `gateway/leader.ts`. `queue/` feeds `worker.ts`. `core/worker/` isolates third-party plugins with capability checks from `pluginManifest.ts`. Socket handlers register via `manager.registerSocketHandler('namespace.action', handler)` on `/tmp/apollo.sock` or `APOLLO_SOCKET_PATH`.
+- External: Discord gateway and REST via discord.js v14, Redis via ioredis for queue plus EventBus plus locks plus schedulers, PostgreSQL or SQLite via Knex for guild and user data, filesystem for plugin storage only (`src/data/` is gitignored runtime state), interlink HTTP relay and Rust NSFW plus Go services where configured.
