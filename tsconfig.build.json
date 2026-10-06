@@ -5,7 +5,9 @@
         "rootDir": "./src",
         "declaration": true,
         "declarationMap": true,
-        "skipLibCheck": true
+        "skipLibCheck": true,
+        "incremental": true,
+        "tsBuildInfoFile": "./.cache/tsbuildinfo/app.tsbuildinfo"
     },
     "include": [
         "src/**/*"

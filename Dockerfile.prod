@@ -5,13 +5,13 @@
 # Stage 1: Build stage
 FROM node:26-alpine AS builder
 
-# Install build dependencies for better-sqlite3 native bindings
-RUN apk add --no-cache python3 make g++
+# Install build dependencies for better-sqlite3 native bindings and pnpm via corepack
+# (corepack cache mount keeps the pnpm download warm across base-image updates)
+RUN --mount=type=cache,target=/root/.cache/node/corepack \
+    apk add --no-cache python3 make g++ && \
+    npm install -g corepack && corepack enable && corepack prepare pnpm@11 --activate
 
 WORKDIR /app
-
-# Install pnpm via corepack
-RUN npm install -g corepack && corepack enable && corepack prepare pnpm@11 --activate
 
 # Copy package files first for better layer caching
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* .npmrc* ./
@@ -28,14 +28,15 @@ COPY bin ./bin
 COPY scripts/generate-manifest.mjs ./scripts/generate-manifest.mjs
 COPY plugin-manifest.json ./
 
-# Compile gateway/worker/shard entries to dist/ with source maps
-RUN pnpm build
-
-# Bundle CLI entry to a single file
-RUN pnpm build:cli
-
-# Regenerate plugin-manifest.json from current sources
-RUN pnpm manifest
+# Compile gateway/worker/shard entries to dist/ with source maps, bundle the CLI
+# entry, and regenerate plugin-manifest.json — one layer sharing the pnpm
+# store, tsbuildinfo (incremental tsc), and corepack caches.
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    --mount=type=cache,target=/app/.cache/tsbuildinfo \
+    --mount=type=cache,target=/root/.cache/node/corepack \
+    pnpm build && \
+    pnpm build:cli && \
+    pnpm manifest
 
 # Drop devDependencies so the runtime image ships production deps only
 # (smaller image, fewer scanner findings; runtime imports no devDeps)
@@ -71,7 +72,9 @@ COPY --from=builder /app/protos ./protos
 # Only '*.js' files are copied: '.d.ts'/'.map' files must not pollute src/
 # or the plugin command/event loader will try to import type declarations.
 # Generic find covers current and future subdirs (core, utils, plugins, generated, etc.).
-RUN cd ./dist && find . -type f -name '*.js' | while read -r f; do mkdir -p "../src/$(dirname "$f")"; cp "$f" "../src/$f"; done
+# BusyBox tar cannot do NUL-delimited file lists, so use GNU tar for the pipe
+# (installed and removed in the same layer, leaving no trace in the image).
+RUN apk add --no-cache tar && cd ./dist && find . -type f -name '*.js' -print0 | tar --null -cf - --files-from=- | tar -xf - -C ../src && apk del tar
 COPY --from=builder /app/plugin-manifest.json ./
 
 # Create directories for persistent data
