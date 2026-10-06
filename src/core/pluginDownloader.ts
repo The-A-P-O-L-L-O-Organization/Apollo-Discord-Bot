@@ -147,6 +147,9 @@ export async function downloadPluginArchive(url: string, {
         const timer = setTimeout(() => controller.abort(), remaining);
         let response: PluginFetchResponse;
         try {
+            if (!isAllowedProtocol(new URL(currentUrl).protocol)) {
+                throw new Error('Plugin downloads must use https.');
+            }
             response = await fetchImpl(currentUrl, { signal: controller.signal, redirect: 'manual' });
         } catch (err) {
             clearTimeout(timer);
