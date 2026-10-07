@@ -1,0 +1,42 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "packageRules": [
+    {
+      "groupName": "opentelemetry",
+      "matchPackageNames": ["@opentelemetry/*"],
+      "groupSlug": "opentelemetry",
+      "automerge": true,
+      "schedule": ["every weekend"],
+      "enabled": true
+    },
+    {
+      "groupName": "typescript-eslint",
+      "matchPackageNames": ["typescript-eslint", "@typescript-eslint/*", "@eslint/*"],
+      "groupSlug": "typescript-eslint",
+      "schedule": ["every weekend"]
+    },
+    {
+      "groupName": "discord.js",
+      "matchPackageNames": ["discord.js", "@discordjs/*"],
+      "groupSlug": "discord.js",
+      "schedule": ["every weekend"]
+    },
+    {
+      "groupName": "vitest",
+      "matchPackageNames": ["vitest", "@vitest/*", "@types/vitest"],
+      "groupSlug": "vitest",
+      "schedule": ["every weekend"]
+    },
+    {
+      "groupName": "bullmq",
+      "matchPackageNames": ["bullmq", "ioredis", "@bull-board/*"],
+      "groupSlug": "bullmq",
+      "schedule": ["every weekend"]
+    }
+  ],
+  "timezone": "UTC",
+  "prHourlyLimit": 10,
+  "prConcurrentLimit": 5,
+  "rebaseWhen": "conflicted"
+}
