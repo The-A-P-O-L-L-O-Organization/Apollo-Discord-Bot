@@ -72,7 +72,7 @@ Do not rely on stale memory. JavaScript v2 paths such as `src/index.js`, `src/ha
 
 ## 3. Entry Points and Run Modes
 
-- `src/index.ts`: main bot entry. `pnpm start` executes `tsx src/index.ts`.
+- `src/index.ts`: main bot entry. `pnpm start` runs `node dist/index.js` (built via `pnpm build`).
 - `RUN_MODE=gateway pnpm start`: gateway and leader-election role using `src/gateway/leader.ts`.
 - `RUN_MODE=worker pnpm start`: queue worker role processing BullMQ jobs.
 - `pnpm dev`: watch-mode development with `tsx watch src/index.ts`.
