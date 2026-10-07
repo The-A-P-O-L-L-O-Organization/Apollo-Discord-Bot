@@ -129,7 +129,7 @@
   "src/plugins/moderation/commands/warnconfig.ts": "71701e6956c0b15e9e16958bc114e4a58281ebce805a63f9a0a9759e4d8f1f8e",
   "src/plugins/moderation/commands/warnings.ts": "4067e5c0fca820f1dc17ceac4f33f95bf2ed04fb0d6bb1e7815f33d29f980a18",
   "src/plugins/moderation/events/codemap.md": "a1d84db3edca6c0e540080343e390b0f4af75d6739c00f8312140511bea1e18b",
-  "src/plugins/moderation/events/guildMemberAdd.ts": "ae69ee2553bd6a7f02dcb1af9f36c3a6f45e998d5d8ae8bd87382250f8fbdd67",
+  "src/plugins/moderation/events/guildMemberAdd.ts": "a1eddea6804b00f4d34ab129e263c8672ed6b155d04b8b68f70988fa5c959295",
   "src/plugins/moderation/events/guildMemberRemove.ts": "f1bed0904bd9b6c6b44769073576b5997d2460e31f6200007bfd3e0d98aa1e2a",
   "src/plugins/moderation/locales/de/common.json": "b782991c349f45f7d9c5ac82c7e2ce696a8a11f2bf8dc5615921ed6e3b165168",
   "src/plugins/moderation/locales/el/common.json": "b782991c349f45f7d9c5ac82c7e2ce696a8a11f2bf8dc5615921ed6e3b165168",

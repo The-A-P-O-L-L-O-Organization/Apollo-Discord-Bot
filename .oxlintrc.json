@@ -1,0 +1,49 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "typescript",
+    "unicorn",
+    "oxc"
+  ],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "pedantic": "warn"
+  },
+  "rules": {
+    "no-unused-vars": "off",
+    "no-console": ["warn", { "allow": ["warn", "error"] }],
+    "typescript/no-unsafe-assignment": "warn",
+    "typescript/no-unsafe-member-access": "warn",
+    "typescript/no-unsafe-call": "warn",
+    "typescript/no-unsafe-return": "warn",
+    "typescript/no-floating-promises": "warn",
+    "typescript/no-misused-promises": "warn",
+    "typescript/no-unnecessary-type-assertion": "warn",
+    "typescript/consistent-type-imports": "error",
+    "typescript/consistent-type-exports": "error",
+    "typescript/no-explicit-any": "warn",
+    "typescript/no-unsafe-type-assertion": "warn",
+    "unicorn/no-useless-fallback-in-spread": "warn",
+    "eslint/no-useless-catch": "warn",
+    "eslint/preserve-caught-error": "warn",
+    "vitest/expect-expect": "error",
+    "vitest/no-disabled-tests": "warn",
+    "vitest/no-focused-tests": "error"
+  },
+  "ignorePatterns": [
+    "dist/**",
+    "data/**",
+    "node_modules/**",
+    "tests/mocks/**",
+    "src/handlers/**",
+    "vitest.config.ts",
+    "*.md",
+    "tests/**",
+    "bin/**",
+    "scripts/**",
+    "benchmarks/**",
+    "plugins/**",
+    "src/generated/nsfw/**"
+  ]
+}
