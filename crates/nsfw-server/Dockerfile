@@ -8,30 +8,43 @@
 # such as Debian bookworm (glibc 2.36) — verified by a failed build.
 FROM ubuntu:noble AS builder
 
+# Install Go 1.27 (for building grpc_health_probe from source with latest stdlib fixes)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    && curl -fsSL "https://go.dev/dl/go1.27.1.linux-amd64.tar.gz" -o /tmp/go.tar.gz \
+    && tar -C /usr/local -xzf /tmp/go.tar.gz \
+    && rm /tmp/go.tar.gz \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV PATH="/usr/local/go/bin:${PATH}"
+
 # Install Rust (minimal profile: skips rust-docs, the bulk of the download)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
-    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain 1.88 \
+    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain 1.99 \
     && rm -rf /var/lib/apt/lists/*
 
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-# Install build dependencies + wget for grpc_health_probe in a single layer
+# Install build dependencies + git for grpc_health_probe in a single layer
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     protobuf-compiler \
     cmake \
     libssl-dev \
     pkg-config \
-    wget \
+    git \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Install grpc_health_probe for health checks
-ARG GRPC_HEALTH_PROBE_VERSION=v0.4.26
-RUN wget -qO /bin/grpc_health_probe "https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64" \
-    && chmod +x /bin/grpc_health_probe
+# Build grpc_health_probe from source with Go 1.27 (includes stdlib security fixes)
+ARG GRPC_HEALTH_PROBE_VERSION=v0.4.57
+RUN git clone --depth 1 --branch ${GRPC_HEALTH_PROBE_VERSION} https://github.com/grpc-ecosystem/grpc-health-probe.git /tmp/grpc-health-probe \
+    && cd /tmp/grpc-health-probe \
+    && CGO_ENABLED=0 go build -ldflags="-s -w" -o /bin/grpc_health_probe . \
+    && rm -rf /tmp/grpc-health-probe
 
 WORKDIR /app
 

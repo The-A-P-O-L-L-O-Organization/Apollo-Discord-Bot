@@ -97,7 +97,7 @@ export class I18nService {
     }
 
     tFor(interaction: InteractionLike, key: string, opts?: Omit<TOptions, 'lng'>): string {
-        let lng: string = DEFAULT_LOCALE;
+        let lng: string;
         if (typeof interaction.guildId === 'string' && interaction.guildId.length > 0) {
             const cached = localeCache.get(interaction.guildId);
             if (cached !== undefined) {

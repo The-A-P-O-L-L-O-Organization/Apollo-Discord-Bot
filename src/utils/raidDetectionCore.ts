@@ -129,7 +129,7 @@ export async function handleRaidDetected(guild: Guild, member: GuildMember): Pro
     const now = Date.now();
 
     // Get state (Redis or memory)
-    let state: RaidState | null = null;
+    let state: RaidState | null;
     const redis = await getRaidRedis();
     if (redis) {
         const key = `${RAID_KEY_PREFIX}${guild.id}`;

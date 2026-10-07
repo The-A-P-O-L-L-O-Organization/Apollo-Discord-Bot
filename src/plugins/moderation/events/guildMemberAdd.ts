@@ -27,7 +27,7 @@ export default {
 
         // --- Raid Detection ---
         if (!member.user.bot) {
-            let isRaid = false;
+            let isRaid: boolean;
 
             // Try Redis-backed raid detection if enabled
             if (config.automod.useRedisRaidDetection) {

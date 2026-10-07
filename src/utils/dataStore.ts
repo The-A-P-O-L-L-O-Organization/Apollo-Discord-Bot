@@ -209,7 +209,6 @@ export async function removeFromGuildArray(
         await pendingWrite;
     }
 
-    let removed = 0;
     const writeOperation: Promise<void> = Promise.resolve();
     const data = getData(filename);
     if (!data[guildId] || !Array.isArray((data[guildId] as Record<string, unknown>)[key])) {
@@ -218,7 +217,7 @@ export async function removeFromGuildArray(
 
     const originalLength = ((data[guildId] as Record<string, unknown>)[key] as unknown[]).length;
     (data[guildId] as Record<string, unknown>)[key] = ((data[guildId] as Record<string, unknown>)[key] as unknown[]).filter(item => !predicate(item));
-    removed = originalLength - ((data[guildId] as Record<string, unknown>)[key] as unknown[]).length;
+    const removed = originalLength - ((data[guildId] as Record<string, unknown>)[key] as unknown[]).length;
 
     if (removed > 0) {
         setData(filename, data);
@@ -345,7 +344,6 @@ export async function removeFromUserArray(
         await pendingWrite;
     }
 
-    let removed = 0;
     const writeOperation: Promise<void> = Promise.resolve();
     const data = getData(filename);
     if (!data[guildId] || !Array.isArray((data[guildId] as Record<string, unknown>)[userId])) {
@@ -354,7 +352,7 @@ export async function removeFromUserArray(
 
     const originalLength = ((data[guildId] as Record<string, unknown>)[userId] as unknown[]).length;
     (data[guildId] as Record<string, unknown>)[userId] = ((data[guildId] as Record<string, unknown>)[userId] as unknown[]).filter(item => !predicate(item));
-    removed = originalLength - ((data[guildId] as Record<string, unknown>)[userId] as unknown[]).length;
+    const removed = originalLength - ((data[guildId] as Record<string, unknown>)[userId] as unknown[]).length;
 
     if (removed > 0) {
         setData(filename, data);

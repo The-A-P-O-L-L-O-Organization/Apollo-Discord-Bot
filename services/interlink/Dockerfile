@@ -2,7 +2,7 @@
 # Multi-stage build for Interlink Go ConnectRPC service (h2c, no TLS)
 
 # ─── Builder Stage ──────────────────────────────────────────────────────
-FROM golang:1.25-alpine AS builder
+FROM golang:1.27-alpine AS builder
 
 RUN apk add --no-cache git ca-certificates
 
