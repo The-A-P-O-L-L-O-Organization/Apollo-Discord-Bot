@@ -72,28 +72,5 @@ export async function stopWorker(): Promise<void> {
     await closeLockRedis();
 }
 
-const isMain = process.argv[1] !== undefined && import.meta.url.endsWith(process.argv[1]);
-if (isMain) {
-    startWorker().catch((err: unknown) => {
-        logger.error({ err: err as Error }, '[Worker] Fatal error');
-        process.exit(1);
-    });
-
-    const SHUTDOWN_TIMEOUT_MS = Number.parseInt(process.env['SHUTDOWN_TIMEOUT_MS'] ?? '', 10) || 30000;
-
-    const stopWorkerWithTimeout = async (): Promise<void> => {
-        const timeout = new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error('shutdown timeout')), SHUTDOWN_TIMEOUT_MS);
-        });
-        await Promise.race([stopWorker(), timeout]);
-    };
-
-    process.on('SIGTERM', () => {
-        logger.info('[Worker] Shutting down...');
-        stopWorkerWithTimeout().then(() => process.exit(0)).catch(() => process.exit(1));
-    });
-    process.on('SIGINT', () => {
-        logger.info('[Worker] Shutting down...');
-        stopWorkerWithTimeout().then(() => process.exit(0)).catch(() => process.exit(1));
-    });
-}
+// Entry point is now src/index.ts with RUN_MODE=worker
+// This module only exports startWorker/stopWorker for programmatic use
