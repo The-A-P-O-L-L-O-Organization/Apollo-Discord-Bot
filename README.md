@@ -37,7 +37,7 @@ A feature-rich, modular Discord bot built with TypeScript and discord.js v14. De
 - **Cross-Pod Messaging**: Redis pub/sub bridging for EventBus events across gateway and worker instances
 - **Sandboxed Workers**: Third-party plugins run isolated in worker child processes with capability-gated RPC (`src/core/worker/`)
 - **Multi-Instance HA**: Gateway leader election with fencing (`src/gateway/leader.ts`, `fencing.ts`), worker auto-scaling via BullMQ metrics
-- **Dual Database Support**: SQLite via better-sqlite3 (default, single instance) or PostgreSQL via Knex (production multi-writer)
+- **Dual Database Support**: SQLite via libsql (default, single instance) or PostgreSQL via Knex (production multi-writer)
 - **Distributed Locking**: Redis-based `acquireLock`/`releaseLock`/`withLock` for scheduler coordination across pods
 - **Encrypted Storage**: AES encryption for sensitive guild data, with key rotation via comma-separated `ENCRYPTION_KEY` list
 - **Startup Guards**: Fail-fast validation of `DISCORD_TOKEN`, `OPERATOR_AGREEMENT`, `ENCRYPTION_KEY`, Postgres pool sizing, queue HMAC secret, and unverified-plugin warnings
@@ -48,7 +48,7 @@ Kick, ban, unban, forceban, softban, timeout, mute/unmute, voice mute/deafen/dis
 
 ### Auto-Moderation
 
-Spam detection (in-memory plus optional Redis tracking), raid detection with join-burst lockdown and similarity scoring, banned words, Discord invite filter, link filter, mention spam cap, caps filter, minimum account age, exempt channels and roles, optional OpenAI moderation endpoint, optional Rust-backed NSFW image analysis over gRPC.
+Spam detection (in-memory plus optional Redis tracking), raid detection with join-burst lockdown and similarity scoring, banned words, Discord invite filter, link filter, mention spam cap, caps filter, minimum account age, exempt channels and roles, optional OpenAI moderation endpoint, optional Rust-backed NSFW image analysis over ConnectRPC.
 
 ### Ticket System (13 commands)
 
@@ -68,7 +68,7 @@ GitHub webhook receiver with HMAC verification, Twitch and YouTube live polling,
 
 ### Interlink
 
-Bot-to-bot RPC through a dedicated Go service (`services/interlink/`) over ConnectRPC/gRPC with HMAC auth, per-bot JWT, optional mTLS and Ed25519 identity advertisement, Redis-backed rate limiting, and at-most-once forwarding of selected core events.
+Bot-to-bot RPC through a dedicated Go service (`services/interlink/`) over ConnectRPC with HMAC auth, per-bot JWT, optional mTLS and Ed25519 identity advertisement, Redis-backed rate limiting, and at-most-once forwarding of selected core events.
 
 ### Logging
 
@@ -163,8 +163,8 @@ Run modes:
 ### Database Layer
 
 ```text
-src/utils/db.ts        High-level async bridge used by commands
-src/db/knex.ts         Knex connection factory (pg or better-sqlite3)
+src/utils/db.ts        High-level async bridge used by commands (libsql client)
+src/db/knex.ts         Knex connection factory (pg or libsql)
 src/db/adapter.ts      getGuildData/setGuildData/getUserData/setUserData
 src/db/migrations/    Knex migrations (*.cjs)
 ```
@@ -420,7 +420,7 @@ CI runs `buf lint`, Go builds and tests, Rust builds and tests for NSFW componen
 
 ## Observability
 
-- OpenTelemetry bootstrap in `src/observability/otel.ts` with HTTP, Express, gRPC, and auto-instrumentations
+- OpenTelemetry bootstrap in `src/observability/otel.ts` with HTTP, ConnectRPC, and auto-instrumentations
 - Prometheus client metrics plus BullMQ queue depth for autoscaling
 - Health endpoint via `HEALTH_PORT`/`HEALTH_HOST` with Docker healthchecks
 - Pino structured logs with configurable sampling through `LOG_SAMPLE_RATE`
@@ -463,9 +463,9 @@ Read `legal/TOS.md` and `legal/PRIVACY.md`, then set `OPERATOR_AGREEMENT=true` a
 
 Run `pnpm run deploy:commands`. Global commands can take up to one hour; set `GUILD_ID` for instant guild-scoped registration during development.
 
-### better-sqlite3 fails after install
+### Database fails after install
 
-Run `pnpm rebuild better-sqlite3`. Native bindings must match the active Node 26 toolchain.
+Run `pnpm install` to ensure libsql client is available. Native bindings must match the active Node 26 toolchain.
 
 ### Workers idle while queue grows
 
@@ -503,4 +503,5 @@ Before running the bot, read the Terms of Service and Privacy Policy, then set `
 - [Vitest](https://vitest.dev/)
 - [OpenTelemetry](https://opentelemetry.io/)
 - [ConnectRPC](https://connectrpc.com/)
+- [libsql](https://libsql.org/)
 - [Discord Developer Portal](https://discord.com/developers/applications)

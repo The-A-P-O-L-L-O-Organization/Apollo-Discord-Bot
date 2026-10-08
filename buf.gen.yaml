@@ -6,6 +6,8 @@ plugins:
   - remote: buf.build/grpc/go:v1.3.0
     out: gen/go
     opt: paths=source_relative,require_unimplemented_servers=true
-  - local: protoc-gen-ts_proto
+  - local: protoc-gen-es
     out: src/generated/nsfw
-    opt: ts_nocheck=true,esModuleInterop=true,forceLong=string
+    opt:
+      - target=ts
+      - import_extension=js
