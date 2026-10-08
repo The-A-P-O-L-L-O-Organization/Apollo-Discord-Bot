@@ -1,0 +1,68 @@
+{
+  "versionGroups": [
+    {
+      "label": "TypeScript tooling",
+      "packages": ["typescript", "tsx", "oxlint", "oxlint-tsgolint"],
+      "dependencyTypes": ["dev"]
+    },
+    {
+      "label": "Testing",
+      "packages": ["vitest", "@vitest/coverage-v8", "@vitest/ui", "supertest", "testcontainers"],
+      "dependencyTypes": ["dev"]
+    },
+    {
+      "label": "Protobuf",
+      "packages": ["@bufbuild/buf", "@bufbuild/protoc-gen-es", "@bufbuild/protobuf"],
+      "dependencyTypes": ["dev"]
+    },
+    {
+      "label": "Discord.js",
+      "packages": ["discord.js", "@discordjs/builders", "@discordjs/rest"],
+      "dependencyTypes": ["prod"]
+    },
+    {
+      "label": "Database",
+      "packages": ["knex", "pg", "better-sqlite3", "@libsql/client"],
+      "dependencyTypes": ["prod", "dev"]
+    },
+    {
+      "label": "Redis/Queue",
+      "packages": ["ioredis", "bullmq", "msgpackr"],
+      "dependencyTypes": ["prod"]
+    },
+    {
+      "label": "Observability (OpenTelemetry)",
+      "packages": [
+        "@opentelemetry/api",
+        "@opentelemetry/sdk-node",
+        "@opentelemetry/sdk-trace-node",
+        "@opentelemetry/auto-instrumentations-node",
+        "@opentelemetry/instrumentation",
+        "@opentelemetry/resources",
+        "@opentelemetry/semantic-conventions",
+        "@opentelemetry/exporter-prometheus",
+        "@opentelemetry/exporter-trace-otlp-http",
+        "@opentelemetry/instrumentation-http",
+        "@opentelemetry/instrumentation-ioredis",
+        "@opentelemetry/instrumentation-pino"
+      ],
+      "dependencyTypes": ["prod"]
+    },
+    {
+      "label": "ConnectRPC",
+      "packages": ["@connectrpc/connect", "@connectrpc/connect-node"],
+      "dependencyTypes": ["prod"]
+    },
+    {
+      "label": "i18n",
+      "packages": ["i18next", "i18next-fs-backend", "i18next-cli"],
+      "dependencyTypes": ["prod"]
+    },
+    {
+      "label": "Utilities",
+      "packages": ["zod", "pino", "pino-pretty", "jose", "@noble/hashes", "dotenv", "chokidar", "adm-zip", "buffer", "madge"],
+      "dependencyTypes": ["prod", "dev"]
+    }
+  ],
+  "source": ["package.json", "pnpm-workspace.yaml"]
+}

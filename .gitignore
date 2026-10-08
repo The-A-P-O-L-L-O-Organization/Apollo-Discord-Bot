@@ -42,8 +42,10 @@ data/
 # Models
 models/*.onnx
 
-# Documentation
-docs/
+# Documentation (generated)
+docs/api/
+docs/architecture/
+docs/runbooks/
 
 # Superpowers
 .superpowers/
@@ -52,3 +54,6 @@ docs/
 .worktrees/
 .slim/
 target/
+
+# Generated protobuf (Go runtime)
+gen/
