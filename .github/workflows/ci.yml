@@ -402,8 +402,8 @@ jobs:
             ~/.pnpm-store
           key: ${{ needs.setup.outputs.cache-key }}
 
-      - name: Run syncpack list-mismatches
-        run: pnpm syncpack list-mismatches
+      - name: Run syncpack lint
+        run: pnpm syncpack lint
 
   buf-lint:
     name: Buf Lint
