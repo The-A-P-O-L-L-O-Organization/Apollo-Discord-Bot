@@ -108,6 +108,12 @@ jobs:
           echo "$HOME/.npm/bin" >> $GITHUB_PATH
         # Using npm to install ts-proto plugin globally
 
+      - name: Install protoc-gen-es
+        run: |
+          npm install -g @bufbuild/protoc-gen-es@2.16.0
+          echo "$HOME/.npm/bin" >> $GITHUB_PATH
+        # Using npm to install protoc-gen-es plugin globally for buf generate
+
       - name: Generate protobuf code
         run: buf generate
         working-directory: .
