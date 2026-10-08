@@ -59,39 +59,27 @@ export async function runChild({ pluginDir, env, processLike = process as unknow
     processLike?: ProcessLike;
     loader?: () => Promise<{ default: PluginInstance }>;
 }): Promise<WorkerChild> {
+    const pluginId = env['PLUGIN_ID'] ?? '';
     const capabilitySecret = env['PLUGIN_CAPABILITY_SECRET'] ?? env['QUEUE_HMAC_SECRET'] ?? '';
     if (!capabilitySecret) {
-        logger.warn('[WORKER] PLUGIN_CAPABILITY_SECRET or QUEUE_HMAC_SECRET not set; capability signatures will not be verified');
+        logger.error({ pluginId }, 'PLUGIN_CAPABILITY_SECRET not provided; refusing to start');
+        throw new Error('PLUGIN_CAPABILITY_SECRET not provided; refusing to start');
     }
 
-    const rawCapabilities = JSON.parse(env['PLUGIN_CAPABILITIES'] ?? '{}');
     let granted: string[];
-    if (
-        capabilitySecret &&
-        rawCapabilities &&
-        typeof rawCapabilities === 'object' &&
-        'signature' in rawCapabilities &&
-        typeof rawCapabilities.signature === 'string' &&
-        'pluginId' in rawCapabilities &&
-        typeof rawCapabilities.pluginId === 'string' &&
-        'capabilities' in rawCapabilities &&
-        Array.isArray(rawCapabilities.capabilities) &&
-        'issuedAt' in rawCapabilities &&
-        typeof rawCapabilities.issuedAt === 'number'
-    ) {
-        try {
-            const verified = verifyCapabilities(rawCapabilities as SignedCapabilities, capabilitySecret);
-            if (verified.pluginId !== env['PLUGIN_ID']) {
-                throw new Error('Plugin ID mismatch in capability signature');
-            }
-            granted = verified.capabilities;
-        } catch (err) {
-            throw new Error(`Invalid capability signature: ${err instanceof Error ? err.message : String(err)}`);
+    try {
+        const rawCapabilities: unknown = JSON.parse(env['PLUGIN_CAPABILITIES'] ?? '{}');
+        if (rawCapabilities === null || typeof rawCapabilities !== 'object') {
+            throw new Error('Invalid signed capabilities format');
         }
-    } else {
-        // Backward compatibility: accept unsigned capabilities array
-        granted = Array.isArray(rawCapabilities) ? rawCapabilities : [];
-        logger.warn('[WORKER] Using unsigned capabilities (no signature verification)');
+        const verified = verifyCapabilities(rawCapabilities as SignedCapabilities, capabilitySecret);
+        if (verified.pluginId !== env['PLUGIN_ID']) {
+            throw new Error('Plugin ID mismatch in capability signature');
+        }
+        granted = verified.capabilities;
+    } catch (err) {
+        logger.error({ pluginId, err }, 'Failed to verify capabilities; refusing to start');
+        throw new Error(`Invalid capability signature: ${err instanceof Error ? err.message : String(err)}`);
     }
 
     const loadPlugin = loader ?? (async () => import(pathToFileURL(join(pluginDir, 'plugin.js')).href + '?t=' + Date.now()));

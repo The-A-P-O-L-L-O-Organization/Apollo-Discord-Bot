@@ -2,8 +2,19 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { PluginInstance } from '../../../src/core/worker/workerChild.js';
 import type { RPCMessage } from '../../../src/core/worker/rpc.js';
 import { runChild } from '../../../src/core/worker/workerChild.js';
+import { signCapabilities } from '../../../src/core/worker/capabilitySignature.js';
 
 type RunChildOptions = Parameters<typeof runChild>[0];
+
+const TEST_SECRET = 'worker-child-test-secret';
+
+function signedEnv(pluginId: string, capabilities: string[] = []): Record<string, string> {
+    return {
+        PLUGIN_ID: pluginId,
+        PLUGIN_CAPABILITY_SECRET: TEST_SECRET,
+        PLUGIN_CAPABILITIES: JSON.stringify(signCapabilities(pluginId, capabilities, TEST_SECRET))
+    };
+}
 
 describe('workerChild', () => {
     let processLike: {
@@ -17,7 +28,7 @@ describe('workerChild', () => {
     beforeEach(() => {
         pluginDir = '/tmp/fake-plugin';
         processLike = {
-            env: { PLUGIN_ID: 'fake' },
+            env: signedEnv('fake'),
             send: vi.fn(),
             on: vi.fn(),
             exit: vi.fn()
@@ -27,7 +38,7 @@ describe('workerChild', () => {
     it('should wire plugin onLoad and respond to command requests', async() => {
         const child = await runChild({
             pluginDir,
-            env: { PLUGIN_ID: 'fake' },
+            env: signedEnv('fake'),
             processLike: processLike as unknown as RunChildOptions['processLike'],
             loader: (async () => ({
                 default: class FakePlugin {
@@ -52,7 +63,7 @@ describe('workerChild', () => {
     it('should respond with error result on exception', async() => {
         const child = await runChild({
             pluginDir,
-            env: { PLUGIN_ID: 'fake' },
+            env: signedEnv('fake'),
             processLike: processLike as unknown as RunChildOptions['processLike'],
             loader: (async () => ({
                 default: class BadPlugin {
@@ -77,7 +88,7 @@ describe('workerChild', () => {
         let loaded = false;
         const child = await runChild({
             pluginDir,
-            env: { PLUGIN_ID: 'fake' },
+            env: signedEnv('fake'),
             processLike: processLike as unknown as RunChildOptions['processLike'],
             loader: (async () => ({
                 default: class LoadPlugin {
@@ -100,7 +111,7 @@ describe('workerChild', () => {
     it('should reject plugins without static id', async() => {
         await expect(runChild({
             pluginDir,
-            env: { PLUGIN_ID: 'fake' },
+            env: signedEnv('fake'),
             processLike: processLike as unknown as RunChildOptions['processLike'],
             loader: (async () => ({ default: class NoId {} })) as unknown as () => Promise<{ default: PluginInstance }>
         })).rejects.toThrow(/static id/);

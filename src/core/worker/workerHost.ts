@@ -256,6 +256,8 @@ export class WorkerHost {
             PLUGIN_ID: pluginId,
             PLUGIN_DIR: dir,
             PLUGIN_CAPABILITIES: JSON.stringify(signedCapabilities),
+            PLUGIN_CAPABILITY_SECRET: process.env['PLUGIN_CAPABILITY_SECRET'] ?? '',
+            QUEUE_HMAC_SECRET: process.env['QUEUE_HMAC_SECRET'] ?? '',
             NODE_ENV: process.env['NODE_ENV'] ?? ''
         };
 

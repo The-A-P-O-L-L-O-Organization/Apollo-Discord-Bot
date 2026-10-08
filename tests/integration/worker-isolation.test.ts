@@ -4,10 +4,12 @@ import type { ChildProcess } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequest } from '../../src/core/worker/rpc.js';
+import { signCapabilities } from '../../src/core/worker/capabilitySignature.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const childEntry = join(__dirname, '../fixtures/worker-plugins/child-entry.ts');
 const fixtureDir = join(__dirname, '../fixtures/worker-plugins/demo');
+const TEST_SECRET = 'isolation-test-secret-67890';
 
 describe('worker isolation integration', () => {
     let child: ChildProcess;
@@ -20,7 +22,8 @@ describe('worker isolation integration', () => {
                 ...process.env,
                 PLUGIN_ID: 'demo',
                 PLUGIN_DIR: fixtureDir,
-                PLUGIN_CAPABILITIES: JSON.stringify(['events:messageCreate', 'api:sendMessage'])
+                PLUGIN_CAPABILITY_SECRET: TEST_SECRET,
+                PLUGIN_CAPABILITIES: JSON.stringify(signCapabilities('demo', ['events:messageCreate', 'api:sendMessage'], TEST_SECRET))
             },
             stdio: ['inherit', 'inherit', 'inherit', 'ipc']
         });
