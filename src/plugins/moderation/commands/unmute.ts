@@ -122,7 +122,7 @@ export default {
                     }
                 }
 
-                await setUserData('muted-roles', interaction.guild!.id, user.id, null);
+                await setUserData('muted-roles', interaction.guild!.id, user.id, {});
             }
 
             const successEmbed = {

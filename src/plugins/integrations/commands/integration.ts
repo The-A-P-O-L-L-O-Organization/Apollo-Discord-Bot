@@ -3,6 +3,7 @@ import type { ChatInputCommandInteraction } from 'discord.js';
 import { getData, setData } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { i18n } from '../../../i18n/index.js';
+import type { GlobalConfig } from '../../../db/schemas.js';
 
 interface IntegrationData {
     nextId: number;
@@ -137,7 +138,7 @@ async function handleAdd(interaction: ChatInputCommandInteraction): Promise<void
         created_at: new Date().toISOString()
     });
 
-    await setData('integrations', data);
+    await setData('integrations', data as unknown as GlobalConfig);
 
     const typeNames = { twitch: 'Twitch', youtube: 'YouTube', github: 'GitHub', rss: 'RSS' };
 
@@ -163,7 +164,7 @@ async function handleRemove(interaction: ChatInputCommandInteraction): Promise<v
     }
 
     data.subscriptions.splice(idx, 1);
-    await setData('integrations', data);
+    await setData('integrations', data as unknown as GlobalConfig);
 
     await interaction.reply({ content: t('integration.removed', { id }), flags: MessageFlags.Ephemeral });
 }

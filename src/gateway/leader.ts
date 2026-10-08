@@ -66,10 +66,14 @@ export function startHeartbeat(redis: LeaderRedis, lockKey: string, podId: strin
             logger.error({ err: err as Error }, '[Leader] Heartbeat failed');
         }
     };
-    _lockTimer = setInterval(() => { void refresh(); }, ttlMs / 3);
+    const timer = setInterval(() => { void refresh(); }, ttlMs / 3);
+    if (timer.unref) {
+        timer.unref();
+    }
+    _lockTimer = timer;
     return () => {
-        if (_lockTimer) {
-            clearInterval(_lockTimer);
+        clearInterval(timer);
+        if (_lockTimer === timer) {
             _lockTimer = null;
         }
     };

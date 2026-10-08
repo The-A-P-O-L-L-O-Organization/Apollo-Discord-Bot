@@ -153,6 +153,7 @@ export async function encrypt(data: string | object): Promise<string> {
 
 /**
  * Decrypts data using AES-256-GCM (supports v0 legacy format and v1+ versioned format)
+ * Tries each available encryption key until one successfully decrypts
  * @param {string} encryptedData - Base64 encoded encrypted data
  * @returns {Promise<string|Object|Array>} Decrypted plaintext (parsed if JSON)
  */
@@ -186,24 +187,36 @@ export async function decrypt(encryptedData: string): Promise<string | object | 
     const authTag = Buffer.from(authTagB64, 'base64');
     const ciphertext = Buffer.from(ciphertextB64, 'base64');
 
-    // Derive key with stored salt (tries all available keys for rotation support, async)
-    const derivedKey = await getDerivedKeyForSaltAny(salt);
-    if (!derivedKey) {
-        throw new Error('No valid encryption key available for decryption');
+    // Try each available key until one successfully decrypts
+    const keys = getEncryptionKeys();
+    if (keys.length === 0) {
+        throw new Error('No encryption keys available for decryption');
     }
 
-    const decipher = crypto.createDecipheriv(ALGORITHM, derivedKey, iv);
-    decipher.setAuthTag(authTag);
+    for (const keyEnv of keys) {
+        try {
+            // Derive key for this specific salt with this key
+            const derivedKey = await pbkdf2Async(keyEnv, salt, PBKDF2_ITERATIONS, KEY_LENGTH, 'sha256');
+            
+            const decipher = crypto.createDecipheriv(ALGORITHM, derivedKey, iv);
+            decipher.setAuthTag(authTag);
 
-    const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-    const result = plaintext.toString('utf8');
+            const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+            const result = plaintext.toString('utf8');
 
-    // Try to parse as JSON (for arrays/objects that were stringified before encryption)
-    try {
-        return JSON.parse(result);
-    } catch {
-        return result;
+            // Try to parse as JSON (for arrays/objects that were stringified before encryption)
+            try {
+                return JSON.parse(result);
+            } catch {
+                return result;
+            }
+        } catch {
+            // Decryption failed with this key, try next key
+            continue;
+        }
     }
+
+    throw new Error('No valid encryption key available for decryption');
 }
 
 /**
@@ -298,17 +311,88 @@ export function needsReEncryption(encryptedData: string): boolean {
 }
 
 /**
- * Re-encrypts data with current key if needed (async, non-blocking)
- * @param {string} encryptedData - Currently encrypted data
- * @returns {Promise<string>} Re-encrypted data with current version, or original if already current
+ * Re-encrypts all encrypted data in the database with the current key
+ * @param {boolean} dryRun - If true, only report what would be changed
+ * @returns {Promise<{ updated: number; errors: string[] }>} Summary of changes
  */
-export async function reEncryptIfNeeded(encryptedData: string): Promise<string> {
-    if (!needsReEncryption(encryptedData)) {
-        return encryptedData;
+export async function reEncryptAll(dryRun = false): Promise<{ updated: number; errors: string[] }> {
+    const { getGuildData, setGuildData, getAllGuildData, getData, setData } = await import('../utils/db.js');
+
+    let updatedCount = 0;
+    const errors: string[] = [];
+
+    // Sensitive field lists from adapter
+    const SENSITIVE_GUILD_FIELDS = ['webhookUrl', 'modLogChannel', 'announcementChannel', 'logChannel', 'reactionRoleChannel', 'ticketCategory', 'ticketLogChannel', 'automodLogChannel', 'blacklistLogChannel', 'welcomeChannel', 'leaveChannel', 'inviteChannel', 'mediaChannel', 'voiceLogChannel', 'auditLogChannel'];
+    const SENSITIVE_GLOBAL_FIELDS = ['interlinkSecret', 'apiKeys', 'webhookSecrets', 'botToken'];
+
+    async function processGuildStore(store: string, fields: string[]): Promise<void> {
+        try {
+            const allData = await getAllGuildData(store);
+            for (const entry of allData) {
+                if (!entry.data) continue;
+                let needsUpdate = false;
+                for (const field of fields) {
+                    const value = (entry.data as Record<string, unknown>)[field];
+                    if (value && typeof value === 'string' && isEncrypted(value) && needsReEncryption(value)) {
+                        needsUpdate = true;
+                        if (!dryRun) {
+                            const decrypted = await decrypt(value);
+                            (entry.data as Record<string, unknown>)[field] = await encrypt(decrypted);
+                        }
+                    }
+                }
+                if (needsUpdate && !dryRun) {
+                    await setGuildData(store, entry.guildId, entry.data);
+                }
+                if (needsUpdate) {
+                    updatedCount++;
+                }
+            }
+        } catch (err) {
+            errors.push(`Guild store ${store}: ${(err as Error).message}`);
+        }
     }
-    // Decrypt with any available key, then re-encrypt with current key
-    const plaintext = await decrypt(encryptedData);
-    return encrypt(plaintext);
+
+    async function processGlobalStore(store: string, fields: string[]): Promise<void> {
+        try {
+            const data = await getData(store);
+            if (!data) return;
+            let needsUpdate = false;
+            for (const field of fields) {
+                const value = (data as Record<string, unknown>)[field];
+                if (value && typeof value === 'string' && isEncrypted(value) && needsReEncryption(value)) {
+                    needsUpdate = true;
+                    if (!dryRun) {
+                        const decrypted = await decrypt(value);
+                        (data as Record<string, unknown>)[field] = await encrypt(decrypted);
+                    }
+                }
+            }
+            if (needsUpdate && !dryRun) {
+                await setData(store, data);
+            }
+            if (needsUpdate) {
+                updatedCount++;
+            }
+        } catch (err) {
+            errors.push(`Global store ${store}: ${(err as Error).message}`);
+        }
+    }
+
+    // Process guild stores
+    const guildStores = ['warnings', 'strikes', 'notes', 'bans', 'kicks', 'timeouts', 'mutes', 'cases', 'tickets', 'config', 'autorole', 'blacklist', 'automod', 'integrations', 'interlink', 'reminders', 'polls', 'giveaways', 'levels', 'reports', 'temproles', 'tempbans', 'rolepersistence', 'slowmode', 'lockdown', 'raidmode', 'nickname', 'voicestate', 'analytics', 'embeds', 'tags', 'announcements', 'apolloinfo', 'invites', 'datadeletion', 'operatorcontact', 'slareadout'];
+    
+    for (const store of guildStores) {
+        await processGuildStore(store, SENSITIVE_GUILD_FIELDS);
+    }
+
+    // Process global stores
+    const globalStores = ['interlink', 'config', 'analytics', 'manifest'];
+    for (const store of globalStores) {
+        await processGlobalStore(store, SENSITIVE_GLOBAL_FIELDS);
+    }
+
+    return { updated: updatedCount, errors };
 }
 
 export default {
@@ -320,5 +404,5 @@ export default {
     clearEncryptionKeyCache,
     getCurrentVersion,
     needsReEncryption,
-    reEncryptIfNeeded
+    reEncryptAll
 };

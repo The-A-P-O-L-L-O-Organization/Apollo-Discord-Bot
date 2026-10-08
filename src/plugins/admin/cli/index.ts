@@ -86,6 +86,27 @@ const commands: CLICommand[] = [
             { name: 'setting', description: 'The setting to change', required: true },
             { name: 'value', description: 'The value to set', required: true }
         ]
+    },
+    {
+        name: 'encryption',
+        description: 'Manage encryption keys',
+        needsSocket: true,
+        options: [],
+        subcommands: [
+            {
+                name: 'reencrypt',
+                description: 'Re-encrypt all data with current ENCRYPTION_KEY',
+                needsSocket: true,
+                options: [
+                    { name: 'dry-run', description: 'Show what would be re-encrypted without making changes', required: false }
+                ],
+                execute: async (args: Record<string, unknown>) => {
+                    const { reEncryptAll } = await import('../../../utils/encryption.js');
+                    const dryRun = args['dry-run'] === true || args['dry-run'] === 'true';
+                    return reEncryptAll(dryRun);
+                }
+            }
+        ]
     }
 ];
 

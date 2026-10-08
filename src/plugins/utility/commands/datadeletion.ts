@@ -1,4 +1,4 @@
-import type { ChatInputCommandInteraction} from 'discord.js';
+import type { ChatInputCommandInteraction, ButtonInteraction, StringSelectMenuInteraction, ChannelSelectMenuInteraction, RoleSelectMenuInteraction, UserSelectMenuInteraction, MentionableSelectMenuInteraction } from 'discord.js';
 import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
 import { getAllGuildData, setGuildData, getUserData, setUserData } from '../../../utils/db.js';
 import { logSecurityEvent } from '../../../utils/securityLog.js';
@@ -74,7 +74,8 @@ export async function deleteUserData(userId: string): Promise<{ total: number; b
         for (const { guildId } of allGuildData) {
             const userData = await getUserData(store, guildId, userId);
             if (userData !== undefined && userData !== null) {
-                await setUserData(store, guildId, userId, null);
+                // Use empty object to effectively delete (the key will still exist but be empty)
+                await setUserData(store, guildId, userId, {});
                 byCategory[store] = (byCategory[store] ?? 0) + 1;
                 total += 1;
             }
@@ -155,7 +156,7 @@ export default {
                 flags: MessageFlags.Ephemeral
             });
 
-            let buttonInteraction;
+            let buttonInteraction: ButtonInteraction | StringSelectMenuInteraction | ChannelSelectMenuInteraction | RoleSelectMenuInteraction | UserSelectMenuInteraction | MentionableSelectMenuInteraction;
             try {
                 const replyMessage = await interaction.fetchReply();
                 buttonInteraction = await replyMessage.awaitMessageComponent({

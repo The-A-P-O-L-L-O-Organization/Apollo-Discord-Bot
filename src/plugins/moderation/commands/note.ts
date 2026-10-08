@@ -6,6 +6,7 @@ import { getUserData, setUserData, appendToUserArray } from '../../../utils/db.j
 import { generateId } from '../../../utils/db.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { i18n } from '../../../i18n/index.js';
+import type { UserConfig } from '../../../db/schemas.js';
 
 interface ModNote {
     id: string;
@@ -217,7 +218,7 @@ async function handleRemoveNote(interaction: ChatInputCommandInteraction, user: 
     }
 
     const removedNote = notes.splice(noteIndex, 1)[0]!;
-    await setUserData('mod-notes', interaction.guild!.id, user.id, notes);
+    await setUserData('mod-notes', interaction.guild!.id, user.id, { notes } as unknown as UserConfig);
 
     const successEmbed = {
         color: 0x00FF00,

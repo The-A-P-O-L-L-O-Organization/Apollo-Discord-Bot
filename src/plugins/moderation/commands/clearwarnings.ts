@@ -7,6 +7,7 @@ import { getUserData, setUserData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import type { WarningEntry } from './warnings.js';
 import { i18n } from '../../../i18n/index.js';
+import type { UserConfig } from '../../../db/schemas.js';
 
 export default {
     name: 'clearwarnings',
@@ -57,8 +58,9 @@ export default {
                 return;
             }
 
-            // Get current warnings
-            const warnings = ((await getUserData('warnings', interaction.guild!.id, user.id)) as unknown as WarningEntry[]) ?? [];
+            // Get current warnings - stored as { warnings: WarningEntry[] }
+            const userData = await getUserData('warnings', interaction.guild!.id, user.id);
+            const warnings = ((userData?.warnings as unknown) as WarningEntry[]) ?? [];
 
             if (warnings.length === 0) {
                 await interaction.reply({
@@ -109,7 +111,7 @@ export default {
                     clearReason: reason
                 };
 
-                await setUserData('warnings', interaction.guild!.id, user.id, warnings);
+                await setUserData('warnings', interaction.guild!.id, user.id, { warnings } as unknown as UserConfig);
                 clearedCount = 1;
 
             } else {
@@ -144,7 +146,7 @@ export default {
                     return w;
                 });
 
-                await setUserData('warnings', interaction.guild!.id, user.id, updatedWarnings);
+                await setUserData('warnings', interaction.guild!.id, user.id, { warnings: updatedWarnings } as unknown as UserConfig);
                 clearedCount = activeWarnings.length;
             }
 
@@ -179,7 +181,8 @@ export default {
             }
 
             // Show remaining active warnings
-            const remainingActive = (((await getUserData('warnings', interaction.guild!.id, user.id)) as unknown as WarningEntry[]) ?? [])
+            const remainingData = await getUserData('warnings', interaction.guild!.id, user.id);
+            const remainingActive = (((remainingData?.warnings as unknown) as WarningEntry[]) ?? [])
                 .filter(w => w.active !== false).length;
 
             embed.addFields({

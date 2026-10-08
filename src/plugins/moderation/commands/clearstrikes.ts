@@ -91,19 +91,20 @@ export default {
                 description = `Strike ${strikeId} has been removed.`;
 
                 // Update strikes
-                await setUserData('strikes', interaction.guild!.id, user.id, strikes);
+                await setUserData('strikes', interaction.guild!.id, user.id, { strikes } as { strikes: StrikeEntry[] });
 
             } else {
                 // Clear all strikes
                 const activeCount = strikes.filter(s => s.active !== false).length;
 
                 // Mark all as inactive
-                strikes.forEach(s => s.active = false);
+                strikes.forEach(s => { s.active = false; });
                 removed = activeCount;
                 description = `All ${removed} strike(s) have been removed.`;
 
                 // Update strikes
-                await setUserData('strikes', interaction.guild!.id, user.id, strikes);
+                await setUserData('strikes', interaction.guild!.id, user.id, { strikes } as { strikes: StrikeEntry[] });
+
             }
 
             // Create success embed
