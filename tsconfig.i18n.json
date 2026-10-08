@@ -1,0 +1,11 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "outDir": "./dist/i18n",
+        "rootDir": "./src/i18n",
+        "tsBuildInfoFile": "./.cache/tsbuildinfo/i18n.tsbuildinfo"
+    },
+    "include": [
+        "src/i18n/**/*"
+    ]
+}

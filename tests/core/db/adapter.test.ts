@@ -52,9 +52,9 @@ describe('DB adapter', () => {
   });
 
   it('should set and get user data', async () => {
-    await setUserData('warnings', 'guild-1', 'user-1', ['warn1', 'warn2'] as unknown as Record<string, unknown>);
+    await setUserData('warnings', 'guild-1', 'user-1', { warnings: [] });
     const result = await getUserData('warnings', 'guild-1', 'user-1');
-    expect(result).toEqual(['warn1', 'warn2']);
+    expect(result).toEqual({ warnings: [] });
   });
 
   it('should return undefined for missing user data', async () => {
@@ -62,11 +62,11 @@ describe('DB adapter', () => {
     expect(result).toBeUndefined();
   });
 
-  it('should get all users for a guild store', async () => {
-    await setUserData('allusers', 'guild-z', 'u1', ['a'] as unknown as Record<string, unknown>);
-    await setUserData('allusers', 'guild-z', 'u2', ['b'] as unknown as Record<string, unknown>);
+it('should get all users for a guild store', async () => {
+    await setUserData('allusers', 'guild-z', 'u1', { warnings: [] });
+    await setUserData('allusers', 'guild-z', 'u2', { warnings: [] });
     const all = await getAllUserData('allusers', 'guild-z');
     expect(all.length).toBe(2);
-    expect(all.find(u => u.userId === 'u2')!.data).toEqual(['b']);
+    expect(all.find(u => u.userId === 'u2')!.data).toEqual({ warnings: [] });
   });
 });

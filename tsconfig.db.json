@@ -1,0 +1,11 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "outDir": "./dist/db",
+        "rootDir": "./src/db",
+        "tsBuildInfoFile": "./.cache/tsbuildinfo/db.tsbuildinfo"
+    },
+    "include": [
+        "src/db/**/*"
+    ]
+}

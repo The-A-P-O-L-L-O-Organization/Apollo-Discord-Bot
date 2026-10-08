@@ -3,7 +3,8 @@
     "compilerOptions": {
         "noEmit": true,
         "skipLibCheck": true,
-        "types": ["node", "vitest/globals", "@discordjs/builders", "@types/node"]
+        "types": ["node", "vitest/globals", "@discordjs/builders", "@types/node"],
+        "composite": false
     },
     "include": [
         "src/**/*",
@@ -16,5 +17,12 @@
         "src/generated/nsfw/nsfw/v1/nsfw.ts",
         "src/generated/nsfw/interlink/v1/interlink.ts",
         "node_modules"
+    ],
+    "references": [
+        { "path": "./tsconfig.core.json" },
+        { "path": "./tsconfig.plugins.json" },
+        { "path": "./tsconfig.queue.json" },
+        { "path": "./tsconfig.generated.json" },
+        { "path": "./tsconfig.admin.json" }
     ]
 }

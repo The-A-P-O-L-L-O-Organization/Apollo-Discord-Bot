@@ -1,0 +1,14 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "outDir": "./dist/gateway",
+        "rootDir": "./src/gateway",
+        "tsBuildInfoFile": "./.cache/tsbuildinfo/gateway.tsbuildinfo"
+    },
+    "include": [
+        "src/gateway/**/*"
+    ],
+    "references": [
+        { "path": "./tsconfig.core.json" }
+    ]
+}

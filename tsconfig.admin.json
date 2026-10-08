@@ -1,0 +1,14 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "outDir": "./dist/admin",
+        "rootDir": "./src/admin",
+        "tsBuildInfoFile": "./.cache/tsbuildinfo/admin.tsbuildinfo"
+    },
+    "include": [
+        "src/admin/**/*"
+    ],
+    "references": [
+        { "path": "./tsconfig.core.json" }
+    ]
+}

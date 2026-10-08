@@ -308,7 +308,7 @@ describe('deleteUserData helper', () => {
         const summary = await deleteUserData('user123');
 
         expect(summary.byCategory['levels']).toBe(1);
-        expect(setUserData).toHaveBeenCalledWith('levels', expect.any(String), 'user123', null);
+        expect(setUserData).toHaveBeenCalledWith('levels', expect.any(String), 'user123', {});
     });
 
     it('should count and remove reminders', async() => {

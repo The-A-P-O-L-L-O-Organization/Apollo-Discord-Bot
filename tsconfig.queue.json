@@ -1,0 +1,14 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "outDir": "./dist/queue",
+        "rootDir": "./src/queue",
+        "tsBuildInfoFile": "./.cache/tsbuildinfo/queue.tsbuildinfo"
+    },
+    "include": [
+        "src/queue/**/*"
+    ],
+    "references": [
+        { "path": "./tsconfig.core.json" }
+    ]
+}

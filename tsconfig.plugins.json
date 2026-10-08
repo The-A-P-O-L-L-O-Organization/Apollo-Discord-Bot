@@ -1,0 +1,14 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "outDir": "./dist/plugins",
+        "rootDir": "./src/plugins",
+        "tsBuildInfoFile": "./.cache/tsbuildinfo/plugins.tsbuildinfo"
+    },
+    "include": [
+        "src/plugins/**/*"
+    ],
+    "references": [
+        { "path": "./tsconfig.core.json" }
+    ]
+}

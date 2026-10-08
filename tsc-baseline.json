@@ -1,0 +1,112 @@
+{
+  "generated": "2026-10-08",
+  "command": "tsc --noEmit -p tsconfig.test.json",
+  "description": "Baseline of pre-existing TypeScript errors in test files. These errors exist in test mocks and test utilities that predate the stack improvements. They are not introduced by the current work and should be addressed in a separate test refactoring effort.",
+  "errors": [
+    {
+      "file": "tests/commands/unmute.test.ts",
+      "errors": 3,
+      "codes": ["TS2740"],
+      "description": "Mock Role objects missing required Discord.js Role properties"
+    },
+    {
+      "file": "tests/core/PluginManager.test.ts",
+      "errors": 1,
+      "codes": ["TS2741"],
+      "description": "Mock plugin manifest missing required 'name' property"
+    },
+    {
+      "file": "tests/core/db/adapter.test.ts",
+      "errors": 1,
+      "codes": ["TS4111"],
+      "description": "Index signature access on UserConfig"
+    },
+    {
+      "file": "tests/events/messageReactionAdd.test.ts",
+      "errors": 1,
+      "codes": ["TS2352"],
+      "description": "Mock reaction type incompatible with Discord.js MessageReaction"
+    },
+    {
+      "file": "tests/events/messageReactionRemove.test.ts",
+      "errors": 1,
+      "codes": ["TS2352"],
+      "description": "Mock reaction type incompatible with Discord.js MessageReaction"
+    },
+    {
+      "file": "tests/integration/interlink-validation.test.ts",
+      "errors": 1,
+      "codes": ["TS18046"],
+      "description": "Catch variable typed as unknown"
+    },
+    {
+      "file": "tests/integration/network-partition.test.ts",
+      "errors": 2,
+      "codes": ["TS2345"],
+      "description": "Argument type mismatches (number | undefined vs number)"
+    },
+    {
+      "file": "tests/integration/nsfw-rust-service.test.ts",
+      "errors": 4,
+      "codes": ["TS2307", "TS2345"],
+      "description": "Missing generated protobuf module, bigint vs string mismatches"
+    },
+    {
+      "file": "tests/integration/otel-trace.test.ts",
+      "errors": 1,
+      "codes": ["TS2353"],
+      "description": "Invalid SpanOptions property"
+    },
+    {
+      "file": "tests/nsfw-fidelity.test.ts",
+      "errors": 2,
+      "codes": ["TS2345"],
+      "description": "bigint vs string mismatches in ConnectRPC client"
+    },
+    {
+      "file": "tests/unit/discord-mock-shapes.test.ts",
+      "errors": 4,
+      "codes": ["TS2339", "TS2551"],
+      "description": "Mock Discord objects missing required properties"
+    },
+    {
+      "file": "tests/unit/gateway-fencing.test.ts",
+      "errors": 24,
+      "codes": ["TS18048"],
+      "description": "Mock call objects possibly undefined"
+    },
+    {
+      "file": "tests/unit/interlink-jwt-auth.test.ts",
+      "errors": 4,
+      "codes": ["TS4111", "TS2345", "TS2769"],
+      "description": "Index signature access, undefined argument handling"
+    },
+    {
+      "file": "tests/unit/nonce-store-redis.test.ts",
+      "errors": 6,
+      "codes": ["TS18048", "TS2532"],
+      "description": "Mock call objects possibly undefined"
+    },
+    {
+      "file": "tests/unit/plugin-loader.test.ts",
+      "errors": 2,
+      "codes": ["TS2739"],
+      "description": "Mock client missing ApolloClient properties"
+    },
+    {
+      "file": "tests/unit/redis-protocol.test.ts",
+      "errors": 2,
+      "codes": ["TS2554", "TS2339"],
+      "description": "Incorrect Redis client constructor usage in tests"
+    },
+    {
+      "file": "tests/utils/redis.test.ts",
+      "errors": 6,
+      "codes": ["TS2345"],
+      "description": "String argument passed where RedisConnectionConfig expected"
+    }
+  ],
+  "totalErrors": 65,
+  "totalFiles": 17,
+  "notes": "All errors are in test files (*.test.ts). Source files in src/ have zero errors. These errors stem from test mocks that don't fully match Discord.js types and older test patterns. They should be fixed incrementally as part of test maintenance."
+}

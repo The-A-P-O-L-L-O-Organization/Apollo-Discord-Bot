@@ -1,0 +1,12 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "outDir": "./dist/generated",
+        "rootDir": "./src/generated",
+        "tsBuildInfoFile": "./.cache/tsbuildinfo/generated.tsbuildinfo",
+        "skipLibCheck": true
+    },
+    "include": [
+        "src/generated/**/*"
+    ]
+}

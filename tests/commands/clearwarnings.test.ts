@@ -27,6 +27,7 @@ vi.mock('../../src/utils/modLog.js', () => ({
 }));
 
 import { getUserData, setUserData } from '../../src/utils/db.js';
+import type { UserConfig } from '../../src/utils/db.js';
 import { sendModLog } from '../../src/utils/modLog.js';
 
 describe('ClearWarnings Command', () => {
@@ -82,22 +83,26 @@ describe('ClearWarnings Command', () => {
                 { id: 'warn-1', reason: 'Reason 1', timestamp: Date.now(), active: true },
                 { id: 'warn-2', reason: 'Reason 2', timestamp: Date.now(), active: true }
             ];
-            vi.mocked(getUserData).mockResolvedValue(warnings as unknown as Record<string, unknown>);
+            vi.mocked(getUserData)
+                .mockResolvedValueOnce({ warnings } as unknown as UserConfig)
+                .mockResolvedValueOnce({ warnings: [] } as unknown as UserConfig);
             mockInteraction.options.getString.mockReturnValue(null); // No warning ID
 
             await clearWarningsCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
             expect(setUserData).toHaveBeenCalled();
             const setCall = vi.mocked(setUserData).mock.calls[0]!;
-            const updatedWarnings = setCall[3] as unknown as Array<{ active: boolean; id?: string }>;
+            const updatedWarnings = (setCall[3] as UserConfig).warnings as Array<{ active: boolean; id?: string }>;
             expect(updatedWarnings.every((w: { active: boolean }) => w.active === false)).toBe(true);
         });
 
         it('should reply with success embed', async() => {
             const mockData1 = [
-                { id: 'warn-1', reason: 'Reason 1', timestamp: Date.now() }
-                        ];
-                        vi.mocked(getUserData).mockResolvedValue(mockData1 as unknown as Awaited<ReturnType<typeof getUserData>>);
+                { id: 'warn-1', reason: 'Reason 1', timestamp: Date.now(), active: true }
+            ];
+            vi.mocked(getUserData)
+                .mockResolvedValueOnce({ warnings: mockData1 } as unknown as UserConfig)
+                .mockResolvedValueOnce({ warnings: [] } as unknown as UserConfig);
             mockInteraction.options.getString.mockReturnValue(null);
 
             await clearWarningsCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
@@ -109,9 +114,11 @@ describe('ClearWarnings Command', () => {
 
         it('should send mod log', async() => {
             const mockData2 = [
-                { id: 'warn-1', reason: 'Reason 1', timestamp: Date.now() }
-                        ];
-                        vi.mocked(getUserData).mockResolvedValue(mockData2 as unknown as Awaited<ReturnType<typeof getUserData>>);
+                { id: 'warn-1', reason: 'Reason 1', timestamp: Date.now(), active: true }
+            ];
+            vi.mocked(getUserData)
+                .mockResolvedValueOnce({ warnings: mockData2 } as unknown as UserConfig)
+                .mockResolvedValueOnce({ warnings: [] } as unknown as UserConfig);
             mockInteraction.options.getString.mockReturnValue(null);
 
             await clearWarningsCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
@@ -130,10 +137,12 @@ describe('ClearWarnings Command', () => {
     describe('execute - Clear Specific Warning', () => {
         it('should clear a specific warning by ID', async() => {
             const warnings = [
-                { id: 'warn-1', reason: 'Reason 1', timestamp: Date.now(), moderatorTag: 'Mod#0001' },
-                { id: 'warn-2', reason: 'Reason 2', timestamp: Date.now(), moderatorTag: 'Mod#0001' }
+                { id: 'warn-1', reason: 'Reason 1', timestamp: Date.now(), moderatorTag: 'Mod#0001', active: true },
+                { id: 'warn-2', reason: 'Reason 2', timestamp: Date.now(), moderatorTag: 'Mod#0001', active: true }
             ];
-            vi.mocked(getUserData).mockResolvedValue(warnings as unknown as Record<string, unknown>);
+            vi.mocked(getUserData)
+                .mockResolvedValueOnce({ warnings } as unknown as UserConfig)
+                .mockResolvedValueOnce({ warnings: [] } as unknown as UserConfig);
             mockInteraction.options.getString
                 .mockReturnValueOnce('warn-1')  // warning-id
                 .mockReturnValueOnce('Appeal accepted'); // reason
@@ -142,7 +151,7 @@ describe('ClearWarnings Command', () => {
             
             expect(setUserData).toHaveBeenCalled();
             const setCall = vi.mocked(setUserData).mock.calls[0]!;
-            const updatedWarnings = setCall[3] as unknown as Array<{ id: string; active: boolean; clearReason?: string }>;
+            const updatedWarnings = (setCall[3] as UserConfig).warnings as Array<{ id: string; active: boolean; clearReason?: string }>;
             
             const clearedWarning = updatedWarnings.find((w: { id: string }) => w.id === 'warn-1');
             expect(clearedWarning!.active).toBe(false);
@@ -153,7 +162,7 @@ describe('ClearWarnings Command', () => {
         });
     });
 
-    describe('execute - Error Cases', () => {
+describe('execute - Error Cases', () => {
         it('should reject when no user specified', async() => {
             mockInteraction.options.getUser.mockReturnValue(null);
 
@@ -166,8 +175,7 @@ describe('ClearWarnings Command', () => {
         });
 
         it('should handle user with no warnings', async() => {
-            const mockData3: Array<unknown> = [];
-                        vi.mocked(getUserData).mockResolvedValue(mockData3 as unknown as Awaited<ReturnType<typeof getUserData>>);
+            vi.mocked(getUserData).mockResolvedValue({ warnings: [] } as unknown as UserConfig);
 
             await clearWarningsCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
             
@@ -178,9 +186,9 @@ describe('ClearWarnings Command', () => {
 
         it('should handle invalid warning ID', async() => {
             const mockData4 = [
-                { id: 'warn-1', reason: 'Reason 1', timestamp: Date.now() }
-                        ];
-                        vi.mocked(getUserData).mockResolvedValue(mockData4 as unknown as Awaited<ReturnType<typeof getUserData>>);
+                { id: 'warn-1', reason: 'Reason 1', timestamp: Date.now(), active: true }
+            ];
+            vi.mocked(getUserData).mockResolvedValue({ warnings: mockData4 } as unknown as UserConfig);
             mockInteraction.options.getString
                 .mockReturnValueOnce('invalid-id');
 
@@ -194,8 +202,8 @@ describe('ClearWarnings Command', () => {
         it('should handle no active warnings when all are cleared', async() => {
             const mockData5 = [
                 { id: 'warn-1', reason: 'Reason 1', timestamp: Date.now(), active: false }
-                        ];
-                        vi.mocked(getUserData).mockResolvedValue(mockData5 as unknown as Awaited<ReturnType<typeof getUserData>>);
+            ];
+            vi.mocked(getUserData).mockResolvedValue({ warnings: mockData5 } as unknown as UserConfig);
             mockInteraction.options.getString.mockReturnValue(null);
 
             await clearWarningsCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);
@@ -221,9 +229,11 @@ describe('ClearWarnings Command', () => {
     describe('execute - Default Reason', () => {
         it('should use default reason when none provided', async() => {
             const mockData6 = [
-                { id: 'warn-1', reason: 'Reason 1', timestamp: Date.now() }
-                        ];
-                        vi.mocked(getUserData).mockResolvedValue(mockData6 as unknown as Awaited<ReturnType<typeof getUserData>>);
+                { id: 'warn-1', reason: 'Reason 1', timestamp: Date.now(), active: true }
+            ];
+            vi.mocked(getUserData)
+                .mockResolvedValueOnce({ warnings: mockData6 } as unknown as Awaited<ReturnType<typeof getUserData>>)
+                .mockResolvedValueOnce({ warnings: [] });
             mockInteraction.options.getString.mockReturnValue(null);
 
             await clearWarningsCommand.execute(mockInteraction as unknown as ChatInputCommandInteraction);

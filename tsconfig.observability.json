@@ -1,0 +1,11 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "outDir": "./dist/observability",
+        "rootDir": "./src/observability",
+        "tsBuildInfoFile": "./.cache/tsbuildinfo/observability.tsbuildinfo"
+    },
+    "include": [
+        "src/observability/**/*"
+    ]
+}

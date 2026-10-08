@@ -20,13 +20,12 @@
         "isolatedModules": true,
         "verbatimModuleSyntax": true,
         "skipLibCheck": false,
-        "types": ["node", "vitest/globals", "@discordjs/builders"]
+        "types": ["node", "vitest/globals", "@discordjs/builders"],
+        "composite": true,
+        "incremental": true
     },
     "include": [
-        "src/**/*",
-        "tests/**/*",
-        "bin/**/*",
-        "scripts/**/*"
+        "src/**/*"
     ],
     "exclude": [
         "node_modules",
@@ -34,5 +33,20 @@
         "data",
         "tests/mocks",
         "src/handlers"
+    ],
+    "references": [
+        { "path": "./tsconfig.core.json" },
+        { "path": "./tsconfig.config.json" },
+        { "path": "./tsconfig.db.json" },
+        { "path": "./tsconfig.gateway.json" },
+        { "path": "./tsconfig.i18n.json" },
+        { "path": "./tsconfig.observability.json" },
+        { "path": "./tsconfig.types.json" },
+        { "path": "./tsconfig.generated.json" },
+        { "path": "./tsconfig.utils.json" },
+        { "path": "./tsconfig.cli.json" },
+        { "path": "./tsconfig.queue.json" },
+        { "path": "./tsconfig.plugins.json" },
+        { "path": "./tsconfig.admin.json" }
     ]
 }
