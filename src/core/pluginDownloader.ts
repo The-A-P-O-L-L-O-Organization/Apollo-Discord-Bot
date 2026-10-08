@@ -1,10 +1,11 @@
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { lookup as dnsLookup } from 'node:dns';
 import { createHash } from 'node:crypto';
 import AdmZip from 'adm-zip';
 import { verifySigstoreSignature, SigstoreVerificationError } from './pluginSigstore.js';
+import { validatePluginEntry } from './pluginValidator.js';
+import type { PluginManifest } from './pluginValidator.js';
 
 export interface IpRange {
     start: string;
@@ -331,19 +332,37 @@ function findCommonPrefix(paths: string[]): string {
 }
 
 export async function validatePluginDirectory(dir: string): Promise<PluginValidationResult> {
-    const pluginPath = join(dir, 'plugin.js');
+    const manifestPath = join(dir, 'plugin.json');
+    if (!existsSync(manifestPath)) {
+        return { valid: false, error: 'Plugin manifest (plugin.json) not found' };
+    }
+    let manifest: PluginManifest;
+    try {
+        const raw = JSON.parse(readFileSync(manifestPath, 'utf-8')) as unknown;
+        if (typeof raw !== 'object' || raw === null) {
+            return { valid: false, error: 'Plugin manifest (plugin.json) is not an object' };
+        }
+        const record = raw as Record<string, unknown>;
+        if (typeof record['id'] !== 'string' || record['id'].length === 0) {
+            return { valid: false, error: 'Plugin manifest (plugin.json) is missing "id"' };
+        }
+        manifest = { id: record['id'], entry: typeof record['entry'] === 'string' ? record['entry'] : 'plugin.js', capabilities: [] };
+    } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return { valid: false, error: `Plugin manifest (plugin.json) is invalid: ${message}` };
+    }
+
+    const pluginPath = join(dir, manifest.entry);
     if (!existsSync(pluginPath)) {
         return { valid: false, error: 'No plugin.js found' };
     }
 
     try {
-        const url = pathToFileURL(pluginPath).href + '?t=' + Date.now();
-        const mod = await import(url) as { default?: unknown };
-        const PluginClass = mod.default as { id?: unknown } | undefined;
-        if (!PluginClass || typeof PluginClass.id !== 'string' || PluginClass.id.length === 0) {
-            return { valid: false, error: 'plugin.js must export a class with static id' };
+        const validation = await validatePluginEntry(pluginPath, manifest);
+        if (!validation.valid) {
+            return { valid: false, error: `Plugin validation failed: ${validation.errors.join('; ')}` };
         }
-        return { valid: true, id: PluginClass.id };
+        return { valid: true, id: validation.pluginId };
     } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         return { valid: false, error: message };

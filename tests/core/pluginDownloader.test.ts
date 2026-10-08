@@ -10,8 +10,9 @@ describe('pluginDownloader', () => {
         const tmpDir = mkdtempSync(join(tmpdir(), 'plugin-val-test-'));
         mkdirSync(join(tmpDir, 'commands'), { recursive: true });
         mkdirSync(join(tmpDir, 'events'), { recursive: true });
-        writeFileSync(join(tmpDir, 'plugin.js'), 
+        writeFileSync(join(tmpDir, 'plugin.js'),
             'export default class TestPlugin { static get id() { return "test" } }');
+        writeFileSync(join(tmpDir, 'plugin.json'), JSON.stringify({ id: 'test', capabilities: [] }));
 
         const result = await validatePluginDirectory(tmpDir);
         expect(result.valid).toBe(true);

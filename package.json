@@ -65,6 +65,7 @@
     "@opentelemetry/sdk-trace-node": "^2.11.0",
     "@opentelemetry/semantic-conventions": "^1.43.0",
     "@prometheus-io/client": "^0.16.1",
+    "acorn": "8.18.0",
     "adm-zip": "^0.6.1",
     "better-sqlite3": "^13.0.3",
     "buffer": "^6.0.3",
