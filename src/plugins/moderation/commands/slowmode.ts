@@ -127,7 +127,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] Slowmode ${duration === 0 ? 'disabled' : 'set to ' + duration + 's'} for channel ${textChannel.name} by ${interaction.user.tag}. Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? t('slowmode.anUnknownErrorOccurred');
+            const errorMessage = await handleDiscordError(error) ?? t('slowmode.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

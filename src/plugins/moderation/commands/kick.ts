@@ -184,7 +184,7 @@ export default {
             }
 
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? t('kick.anUnknownErrorOccurred');
+            const errorMessage = await handleDiscordError(error) ?? t('kick.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

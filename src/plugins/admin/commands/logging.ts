@@ -159,13 +159,13 @@ export default {
                     return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
                 }
             } catch (error) {
-                const userMessage = handleDiscordError(error);
+                const userMessage = await handleDiscordError(error);
                 if (userMessage) {
                     await safeReply(interaction, userMessage);
                 }
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred';
+            const errorMessage = await handleDiscordError(error) ?? 'An unknown error occurred';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

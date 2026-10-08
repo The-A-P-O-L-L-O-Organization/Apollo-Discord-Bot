@@ -136,14 +136,14 @@ export default {
                     });
                 }
             } catch (error) {
-                const userMessage = handleDiscordError(error);
+                const userMessage = await handleDiscordError(error);
                 if (userMessage) {
                     await safeReply(interaction, userMessage);
                 }
             }
 
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unexpected error occurred.';
+            const errorMessage = await handleDiscordError(error) ?? 'An unexpected error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

@@ -152,7 +152,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] User ${user.tag} was voice deafened by ${interaction.user.tag}. Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? t('voicedeafen.anUnknownErrorOccurred');
+            const errorMessage = await handleDiscordError(error) ?? t('voicedeafen.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

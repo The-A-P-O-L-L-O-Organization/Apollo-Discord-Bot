@@ -21,7 +21,7 @@ export default {
         }
 
 
-        const embed = createMessageDeleteEmbed(message);
+        const embed = await createMessageDeleteEmbed(message);
 
         await logEvent(message.guild, 'messageDelete', embed);
     }

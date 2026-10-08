@@ -349,7 +349,7 @@ export default {
             }
 
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unexpected error occurred.';
+            const errorMessage = await handleDiscordError(error) ?? 'An unexpected error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

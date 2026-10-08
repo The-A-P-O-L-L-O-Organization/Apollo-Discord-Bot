@@ -319,7 +319,7 @@ export default {
             }
 
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? t('warnconfig.anUnknownErrorOccurred');
+            const errorMessage = await handleDiscordError(error) ?? t('warnconfig.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

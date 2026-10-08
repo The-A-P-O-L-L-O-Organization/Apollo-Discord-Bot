@@ -134,7 +134,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] ${removed} strike(s) cleared for ${user.tag} by ${interaction.user.tag}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? t('clearstrikes.anUnknownErrorOccurred');
+            const errorMessage = await handleDiscordError(error) ?? t('clearstrikes.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

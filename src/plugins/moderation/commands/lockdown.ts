@@ -157,7 +157,7 @@ export default {
             // Log the action
             logger.info({ msg: `[MODERATION] Channel ${channel.name} was locked by ${interaction.user.tag}. Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? t('lockdown.anUnknownErrorOccurred');
+            const errorMessage = await handleDiscordError(error) ?? t('lockdown.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

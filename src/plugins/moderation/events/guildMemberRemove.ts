@@ -34,7 +34,7 @@ export default {
             }
         }
 
-        const embed = createMemberLeaveEmbed(member);
+        const embed = await createMemberLeaveEmbed(member);
         await logEvent(member.guild, 'memberLeave', embed);
     }
 };

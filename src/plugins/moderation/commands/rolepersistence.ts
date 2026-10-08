@@ -67,7 +67,7 @@ export default {
                 await handleClear(interaction);
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? t('rolepersistence.anUnknownErrorOccurred');
+            const errorMessage = await handleDiscordError(error) ?? t('rolepersistence.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

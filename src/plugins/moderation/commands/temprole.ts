@@ -67,7 +67,7 @@ export default {
                 await handleList(interaction);
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? t('temprole.anUnknownErrorOccurred');
+            const errorMessage = await handleDiscordError(error) ?? t('temprole.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

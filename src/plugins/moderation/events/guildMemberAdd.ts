@@ -166,7 +166,7 @@ export default {
         }
 
         if (!member.user.bot) {
-            const logEmbed = createMemberJoinEmbed(member);
+            const logEmbed = await createMemberJoinEmbed(member);
             await logEvent(guild, 'memberJoin', logEmbed);
         }
 

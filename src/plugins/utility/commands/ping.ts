@@ -95,7 +95,7 @@ export default {
         });
 
         if (!result.ok) {
-            const errorMessage = handleDiscordError(result.error) ?? 'An unknown error occurred.';
+            const errorMessage = await handleDiscordError(result.error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

@@ -154,7 +154,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] User ${user.tag} was timed out by ${interaction.user.tag} for ${durationDisplay}. Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? t('timeout.anUnknownErrorOccurred');
+            const errorMessage = await handleDiscordError(error) ?? t('timeout.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

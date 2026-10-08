@@ -9,7 +9,7 @@ export default {
 
         if (member?.user?.bot) { return; }
 
-        const embed = createVoiceChangeEmbed(oldState, newState);
+        const embed = await createVoiceChangeEmbed(oldState, newState);
 
         if (embed) {
             const guild = newState.guild ?? oldState.guild;

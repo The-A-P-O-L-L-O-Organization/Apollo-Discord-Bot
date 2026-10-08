@@ -122,7 +122,7 @@ export default {
                 logger.info({ msg: `[RAID] Raid mode disabled by ${interaction.user.tag} in ${interaction.guild!.name}` });
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? t('raidmode.anUnknownErrorOccurred');
+            const errorMessage = await handleDiscordError(error) ?? t('raidmode.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

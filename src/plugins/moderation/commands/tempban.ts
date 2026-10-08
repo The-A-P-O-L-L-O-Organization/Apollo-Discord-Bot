@@ -213,7 +213,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] User ${user.tag} was temporarily banned by ${interaction.user.tag}. Duration: ${durationText}. Reason: ${reason}. Case ID: ${caseId}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? t('tempban.anUnknownErrorOccurred');
+            const errorMessage = await handleDiscordError(error) ?? t('tempban.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

@@ -20,7 +20,7 @@ export default {
                 if (oldContent === newContent) { return; }
                 if (!oldContent && !newContent) { return; }
 
-                const embed = createMessageEditEmbed(
+                const embed = await createMessageEditEmbed(
                     { content: oldContent, author: oldMessage.author, channelId: oldMessage.channelId } as Message,
                     { content: newContent, author: newMessage.author, channelId: newMessage.channelId } as Message
                 );
@@ -43,7 +43,7 @@ export default {
         if (oldContent === newContent) { return; }
         if (!oldContent && !newContent) { return; }
 
-        const embed = createMessageEditEmbed(oldMessage, newMessage);
+        const embed = await createMessageEditEmbed(oldMessage, newMessage);
         await logEvent(newMessage.guild, 'messageEdit', embed);
     }
 };

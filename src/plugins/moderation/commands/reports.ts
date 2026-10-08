@@ -239,7 +239,7 @@ export default {
                 logger.info({ msg: `[REPORT] Report ${reportId} dismissed by ${interaction.user.tag}` });
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? t('reports.anUnknownErrorOccurred');
+            const errorMessage = await handleDiscordError(error) ?? t('reports.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

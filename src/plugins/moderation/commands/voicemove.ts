@@ -167,7 +167,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] User ${user.tag} was moved from ${sourceChannelName} to ${targetChannelName} by ${interaction.user.tag}. Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? t('voicemove.anUnknownErrorOccurred');
+            const errorMessage = await handleDiscordError(error) ?? t('voicemove.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

@@ -116,7 +116,7 @@ export default {
                 await handleGlobal(interaction);
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? t('blacklist.anUnknownErrorOccurred');
+            const errorMessage = await handleDiscordError(error) ?? t('blacklist.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

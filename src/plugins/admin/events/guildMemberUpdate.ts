@@ -8,7 +8,7 @@ export default {
         if (newMember.user.bot) { return; }
 
 
-        const embed = createRoleChangeEmbed(oldMember, newMember);
+        const embed = await createRoleChangeEmbed(oldMember, newMember);
 
         if (embed) {
 

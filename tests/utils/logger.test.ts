@@ -24,13 +24,13 @@ import {
 
 describe('Logger Utility', () => {
     describe('createMessageDeleteEmbed', () => {
-        it('should create embed with message content', () => {
+        it('should create embed with message content', async() => {
             const message = createMockMessage({
                 content: 'Test deleted message',
                 author: createMockUser({ tag: 'TestUser#0001', id: '123' })
             });
 
-            const embed = createMessageDeleteEmbed(message as unknown as Message);
+            const embed = await createMessageDeleteEmbed(message as unknown as Message);
             
             expect(embed).toBeInstanceOf(EmbedBuilder);
             const data = embed!.toJSON();
@@ -38,25 +38,25 @@ describe('Logger Utility', () => {
             expect(data.description).toBe('Test deleted message');
         });
 
-        it('should handle empty content', () => {
+        it('should handle empty content', async() => {
             const message = createMockMessage({
                 content: '',
                 author: createMockUser()
             });
 
-            const embed = createMessageDeleteEmbed(message as unknown as Message);
+            const embed = await createMessageDeleteEmbed(message as unknown as Message);
             const data = embed!.toJSON();
             
             expect(data.description).toBe('*No text content*');
         });
 
-        it('should include author information', () => {
+        it('should include author information', async() => {
             const message = createMockMessage({
                 content: 'Test',
                 author: createMockUser({ tag: 'Author#1234', id: '111222333' })
             });
 
-            const embed = createMessageDeleteEmbed(message as unknown as Message);
+            const embed = await createMessageDeleteEmbed(message as unknown as Message);
             const data = embed!.toJSON();
             
             const authorField = data.fields!.find((f: { name: string }) => f.name === 'Author');
@@ -64,21 +64,21 @@ describe('Logger Utility', () => {
             expect(authorField!.value).toContain('111222333');
         });
 
-        it('should include channel reference', () => {
+        it('should include channel reference', async() => {
             const channel = createMockChannel({ id: '999888777' });
             const message = createMockMessage({
                 content: 'Test',
                 channel
             });
 
-            const embed = createMessageDeleteEmbed(message as unknown as Message);
+            const embed = await createMessageDeleteEmbed(message as unknown as Message);
             const data = embed!.toJSON();
             
             const channelField = data.fields!.find((f: { name: string }) => f.name === 'Channel');
             expect(channelField!.value).toBe('<#999888777>');
         });
 
-        it('should include attachment information when present', () => {
+        it('should include attachment information when present', async() => {
             const attachments = new Map([
                 ['1', { url: 'https://example.com/image1.png' }],
                 ['2', { url: 'https://example.com/image2.png' }]
@@ -88,7 +88,7 @@ describe('Logger Utility', () => {
                 attachments
             });
 
-            const embed = createMessageDeleteEmbed(message as unknown as Message);
+            const embed = await createMessageDeleteEmbed(message as unknown as Message);
             const data = embed!.toJSON();
             
             const attachField = data.fields!.find((f: { name: string }) => f.name.includes('Attachments'));
@@ -96,13 +96,13 @@ describe('Logger Utility', () => {
             expect(attachField!.name).toContain('2');
         });
 
-        it('should handle unknown author', () => {
+        it('should handle unknown author', async() => {
             const message = createMockMessage({
                 content: 'Test',
                 author: null as unknown as MockUserOptions
             });
 
-            const embed = createMessageDeleteEmbed(message as unknown as Message);
+            const embed = await createMessageDeleteEmbed(message as unknown as Message);
             const data = embed!.toJSON();
             
             const authorField = data.fields!.find((f: { name: string }) => f.name === 'Author');
@@ -111,14 +111,14 @@ describe('Logger Utility', () => {
     });
 
     describe('createMessageEditEmbed', () => {
-        it('should show old and new content', () => {
+        it('should show old and new content', async() => {
             const oldMessage = createMockMessage({ content: 'Old content' });
             const newMessage = createMockMessage({ 
                 content: 'New content',
                 url: 'https://discord.com/channels/1/2/3'
             });
 
-            const embed = createMessageEditEmbed(oldMessage as unknown as Message, newMessage as unknown as Message);
+            const embed = await createMessageEditEmbed(oldMessage as unknown as Message, newMessage as unknown as Message);
             const data = embed!.toJSON();
             
             expect(data.title).toBe('[Edit] Message Edited');
@@ -130,37 +130,37 @@ describe('Logger Utility', () => {
             expect(afterField!.value).toBe('New content');
         });
 
-        it('should handle empty content', () => {
+        it('should handle empty content', async() => {
             const oldMessage = createMockMessage({ content: '' });
             const newMessage = createMockMessage({ content: 'Now has content' });
 
-            const embed = createMessageEditEmbed(oldMessage as unknown as Message, newMessage as unknown as Message);
+            const embed = await createMessageEditEmbed(oldMessage as unknown as Message, newMessage as unknown as Message);
             const data = embed!.toJSON();
             
             const beforeField = data.fields!.find((f: { name: string }) => f.name === 'Before');
             expect(beforeField!.value).toBe('*Empty*');
         });
 
-        it('should include jump link', () => {
+        it('should include jump link', async() => {
             const oldMessage = createMockMessage({ content: 'Old' });
             const newMessage = createMockMessage({ 
                 content: 'New',
                 url: 'https://discord.com/test/link'
             });
 
-            const embed = createMessageEditEmbed(oldMessage as unknown as Message, newMessage as unknown as Message);
+            const embed = await createMessageEditEmbed(oldMessage as unknown as Message, newMessage as unknown as Message);
             const data = embed!.toJSON();
             
             const jumpField = data.fields!.find((f: { name: string }) => f.name === 'Jump to Message');
             expect(jumpField!.value).toContain('https://discord.com/test/link');
         });
 
-        it('should truncate long content', () => {
+        it('should truncate long content', async() => {
             const longContent = 'x'.repeat(2000);
             const oldMessage = createMockMessage({ content: longContent });
             const newMessage = createMockMessage({ content: 'Short' });
 
-            const embed = createMessageEditEmbed(oldMessage as unknown as Message, newMessage as unknown as Message);
+            const embed = await createMessageEditEmbed(oldMessage as unknown as Message, newMessage as unknown as Message);
             const data = embed!.toJSON();
             
             const beforeField = data.fields!.find((f: { name: string }) => f.name === 'Before');
@@ -169,7 +169,7 @@ describe('Logger Utility', () => {
     });
 
     describe('createMemberJoinEmbed', () => {
-        it('should create join embed with member info', () => {
+        it('should create join embed with member info', async() => {
             const member = createMockMember({
                 user: createMockUser({
                     tag: 'NewUser#0001',
@@ -179,7 +179,7 @@ describe('Logger Utility', () => {
                 guild: createMockGuild({ memberCount: 150 })
             });
 
-            const embed = createMemberJoinEmbed(member as unknown as GuildMember);
+            const embed = await createMemberJoinEmbed(member as unknown as GuildMember);
             const data = embed!.toJSON();
             
             expect(data.title).toBe('[Join] Member Joined');
@@ -187,39 +187,39 @@ describe('Logger Utility', () => {
             expect(data.description).toContain('joined');
         });
 
-        it('should include member count', () => {
+        it('should include member count', async() => {
             const member = createMockMember({
                 guild: createMockGuild({ memberCount: 500 })
             });
 
-            const embed = createMemberJoinEmbed(member as unknown as GuildMember);
+            const embed = await createMemberJoinEmbed(member as unknown as GuildMember);
             const data = embed!.toJSON();
             
             const countField = data.fields!.find((f: { name: string }) => f.name === 'Member Count');
             expect(countField!.value).toBe('500');
         });
 
-        it('should flag new accounts', () => {
+        it('should flag new accounts', async() => {
             const member = createMockMember({
                 user: createMockUser({
                     createdTimestamp: Date.now() - (2 * 24 * 60 * 60 * 1000) // 2 days ago
                 })
             });
 
-            const embed = createMemberJoinEmbed(member as unknown as GuildMember);
+            const embed = await createMemberJoinEmbed(member as unknown as GuildMember);
             const data = embed!.toJSON();
 
             data.fields!.find((f: { name: string }) => f.name.includes('Warning') || f.name.includes('!'));
         });
 
-        it('should not flag old accounts', () => {
+        it('should not flag old accounts', async() => {
             const member = createMockMember({
                 user: createMockUser({
                     createdTimestamp: Date.now() - (30 * 24 * 60 * 60 * 1000) // 30 days ago
                 })
             });
 
-            const embed = createMemberJoinEmbed(member as unknown as GuildMember);
+            const embed = await createMemberJoinEmbed(member as unknown as GuildMember);
             const data = embed!.toJSON();
             
             const warningField = data.fields!.find((f: { name: string }) => f.name.includes('Warning'));
@@ -228,32 +228,32 @@ describe('Logger Utility', () => {
     });
 
     describe('createMemberLeaveEmbed', () => {
-        it('should create leave embed with member info', () => {
+        it('should create leave embed with member info', async() => {
             const member = createMockMember({
                 user: createMockUser({ tag: 'LeavingUser#0001' }),
                 joinedTimestamp: Date.now() - (14 * 24 * 60 * 60 * 1000) // 14 days ago
             });
 
-            const embed = createMemberLeaveEmbed(member as unknown as GuildMember);
+            const embed = await createMemberLeaveEmbed(member as unknown as GuildMember);
             const data = embed!.toJSON();
             
             expect(data.title).toBe('[Leave] Member Left');
             expect(data.description).toContain('LeavingUser#0001');
         });
 
-        it('should show time in server', () => {
+        it('should show time in server', async() => {
             const member = createMockMember({
                 joinedTimestamp: Date.now() - (30 * 24 * 60 * 60 * 1000) // 30 days ago
             });
 
-            const embed = createMemberLeaveEmbed(member as unknown as GuildMember);
+            const embed = await createMemberLeaveEmbed(member as unknown as GuildMember);
             const data = embed!.toJSON();
             
             const timeField = data.fields!.find((f: { name: string }) => f.name === 'Time in Server');
             expect(timeField!.value).toContain('30');
         });
 
-        it('should show roles', () => {
+        it('should show roles', async() => {
             const guild = createMockGuild({ id: 'guild123' });
             const rolesCache = new Map([
                 ['role1', { id: 'role1', name: 'Moderator' }],
@@ -270,7 +270,7 @@ describe('Logger Utility', () => {
                 cache: rolesCache
             };
 
-            const embed = createMemberLeaveEmbed(member as unknown as GuildMember);
+            const embed = await createMemberLeaveEmbed(member as unknown as GuildMember);
             const data = embed!.toJSON();
             
             const rolesField = data.fields!.find((f: { name: string }) => f.name === 'Roles');
@@ -279,12 +279,12 @@ describe('Logger Utility', () => {
             expect(rolesField!.value).not.toContain('@everyone');
         });
 
-        it('should handle unknown join time', () => {
+        it('should handle unknown join time', async() => {
             const member = createMockMember({
                 joinedTimestamp: null as unknown as number
             });
 
-            const embed = createMemberLeaveEmbed(member as unknown as GuildMember);
+            const embed = await createMemberLeaveEmbed(member as unknown as GuildMember);
             const data = embed!.toJSON();
             
             const timeField = data.fields!.find((f: { name: string }) => f.name === 'Time in Server');
@@ -293,18 +293,18 @@ describe('Logger Utility', () => {
     });
 
     describe('createRoleChangeEmbed', () => {
-        it('should return null when no role changes', () => {
+        it('should return null when no role changes', async() => {
             const roles = new Map([['role1', { id: 'role1', name: 'Test' }]]);
             const oldMember = createMockMember();
             const newMember = createMockMember();
             (oldMember as unknown as { roles: unknown }).roles = { cache: roles };
             (newMember as unknown as { roles: unknown }).roles = { cache: roles };
 
-            const embed = createRoleChangeEmbed(oldMember as unknown as GuildMember, newMember as unknown as GuildMember);
+            const embed = await createRoleChangeEmbed(oldMember as unknown as GuildMember, newMember as unknown as GuildMember);
             expect(embed).toBeNull();
         });
 
-        it('should show added roles', () => {
+        it('should show added roles', async() => {
             const oldRoles = new Map();
             const newRoles = new Map([
                 ['role1', { id: 'role1', name: 'NewRole' }]
@@ -315,7 +315,7 @@ describe('Logger Utility', () => {
             (oldMember as unknown as { roles: unknown }).roles = { cache: oldRoles };
             (newMember as unknown as { roles: unknown }).roles = { cache: newRoles };
 
-            const embed = createRoleChangeEmbed(oldMember as unknown as GuildMember, newMember as unknown as GuildMember);
+            const embed = await createRoleChangeEmbed(oldMember as unknown as GuildMember, newMember as unknown as GuildMember);
             const data = embed!.toJSON();
             
             expect(data.title).toBe('[Role] Role Update');
@@ -323,7 +323,7 @@ describe('Logger Utility', () => {
             expect(addedField!.value).toContain('NewRole');
         });
 
-        it('should show removed roles', () => {
+        it('should show removed roles', async() => {
             const oldRoles = new Map([
                 ['role1', { id: 'role1', name: 'OldRole' }]
             ]);
@@ -334,14 +334,14 @@ describe('Logger Utility', () => {
             (oldMember as unknown as { roles: unknown }).roles = { cache: oldRoles };
             (newMember as unknown as { roles: unknown }).roles = { cache: newRoles };
 
-            const embed = createRoleChangeEmbed(oldMember as unknown as GuildMember, newMember as unknown as GuildMember);
+            const embed = await createRoleChangeEmbed(oldMember as unknown as GuildMember, newMember as unknown as GuildMember);
             const data = embed!.toJSON();
             
             const removedField = data.fields!.find((f: { name: string }) => f.name.includes('-'));
             expect(removedField!.value).toContain('OldRole');
         });
 
-        it('should show both added and removed roles', () => {
+        it('should show both added and removed roles', async() => {
             const oldRoles = new Map([
                 ['role1', { id: 'role1', name: 'Removed' }]
             ]);
@@ -354,7 +354,7 @@ describe('Logger Utility', () => {
             (oldMember as unknown as { roles: unknown }).roles = { cache: oldRoles };
             (newMember as unknown as { roles: unknown }).roles = { cache: newRoles };
 
-            const embed = createRoleChangeEmbed(oldMember as unknown as GuildMember, newMember as unknown as GuildMember);
+            const embed = await createRoleChangeEmbed(oldMember as unknown as GuildMember, newMember as unknown as GuildMember);
             const data = embed!.toJSON();
             
             const addedField = data.fields!.find((f: { name: string }) => f.name.includes('+'));
@@ -365,15 +365,15 @@ describe('Logger Utility', () => {
     });
 
     describe('createVoiceChangeEmbed', () => {
-        it('should return null when no member', () => {
+        it('should return null when no member', async() => {
             const oldState = createMockVoiceState({ member: null });
             const newState = createMockVoiceState({ member: null });
 
-            const embed = createVoiceChangeEmbed(oldState as unknown as VoiceState, newState as unknown as VoiceState);
+            const embed = await createVoiceChangeEmbed(oldState as unknown as VoiceState, newState as unknown as VoiceState);
             expect(embed).toBeNull();
         });
 
-        it('should create embed for joining voice channel', () => {
+        it('should create embed for joining voice channel', async() => {
             const member = createMockMember({
                 user: createMockUser({ tag: 'VoiceUser#0001' })
             });
@@ -382,27 +382,27 @@ describe('Logger Utility', () => {
             const oldState = createMockVoiceState({ member, channel: null });
             const newState = createMockVoiceState({ member, channel });
 
-            const embed = createVoiceChangeEmbed(oldState as unknown as VoiceState, newState as unknown as VoiceState);
+            const embed = await createVoiceChangeEmbed(oldState as unknown as VoiceState, newState as unknown as VoiceState);
             const data = embed!.toJSON();
             
             expect(data.title).toBe('[Voice] Voice Channel Joined');
             expect(data.description).toContain('VoiceUser#0001');
         });
 
-        it('should create embed for leaving voice channel', () => {
+        it('should create embed for leaving voice channel', async() => {
             const member = createMockMember();
             const channel = createMockChannel({ name: 'General Voice' });
             
             const oldState = createMockVoiceState({ member, channel });
             const newState = createMockVoiceState({ member, channel: null });
 
-            const embed = createVoiceChangeEmbed(oldState as unknown as VoiceState, newState as unknown as VoiceState);
+            const embed = await createVoiceChangeEmbed(oldState as unknown as VoiceState, newState as unknown as VoiceState);
             const data = embed!.toJSON();
             
             expect(data.title).toBe('[Voice] Voice Channel Left');
         });
 
-        it('should create embed for moving voice channels', () => {
+        it('should create embed for moving voice channels', async() => {
             const member = createMockMember();
             const oldChannel = createMockChannel({ id: '111', name: 'Old Channel' });
             const newChannel = createMockChannel({ id: '222', name: 'New Channel' });
@@ -410,7 +410,7 @@ describe('Logger Utility', () => {
             const oldState = createMockVoiceState({ member, channel: oldChannel });
             const newState = createMockVoiceState({ member, channel: newChannel });
 
-            const embed = createVoiceChangeEmbed(oldState as unknown as VoiceState, newState as unknown as VoiceState);
+            const embed = await createVoiceChangeEmbed(oldState as unknown as VoiceState, newState as unknown as VoiceState);
             const data = embed!.toJSON();
             
             expect(data.title).toBe('[Voice] Voice Channel Moved');
@@ -421,7 +421,7 @@ describe('Logger Utility', () => {
             expect(toField!.value).toBe('New Channel');
         });
 
-        it('should return null for other state changes', () => {
+        it('should return null for other state changes', async() => {
             const member = createMockMember();
             const channel = createMockChannel({ id: '111', name: 'Same Channel' });
             
@@ -429,7 +429,7 @@ describe('Logger Utility', () => {
             const oldState = createMockVoiceState({ member, channel });
             const newState = createMockVoiceState({ member, channel });
 
-            const embed = createVoiceChangeEmbed(oldState as unknown as VoiceState, newState as unknown as VoiceState);
+            const embed = await createVoiceChangeEmbed(oldState as unknown as VoiceState, newState as unknown as VoiceState);
             expect(embed).toBeNull();
         });
     });

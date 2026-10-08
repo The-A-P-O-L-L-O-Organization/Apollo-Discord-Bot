@@ -228,7 +228,7 @@ export default {
                 break;
             }
         } catch (error) {
-            const userMessage = handleDiscordError(error);
+            const userMessage = await handleDiscordError(error);
             if (userMessage) {
                 await safeReply(interaction, userMessage);
             }

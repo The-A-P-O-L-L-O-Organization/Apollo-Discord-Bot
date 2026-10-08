@@ -1,7 +1,6 @@
 // Discord REST Error Code Handling
 // Centralized error handling for Discord API errors
 import { logger } from './logger.js';
-import { i18n } from '../i18n/index.js';
 import { EmbedBuilder, MessageFlags } from 'discord.js';
 import type { TFunction } from 'i18next';
 import type { ChatInputCommandInteraction, MessageContextMenuCommandInteraction, UserContextMenuCommandInteraction } from 'discord.js';
@@ -128,10 +127,31 @@ interface DiscordAPIError {
  * @param {boolean} options.silent - If true, returns null for unknown interaction errors
  * @returns {string|null} User-friendly error message, or null if should be silent
  */
-export function getCommonT(locale: string): TFunction {
+// Cache i18n module to break circular dependency at load time
+let _i18nModule: { i18n: { getFixedT: (lng: string, ns: string) => TFunction } } | null = null;
+let _loadPromise: Promise<void> | null = null;
+
+async function loadI18n(): Promise<void> {
+    if (!_i18nModule) {
+        if (!_loadPromise) {
+            _loadPromise = import('../i18n/index.js').then(mod => {
+                _i18nModule = mod;
+            });
+        }
+        await _loadPromise;
+    }
+}
+
+// Kick off loading in background (non-blocking)
+loadI18n();
+
+export async function getCommonT(locale: string): Promise<TFunction> {
+    await loadI18n();
     let raw: TFunction | null = null;
     try {
-        raw = i18n.getFixedT(locale, 'common');
+        if (_i18nModule) {
+            raw = _i18nModule.i18n.getFixedT(locale, 'common');
+        }
     } catch {
         raw = null;
     }
@@ -151,9 +171,9 @@ export function getCommonT(locale: string): TFunction {
     return safe as unknown as TFunction;
 }
 
-export function handleDiscordError(error: unknown, options: { silent?: boolean; locale?: string } = {}): string | null {
+export async function handleDiscordError(error: unknown, options: { silent?: boolean; locale?: string } = {}): Promise<string | null> {
     const { silent = false, locale = 'en-US' } = options;
-    const t = getCommonT(locale);
+    const t = await getCommonT(locale);
 
     // Check if it's a DiscordAPIError
     if (!error || typeof error !== 'object' || !('code' in error)) {
@@ -216,10 +236,10 @@ function extractValidationErrors(errors: Record<string, unknown>): string {
  * Creates a standardized error embed for Discord interactions
  * @param {string} message - Error message
  * @param {string} [title='Error'] - Embed title
- * @returns {EmbedBuilder} Error embed
+ * @returns {Promise<EmbedBuilder>} Error embed
  */
-export function createErrorEmbed(message: string, title?: string, locale = 'en-US'): EmbedBuilder {
-    const t = getCommonT(locale);
+export async function createErrorEmbed(message: string, title?: string, locale = 'en-US'): Promise<EmbedBuilder> {
+    const t = await getCommonT(locale);
     return new EmbedBuilder()
         .setColor(0xFF0000)
         .setTitle(title ?? t('errorTitle', { defaultValue: 'Error' }))
@@ -246,14 +266,15 @@ export async function safeReply(
 ): Promise<boolean> {
     const resolvedLocale = locale ?? resolveInteractionLocale(interaction);
     try {
+        const errorEmbed = await createErrorEmbed(message, undefined, resolvedLocale);
         if (interaction.replied || interaction.deferred) {
             await interaction.editReply({
-                embeds: [createErrorEmbed(message, undefined, resolvedLocale)],
+                embeds: [errorEmbed],
                 components: []
             });
         } else {
             await interaction.reply({
-                embeds: [createErrorEmbed(message, undefined, resolvedLocale)],
+                embeds: [errorEmbed],
                 flags: ephemeral ? MessageFlags.Ephemeral : undefined
             });
         }
@@ -284,8 +305,9 @@ export async function safeFollowUp(
 ): Promise<boolean> {
     const resolvedLocale = locale ?? resolveInteractionLocale(interaction);
     try {
+        const errorEmbed = await createErrorEmbed(message, undefined, resolvedLocale);
         await interaction.followUp({
-            embeds: [createErrorEmbed(message, undefined, resolvedLocale)],
+            embeds: [errorEmbed],
             flags: ephemeral ? MessageFlags.Ephemeral : undefined
         });
         return true;

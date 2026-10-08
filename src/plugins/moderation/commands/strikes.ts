@@ -80,7 +80,7 @@ export default {
 
             await interaction.reply({ embeds: [embed] });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? t('strikes.anUnknownErrorOccurred');
+            const errorMessage = await handleDiscordError(error) ?? t('strikes.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

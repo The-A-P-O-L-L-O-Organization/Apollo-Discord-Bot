@@ -313,10 +313,34 @@ export function needsReEncryption(encryptedData: string): boolean {
 /**
  * Re-encrypts all encrypted data in the database with the current key
  * @param {boolean} dryRun - If true, only report what would be changed
+ * @param {DbFunctions} db - Database functions (injected to avoid circular dependency)
  * @returns {Promise<{ updated: number; errors: string[] }>} Summary of changes
  */
-export async function reEncryptAll(dryRun = false): Promise<{ updated: number; errors: string[] }> {
-    const { getGuildData, setGuildData, getAllGuildData, getData, setData } = await import('../utils/db.js');
+export interface DbFunctions {
+    getGuildData: (store: string, guildId: string) => Promise<Record<string, unknown> | undefined>;
+    setGuildData: (store: string, guildId: string, data: Record<string, unknown>) => Promise<void>;
+    getAllGuildData: (store: string) => Promise<Array<{ guildId: string; data: Record<string, unknown> }>>;
+    getData: (store: string) => Promise<Record<string, unknown> | undefined>;
+    setData: (store: string, data: Record<string, unknown>) => Promise<void>;
+}
+
+export async function reEncryptAll(
+    dryRun = false,
+    db?: DbFunctions
+): Promise<{ updated: number; errors: string[] }> {
+    let dbFunctions: DbFunctions;
+    if (db) {
+        dbFunctions = db;
+    } else {
+        const mod = await import('../utils/db.js');
+        dbFunctions = {
+            getGuildData: mod.getGuildData,
+            setGuildData: mod.setGuildData,
+            getAllGuildData: mod.getAllGuildData,
+            getData: mod.getData,
+            setData: mod.setData
+        };
+    }
 
     let updatedCount = 0;
     const errors: string[] = [];
@@ -327,7 +351,7 @@ export async function reEncryptAll(dryRun = false): Promise<{ updated: number; e
 
     async function processGuildStore(store: string, fields: string[]): Promise<void> {
         try {
-            const allData = await getAllGuildData(store);
+            const allData = await dbFunctions.getAllGuildData(store);
             for (const entry of allData) {
                 if (!entry.data) continue;
                 let needsUpdate = false;
@@ -342,7 +366,7 @@ export async function reEncryptAll(dryRun = false): Promise<{ updated: number; e
                     }
                 }
                 if (needsUpdate && !dryRun) {
-                    await setGuildData(store, entry.guildId, entry.data);
+                    await dbFunctions.setGuildData(store, entry.guildId, entry.data);
                 }
                 if (needsUpdate) {
                     updatedCount++;
@@ -355,7 +379,7 @@ export async function reEncryptAll(dryRun = false): Promise<{ updated: number; e
 
     async function processGlobalStore(store: string, fields: string[]): Promise<void> {
         try {
-            const data = await getData(store);
+            const data = await dbFunctions.getData(store);
             if (!data) return;
             let needsUpdate = false;
             for (const field of fields) {
@@ -369,7 +393,7 @@ export async function reEncryptAll(dryRun = false): Promise<{ updated: number; e
                 }
             }
             if (needsUpdate && !dryRun) {
-                await setData(store, data);
+                await dbFunctions.setData(store, data);
             }
             if (needsUpdate) {
                 updatedCount++;

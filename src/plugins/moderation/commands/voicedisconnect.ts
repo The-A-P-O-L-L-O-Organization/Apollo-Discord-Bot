@@ -142,7 +142,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] User ${user.tag} was disconnected from voice by ${interaction.user.tag}. Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? t('voicedisconnect.anUnknownErrorOccurred');
+            const errorMessage = await handleDiscordError(error) ?? t('voicedisconnect.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

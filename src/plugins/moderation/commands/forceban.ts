@@ -150,7 +150,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] User ${userTag} (${userId}) was forcebanned by ${interaction.user.tag}. Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? t('forceban.anUnknownErrorOccurred');
+            const errorMessage = await handleDiscordError(error) ?? t('forceban.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

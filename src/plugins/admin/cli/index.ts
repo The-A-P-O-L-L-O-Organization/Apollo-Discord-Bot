@@ -102,8 +102,9 @@ const commands: CLICommand[] = [
                 ],
                 execute: async (args: Record<string, unknown>) => {
                     const { reEncryptAll } = await import('../../../utils/encryption.js');
+                    const { getGuildData, setGuildData, getAllGuildData, getData, setData } = await import('../../../utils/db.js');
                     const dryRun = args['dry-run'] === true || args['dry-run'] === 'true';
-                    return reEncryptAll(dryRun);
+                    return reEncryptAll(dryRun, { getGuildData, setGuildData, getAllGuildData, getData, setData });
                 }
             }
         ]

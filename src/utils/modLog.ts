@@ -55,7 +55,7 @@ export async function sendModLog(guild: Guild, options: ModLogOptions, locale = 
             default: 0x7289DA  // Discord Blurple
         };
 
-        const t = getCommonT(locale);
+        const t = await getCommonT(locale);
 
         // Create the embed
         const logEmbed = new EmbedBuilder()
@@ -121,8 +121,8 @@ export interface LocaleChangeContext {
     newLocale: string;
 }
 
-export function logLocaleChange(context: LocaleChangeContext, locale = 'en-US'): void {
-    const t = getCommonT(locale);
+export async function logLocaleChange(context: LocaleChangeContext, locale = 'en-US'): Promise<void> {
+    const t = await getCommonT(locale);
     const embed = new EmbedBuilder()
         .setColor(0x7289DA)
         .setTitle(t('modlog.localeChanged', { defaultValue: 'Server Language Changed' }))

@@ -145,7 +145,7 @@ export default {
                 logger.info({ msg: `[CONFIG] Auto-kick ${newState ? 'enabled' : 'disabled'} in ${interaction.guild!.name}` });
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? t('strikeconfig.anUnknownErrorOccurred');
+            const errorMessage = await handleDiscordError(error) ?? t('strikeconfig.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

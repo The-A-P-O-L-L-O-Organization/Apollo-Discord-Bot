@@ -147,7 +147,7 @@ export default {
                 logger.info({ msg: `[INFO] Invite created by ${interaction.user.tag}: ${invite.url}` });
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
+            const errorMessage = await handleDiscordError(error) ?? 'An unknown error occurred.';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

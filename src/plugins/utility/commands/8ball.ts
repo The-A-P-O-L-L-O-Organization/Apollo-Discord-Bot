@@ -73,7 +73,7 @@ export default {
             await interaction.reply({ embeds: [ballEmbed] });
 
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred.';
+            const errorMessage = await handleDiscordError(error) ?? 'An unknown error occurred.';
             await safeReply(interaction, errorMessage);
         }
     }

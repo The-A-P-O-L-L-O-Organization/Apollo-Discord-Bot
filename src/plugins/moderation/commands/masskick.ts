@@ -233,7 +233,7 @@ export default {
                 }
             });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? t('masskick.anUnknownErrorOccurred');
+            const errorMessage = await handleDiscordError(error) ?? t('masskick.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

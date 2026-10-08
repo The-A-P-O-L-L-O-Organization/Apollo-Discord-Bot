@@ -114,7 +114,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] Channel ${channel.name} was unlocked by ${interaction.user.tag}. Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? t('unlock.anUnknownErrorOccurred');
+            const errorMessage = await handleDiscordError(error) ?? t('unlock.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

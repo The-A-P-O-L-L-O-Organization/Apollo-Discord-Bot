@@ -105,7 +105,7 @@ export default {
                 await handleRemoveNote(interaction, user);
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? t('note.anUnknownErrorOccurred');
+            const errorMessage = await handleDiscordError(error) ?? t('note.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

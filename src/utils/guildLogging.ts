@@ -94,8 +94,8 @@ export async function logEvent(guild: Guild, eventType: string, embed: EmbedBuil
  * @param message - The deleted message
  * @returns The log embed
  */
-export function createMessageDeleteEmbed(message: Message, locale = 'en-US'): EmbedBuilder {
-    const t = getCommonT(locale);
+export async function createMessageDeleteEmbed(message: Message, locale = 'en-US'): Promise<EmbedBuilder> {
+    const t = await getCommonT(locale);
     const embed = new EmbedBuilder()
         .setColor('#FF6B6B')
         .setTitle(t('guildlog.messageDeletedTitle', { defaultValue: '[Delete] Message Deleted' }))
@@ -132,8 +132,8 @@ export function createMessageDeleteEmbed(message: Message, locale = 'en-US'): Em
  * @param newMessage - The new message
  * @returns The log embed
  */
-export function createMessageEditEmbed(oldMessage: Message, newMessage: Message, locale = 'en-US'): EmbedBuilder {
-    const t = getCommonT(locale);
+export async function createMessageEditEmbed(oldMessage: Message, newMessage: Message, locale = 'en-US'): Promise<EmbedBuilder> {
+    const t = await getCommonT(locale);
     const embed = new EmbedBuilder()
         .setColor('#FFE66D')
         .setTitle(t('guildlog.messageEditedTitle', { defaultValue: '[Edit] Message Edited' }))
@@ -159,8 +159,8 @@ export function createMessageEditEmbed(oldMessage: Message, newMessage: Message,
  * @param member - The member who joined
  * @returns The log embed
  */
-export function createMemberJoinEmbed(member: GuildMember, locale = 'en-US'): EmbedBuilder {
-    const t = getCommonT(locale);
+export async function createMemberJoinEmbed(member: GuildMember, locale = 'en-US'): Promise<EmbedBuilder> {
+    const t = await getCommonT(locale);
     const accountAge = Date.now() - member.user.createdTimestamp;
     const daysOld = Math.floor(accountAge / (1000 * 60 * 60 * 24));
 
@@ -196,8 +196,8 @@ export function createMemberJoinEmbed(member: GuildMember, locale = 'en-US'): Em
  * @param member - The member who left
  * @returns The log embed
  */
-export function createMemberLeaveEmbed(member: GuildMember, locale = 'en-US'): EmbedBuilder {
-    const t = getCommonT(locale);
+export async function createMemberLeaveEmbed(member: GuildMember, locale = 'en-US'): Promise<EmbedBuilder> {
+    const t = await getCommonT(locale);
     const joinedAt = member.joinedTimestamp;
     const timeInServer = joinedAt ? Date.now() - joinedAt : null;
     const daysInServer = timeInServer ? Math.floor(timeInServer / (1000 * 60 * 60 * 24)) : 'Unknown';
@@ -233,8 +233,8 @@ export function createMemberLeaveEmbed(member: GuildMember, locale = 'en-US'): E
  * @param newMember - The new member state
  * @returns The log embed or null if no role changes
  */
-export function createRoleChangeEmbed(oldMember: GuildMember, newMember: GuildMember, locale = 'en-US'): EmbedBuilder | null {
-    const t = getCommonT(locale);
+export async function createRoleChangeEmbed(oldMember: GuildMember, newMember: GuildMember, locale = 'en-US'): Promise<EmbedBuilder | null> {
+    const t = await getCommonT(locale);
     const oldRoles = oldMember.roles.cache;
     const newRoles = newMember.roles.cache;
 
@@ -283,8 +283,8 @@ export function createRoleChangeEmbed(oldMember: GuildMember, newMember: GuildMe
  * @param newState - The new voice state
  * @returns The log embed or null if not significant
  */
-export function createVoiceChangeEmbed(oldState: VoiceState, newState: VoiceState, locale = 'en-US'): EmbedBuilder | null {
-    const t = getCommonT(locale);
+export async function createVoiceChangeEmbed(oldState: VoiceState, newState: VoiceState, locale = 'en-US'): Promise<EmbedBuilder | null> {
+    const t = await getCommonT(locale);
     const member = newState.member ?? oldState.member;
     if (!member) { return null; }
 

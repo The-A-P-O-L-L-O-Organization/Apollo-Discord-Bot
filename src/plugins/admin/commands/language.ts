@@ -45,19 +45,19 @@ export default {
                 localeCache.delete(guildId);
                 const bus = (interaction.client as unknown as { bus?: { emit: (event: string, payload: unknown) => Promise<void> } }).bus ?? getBoundEventBus();
                 await bus?.emit('i18n:localeChanged', { guildId, locale: raw });
-                logLocaleChange({ guildId, actor: { id: interaction.user.id, tag: interaction.user.tag }, oldLocale, newLocale: raw });
+                await logLocaleChange({ guildId, actor: { id: interaction.user.id, tag: interaction.user.tag }, oldLocale, newLocale: raw });
                 return interaction.reply({
                     content: i18n.tFor(interaction, 'admin:language.updated', { vars: { locale: raw } }),
                     flags: MessageFlags.Ephemeral
                 });
             } catch (error) {
-                const userMessage = handleDiscordError(error);
+                const userMessage = await handleDiscordError(error);
                 if (userMessage) {
                     await safeReply(interaction, userMessage);
                 }
             }
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? 'An unknown error occurred';
+            const errorMessage = await handleDiscordError(error) ?? 'An unknown error occurred';
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {

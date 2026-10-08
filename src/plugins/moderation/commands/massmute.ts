@@ -220,7 +220,7 @@ export default {
 
             logger.info({ msg: `[MODERATION] Mass mute by ${interaction.user.tag}: ${results.success.length} success, ${results.failed.length} failed. Duration: ${durationDisplay}. Reason: ${reason}` });
         } catch (error) {
-            const errorMessage = handleDiscordError(error) ?? t('massmute.anUnknownErrorOccurred');
+            const errorMessage = await handleDiscordError(error) ?? t('massmute.anUnknownErrorOccurred');
             if (interaction.replied || interaction.deferred) {
                 await safeFollowUp(interaction, errorMessage);
             } else {
