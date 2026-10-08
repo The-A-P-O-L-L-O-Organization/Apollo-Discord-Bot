@@ -15,7 +15,7 @@ export const JobNames = {
 
 export type JobName = typeof JobNames[keyof typeof JobNames];
 
-const queues = new Map<string, Queue | NoopQueue>();
+export const queues = new Map<string, Queue | NoopQueue>();
 
 // Custom serializer for BullMQ using msgpackr
 function serializeJobData(data: unknown): Buffer {

@@ -1,81 +1,12 @@
-// NSFW gRPC Client
-// Connects to the Rust NSFW detection worker via gRPC
+// NSFW ConnectRPC Client
+// Connects to the Rust NSFW detection worker via ConnectRPC (gRPC compatible)
 
-import { loadSync } from '@grpc/proto-loader';
-import { loadPackageDefinition, credentials, type ClientOptions, type ChannelOptions } from '@grpc/grpc-js';
-import { existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { createClient } from '@connectrpc/connect';
+import { createGrpcTransport } from '@connectrpc/connect-node';
+import { create } from '@bufbuild/protobuf';
+import { NsfwService, AnalyzeRequestSchema, AnalyzeResponseSchema, HealthCheckRequestSchema, HealthCheckResponseSchema } from '../generated/nsfw/nsfw/v1/nsfw_pb.js';
+import type { AnalyzeRequest, AnalyzeResponse, HealthCheckRequest, HealthCheckResponse } from '../generated/nsfw/nsfw/v1/nsfw_pb.js';
 import { logger } from '../utils/logger.js';
-
-// Type definitions for gRPC requests/responses (plain objects with snake_case/camelCase)
-interface AnalyzeRequest {
-    image_data: Uint8Array;
-    image_url: string;
-    threshold: number;
-    guild_id: string;
-    user_id: string;
-}
-
-interface AnalyzeResponse {
-    is_nsfw?: boolean;
-    isNsfw?: boolean;
-    predictions?: Record<string, number>;
-    max_confidence?: number;
-    maxConfidence?: number;
-    inference_ms?: string;
-    inferenceMs?: string;
-}
-
-type HealthCheckRequest = Record<string, never>;
-
-interface HealthCheckResponse {
-    healthy?: boolean;
-    model_version?: string;
-    modelVersion?: string;
-    uptime_ms?: string;
-    uptimeMs?: string;
-}
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-type NsfwServiceCtor = new (address: string, credentials: ClientOptions, options?: ChannelOptions) => {
-    Analyze(request: AnalyzeRequest, callback: (error: unknown, response: AnalyzeResponse) => void): void;
-    HealthCheck(request: HealthCheckRequest, callback: (error: unknown, response: HealthCheckResponse) => void): void;
-};
-
-function resolveProtoPath(): string {
-    const override = process.env['NSFW_PROTO_PATH'];
-    if (override && existsSync(override)) { return override; }
-    const candidates = [
-        join(__dirname, '../../protos/nsfw/v1/nsfw.proto'),
-        join(__dirname, '../protos/nsfw/v1/nsfw.proto'),
-        join(process.cwd(), 'protos/nsfw/v1/nsfw.proto')
-    ];
-    const found = candidates.find((p) => existsSync(p));
-    if (!found) { throw new Error(`NSFW proto not found (searched ${candidates.join(', ')})`); }
-    return found;
-}
-
-let cachedClientCtor: NsfwServiceCtor | null = null;
-
-function getNsfwServiceClient(): NsfwServiceCtor {
-    if (!cachedClientCtor) {
-        const packageDefinition = loadSync(resolveProtoPath(), {
-            keepCase: true,
-            longs: String,
-            enums: String,
-            defaults: true,
-            oneofs: true
-        });
-        const protoDescriptor = loadPackageDefinition(packageDefinition) as unknown as {
-            nsfw: { v1: { NsfwService: NsfwServiceCtor } };
-        };
-        cachedClientCtor = protoDescriptor.nsfw.v1.NsfwService;
-    }
-    return cachedClientCtor;
-}
 
 // gRPC status codes that should trigger fail-open after retries
 const FAIL_OPEN_CODES = new Set([
@@ -102,6 +33,19 @@ const CIRCUIT_BREAKER_RESET_MS = 30_000; // 30 seconds
 const MAX_RETRIES = 3;
 const REQUEST_TIMEOUT_MS = 5_000;
 const BASE_BACKOFF_MS = 100;
+
+let cachedClient: ReturnType<typeof createClient<typeof NsfwService>> | null = null;
+
+function getClient(): ReturnType<typeof createClient<typeof NsfwService>> {
+    if (!cachedClient) {
+        const address = process.env['NSFW_GRPC_ADDR'] ?? 'localhost:50051';
+        const transport = createGrpcTransport({
+            baseUrl: `http://${address}`,
+        });
+        cachedClient = createClient(NsfwService, transport);
+    }
+    return cachedClient;
+}
 
 /**
  * Checks if circuit breaker should allow requests
@@ -150,15 +94,10 @@ function recordSuccess(): void {
 }
 
 /**
- * Creates a gRPC client instance
+ * Determines if a gRPC error code should trigger fail-open
  */
-function createClient(): InstanceType<NsfwServiceCtor> {
-    const address = process.env['NSFW_GRPC_ADDR'] ?? 'localhost:50051';
-    const Ctor = getNsfwServiceClient();
-    return new Ctor(address, credentials.createInsecure(), {
-        'grpc.max_receive_message_length': 10 * 1024 * 1024, // 10MB
-        'grpc.max_send_message_length': 10 * 1024 * 1024
-    });
+function isFailOpenError(code: number): boolean {
+    return FAIL_OPEN_CODES.has(code);
 }
 
 /**
@@ -169,14 +108,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Determines if a gRPC error code should trigger fail-open
- */
-function isFailOpenError(code: number): boolean {
-    return FAIL_OPEN_CODES.has(code);
-}
-
-/**
- * Analyzes an image for NSFW content via gRPC
+ * Analyzes an image for NSFW content via ConnectRPC
  * @param imageUrl - URL of the image to analyze
  * @param threshold - Classification threshold (0.0-1.0)
  * @param guildId - Guild ID for logging/metrics
@@ -197,78 +129,49 @@ export async function analyzeImageGrpc(
     // Check circuit breaker
     if (!checkCircuitBreaker()) {
         logger.warn({ msg: '[NSFW Client] Circuit breaker open - failing open' });
-        return {
+        return create(AnalyzeResponseSchema, {
             isNsfw: false,
             predictions: {},
             maxConfidence: 0,
-            inferenceMs: '0'
-        };
+            inferenceMs: 0n
+        });
     }
 
-    const client = createClient();
+    const client = getClient();
     let lastError: unknown = null;
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        let timeoutId: ReturnType<typeof setTimeout> | undefined;
         try {
-            // Use proto field names (snake_case) for dynamic grpc-js client
-            // Use proto field names (snake_case) for dynamic grpc-js client with keepCase: true
-            const request = {
-                image_data: new Uint8Array(0),
-                image_url: imageUrl,
+            const request = create(AnalyzeRequestSchema, {
+                imageData: new Uint8Array(0),
+                imageUrl,
                 threshold,
-                guild_id: guildId,
-                user_id: userId
-            } as unknown as AnalyzeRequest;
-
-            const response = await new Promise<AnalyzeResponse>((resolve, reject) => {
-                const timeout = setTimeout(() => {
-                    reject(new Error('Request timeout'));
-                }, REQUEST_TIMEOUT_MS);
-
-                client.Analyze(request, (error: unknown, response: AnalyzeResponse) => {
-                    clearTimeout(timeout);
-                    if (error) {
-                        reject(error instanceof Error ? error : new Error((error as { message?: string }).message ?? 'Unknown gRPC error'));
-                    } else {
-                        resolve(response);
-                    }
-                });
+                guildId,
+                userId
             });
 
+            const controller = new AbortController();
+            timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+            const response = await client.analyze(request, { signal: controller.signal });
+            clearTimeout(timeoutId);
+
             recordSuccess();
-            // Normalize response keys: the dynamic grpc-js client (keepCase)
-            // returns proto snake_case names; normalize to camelCase.
-            const raw = response as unknown as Record<string, unknown>;
-            const getString = (key: string, fallback: string): string => {
-                const val = raw[key];
-                return typeof val === 'string' ? val : fallback;
-            };
-            const getNumber = (key: string, fallback: number): number => {
-                const val = raw[key];
-                return typeof val === 'number' ? val : fallback;
-            };
-            const getBool = (key: string, fallback: boolean): boolean => {
-                const val = raw[key];
-                return typeof val === 'boolean' ? val : fallback;
-            };
-            return {
-                isNsfw: getBool('isNsfw', getBool('is_nsfw', false)),
-                predictions: (raw['predictions'] ?? {}) as Record<string, number>,
-                maxConfidence: getNumber('maxConfidence', getNumber('max_confidence', 0)),
-                inferenceMs: getString('inferenceMs', getString('inference_ms', '0'))
-            };
+            return response;
         } catch (error) {
             lastError = error;
+            if (timeoutId) clearTimeout(timeoutId);
 
-            // Check if it's a gRPC error with a code
-            const grpcError = error as { code?: number; details?: string; message?: string };
-            const code = grpcError.code;
+            // Check if it's a ConnectRPC error with a code
+            const connectError = error as { code?: number; message?: string };
+            const code = connectError.code;
 
             if (attempt < MAX_RETRIES) {
                 const backoffMs = BASE_BACKOFF_MS * Math.pow(2, attempt);
                 logger.warn({
                     msg: `[NSFW Client] Attempt ${attempt + 1} failed, retrying in ${backoffMs}ms`,
-                    error: grpcError.message ?? String(error),
+                    error: connectError.message ?? String(error),
                     code,
                     attempt: attempt + 1,
                     maxRetries: MAX_RETRIES
@@ -280,19 +183,19 @@ export async function analyzeImageGrpc(
             // All retries exhausted
             logger.error({
                 msg: `[NSFW Client] All ${MAX_RETRIES + 1} attempts failed`,
-                error: grpcError.message ?? String(error),
+                error: connectError.message ?? String(error),
                 code
             });
 
             // Check if we should fail-open
             if (code !== undefined && isFailOpenError(code)) {
                 recordFailure();
-                return {
+                return create(AnalyzeResponseSchema, {
                     isNsfw: false,
                     predictions: {},
                     maxConfidence: 0,
-                    inferenceMs: '0'
-                };
+                    inferenceMs: 0n
+                });
             }
 
             // For other errors, re-throw
@@ -305,7 +208,7 @@ export async function analyzeImageGrpc(
 }
 
 /**
- * Performs a health check on the NSFW gRPC service
+ * Performs a health check on the NSFW ConnectRPC service
  * @returns Health check response
  */
 export async function healthCheckGrpc(): Promise<HealthCheckResponse> {
@@ -313,37 +216,19 @@ export async function healthCheckGrpc(): Promise<HealthCheckResponse> {
         throw new Error('NSFW_USE_RUST not enabled');
     }
 
-    const client = createClient();
+    const client = getClient();
 
-    return new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-            reject(new Error('Health check timeout'));
-        }, REQUEST_TIMEOUT_MS);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-        const request: HealthCheckRequest = {};
-        client.HealthCheck(request, (error: unknown, response: HealthCheckResponse) => {
-            clearTimeout(timeout);
-            if (error) {
-                reject(error instanceof Error ? error : new Error((error as { message?: string }).message ?? 'Unknown gRPC error'));
-            } else {
-                // Normalize response keys (see analyzeImageGrpc).
-                const raw = response as unknown as Record<string, unknown>;
-                const getString = (key: string, fallback: string): string => {
-                    const val = raw[key];
-                    return typeof val === 'string' ? val : fallback;
-                };
-                const getBool = (key: string, fallback: boolean): boolean => {
-                    const val = raw[key];
-                    return typeof val === 'boolean' ? val : fallback;
-                };
-                resolve({
-                    healthy: getBool('healthy', false),
-                    modelVersion: getString('modelVersion', getString('model_version', '')),
-                    uptimeMs: getString('uptimeMs', getString('uptime_ms', '0'))
-                });
-            }
-        });
-    });
+    try {
+        const response = await client.healthCheck(create(HealthCheckRequestSchema), { signal: controller.signal });
+        clearTimeout(timeoutId);
+        return response;
+    } catch (error) {
+        clearTimeout(timeoutId);
+        throw error instanceof Error ? error : new Error(String(error));
+    }
 }
 
 /**
