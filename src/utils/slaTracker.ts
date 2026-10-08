@@ -2,6 +2,7 @@
 // Handles SLA (Service Level Agreement) tracking for ticket response times
 
 import { getGuildData, setGuildData } from './db.js';
+import type { GuildConfig } from '../db/schemas.js';
 
 /**
  * Default SLA thresholds (in milliseconds)
@@ -62,7 +63,7 @@ export async function recordFirstResponse(guildId: string, ticketId: string, tim
     const ticket = ticketConfig.openTickets.find(t => t.id === ticketId);
     if (ticket && !ticket.firstResponseAt) {
         ticket.firstResponseAt = timestamp;
-        await setGuildData('tickets', guildId, ticketConfig);
+        await setGuildData('tickets', guildId, ticketConfig as GuildConfig);
     }
 }
 

@@ -3,6 +3,7 @@
 
 import { getUserData, setUserData, getGuildData } from './db.js';
 import { config } from '../config/config.js';
+import type { UserConfig } from '../db/schemas.js';
 
 interface LevelsConfig {
     enabled: boolean;
@@ -95,7 +96,7 @@ export async function awardXp(
         leveledUp = true;
     }
 
-    await setUserData('levels', guildId, userId, data);
+    await setUserData('levels', guildId, userId, data as unknown as UserConfig);
 
     return { data, leveledUp };
 }

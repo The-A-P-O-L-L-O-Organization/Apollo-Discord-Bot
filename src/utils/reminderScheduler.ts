@@ -4,6 +4,11 @@ import { EmbedBuilder } from 'discord.js';
 import { getData, setData } from './db.js';
 import { config } from '../config/config.js';
 import { getLockRedis, withLock } from './lock.js';
+import type { GlobalConfig } from '../db/schemas.js';
+
+interface RemindersData {
+    reminders: Reminder[];
+}
 
 let client: Client | null = null;
 let schedulerInterval: NodeJS.Timeout | null = null;
@@ -117,7 +122,7 @@ async function checkReminders(): Promise<void> {
 
         // Remove sent reminders
         data['reminders'] = reminders.filter(r => r.remindAt > now);
-        await setData('reminders', data);
+await setData('reminders', data as unknown as GlobalConfig);
 
         // Update performance stats
         performanceStats.checksPerformed++;
@@ -195,7 +200,7 @@ export async function addReminder(reminderData: Reminder): Promise<Reminder> {
     data.reminders ??= [];
 
     data.reminders.push(reminderData);
-    await setData('reminders', data);
+    await setData('reminders', data as unknown as GlobalConfig);
 
     return reminderData;
 }
@@ -228,7 +233,7 @@ export async function cancelReminder(reminderId: string, userId: string): Promis
     if (index === -1) {return false;}
 
     data.reminders.splice(index, 1);
-    await setData('reminders', data);
+    await setData('reminders', data as unknown as GlobalConfig);
 
     return true;
 }

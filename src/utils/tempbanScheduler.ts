@@ -6,6 +6,7 @@ import { getData, setData } from './db.js';
 import { config } from '../config/config.js';
 import { getLockRedis, withLock } from './lock.js';
 import type { Client, TextChannel } from 'discord.js';
+import type { GlobalConfig } from '../db/schemas.js';
 
 let client: Client | null = null;
 let schedulerInterval: NodeJS.Timeout | null = null;
@@ -82,7 +83,7 @@ async function checkTempbans(): Promise<void> {
         // Remove processed tempbans
         if (data) {
             data.tempbans = tempbans.filter(t => t.unbanAt > now);
-            await setData('tempbans', data);
+            await setData('tempbans', data as unknown as GlobalConfig);
         }
 
         if (expiredBans.length > 0) {
@@ -180,7 +181,7 @@ export async function addTempban(tempbanData: TempbanData): Promise<void> {
     data.tempbans ??= [];
 
     data.tempbans.push(tempbanData);
-    await setData('tempbans', data);
+    await setData('tempbans', data as unknown as GlobalConfig);
 
     logger.info({ msg: `[INFO] Tempban added for user ${tempbanData.userId} in guild ${tempbanData.guildId}` });
 }
@@ -202,7 +203,7 @@ export async function removeTempban(guildId: string, userId: string): Promise<bo
     if (index === -1) { return false; }
 
     data.tempbans.splice(index, 1);
-    await setData('tempbans', data);
+    await setData('tempbans', data as unknown as GlobalConfig);
 
     logger.info({ msg: `[INFO] Tempban removed for user ${userId} in guild ${guildId}` });
     return true;
