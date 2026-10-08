@@ -19,6 +19,7 @@ import { safeError } from './utils/safeError.js';
 import { assertDiscordToken, assertOperatorAgreement, assertEncryptionKey, validatePostgresPoolMax, warnUnverifiedPlugins, validateQueueHmacSecret } from './utils/startupChecks.js';
 import { initializeOtel, shutdownOtel } from './observability/otel.js';
 import { startHealthServer, stopHealthServer } from './utils/healthServer.js';
+import { startAdminServer, stopAdminServer } from './admin/server.js';
 import { createLogger } from './utils/logger.js';
 import type { TypedClient } from './core/PluginManager.js';
 import { SocketServer } from './cli/socket-server.js';
@@ -148,6 +149,9 @@ async function onClientReady(): Promise<void> {
     client.socketServer = socketServer;
 
     await startHealthServer(client);
+
+    // Start admin server (Bull Board dashboard)
+    await startAdminServer();
 
     logger.info('[SUCCESS] Bot fully initialized!');
 }
@@ -360,6 +364,9 @@ if (RUN_MODE === 'worker') {
 
             logger.info('[INFO] Stopping health server...');
             await stopHealthServer();
+
+            logger.info('[INFO] Stopping admin server...');
+            await stopAdminServer();
 
             logger.info('[INFO] Shutting down OpenTelemetry...');
             await shutdownOtel();

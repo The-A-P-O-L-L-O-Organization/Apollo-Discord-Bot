@@ -11,6 +11,9 @@ const LOG_SAMPLE_RATE = parseFloat(process.env['LOG_SAMPLE_RATE'] ?? '') || 1.0;
 // Levels that should never be sampled (always logged)
 const NEVER_SAMPLE_LEVELS = new Set(['fatal', 'error']);
 
+// Detect production mode
+const IS_PRODUCTION = process.env['NODE_ENV'] === 'production';
+
 /**
  * Creates a sampling function for pino
  * @param sampleRate - Sample rate (0.0 to 1.0)
@@ -38,10 +41,14 @@ const logger = pino({
         traceId: serviceTraceId
     },
     timestamp: pino.stdTimeFunctions.isoTime,
-    // Custom formatter to add trace context to each log entry
-    formatters: {
-        log: (object: Record<string, unknown>) => {
-            return object;
+    // Use pretty print in development, JSON in production
+    transport: IS_PRODUCTION ? undefined : {
+        target: 'pino-pretty',
+        options: {
+            colorize: true,
+            translateTime: 'SYS:standard',
+            ignore: 'pid,hostname,service,traceId',
+            singleLine: true
         }
     }
 });

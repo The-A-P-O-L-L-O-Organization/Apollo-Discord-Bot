@@ -5,8 +5,6 @@ import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
-import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
-import { GrpcInstrumentation } from '@opentelemetry/instrumentation-grpc';
 import { W3CTraceContextPropagator } from '@opentelemetry/core';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { AsyncHooksContextManager } from '@opentelemetry/context-async-hooks';
@@ -49,9 +47,7 @@ export function initializeOtel(options: OtelInitOptions): void {
 
     registerInstrumentations({
         instrumentations: [
-            new HttpInstrumentation(),
-            new ExpressInstrumentation(),
-            new GrpcInstrumentation()
+            new HttpInstrumentation()
         ],
         tracerProvider: provider
     });
