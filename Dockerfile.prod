@@ -17,8 +17,11 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* .npmrc* ./
 
 # Install ALL dependencies (dev deps required for tsc + esbuild)
+# Use --ignore-scripts to skip ssh2 optional crypto binding (fails on Node 26)
+# Then rebuild only the required native module (better-sqlite3)
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --prefer-offline
+    pnpm install --frozen-lockfile --prefer-offline --ignore-scripts && \
+    pnpm rebuild better-sqlite3
 
 # Copy TypeScript configs and source
 COPY tsconfig.json tsconfig.build.json ./
@@ -31,9 +34,11 @@ COPY plugin-manifest.json ./
 # Compile gateway/worker/shard entries to dist/ with source maps, bundle the CLI
 # entry, and regenerate plugin-manifest.json — one layer sharing the pnpm
 # store, tsbuildinfo (incremental tsc), and corepack caches.
+# Build composite project references first for new core modules (WorkerPluginProxy, cgroupManager)
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     --mount=type=cache,target=/app/.cache/tsbuildinfo \
     --mount=type=cache,target=/root/.cache/node/corepack \
+    pnpm exec tsc -b tsconfig.core.json --force && \
     pnpm build && \
     pnpm build:cli && \
     pnpm manifest
