@@ -34,9 +34,11 @@ COPY plugin-manifest.json ./
 # Compile gateway/worker/shard entries to dist/ with source maps, bundle the CLI
 # entry, and regenerate plugin-manifest.json — one layer sharing the pnpm
 # store, tsbuildinfo (incremental tsc), and corepack caches.
+# Build composite project references first (tsconfig.json references all projects)
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     --mount=type=cache,target=/app/.cache/tsbuildinfo \
     --mount=type=cache,target=/root/.cache/node/corepack \
+    pnpm exec tsc -b tsconfig.json --force && \
     pnpm build && \
     pnpm build:cli && \
     pnpm manifest
