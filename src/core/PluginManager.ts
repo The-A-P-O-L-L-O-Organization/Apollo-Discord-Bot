@@ -356,6 +356,8 @@ export default class PluginManager {
         await proxy.onLoad();
         proxy.loaded = true;
         await proxy.getCommands();
+        await proxy.onEnable();
+        proxy.enabled = true;
         await this._syncDiscordCommands(pluginId);
         return worker;
     }

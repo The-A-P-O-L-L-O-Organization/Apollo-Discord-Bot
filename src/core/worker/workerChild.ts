@@ -12,6 +12,7 @@ export interface ChildHost {
 export interface PluginInstance {
     onLoad?: () => Promise<void>;
     onEnable?: () => Promise<void>;
+    onDisable?: () => Promise<void>;
     onUnload?: () => Promise<void>;
     onCommand?: (payload: unknown) => Promise<{ ok: boolean; output?: unknown } | undefined>;
     onEvent?: (payload: unknown) => Promise<boolean>;
@@ -136,6 +137,7 @@ export async function runChild({ pluginDir, env, processLike = process as unknow
                     await plugin.onEnable?.();
                     result = { ok: true };
                 } else if (msg.method === 'lifecycle:disable') {
+                    await plugin.onDisable?.();
                     result = { ok: true };
                 } else if (msg.method === 'lifecycle:describe') {
                     const exposed = (plugin as unknown as { commands?: unknown }).commands;

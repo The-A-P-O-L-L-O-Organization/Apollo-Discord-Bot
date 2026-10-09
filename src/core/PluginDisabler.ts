@@ -1,4 +1,5 @@
 import type { Plugin } from './Plugin.js';
+import { WorkerPluginProxy } from './WorkerPluginProxy.js';
 
 export interface WorkerHostLike {
     terminateWorker: (pluginId: string) => boolean;
@@ -27,6 +28,10 @@ export class PluginDisabler {
         // Call onDisable
         if (plugin.onDisable) {
             await plugin.onDisable();
+        }
+
+        if (plugin instanceof WorkerPluginProxy) {
+            await plugin.onUnload();
         }
 
         // Terminate worker
