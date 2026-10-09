@@ -133,6 +133,8 @@ export async function runChild({ pluginDir, env, processLike = process as unknow
                 } else if (msg.method === 'lifecycle:enable') {
                     await plugin.onEnable?.();
                     result = { ok: true };
+                } else if (msg.method === 'lifecycle:disable') {
+                    result = { ok: true };
                 } else if (msg.method === 'command:run') {
                     const commandResult = await plugin.onCommand?.(msg.payload);
                     result = commandResult ?? { ok: true, output: null };

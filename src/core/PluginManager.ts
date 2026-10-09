@@ -15,6 +15,7 @@ import { PluginEnabler } from './PluginEnabler.js';
 import { PluginDisabler } from './PluginDisabler.js';
 import { PluginReloader } from './PluginReloader.js';
 import { PluginInstaller } from './PluginInstaller.js';
+import { WorkerPluginProxy } from './WorkerPluginProxy.js';
 import { sortByDependencies, enablePluginsParallel } from './PluginDependencyResolver.js';
 import { CommandSync } from './CommandSync.js';
 import { BuiltinPluginLoader } from './BuiltinPluginLoader.js';
@@ -38,6 +39,7 @@ interface PluginInfo {
     origin: 'built-in' | 'installed';
     dir: string;
     worker?: { granted: string[] };
+    proxy?: WorkerPluginProxy;
 }
 
 export interface PluginConstructor {
@@ -345,7 +347,12 @@ export default class PluginManager {
             capabilities: ALL_PLUGIN_CAPABILITIES,
             manifest
         });
-        this.installedPlugins.set(pluginId, { origin: 'installed', dir, worker });
+        const proxy = new WorkerPluginProxy(pluginId, this.workerHost, { dir });
+        proxy.setDirectory(dir);
+        this.plugins.set(pluginId, proxy as unknown as PluginBase);
+        this.installedPlugins.set(pluginId, { origin: 'installed', dir, worker, proxy });
+        await proxy.onLoad();
+        proxy.loaded = true;
         return worker;
     }
 
@@ -357,6 +364,7 @@ export default class PluginManager {
             }
             await this.disablePlugin(id);
             await this.unloadPlugin(id);
+            this.workerHost.terminateWorker(id);
             this._pluginRegistry.delete(id);
             this.installedPlugins.delete(id);
         }

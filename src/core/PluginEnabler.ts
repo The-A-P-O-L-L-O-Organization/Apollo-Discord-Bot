@@ -46,11 +46,6 @@ export class PluginEnabler {
             this.eventBus.subscribe(event.name, event.handler);
         }
 
-        // Spawn worker if plugin has worker capabilities
-        if (manifest.capabilities?.some((c) => c.startsWith('worker:'))) {
-            await this.workerHost.startPlugin({ pluginId, dir: '', capabilities: manifest.capabilities, manifest });
-        }
-
         // Sync commands
         if (plugin.commands?.size) {
             await this.commandSync.syncCommands(pluginId, [...plugin.commands.values()]);

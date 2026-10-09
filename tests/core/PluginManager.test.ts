@@ -86,13 +86,35 @@ describe('PluginManager', () => {
 
     it('should route installed plugins through the worker host', async() => {
         const startPlugin = vi.fn().mockResolvedValue({ child: { send: vi.fn() }, manifest: { id: 'demo', capabilities: ['api:sendMessage'] } });
-        manager.workerHost = { startPlugin, send: vi.fn(), getGrantedCapabilities: (m: unknown, r: unknown) => r } as unknown as PluginManager['workerHost'];
-        await manager.loadInstalledPlugin('demo', '/data/plugins/demo', { id: 'demo', capabilities: ['api:sendMessage'] });
+        const sent: { correlationId: string }[] = [];
+        const listeners: ((msg: unknown) => void)[] = [];
+        const child = {
+            send: vi.fn(),
+            on: vi.fn((_event: string, listener: (msg: unknown) => void) => {
+                listeners.push(listener);
+            })
+        };
+        const send = vi.fn((_pluginId: string, msg: { correlationId: string }): boolean => {
+            sent.push(msg);
+            return true;
+        });
+        const getWorker = vi.fn().mockReturnValue({ child });
+        manager.workerHost = { startPlugin, send, getWorker, getGrantedCapabilities: (m: unknown, r: unknown) => r } as unknown as PluginManager['workerHost'];
+        const pending = manager.loadInstalledPlugin('demo', '/data/plugins/demo', { id: 'demo', name: 'demo', capabilities: ['api:sendMessage'] });
+        await vi.waitFor(() => {
+            expect(sent.length).toBeGreaterThan(0);
+        });
+        const request = sent[0] as { correlationId: string };
+        for (const listener of listeners) {
+            listener({ kind: 'response', correlationId: request.correlationId, result: { ok: true } });
+        }
+        await pending;
         expect(startPlugin).toHaveBeenCalledWith(expect.objectContaining({
             pluginId: 'demo',
             dir: '/data/plugins/demo',
-            manifest: { id: 'demo', capabilities: ['api:sendMessage'] }
+            manifest: { id: 'demo', name: 'demo', capabilities: ['api:sendMessage'] }
         }));
         expect(manager.installedPlugins.get('demo')!.origin).toBe('installed');
+        expect(manager.getPlugin('demo')?.name).toBe('demo');
     });
 });
