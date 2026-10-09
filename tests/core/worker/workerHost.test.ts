@@ -32,7 +32,7 @@ describe('WorkerHost', () => {
         expect(fork).toHaveBeenCalledWith(expect.stringContaining('workerChild.js'), [], {
             env: expect.objectContaining({ PLUGIN_ID: 'demo' }),
             stdio: expect.anything(),
-            resourceLimits: expect.objectContaining({ maxOldGenerationSizeMb: expect.any(Number) })
+            execArgv: expect.arrayContaining(['--import=tsx', expect.stringMatching(/^--max-old-space-size=\d+$/)])
         });
         expect(worker).toBeTruthy();
     });
@@ -79,8 +79,10 @@ describe('WorkerHost', () => {
             manifest: { id: 'demo', capabilities: ['api:sendMessage'] }
         });
         const forkOptions = fork.mock.calls[0]![2];
-        expect(forkOptions.resourceLimits).toBeDefined();
-        expect(forkOptions.resourceLimits.maxOldGenerationSizeMb).toBeGreaterThan(0);
+        expect(forkOptions.execArgv).toBeDefined();
+        expect(forkOptions.execArgv).toContain('--import=tsx');
+        expect(forkOptions.execArgv.some((arg: string) => /^--max-old-space-size=\d+$/.test(arg))).toBe(true);
+        expect(forkOptions.resourceLimits).toBeUndefined();
     });
 
     it('should deny capabilities not granted by the manifest', () => {

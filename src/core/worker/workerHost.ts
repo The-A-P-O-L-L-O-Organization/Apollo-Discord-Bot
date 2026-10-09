@@ -1,6 +1,6 @@
 import { fork, type ForkOptions, type ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
-import { mkdirSync, writeFileSync, existsSync, rmSync } from 'node:fs';
+import { setupCgroup, attachToCgroup, cleanupCgroup } from './cgroupManager.js';
 import { logSecurityEvent } from '../../utils/securityLog.js';
 import { i18n } from '../../i18n/index.js';
 import { DEFAULT_LOCALE, isSupported } from '../../i18n/supportedLocales.js';
@@ -11,7 +11,6 @@ import { signCapabilities } from './capabilitySignature.js';
 const MAX_CRASHES = 5;
 const HEALTHY_WINDOW_MS = 10 * 60 * 1000;
 const COOLDOWN_MS = 60 * 1000;
-const CGROUP_BASE = '/sys/fs/cgroup/apollo/workers';
 
 export const HIGH_RISK_CAPABILITIES = new Set([
     'api:sendMessage',
@@ -25,6 +24,8 @@ export interface WorkerManifest {
     id: string;
     capabilities: string[];
     resourceLimits?: {
+        memoryMB?: number;
+        cpuPercent?: number;
         maxOldGenerationSizeMb?: number;
         maxYoungGenerationSizeMb?: number;
         stackSizeMb?: number;
@@ -35,6 +36,7 @@ export interface WorkerInfo {
     child: ChildProcess;
     granted: string[];
     manifest: WorkerManifest;
+    cgroupPath: string | null;
 }
 
 export interface WorkerHostOptions {
@@ -227,7 +229,7 @@ export class WorkerHost extends EventEmitter {
         return granted;
     }
 
-    startPlugin({ pluginId, dir, capabilities, manifest }: {
+    async startPlugin({ pluginId, dir, capabilities, manifest }: {
         pluginId: string;
         dir: string;
         capabilities: string[];
@@ -236,19 +238,26 @@ export class WorkerHost extends EventEmitter {
         // Check circuit breaker before spawning
         if (this.isCircuitOpen(pluginId)) {
             this._log?.(`[WORKER] ${pluginId} spawn rejected: circuit is open`);
-            return Promise.reject(new Error(`Circuit breaker open for ${pluginId}`));
+            throw new Error(`Circuit breaker open for ${pluginId}`);
         }
 
         const granted = this.getGrantedCapabilities(manifest, capabilities);
         const childEntry = new URL('./workerChild.js', import.meta.url).pathname;
 
         const resourceLimits = manifest.resourceLimits ?? {};
-        const maxOldGenerationSizeMb = resourceLimits.maxOldGenerationSizeMb ?? 256;
-        const maxYoungGenerationSizeMb = resourceLimits.maxYoungGenerationSizeMb ?? 64;
-        const stackSizeMb = resourceLimits.stackSizeMb ?? 8;
+        const heapLimitMb = resourceLimits.memoryMB ?? resourceLimits.maxOldGenerationSizeMb ?? 256;
 
-        // Create cgroup for this worker
-        this.createCgroup(pluginId, resourceLimits);
+        const execArgv = ['--import=tsx', `--max-old-space-size=${heapLimitMb}`];
+
+        let cgroupPath: string | null = null;
+        try {
+            cgroupPath = await setupCgroup(pluginId, {
+                ...(resourceLimits.memoryMB !== undefined ? { memoryMB: resourceLimits.memoryMB } : {}),
+                ...(resourceLimits.cpuPercent !== undefined ? { cpuPercent: resourceLimits.cpuPercent } : {})
+            });
+        } catch {
+            cgroupPath = null;
+        }
 
         const capabilitySecret = process.env['PLUGIN_CAPABILITY_SECRET'] ?? process.env['QUEUE_HMAC_SECRET'] ?? '';
         if (!capabilitySecret) {
@@ -268,23 +277,25 @@ export class WorkerHost extends EventEmitter {
         const child = this._fork(childEntry, [], {
             env,
             stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
-            // @ts-expect-error - resourceLimits is valid at runtime for fork in Node.js but missing from ForkOptions types
-            resourceLimits: {
-                maxOldGenerationSizeMb,
-                maxYoungGenerationSizeMb,
-                stackSizeMb
-            }
+            execArgv
         });
+
+        if (cgroupPath !== null && child.pid !== undefined) {
+            const attached = await attachToCgroup(cgroupPath, child.pid);
+            if (!attached) {
+                this._log?.(`[WORKER] Failed to attach worker for ${pluginId} (pid ${child.pid}) to cgroup`);
+            }
+        }
 
         child.on('exit', (code, signal) => this.recordCrash(pluginId, code, signal));
         child.on('error', (err) => this.handleWorkerError(pluginId, err));
         child.on('message', (msg: unknown) => this.handleChildMessage(pluginId, msg));
 
-        const workerInfo: WorkerInfo = { child, granted, manifest };
+        const workerInfo: WorkerInfo = { child, granted, manifest, cgroupPath };
         this._workers.set(pluginId, workerInfo);
-        this._log?.(`[WORKER] Spawned worker for ${pluginId} (memory: ${maxOldGenerationSizeMb}MB old, ${maxYoungGenerationSizeMb}MB young, stack: ${stackSizeMb}MB)`);
+        this._log?.(`[WORKER] Spawned worker for ${pluginId} (heap: ${heapLimitMb}MB${cgroupPath !== null ? `, cgroup: ${cgroupPath}` : ''})`);
         logSecurityEvent({ event: 'plugin.started', pluginId, grantedCapabilities: granted });
-        return Promise.resolve(workerInfo);
+        return workerInfo;
     }
 
     handleWorkerError(pluginId: string, error: Error): void {
@@ -356,79 +367,10 @@ export class WorkerHost extends EventEmitter {
         this._readyPlugins.delete(pluginId);
         this._log?.(`[WORKER] Terminated worker for ${pluginId}`);
         logSecurityEvent({ event: 'plugin.terminated', pluginId });
-        this.cleanupCgroup(pluginId);
+        if (worker.cgroupPath !== null) {
+            void cleanupCgroup(worker.cgroupPath);
+        }
         return true;
-    }
-
-    private isCgroupV2Available(): boolean {
-        return existsSync('/sys/fs/cgroup/cgroup.controllers');
-    }
-
-    private createCgroup(pluginId: string, resourceLimits: WorkerManifest['resourceLimits']): void {
-        if (!this.isCgroupV2Available()) {
-            this._log?.('[WORKER] cgroup v2 not available, skipping resource limits');
-            return;
-        }
-
-        const cgroupPath = `${CGROUP_BASE}/${pluginId}`;
-        try {
-            mkdirSync(cgroupPath, { recursive: true });
-        } catch (err) {
-            this._log?.(`[WORKER] Failed to create cgroup for ${pluginId} (permission denied or unavailable): ${String(err)}`);
-            return;
-        }
-
-        // Enable memory and cpu controllers
-        try {
-            writeFileSync(`${cgroupPath}/cgroup.subtree_control`, '+memory +cpu');
-        } catch (err) {
-            this._log?.(`[WORKER] Failed to enable cgroup controllers for ${pluginId}: ${String(err)}`);
-            return;
-        }
-
-        // Set memory limit
-        if (resourceLimits?.maxOldGenerationSizeMb) {
-            const memoryBytes = resourceLimits.maxOldGenerationSizeMb * 1024 * 1024;
-            try {
-                writeFileSync(`${cgroupPath}/memory.max`, memoryBytes.toString());
-            } catch (err) {
-                this._log?.(`[WORKER] Failed to set memory.max for ${pluginId}: ${String(err)}`);
-            }
-        }
-
-        // Set CPU limit (quota in microseconds per period)
-        // CPU limit as percentage: 100% = 100000 microseconds per 100000 period
-        // Using a reasonable default if not specified
-        try {
-            writeFileSync(`${cgroupPath}/cpu.max`, '100000 100000');
-        } catch (err) {
-            this._log?.(`[WORKER] Failed to set cpu.max for ${pluginId}: ${String(err)}`);
-        }
-    }
-
-    private cleanupCgroup(pluginId: string): void {
-        if (!this.isCgroupV2Available()) {
-            return;
-        }
-
-        const cgroupPath = `${CGROUP_BASE}/${pluginId}`;
-        if (!existsSync(cgroupPath)) {
-            return;
-        }
-
-        // Move any remaining processes to parent cgroup
-        try {
-            writeFileSync(`${cgroupPath}/cgroup.procs`, '0');
-        } catch {
-            // Ignore errors moving processes
-        }
-
-        // Remove cgroup directory
-        try {
-            rmSync(cgroupPath, { recursive: true, force: true });
-        } catch (err) {
-            this._log?.(`[WORKER] Failed to cleanup cgroup for ${pluginId}: ${String(err)}`);
-        }
     }
 }
 

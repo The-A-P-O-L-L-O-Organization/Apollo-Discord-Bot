@@ -116,6 +116,13 @@ export async function runChild({ pluginDir, env, processLike = process as unknow
 
     const child: WorkerChild = {
         async handleMessage(msg: RPCMessage) {
+            if (typeof msg === 'object' && msg !== null && (msg as { type?: unknown }).type === 'debug:execArgv') {
+                const requestId = (msg as { requestId?: unknown }).requestId;
+                if (typeof requestId === 'number' || typeof requestId === 'string') {
+                    processLike.send({ type: 'rpc:response', requestId, data: { execArgv: process.execArgv } });
+                }
+                return;
+            }
             if (isResponse(msg)) {
                 const resolve = pending.get(msg.correlationId);
                 if (resolve) {
