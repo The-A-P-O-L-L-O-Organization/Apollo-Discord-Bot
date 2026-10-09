@@ -104,17 +104,19 @@ export default class PluginManager {
         const enabled = config.plugins.enabled;
         const paths = config.plugins.paths;
         const directory: string = paths.core;
-        const installedDir: string = paths.installed;
         const enabledArray: string[] = Array.isArray(enabled) ? enabled : [enabled];
         this._rebuildInstalledPlugins();
         const installedKeys = [...this.installedPlugins.keys()];
         const additionalIds = installedKeys.filter(id => !enabledArray.includes(id));
         const allIds: string[] = [...enabledArray, ...additionalIds];
 
-        // Load all plugins in parallel (respecting dependencies)
+        // Installed plugins start in sandboxed workers; built-ins load in-process
         const loadPromises = allIds.map(id => {
-            const baseDir = this.installedPlugins.has(id) ? installedDir : directory;
-            return this.loadPlugin(id, baseDir);
+            const installed = this.installedPlugins.get(id);
+            if (installed !== undefined) {
+                return this.loadInstalledPlugin(id, installed.dir);
+            }
+            return this.loadPlugin(id, directory);
         });
         await Promise.all(loadPromises);
 
@@ -140,7 +142,7 @@ export default class PluginManager {
         if (!existsSync(optionalDir)) { return; }
         const entries = readdirSync(optionalDir);
         for (const entry of entries) {
-            if (!this.installedPlugins.has(entry) && (existsSync(path.join(optionalDir, entry, 'plugin.ts')) || existsSync(path.join(optionalDir, entry, 'plugin.js')))) {
+            if (!this.installedPlugins.has(entry) && existsSync(path.join(optionalDir, entry, 'plugin.json')) && existsSync(path.join(optionalDir, entry, 'plugin.js'))) {
                 this.installedPlugins.set(entry, {
                     origin: 'installed',
                     dir: path.join(optionalDir, entry)
@@ -182,11 +184,14 @@ export default class PluginManager {
         let plugin: PluginBase;
 
         if (existsSync(manifestPath)) {
-            // Installed plugin - use PluginLoader
-            const result = await this._loader.load(id, baseDir, this.client as unknown as ApolloClient, this);
-            plugin = result.plugin;
+            const dir = path.join(process.cwd(), baseDir, id);
+            await this.loadInstalledPlugin(id, dir);
+            const proxy = this.plugins.get(id);
+            if (!proxy) {
+                throw new Error(`Plugin ${id} failed to start in sandboxed worker`);
+            }
+            return proxy;
         } else {
-            // Built-in plugin - use direct import (original behavior)
             plugin = await this.loadBuiltinPlugin(id, baseDir);
         }
 
@@ -290,6 +295,16 @@ export default class PluginManager {
     }
 
     async reloadPlugin(id: string): Promise<void> {
+        const info = this.installedPlugins.get(id);
+        if (info?.origin === 'installed') {
+            await this.disablePlugin(id);
+            this.workerHost.terminateWorker(id);
+            this.plugins.delete(id);
+            this._pluginRegistry.delete(id);
+            this._loader.clearCache(id);
+            await this.loadInstalledPlugin(id, info.dir);
+            return;
+        }
         const result = await this._reloader.reload(id, './src/plugins', this.client as unknown as ApolloClient, this);
         // Update the plugins map with the new plugin instance
         this.plugins.set(id, result.plugin);
@@ -308,7 +323,7 @@ export default class PluginManager {
         const entry = registry.get(id);
         if (!entry) { throw new Error(`Plugin ${id} not found in registry`); }
 
-        const { downloadAndExtractPlugin, validatePluginDirectory } = await import('./pluginDownloader.js');
+        const { installPlugin: installVerifiedPlugin } = await import('./pluginDownloader.js');
 
         const destDir = path.join(
             process.cwd(),
@@ -321,12 +336,11 @@ export default class PluginManager {
         }
 
         logger.info({ msg: `[PluginManager] Downloading ${id} from ${entry.downloadUrl}...` });
-        await downloadAndExtractPlugin(entry.downloadUrl, destDir);
-
-        const validation = await validatePluginDirectory(destDir);
-        if (!validation.valid) {
+        try {
+            await installVerifiedPlugin({ downloadUrl: entry.downloadUrl, id, version: entry.version }, { destDir, verifySignature: true });
+        } catch (err) {
             rmSync(destDir, { recursive: true, force: true });
-            throw new Error(`Invalid plugin ${id}: ${validation.error}`);
+            throw err;
         }
 
         const enabled = this.client.config.plugins.enabled;

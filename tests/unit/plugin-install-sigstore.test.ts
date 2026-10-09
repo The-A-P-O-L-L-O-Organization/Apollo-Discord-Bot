@@ -1,8 +1,9 @@
 // Sigstore verification tests for plugin installs
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { verifySigstoreSignature, fetchSigstoreBundle, SigstoreVerificationError } from '../../src/core/pluginSigstore.js'
-import { mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs'
+import { mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { createSign, generateKeyPairSync } from 'node:crypto'
 
 // Mock fetch for sigstore bundle fetching
 const mockFetch = vi.fn()
@@ -46,12 +47,20 @@ describe('Sigstore Plugin Verification', () => {
 
     describe('verifySigstoreSignature', () => {
         it('verifies a valid cosign signature', async () => {
+            const { publicKey, privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 })
+            const publicPem = publicKey.export({ format: 'pem', type: 'spki' }).toString()
+            const payload = Buffer.from(JSON.stringify({ critical: 'test' })).toString('base64')
+            const artifact = readFileSync(join(pluginDir, 'plugin.ts'))
+            const signer = createSign('sha256')
+            signer.update(Buffer.from(payload, 'base64'))
+            signer.update(artifact)
+            signer.end()
             const validBundle = {
                 mediaType: 'application/vnd.dev.cosign.simplesigning.v1+json',
-                payload: 'eyJhbGciOiAiSFMyNTYiLCAic2lnIjogIk1FUUNJQ0xTMzJlYmV0a3VzdDUifQ==',
+                payload,
                 signatures: [{
-                    keyid: 'test-key-id',
-                    sig: 'MEUCIQD1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdefIg=='
+                    keyid: 'prod-key-1',
+                    sig: signer.sign(privateKey, 'base64')
                 }],
                 optional: {}
             }
@@ -64,11 +73,11 @@ describe('Sigstore Plugin Verification', () => {
             const result = await verifySigstoreSignature({
                 artifactPath: join(pluginDir, 'plugin.ts'),
                 bundleUrl: 'https://example.com/plugin.ts.sigstore.json',
-                publicKey: '-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef\n-----END PUBLIC KEY-----'
+                publicKey: publicPem
             })
 
             expect(result.verified).toBe(true)
-            expect(result.keyId).toBe('test-key-id')
+            expect(result.keyId).toBe('prod-key-1')
         })
 
         it('rejects an invalid signature', async () => {

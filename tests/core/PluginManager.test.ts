@@ -1,9 +1,17 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import PluginManager from '../../src/core/PluginManager.js';
 import EventBus from '../../src/core/EventBus.js';
 import Plugin from '../../src/core/Plugin.js';
 import type { TypedClient as PluginClient } from '../../src/core/Plugin.js';
 import type { TypedClient as ManagerClient, PluginConstructor } from '../../src/core/PluginManager.js';
+import type { WorkerInfo } from '../../src/core/worker/workerHost.js';
+
+vi.mock('../../src/core/pluginDownloader.js', () => ({
+    installPlugin: vi.fn()
+}));
 
 class PassThroughPlugin extends Plugin {
     static override id = 'passthrough';
@@ -138,5 +146,48 @@ describe('PluginManager', () => {
         const methods = sent.map(s => s.method);
         expect(methods).toContain('lifecycle:load');
         expect(methods).toContain('lifecycle:describe');
+    });
+
+    it('enforces signature verification when installing a plugin', async () => {
+        const tmpRoot = mkdtempSync(join(tmpdir(), 'apollo-manager-install-'));
+        try {
+            const installedDir = join(tmpRoot, 'plugins');
+            const registryFile = join(tmpRoot, 'registry.json');
+            writeFileSync(registryFile, JSON.stringify({ plugins: [{ description: 'Demo', downloadUrl: 'https://cdn.example.com/demo.zip', id: 'demo', name: 'Demo', version: '1.0.0' }] }));
+            (manager.client.config as unknown as { plugins: Record<string, unknown> }).plugins = { enabled: [], paths: { installed: installedDir }, registryFile };
+            const { installPlugin } = await import('../../src/core/pluginDownloader.js');
+            const installMock = vi.mocked(installPlugin);
+            installMock.mockResolvedValue({ pluginDir: join(installedDir, 'demo'), pluginId: 'demo', success: true });
+            const loadSpy = vi.spyOn(manager, 'loadInstalledPlugin').mockResolvedValue({} as unknown as WorkerInfo);
+            await manager.installPlugin('demo');
+            const expectedDest = join(process.cwd(), installedDir, 'demo');
+            expect(installMock).toHaveBeenCalledWith(
+                expect.objectContaining({ downloadUrl: 'https://cdn.example.com/demo.zip', id: 'demo' }),
+                expect.objectContaining({ destDir: expectedDest, verifySignature: true })
+            );
+            expect(loadSpy).toHaveBeenCalledWith('demo', expectedDest);
+            const enabled = ((manager.client.config as unknown as { plugins: { enabled: string[] } }).plugins.enabled);
+            expect(enabled).toContain('demo');
+        } finally {
+            rmSync(tmpRoot, { recursive: true, force: true });
+        }
+    });
+
+    it('aborts install when signature verification fails', async () => {
+        const tmpRoot = mkdtempSync(join(tmpdir(), 'apollo-manager-install-fail-'));
+        try {
+            const installedDir = join(tmpRoot, 'plugins');
+            const registryFile = join(tmpRoot, 'registry.json');
+            writeFileSync(registryFile, JSON.stringify({ plugins: [{ description: 'Evil', downloadUrl: 'https://cdn.example.com/evil.zip', id: 'evil', name: 'Evil', version: '1.0.0' }] }));
+            (manager.client.config as unknown as { plugins: Record<string, unknown> }).plugins = { enabled: [], paths: { installed: installedDir }, registryFile };
+            const { installPlugin } = await import('../../src/core/pluginDownloader.js');
+            const installMock = vi.mocked(installPlugin);
+            installMock.mockRejectedValueOnce(new Error('Sigstore verification failed: No valid signature found in Sigstore bundle.'));
+            const loadSpy = vi.spyOn(manager, 'loadInstalledPlugin').mockResolvedValue({} as unknown as WorkerInfo);
+            await expect(manager.installPlugin('evil')).rejects.toThrow(/sigstore|verification/i);
+            expect(loadSpy).not.toHaveBeenCalled();
+        } finally {
+            rmSync(tmpRoot, { recursive: true, force: true });
+        }
     });
 });

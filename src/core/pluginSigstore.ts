@@ -122,18 +122,6 @@ export async function verifySigstoreSignature(options: VerifyOptions): Promise<V
         }
     }
 
-    // Test mode: allow test signatures with keyid starting with "test-"
-    // This runs when actual crypto verification fails but we're in test environment
-    if (!verified && process.env['VITEST'] === 'true') {
-        for (const signature of bundle.signatures) {
-            if (signature.keyid.startsWith('test-')) {
-                verified = true;
-                verifiedKeyId = signature.keyid;
-                break;
-            }
-        }
-    }
-
     if (!verified) {
         throw new SigstoreVerificationError('No valid signature found in sigstore bundle', 'INVALID_SIGNATURE');
     }
