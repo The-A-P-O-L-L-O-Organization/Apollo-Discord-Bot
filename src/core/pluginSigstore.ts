@@ -1,5 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { createVerify } from 'node:crypto';
+import { canonicalizeManifest } from './worker/pluginManifest.js';
+import type { ArchiveManifest } from './worker/pluginManifest.js';
 
 export class SigstoreVerificationError extends Error {
     constructor(message: string, public readonly code = 'SIGSTORE_VERIFICATION_FAILED') {
@@ -140,4 +142,92 @@ export async function verifySigstoreSignature(options: VerifyOptions): Promise<V
         verified: true,
         keyId: verifiedKeyId
     };
+}
+
+export interface SigstoreResult {
+    verified: boolean;
+    error?: string;
+    signer?: string;
+    publicKey?: string;
+    manifest?: ArchiveManifest;
+}
+
+function extractArchiveManifest(record: Record<string, unknown>): ArchiveManifest | null {
+    const candidate = record['manifest'];
+    const source = typeof candidate === 'object' && candidate !== null
+        ? candidate as Record<string, unknown>
+        : record;
+    const files = source['files'];
+    const entry = source['entry'];
+    const pluginId = source['pluginId'];
+    if (typeof files !== 'object' || files === null || typeof entry !== 'string' || typeof pluginId !== 'string') {
+        return null;
+    }
+    const fileRecord = files as Record<string, unknown>;
+    const hashed: Record<string, string> = {};
+    for (const [key, value] of Object.entries(fileRecord)) {
+        if (typeof value !== 'string') {
+            return null;
+        }
+        hashed[key] = value;
+    }
+    const rawCaps = source['capabilities'];
+    const capabilities = Array.isArray(rawCaps)
+        ? (rawCaps as unknown[]).filter((cap): cap is string => typeof cap === 'string')
+        : [];
+    return { capabilities, entry, files: hashed, pluginId };
+}
+
+export async function verifySigstore(pluginDir: string, bundle?: unknown, publicKey?: string): Promise<SigstoreResult> {
+    if (typeof pluginDir !== 'string' || pluginDir.length === 0) {
+        return { verified: false, error: 'Plugin directory is required for Sigstore verification.' };
+    }
+    if (bundle === null || bundle === undefined) {
+        return { verified: false, error: 'Sigstore bundle is required for plugin installation.' };
+    }
+    if (typeof bundle !== 'object') {
+        return { verified: false, error: 'Sigstore bundle must be an object.' };
+    }
+    const record = bundle as Record<string, unknown>;
+    const manifest = extractArchiveManifest(record);
+    if (manifest === null) {
+        return { verified: false, error: 'Sigstore bundle does not contain a file manifest.' };
+    }
+    const signatures = record['signatures'];
+    if (!Array.isArray(signatures) || signatures.length === 0) {
+        return { verified: false, error: 'Sigstore bundle contains no signatures.' };
+    }
+    const recordKey = record['publicKey'];
+    const key = typeof publicKey === 'string' && publicKey.length > 0
+        ? publicKey
+        : typeof recordKey === 'string' && recordKey.length > 0 ? recordKey : undefined;
+    if (key === undefined) {
+        return { verified: false, error: 'Sigstore public key is required to verify plugin bundle.' };
+    }
+    const payload = Buffer.from(canonicalizeManifest(manifest), 'utf8');
+    let signer: string | undefined;
+    for (const signature of signatures as unknown[]) {
+        if (typeof signature !== 'object' || signature === null) {
+            continue;
+        }
+        const entry = signature as Record<string, unknown>;
+        if (typeof entry['sig'] !== 'string') {
+            continue;
+        }
+        try {
+            const verifier = createVerify('sha256');
+            verifier.update(payload);
+            verifier.end();
+            if (verifier.verify(key, Buffer.from(entry['sig'], 'base64'))) {
+                signer = typeof entry['keyid'] === 'string' ? entry['keyid'] : 'unknown';
+                break;
+            }
+        } catch {
+            continue;
+        }
+    }
+    if (signer === undefined) {
+        return { verified: false, error: 'No valid signature found in Sigstore bundle.' };
+    }
+    return { manifest, publicKey: key, signer, verified: true };
 }

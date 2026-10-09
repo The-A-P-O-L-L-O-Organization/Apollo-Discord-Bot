@@ -146,6 +146,9 @@ Current controls:
 - `pnpm manifest` regenerates hashes; CI fails on drift.
 - `PluginInstaller`, `PluginLoader`, `PluginReloader`, `PluginEnabler`, and `PluginDisabler` isolate lifecycle transitions.
 - `pluginSigstore.ts` supports signature verification workflows.
+- All third-party plugin installs require Sigstore verification by default via `installPlugin`.
+- Installation verifies the whole archive against the signed per-file hash manifest, not just the entry file.
+- Plugin capabilities declared in `plugin.json` must be a subset of the signed manifest capabilities.
 - Third-party worker plugins execute in sandboxed child processes.
 - Capability-gated RPC schemas in `src/core/worker/rpc-schemas.ts` define the only sanctioned host surface.
 - `ALLOW_UNVERIFIED_PLUGINS=1` explicitly bypasses verification and warns in production.

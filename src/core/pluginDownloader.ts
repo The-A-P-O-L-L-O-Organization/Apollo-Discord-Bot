@@ -1,11 +1,112 @@
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync, mkdtempSync, cpSync } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
+import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 import { lookup as dnsLookup } from 'node:dns';
 import { createHash } from 'node:crypto';
 import AdmZip from 'adm-zip';
 import { verifySigstoreSignature, SigstoreVerificationError } from './pluginSigstore.js';
+import { verifySigstore } from './pluginSigstore.js';
+import { verifyArchiveIntegrity } from './PluginInstaller.js';
 import { validatePluginEntry } from './pluginValidator.js';
+import { logger } from '../utils/logger.js';
 import type { PluginManifest } from './pluginValidator.js';
+
+export interface RegistryEntry {
+    id: string;
+    downloadUrl: string;
+    version: string;
+    sigstoreBundle?: unknown;
+    sigstorePublicKey?: string;
+}
+
+export interface InstallPluginOptions {
+    verifySignature?: boolean;
+    destDir?: string;
+    sigstoreBundle?: unknown;
+    sigstorePublicKey?: string;
+}
+
+export interface InstallResult {
+    success: boolean;
+    pluginId: string;
+    pluginDir: string;
+    signer?: string;
+    skipped?: boolean;
+}
+
+export async function installPlugin(entry: RegistryEntry, options: InstallPluginOptions = {}): Promise<InstallResult> {
+    const verifySignature = options.verifySignature ?? true;
+    const allowUnverified = process.env['ALLOW_UNVERIFIED_PLUGINS'] === '1';
+    const destDir = options.destDir ?? mkdtempSync(join(tmpdir(), 'apollo-plugin-install-'));
+    mkdirSync(destDir, { recursive: true });
+    try {
+        if (entry.downloadUrl.startsWith('file://')) {
+            cpSync(fileURLToPath(entry.downloadUrl), destDir, { recursive: true });
+        } else {
+            await downloadAndExtractPlugin(entry.downloadUrl, destDir);
+        }
+        const manifestPath = join(destDir, 'plugin.json');
+        if (!existsSync(manifestPath)) {
+            throw new Error('Plugin manifest not found');
+        }
+        const raw = JSON.parse(readFileSync(manifestPath, 'utf-8')) as Record<string, unknown>;
+        if (typeof raw['id'] !== 'string' || raw['id'].length === 0) {
+            throw new Error('Plugin manifest (plugin.json) is missing "id"');
+        }
+        const manifest: PluginManifest = {
+            capabilities: Array.isArray(raw['capabilities'])
+                ? (raw['capabilities'] as unknown[]).filter((cap): cap is string => typeof cap === 'string')
+                : [],
+            entry: typeof raw['entry'] === 'string' && raw['entry'].length > 0 ? raw['entry'] : 'plugin.js',
+            id: raw['id']
+        };
+        const entryPath = join(destDir, manifest.entry);
+        const validation = await validatePluginEntry(entryPath, manifest);
+        if (!validation.valid) {
+            throw new Error(`Plugin validation failed: ${validation.errors.join('; ')}`);
+        }
+        let signer: string | undefined;
+        let skipped = false;
+        if (verifySignature) {
+            if (allowUnverified) {
+                logger.warn('ALLOW_UNVERIFIED_PLUGINS=1 set; skipping signature verification');
+                skipped = true;
+            } else {
+                const bundle = options.sigstoreBundle ?? entry.sigstoreBundle;
+                const publicKey = options.sigstorePublicKey ?? entry.sigstorePublicKey;
+                const sigResult = await verifySigstore(destDir, bundle, publicKey);
+                if (!sigResult.verified) {
+                    throw new Error(`Sigstore verification failed: ${sigResult.error ?? 'unknown error'}`);
+                }
+                signer = sigResult.signer;
+                if (sigResult.manifest !== undefined) {
+                    const integrity = await verifyArchiveIntegrity(destDir, sigResult.manifest);
+                    if (!integrity.valid) {
+                        throw new Error(`Archive integrity check failed: ${integrity.errors.join('; ')}`);
+                    }
+                }
+            }
+        }
+        const dirCheck = await validatePluginDirectory(destDir);
+        if (!dirCheck.valid) {
+            throw new Error(dirCheck.error ?? 'Plugin directory validation failed');
+        }
+        const result: InstallResult = { pluginDir: destDir, pluginId: manifest.id, success: true };
+        if (signer !== undefined) {
+            result.signer = signer;
+        }
+        if (skipped) {
+            result.skipped = true;
+        }
+        return result;
+    } catch (err) {
+        if (options.destDir === undefined) {
+            rmSync(destDir, { recursive: true, force: true });
+        }
+        throw err;
+    }
+}
 
 export interface IpRange {
     start: string;

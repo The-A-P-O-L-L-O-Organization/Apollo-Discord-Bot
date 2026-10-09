@@ -1,9 +1,58 @@
 import type { ParsedPluginManifest as PluginManifest } from './worker/pluginManifest.js';
+import type { ArchiveManifest } from './worker/pluginManifest.js';
 import { parsePluginManifest } from './worker/pluginManifest.js';
 import { join, relative, sep } from 'node:path';
 import { existsSync, readFileSync, writeFileSync, mkdirSync, cpSync, rmSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { verifySigstoreSignature, SigstoreVerificationError } from './pluginSigstore.js';
+
+export type { ArchiveManifest } from './worker/pluginManifest.js';
+
+export interface ArchiveIntegrityResult {
+    valid: boolean;
+    errors: string[];
+}
+
+export async function verifyArchiveIntegrity(
+    pluginDir: string,
+    manifest: ArchiveManifest,
+    _publicKey?: string
+): Promise<ArchiveIntegrityResult> {
+    const errors: string[] = [];
+    for (const [filePath, expectedHash] of Object.entries(manifest.files)) {
+        const fullPath = join(pluginDir, filePath);
+        if (!existsSync(fullPath)) {
+            errors.push(`Missing file: ${filePath}`);
+            continue;
+        }
+        const hash = createHash('sha256').update(readFileSync(fullPath)).digest('hex');
+        if (hash !== expectedHash) {
+            errors.push(`Hash mismatch for ${filePath}: expected ${expectedHash}, got ${hash}`);
+        }
+    }
+    const pluginJsonPath = join(pluginDir, 'plugin.json');
+    if (existsSync(pluginJsonPath)) {
+        let pluginJson: Record<string, unknown>;
+        try {
+            pluginJson = JSON.parse(readFileSync(pluginJsonPath, 'utf-8')) as Record<string, unknown>;
+        } catch {
+            return { valid: false, errors: [...errors, 'plugin.json is not valid JSON'] };
+        }
+        if (pluginJson['id'] !== manifest.pluginId) {
+            errors.push(`plugin.json id mismatch: ${String(pluginJson['id'])} vs ${manifest.pluginId}`);
+        }
+        const manifestCaps = new Set(manifest.capabilities ?? []);
+        const caps = pluginJson['capabilities'];
+        if (Array.isArray(caps)) {
+            for (const cap of caps as unknown[]) {
+                if (typeof cap === 'string' && !manifestCaps.has(cap)) {
+                    errors.push(`Plugin requests undeclared capability: ${cap}`);
+                }
+            }
+        }
+    }
+    return { valid: errors.length === 0, errors };
+}
 
 export interface PluginInstallerOptions {
     baseDir: string;
