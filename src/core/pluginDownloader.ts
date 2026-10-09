@@ -75,13 +75,13 @@ export async function installPlugin(entry: RegistryEntry, options: InstallPlugin
             } else {
                 const bundle = options.sigstoreBundle ?? entry.sigstoreBundle;
                 const publicKey = options.sigstorePublicKey ?? entry.sigstorePublicKey;
-                const sigResult = await verifySigstore(destDir, bundle, publicKey);
+                const sigResult = verifySigstore(destDir, bundle, publicKey);
                 if (!sigResult.verified) {
                     throw new Error(`Sigstore verification failed: ${sigResult.error ?? 'unknown error'}`);
                 }
                 signer = sigResult.signer;
                 if (sigResult.manifest !== undefined) {
-                    const integrity = await verifyArchiveIntegrity(destDir, sigResult.manifest);
+                    const integrity = verifyArchiveIntegrity(destDir, sigResult.manifest);
                     if (!integrity.valid) {
                         throw new Error(`Archive integrity check failed: ${integrity.errors.join('; ')}`);
                     }

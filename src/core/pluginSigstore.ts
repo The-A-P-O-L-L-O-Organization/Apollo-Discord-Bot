@@ -75,7 +75,7 @@ export async function verifySigstoreSignature(options: VerifyOptions): Promise<V
 
     // Check if we should skip verification in development
     const isDevelopment = process.env['NODE_ENV'] === 'development';
-    const allowUnverified = process.env['ALLOW_UNVERIFIED_PLUGINS'] === 'true';
+    const allowUnverified = process.env['ALLOW_UNVERIFIED_PLUGINS'] === '1';
 
     if (isDevelopment && allowUnverified) {
         try {
@@ -85,7 +85,7 @@ export async function verifySigstoreSignature(options: VerifyOptions): Promise<V
                 return {
                     verified: false,
                     skipped: true,
-                    reason: 'development mode with ALLOW_UNVERIFIED_PLUGINS=true - sigstore verification skipped'
+                    reason: 'development mode with ALLOW_UNVERIFIED_PLUGINS=1 - sigstore verification skipped'
                 };
             }
             throw err;
@@ -178,7 +178,7 @@ function extractArchiveManifest(record: Record<string, unknown>): ArchiveManifes
     return { capabilities, entry, files: hashed, pluginId };
 }
 
-export async function verifySigstore(pluginDir: string, bundle?: unknown, publicKey?: string): Promise<SigstoreResult> {
+export function verifySigstore(pluginDir: string, bundle?: unknown, publicKey?: string): SigstoreResult {
     if (typeof pluginDir !== 'string' || pluginDir.length === 0) {
         return { verified: false, error: 'Plugin directory is required for Sigstore verification.' };
     }

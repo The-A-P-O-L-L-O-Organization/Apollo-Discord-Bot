@@ -110,9 +110,9 @@ describe('Sigstore Plugin Verification', () => {
             })).rejects.toThrow(SigstoreVerificationError)
         })
 
-        it('allows unsigned in development with ALLOW_UNVERIFIED_PLUGINS=true', async () => {
+        it('allows unsigned in development with ALLOW_UNVERIFIED_PLUGINS=1', async () => {
             vi.stubEnv('NODE_ENV', 'development')
-            vi.stubEnv('ALLOW_UNVERIFIED_PLUGINS', 'true')
+            vi.stubEnv('ALLOW_UNVERIFIED_PLUGINS', '1')
 
             mockFetch.mockResolvedValueOnce({
                 ok: false,

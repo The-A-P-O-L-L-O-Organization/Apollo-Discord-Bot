@@ -13,11 +13,10 @@ export interface ArchiveIntegrityResult {
     errors: string[];
 }
 
-export async function verifyArchiveIntegrity(
+export function verifyArchiveIntegrity(
     pluginDir: string,
-    manifest: ArchiveManifest,
-    _publicKey?: string
-): Promise<ArchiveIntegrityResult> {
+    manifest: ArchiveManifest
+): ArchiveIntegrityResult {
     const errors: string[] = [];
     for (const [filePath, expectedHash] of Object.entries(manifest.files)) {
         const fullPath = join(pluginDir, filePath);
