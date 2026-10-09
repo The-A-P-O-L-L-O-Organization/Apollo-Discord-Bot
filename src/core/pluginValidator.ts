@@ -57,7 +57,8 @@ function isPureExpression(expression: Expression): boolean {
                     return false;
                 }
                 const value = property.value;
-                if (value.type === 'ObjectPattern' || value.type === 'ArrayPattern' || value.type === 'RestElement' || value.type === 'AssignmentPattern') {
+                const valueType = value.type as string;
+                if (valueType === 'ObjectPattern' || valueType === 'ArrayPattern' || valueType === 'RestElement' || valueType === 'AssignmentPattern') {
                     return false;
                 }
                 return isPureExpression(value);

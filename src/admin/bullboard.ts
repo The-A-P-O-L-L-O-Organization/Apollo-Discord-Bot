@@ -14,11 +14,11 @@ import type { Queue } from 'bullmq';
 const bullBoardApp = new Hono();
 
 // Owner authentication middleware (non-async as per Hono best practices)
-function requireOwnerAuth(c: Context, next: Next) {
-    // Check for X-User-ID header (set by reverse proxy or Discord OAuth)
+async function requireOwnerAuth(c: Context, next: Next): Promise<Response | void> {
     const userId = c.req.header('X-User-ID');
     if (userId && isOwner(userId)) {
-        return next();
+        await next();
+        return;
     }
     return c.json({ error: 'Owner authentication required' }, 401);
 }

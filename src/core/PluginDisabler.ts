@@ -24,7 +24,7 @@ export class PluginDisabler {
         this.eventBus = options.eventBus;
     }
 
-    async disable(pluginId: string, plugin: Plugin): Promise<void> {
+    async disable(pluginId: string, plugin: Plugin | WorkerPluginProxy): Promise<void> {
         // Call onDisable
         if (plugin.onDisable) {
             await plugin.onDisable();
