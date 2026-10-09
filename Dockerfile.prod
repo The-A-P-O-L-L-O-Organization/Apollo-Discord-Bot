@@ -38,7 +38,7 @@ COPY plugin-manifest.json ./
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     --mount=type=cache,target=/app/.cache/tsbuildinfo \
     --mount=type=cache,target=/root/.cache/node/corepack \
-    tsc -p tsconfig.docker.json && \
+    pnpm exec tsc -p tsconfig.docker.json && \
     pnpm build:cli && \
     pnpm manifest
 
