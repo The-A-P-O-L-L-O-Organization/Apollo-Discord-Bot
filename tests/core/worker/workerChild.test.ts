@@ -16,6 +16,15 @@ function signedEnv(pluginId: string, capabilities: string[] = []): Record<string
     };
 }
 
+function lastResponse(processLike: { send: ReturnType<typeof vi.fn> }): { kind?: string; result: { ok: boolean; error?: string }; correlationId: string } {
+    const calls = processLike.send.mock.calls.map(call => call[0] as { kind?: string; result: { ok: boolean; error?: string }; correlationId: string });
+    const response = [...calls].reverse().find(msg => msg?.kind === 'response');
+    if (!response) {
+        throw new Error('Expected a worker RPC response to have been sent');
+    }
+    return response;
+}
+
 describe('workerChild', () => {
     let processLike: {
         env: Record<string, string>;
@@ -54,7 +63,7 @@ describe('workerChild', () => {
 
         await new Promise(r => setTimeout(r, 10));
 
-        const sent = processLike.send.mock.calls[0]![0];
+        const sent = lastResponse(processLike);
         expect(sent.kind).toBe('response');
         expect(sent.result).toEqual({ ok: true, output: 'hi x' });
         expect(sent.correlationId).toBe('c1');
@@ -78,7 +87,7 @@ describe('workerChild', () => {
 
         await new Promise(r => setTimeout(r, 10));
 
-        const sent = processLike.send.mock.calls[0]![0];
+        const sent = lastResponse(processLike);
         expect(sent.kind).toBe('response');
         expect(sent.result.ok).toBe(false);
         expect(sent.result.error).toBe('boom');
@@ -104,7 +113,7 @@ describe('workerChild', () => {
         await new Promise(r => setTimeout(r, 10));
 
         expect(loaded).toBe(true);
-        const sent = processLike.send.mock.calls[0]![0];
+        const sent = lastResponse(processLike);
         expect(sent.result.ok).toBe(true);
     });
 
@@ -115,5 +124,89 @@ describe('workerChild', () => {
             processLike: processLike as unknown as RunChildOptions['processLike'],
             loader: (async () => ({ default: class NoId {} })) as unknown as () => Promise<{ default: PluginInstance }>
         })).rejects.toThrow(/static id/);
+    });
+
+    it('should emit lifecycle:ready after plugin verification', async() => {
+        await runChild({
+            pluginDir,
+            env: signedEnv('fake'),
+            processLike: processLike as unknown as RunChildOptions['processLike'],
+            loader: (async () => ({
+                default: class ReadyPlugin {
+                    static get id() { return 'fake'; }
+                }
+            })) as unknown as () => Promise<{ default: PluginInstance }>
+        });
+
+        expect(processLike.send).toHaveBeenCalledWith({ type: 'lifecycle:ready', pluginId: 'fake' });
+    });
+
+    it('should describe plugin commands on lifecycle:describe', async() => {
+        const child = await runChild({
+            pluginDir,
+            env: signedEnv('fake'),
+            processLike: processLike as unknown as RunChildOptions['processLike'],
+            loader: (async () => ({
+                default: class DescribePlugin {
+                    static get id() { return 'fake'; }
+                    commands = [{ name: 'ping', description: 'Ping command' }];
+                }
+            })) as unknown as () => Promise<{ default: PluginInstance }>
+        });
+
+        const req = { kind: 'request', pluginId: 'fake', method: 'lifecycle:describe', payload: {}, correlationId: 'c4' };
+        child.handleMessage(req as unknown as RPCMessage);
+
+        await new Promise(r => setTimeout(r, 10));
+
+        const sent = lastResponse(processLike);
+        expect(sent.correlationId).toBe('c4');
+        expect(sent.result.ok).toBe(true);
+        expect((sent.result as unknown as { commands: unknown }).commands).toEqual([{ name: 'ping', description: 'Ping command' }]);
+    });
+
+    it('should return empty commands on lifecycle:describe by default', async() => {
+        const child = await runChild({
+            pluginDir,
+            env: signedEnv('fake'),
+            processLike: processLike as unknown as RunChildOptions['processLike'],
+            loader: (async () => ({
+                default: class PlainPlugin {
+                    static get id() { return 'fake'; }
+                }
+            })) as unknown as () => Promise<{ default: PluginInstance }>
+        });
+
+        const req = { kind: 'request', pluginId: 'fake', method: 'lifecycle:describe', payload: {}, correlationId: 'c5' };
+        child.handleMessage(req as unknown as RPCMessage);
+
+        await new Promise(r => setTimeout(r, 10));
+
+        const sent = lastResponse(processLike);
+        expect(sent.correlationId).toBe('c5');
+        expect(sent.result.ok).toBe(true);
+        expect((sent.result as unknown as { commands: unknown }).commands).toEqual([]);
+    });
+
+    it('should acknowledge event:register', async() => {
+        const child = await runChild({
+            pluginDir,
+            env: signedEnv('fake'),
+            processLike: processLike as unknown as RunChildOptions['processLike'],
+            loader: (async () => ({
+                default: class EventPlugin {
+                    static get id() { return 'fake'; }
+                }
+            })) as unknown as () => Promise<{ default: PluginInstance }>
+        });
+
+        const req = { kind: 'request', pluginId: 'fake', method: 'event:register', payload: { event: 'messageCreate' }, correlationId: 'c6' };
+        child.handleMessage(req as unknown as RPCMessage);
+
+        await new Promise(r => setTimeout(r, 10));
+
+        const sent = lastResponse(processLike);
+        expect(sent.correlationId).toBe('c6');
+        expect(sent.result.ok).toBe(true);
     });
 });

@@ -111,6 +111,8 @@ export async function runChild({ pluginDir, env, processLike = process as unknow
 
     const plugin = new PluginClass(host);
 
+    processLike.send({ type: 'lifecycle:ready', pluginId: env['PLUGIN_ID'] ?? '' });
+
     const child: WorkerChild = {
         async handleMessage(msg: RPCMessage) {
             if (isResponse(msg)) {
@@ -134,6 +136,11 @@ export async function runChild({ pluginDir, env, processLike = process as unknow
                     await plugin.onEnable?.();
                     result = { ok: true };
                 } else if (msg.method === 'lifecycle:disable') {
+                    result = { ok: true };
+                } else if (msg.method === 'lifecycle:describe') {
+                    const exposed = (plugin as unknown as { commands?: unknown }).commands;
+                    result = { ok: true, commands: Array.isArray(exposed) ? exposed : [] };
+                } else if (msg.method === 'event:register') {
                     result = { ok: true };
                 } else if (msg.method === 'command:run') {
                     const commandResult = await plugin.onCommand?.(msg.payload);

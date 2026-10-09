@@ -9,7 +9,7 @@ import type { Client, REST } from 'discord.js';
 import type { EventBusImpl } from '../core/EventBus.js';
 import type { Plugin as PluginBase } from '../core/Plugin.js';
 import type { ApolloConfig } from '../types/config.js';
-import type { ApolloClient } from '../types/shared.js';
+import type { ApolloClient, CommandModule } from '../types/shared.js';
 import { PluginLoader } from './PluginLoader.js';
 import { PluginEnabler } from './PluginEnabler.js';
 import { PluginDisabler } from './PluginDisabler.js';
@@ -157,7 +157,8 @@ export default class PluginManager {
         if (changedPluginId) {
             const plugin = this.plugins.get(changedPluginId);
             if (!plugin) { return; }
-            await this._commandSync.syncCommands(changedPluginId, plugin.getCommands?.() || []);
+            const maybeCommands = plugin.getCommands?.() as CommandModule[] | Promise<CommandModule[]> | undefined;
+            await this._commandSync.syncCommands(changedPluginId, await maybeCommands ?? []);
         } else {
             await this._commandSync.syncAllCommands();
         }
@@ -347,24 +348,49 @@ export default class PluginManager {
             capabilities: ALL_PLUGIN_CAPABILITIES,
             manifest
         });
+        await this.waitForWorkerReady(pluginId);
         const proxy = new WorkerPluginProxy(pluginId, this.workerHost, { dir });
         proxy.setDirectory(dir);
         this.plugins.set(pluginId, proxy as unknown as PluginBase);
         this.installedPlugins.set(pluginId, { origin: 'installed', dir, worker, proxy });
         await proxy.onLoad();
         proxy.loaded = true;
+        await proxy.getCommands();
+        await this._syncDiscordCommands(pluginId);
         return worker;
     }
 
+    async waitForWorkerReady(pluginId: string): Promise<void> {
+        if (this.workerHost.isWorkerReady(pluginId)) { return; }
+        return new Promise<void>((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                this.workerHost.off('workerMessage', handler);
+                reject(new Error(`Worker ready timeout for plugin ${pluginId}`));
+            }, 10000);
+            if (typeof timeout.unref === 'function') { timeout.unref(); }
+            const handler = (msg: unknown): void => {
+                if (typeof msg === 'object' && msg !== null &&
+                    (msg as { type?: unknown }).type === 'lifecycle:ready' &&
+                    (msg as { pluginId?: unknown }).pluginId === pluginId) {
+                    clearTimeout(timeout);
+                    this.workerHost.off('workerMessage', handler);
+                    resolve();
+                }
+            };
+            this.workerHost.on('workerMessage', handler);
+        });
+    }
+
     async uninstallPlugin(id: string): Promise<void> {
+        const info = this.installedPlugins.get(id);
         if (this.plugins.has(id)) {
-            const info = this.installedPlugins.get(id);
             if (info?.origin !== 'installed') {
                 throw new Error(`Plugin ${id} is a built-in plugin and cannot be uninstalled`);
             }
             await this.disablePlugin(id);
-            await this.unloadPlugin(id);
             this.workerHost.terminateWorker(id);
+            this.plugins.delete(id);
+            this._loader.clearCache(id);
             this._pluginRegistry.delete(id);
             this.installedPlugins.delete(id);
         }
@@ -373,7 +399,7 @@ export default class PluginManager {
             process.cwd(),
             (this.client.config.plugins as { optionalDirectory?: string }).optionalDirectory ?? './data/plugins'
         );
-        const pluginDir = path.join(optionalDir, id);
+        const pluginDir = info?.dir ?? path.join(optionalDir, id);
 
         if (existsSync(pluginDir)) {
             rmSync(pluginDir, { recursive: true, force: true });

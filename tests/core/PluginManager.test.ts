@@ -86,7 +86,7 @@ describe('PluginManager', () => {
 
     it('should route installed plugins through the worker host', async() => {
         const startPlugin = vi.fn().mockResolvedValue({ child: { send: vi.fn() }, manifest: { id: 'demo', capabilities: ['api:sendMessage'] } });
-        const sent: { correlationId: string }[] = [];
+        const sent: { correlationId: string; method: string }[] = [];
         const listeners: ((msg: unknown) => void)[] = [];
         const child = {
             send: vi.fn(),
@@ -94,19 +94,38 @@ describe('PluginManager', () => {
                 listeners.push(listener);
             })
         };
-        const send = vi.fn((_pluginId: string, msg: { correlationId: string }): boolean => {
+        const send = vi.fn((_pluginId: string, msg: { correlationId: string; method: string }): boolean => {
             sent.push(msg);
+            const result = msg.method === 'lifecycle:describe'
+                ? { ok: true, commands: [] }
+                : { ok: true };
+            queueMicrotask(() => {
+                for (const listener of [...listeners]) {
+                    listener({ kind: 'response', correlationId: msg.correlationId, result });
+                }
+            });
             return true;
         });
         const getWorker = vi.fn().mockReturnValue({ child });
-        manager.workerHost = { startPlugin, send, getWorker, getGrantedCapabilities: (m: unknown, r: unknown) => r } as unknown as PluginManager['workerHost'];
+        const messageHandlers = new Map<string, ((msg: unknown) => void)[]>();
+        const hostMock = {
+            startPlugin,
+            send,
+            getWorker,
+            isWorkerReady: vi.fn().mockReturnValue(false),
+            on: vi.fn((event: string, handler: (msg: unknown) => void) => {
+                messageHandlers.set(event, [...(messageHandlers.get(event) ?? []), handler]);
+            }),
+            off: vi.fn((event: string, handler: (msg: unknown) => void) => {
+                messageHandlers.set(event, (messageHandlers.get(event) ?? []).filter(h => h !== handler));
+            }),
+            getGrantedCapabilities: (_m: unknown, r: unknown) => r
+        };
+        manager.workerHost = hostMock as unknown as PluginManager['workerHost'];
         const pending = manager.loadInstalledPlugin('demo', '/data/plugins/demo', { id: 'demo', name: 'demo', capabilities: ['api:sendMessage'] });
-        await vi.waitFor(() => {
-            expect(sent.length).toBeGreaterThan(0);
-        });
-        const request = sent[0] as { correlationId: string };
-        for (const listener of listeners) {
-            listener({ kind: 'response', correlationId: request.correlationId, result: { ok: true } });
+        await new Promise(r => setTimeout(r, 10));
+        for (const handler of [...(messageHandlers.get('workerMessage') ?? [])]) {
+            handler({ type: 'lifecycle:ready', pluginId: 'demo' });
         }
         await pending;
         expect(startPlugin).toHaveBeenCalledWith(expect.objectContaining({
@@ -116,5 +135,8 @@ describe('PluginManager', () => {
         }));
         expect(manager.installedPlugins.get('demo')!.origin).toBe('installed');
         expect(manager.getPlugin('demo')?.name).toBe('demo');
+        const methods = sent.map(s => s.method);
+        expect(methods).toContain('lifecycle:load');
+        expect(methods).toContain('lifecycle:describe');
     });
 });

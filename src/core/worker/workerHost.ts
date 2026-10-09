@@ -1,4 +1,5 @@
 import { fork, type ForkOptions, type ChildProcess } from 'node:child_process';
+import { EventEmitter } from 'node:events';
 import { mkdirSync, writeFileSync, existsSync, rmSync } from 'node:fs';
 import { logSecurityEvent } from '../../utils/securityLog.js';
 import { i18n } from '../../i18n/index.js';
@@ -70,13 +71,14 @@ type LogFn = (msg: string) => void;
 type NowFn = () => number;
 type BackoffFn = (attempt: number) => number;
 
-export class WorkerHost {
+export class WorkerHost extends EventEmitter {
     private _fork: ForkFn;
     private _log: LogFn;
     private _now: NowFn;
     private _backoff: BackoffFn;
     private _workers: Map<string, WorkerInfo>;
     private _circuits: Map<string, CircuitState>;
+    private _readyPlugins: Set<string>;
     public onPluginDisabled?: (pluginId: string) => void;
     public onScheduleRestart?: (pluginId: string, delay: number) => void;
 
@@ -86,12 +88,14 @@ export class WorkerHost {
         now = () => Date.now(),
         backoff = (attempt) => Math.min(1000 * 2 ** attempt, 60000)
     }: WorkerHostOptions = {}) {
+        super();
         this._fork = forkImpl;
         this._log = log;
         this._now = now;
         this._backoff = backoff;
         this._workers = new Map();
         this._circuits = new Map();
+        this._readyPlugins = new Set();
     }
 
     private getCircuit(pluginId: string): CircuitState {
@@ -274,6 +278,7 @@ export class WorkerHost {
 
         child.on('exit', (code, signal) => this.recordCrash(pluginId, code, signal));
         child.on('error', (err) => this.handleWorkerError(pluginId, err));
+        child.on('message', (msg: unknown) => this.handleChildMessage(pluginId, msg));
 
         const workerInfo: WorkerInfo = { child, granted, manifest };
         this._workers.set(pluginId, workerInfo);
@@ -285,6 +290,19 @@ export class WorkerHost {
     handleWorkerError(pluginId: string, error: Error): void {
         this._log?.(`[WORKER] ERROR in ${pluginId}: ${error.message}`);
         logSecurityEvent({ event: 'plugin.error', pluginId, error: error.message });
+    }
+
+    handleChildMessage(pluginId: string, msg: unknown): void {
+        if (typeof msg === 'object' && msg !== null &&
+            (msg as { type?: unknown }).type === 'lifecycle:ready' &&
+            (msg as { pluginId?: unknown }).pluginId === pluginId) {
+            this._readyPlugins.add(pluginId);
+        }
+        this.emit('workerMessage', msg);
+    }
+
+    isWorkerReady(pluginId: string): boolean {
+        return this._readyPlugins.has(pluginId);
     }
 
     markHealthy(pluginId: string): void {
@@ -335,6 +353,7 @@ export class WorkerHost {
         }
         worker.child.kill();
         this._workers.delete(pluginId);
+        this._readyPlugins.delete(pluginId);
         this._log?.(`[WORKER] Terminated worker for ${pluginId}`);
         logSecurityEvent({ event: 'plugin.terminated', pluginId });
         this.cleanupCgroup(pluginId);

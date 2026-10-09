@@ -131,19 +131,44 @@ describe('WorkerPluginProxy', () => {
         await pending;
     });
 
-    it('returns locally registered commands from getCommands', () => {
-        expect(proxy.getCommands()).toEqual([]);
-        const commands = [{ name: 'test', description: 'Test command' } as CommandModule];
-        proxy.setCommands(commands);
-        expect(proxy.getCommands()).toEqual([{ name: 'test', description: 'Test command' }]);
+    it('returns commands from worker via describe RPC', async() => {
+        const pending = proxy.getCommands();
+        const request = lastRequest(host);
+        expect(request.method).toBe('lifecycle:describe');
+        expect(request.pluginId).toBe('test-plugin');
+        respondOk(host, { ok: true, commands: [{ name: 'test', description: 'Test command' }] });
+        await expect(pending).resolves.toEqual([{ name: 'test', description: 'Test command' }]);
+        expect(host.send).toHaveBeenCalledWith('test-plugin', expect.objectContaining({ method: 'lifecycle:describe' }));
     });
 
-    it('stores event registrations locally without worker RPC', () => {
+    it('returns empty commands when the worker reports none', async() => {
+        const pending = proxy.getCommands();
+        expect(lastRequest(host).method).toBe('lifecycle:describe');
+        respondOk(host, { ok: true });
+        await expect(pending).resolves.toEqual([]);
+    });
+
+    it('rejects getCommands when the worker reports an error', async() => {
+        const pending = proxy.getCommands();
+        respondOk(host, { ok: false, error: 'nope' });
+        await expect(pending).rejects.toThrow('nope');
+    });
+
+    it('seeds local commands via setCommands', () => {
+        const commands = [{ name: 'test', description: 'Test command' } as CommandModule];
+        proxy.setCommands(commands);
+        expect(proxy.commands).toEqual([{ name: 'test', description: 'Test command' }]);
+    });
+
+    it('forwards event registrations to worker via event:register', () => {
         const handler = vi.fn();
         proxy.registerEvent('messageCreate', handler);
+        const request = lastRequest(host);
+        expect(request.method).toBe('event:register');
+        expect(request.payload).toEqual({ event: 'messageCreate' });
+        expect(host.send).toHaveBeenCalledWith('test-plugin', expect.objectContaining({ method: 'event:register' }));
         expect(proxy.events).toEqual([{ event: 'messageCreate', handler }]);
         expect(proxy.eventHandlers).toEqual([{ name: 'messageCreate', handler, once: false }]);
-        expect(host.child.sent).toHaveLength(0);
     });
 
     it('delegates command execution to the worker via command:run', async() => {

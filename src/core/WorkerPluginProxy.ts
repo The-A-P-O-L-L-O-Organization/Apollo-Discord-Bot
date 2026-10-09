@@ -138,7 +138,13 @@ export class WorkerPluginProxy {
         }
     }
 
-    getCommands(): CommandModule[] {
+    async getCommands(): Promise<CommandModule[]> {
+        const result = await this.sendRpc('lifecycle:describe', {});
+        const remote = result['commands'];
+        this.commands.length = 0;
+        if (Array.isArray(remote)) {
+            this.commands.push(...(remote as CommandModule[]));
+        }
         return [...this.commands];
     }
 
@@ -148,6 +154,7 @@ export class WorkerPluginProxy {
     }
 
     registerEvent(eventName: string, handler: (...args: unknown[]) => void): void {
+        this.workerHost.send(this.id, createRequest(this.id, 'event:register', { event: eventName }));
         this.events.push({ event: eventName, handler });
         this.eventHandlers.push({ name: eventName, handler, once: false });
     }
