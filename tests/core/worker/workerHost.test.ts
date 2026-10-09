@@ -32,7 +32,7 @@ describe('WorkerHost', () => {
         expect(fork).toHaveBeenCalledWith(expect.stringContaining('workerChild.js'), [], {
             env: expect.objectContaining({ PLUGIN_ID: 'demo' }),
             stdio: expect.anything(),
-            execArgv: expect.arrayContaining(['--import=tsx', expect.stringMatching(/^--max-old-space-size=\d+$/)])
+            execArgv: ['--import=tsx']
         });
         expect(worker).toBeTruthy();
     });
@@ -76,12 +76,12 @@ describe('WorkerHost', () => {
             pluginId: 'demo',
             dir: '/data/plugins/demo',
             capabilities: ['api:sendMessage'],
-            manifest: { id: 'demo', capabilities: ['api:sendMessage'] }
+            manifest: { id: 'demo', capabilities: ['api:sendMessage'], resourceLimits: { memoryMB: 128 } }
         });
         const forkOptions = fork.mock.calls[0]![2];
         expect(forkOptions.execArgv).toBeDefined();
         expect(forkOptions.execArgv).toContain('--import=tsx');
-        expect(forkOptions.execArgv.some((arg: string) => /^--max-old-space-size=\d+$/.test(arg))).toBe(true);
+        expect(forkOptions.execArgv).toContain('--max-old-space-size=128');
         expect(forkOptions.resourceLimits).toBeUndefined();
     });
 

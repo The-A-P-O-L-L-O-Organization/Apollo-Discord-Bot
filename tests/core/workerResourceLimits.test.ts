@@ -96,7 +96,7 @@ describe('worker resource limits', () => {
         expect(forkOptions.resourceLimits).toBeUndefined();
     });
 
-    it('applies a default heap limit when no resource limits are configured', async () => {
+    it('omits the heap limit when no resource limits are configured', async () => {
         const fork = createForkMock();
         const host = createHost(fork);
 
@@ -108,7 +108,7 @@ describe('worker resource limits', () => {
         });
 
         const forkOptions = fork.mock.calls[0]![2];
-        expect(forkOptions.execArgv.some((arg: string) => /^--max-old-space-size=\d+$/.test(arg))).toBe(true);
+        expect(forkOptions.execArgv).toEqual(['--import=tsx']);
         expect(forkOptions.resourceLimits).toBeUndefined();
     });
 

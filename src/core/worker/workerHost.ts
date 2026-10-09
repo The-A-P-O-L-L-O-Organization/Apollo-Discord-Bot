@@ -245,9 +245,12 @@ export class WorkerHost extends EventEmitter {
         const childEntry = new URL('./workerChild.js', import.meta.url).pathname;
 
         const resourceLimits = manifest.resourceLimits ?? {};
-        const heapLimitMb = resourceLimits.memoryMB ?? resourceLimits.maxOldGenerationSizeMb ?? 256;
+        const heapLimitMb = resourceLimits.memoryMB ?? resourceLimits.maxOldGenerationSizeMb;
 
-        const execArgv = ['--import=tsx', `--max-old-space-size=${heapLimitMb}`];
+        const execArgv = ['--import=tsx'];
+        if (heapLimitMb !== undefined) {
+            execArgv.push(`--max-old-space-size=${heapLimitMb}`);
+        }
 
         let cgroupPath: string | null = null;
         try {
@@ -293,7 +296,9 @@ export class WorkerHost extends EventEmitter {
 
         const workerInfo: WorkerInfo = { child, granted, manifest, cgroupPath };
         this._workers.set(pluginId, workerInfo);
-        this._log?.(`[WORKER] Spawned worker for ${pluginId} (heap: ${heapLimitMb}MB${cgroupPath !== null ? `, cgroup: ${cgroupPath}` : ''})`);
+        const heapLabel = heapLimitMb !== undefined ? `heap: ${heapLimitMb}MB` : 'heap: default';
+        const cgroupLabel = cgroupPath !== null ? `, cgroup: ${cgroupPath}` : '';
+        this._log?.(`[WORKER] Spawned worker for ${pluginId} (${heapLabel}${cgroupLabel})`);
         logSecurityEvent({ event: 'plugin.started', pluginId, grantedCapabilities: granted });
         return workerInfo;
     }

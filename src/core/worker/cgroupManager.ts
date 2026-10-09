@@ -35,7 +35,7 @@ export async function setupCgroup(pluginId: string, limits: ResourceLimits): Pro
         try {
             rmSync(cgroupPath, { recursive: true, force: true });
         } catch {
-            // Ignore cleanup errors
+            return null;
         }
         return null;
     }
@@ -56,6 +56,6 @@ export async function cleanupCgroup(cgroupPath: string): Promise<void> {
             rmSync(cgroupPath, { recursive: true, force: true });
         }
     } catch {
-        // Ignore cleanup errors
+        return;
     }
 }
