@@ -435,6 +435,13 @@ export function createMetrics({ prefix = 'apollo_' } = {}): {
         registers: [register]
     });
 
+    const gatewayConnected = new Gauge({
+        name: `${prefix}gateway_connected`,
+        help: 'Whether this pod is the active gateway leader (1) or not (0)',
+        labelNames: [],
+        registers: [register]
+    });
+
     // Helper functions (using locally created metrics)
     function recordCommand(command: string, status: 'success' | 'error'): void {
         commandsTotal.inc({ command, status });
@@ -510,6 +517,7 @@ export function createMetrics({ prefix = 'apollo_' } = {}): {
         errorsTotal,
         pluginLoadDuration,
         startupDuration,
+        gatewayConnected,
         recordCommand,
         recordCommandDuration,
         setQueueDepth,

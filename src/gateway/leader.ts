@@ -3,6 +3,7 @@ import type { Cluster as ClusterType } from 'ioredis';
 import { createLogger } from '../utils/logger.js';
 import type { LeaderElectionConfig } from '../types/gateway.js';
 import { FencingTokenManager } from './fencing.js';
+import { gatewayConnected } from '../utils/metrics.js';
 
 const logger = createLogger({ component: 'leader' });
 
@@ -56,6 +57,7 @@ export async function tryAcquireLock(redis: LeaderRedis, lockKey: string, podId:
 
 export async function releaseLock(redis: LeaderRedis, lockKey: string, podId: string): Promise<void> {
     await redis.eval(RELEASE_SCRIPT, 1, lockKey, podId);
+    gatewayConnected.set(0);
 }
 
 export function startHeartbeat(redis: LeaderRedis, lockKey: string, podId: string, ttlMs: number = DEFAULT_TTL_MS): () => void {
@@ -84,10 +86,15 @@ export function stopHeartbeat(): void {
         clearInterval(_lockTimer);
         _lockTimer = null;
     }
+    gatewayConnected.set(0);
 }
 
 export async function acquireGlobalLock(redis: LeaderRedis, podId: string, ttlMs: number = DEFAULT_TTL_MS): Promise<boolean> {
-    return tryAcquireLock(redis, GLOBAL_LEADER_LOCK_KEY, podId, ttlMs);
+    const result = await tryAcquireLock(redis, GLOBAL_LEADER_LOCK_KEY, podId, ttlMs);
+    if (result) {
+        gatewayConnected.set(1);
+    }
+    return result;
 }
 
 export async function acquireShardLock(redis: LeaderRedis, shardId: number | string, podId: string, ttlMs: number = DEFAULT_TTL_MS): Promise<boolean> {
