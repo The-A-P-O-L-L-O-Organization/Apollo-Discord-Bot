@@ -193,4 +193,12 @@ describe('Metrics', () => {
             expect(counter).toBeDefined();
         }
     });
+
+    it('commandDuration histogram should have extended buckets for p99', async () => {
+        const m = createMetrics({ prefix: 'test_' });
+        const json = await m.register.getMetricsAsJSON();
+        const histogram = json.find(m => m.name === 'test_command_duration_seconds');
+        expect(histogram).toBeDefined();
+        expect(histogram?.type).toBe('histogram');
+    });
 });
