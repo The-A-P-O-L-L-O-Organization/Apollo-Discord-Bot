@@ -242,3 +242,29 @@ flowchart LR
 - **Availability**: Reverse proxy rate limiting; payload size limits
 
 ---
+
+## TB-07: External SaaS APIs
+
+**Boundary:** Apollo → OpenAI, Twitch, YouTube, GitHub APIs
+**Assets:** API keys/tokens, user data sent to APIs, API responses
+**Entry Points:** HTTP/HTTPS clients in integrations/utility plugins
+
+### STRIDE Analysis
+
+| Threat | STRIDE | Likelihood | Impact | Existing Mitigation | Residual Risk |
+|--------|--------|------------|--------|---------------------|---------------|
+| API key leakage | Information Disclosure | Low | Critical | Keys in env vars only; never logged; rotation via provider (SECURITY.md §12) | Low |
+| Malicious API response | Tampering / Injection | Medium | Medium | Response validation; timeout bounds; circuit breaker on all external calls (src/utils/circuitBreaker.ts) | Low |
+| Data exfiltration via API | Information Disclosure | Medium | High | Only necessary data sent; user consent for integrations; no PII to OpenAI without opt-in | Medium |
+| Rate limit exhaustion | Denial of Service | Medium | Medium | Circuit breaker + exponential backoff; per-API rate limit tracking | Medium |
+| Supply chain: compromised dependency | Tampering | Low | Critical | `pnpm audit`; lockfile integrity; minimal dependencies; SBOM generation | Low |
+| TLS MITM | Spoofing / Information Disclosure | Very Low | High | HTTPS enforced; cert validation; no HTTP for external APIs (SECURITY.md §12) | Very Low |
+
+### Key Controls Summary
+- **Authentication**: API keys via env vars; OAuth where applicable
+- **Integrity**: Response validation; circuit breaker pattern on all external calls
+- **Confidentiality**: Minimal data sharing; HTTPS enforced; no logging of responses
+- **Resilience**: Circuit breaker (open/half-open/closed); timeouts; retry with jitter
+- **Supply Chain**: Lockfile + audit; `pnpm audit` in CI
+
+---
