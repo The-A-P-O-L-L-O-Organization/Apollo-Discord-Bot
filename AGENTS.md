@@ -302,6 +302,7 @@ Required gates depend on the change:
 | Go interlink | Go build/test/lint commands |
 | Docker or deployment | image build validation and Compose checks |
 | Docs or codemaps only | markdown consistency review and link verification |
+| SLO/Observability changes | `pnpm lint`, `pnpm typecheck`, `pnpm vitest run tests/utils/metrics.test.ts`, Prometheus rule syntax validation (`promtool check rules`), dashboard JSON validation |
 
 Do not run verification after every edit. Complete the intended change, then run batched checks once. Do not repeat successful checks unless later edits invalidate them.
 
