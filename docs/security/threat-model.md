@@ -294,3 +294,35 @@ flowchart LR
 - **Observability**: Startup checks log validation results (without secrets); audit trail via git
 
 ---
+
+## Out of Scope
+
+The following are explicitly **not** modeled. Acceptance of these risks is documented here.
+
+| Category | Rationale |
+|----------|-----------|
+| Nation-state / APT actors | Threat model assumes competent operator, not targeted advanced persistent threat |
+| Physical host access | Infrastructure security (cloud provider, bare metal) is out of scope |
+| Side-channel attacks (timing, cache, power) | Not feasible to mitigate at application layer for this threat profile |
+| Discord infrastructure compromise | Trust boundary at Discord API; we validate signatures but cannot control Discord |
+| Zero-day in Node.js / V8 / dependencies | Mitigated via `pnpm audit`, minimal deps, prompt updates; not individually modeled |
+| Insider threat (malicious operator) | Operators hold `DISCORD_TOKEN` and `ENCRYPTION_KEY` — full compromise possible by design |
+| Supply chain: malicious maintainer of transitive dep | `pnpm audit` + lockfile + minimal deps reduces but cannot eliminate |
+
+## Maintenance
+
+- **Review trigger**: New plugin added, new external integration, new trust boundary, security incident
+- **Review cadence**: Quarterly (align with SLO review)
+- **Update process**: Edit this file; add STRIDE table for new boundary; update DFD if topology changes
+- **Ownership**: Security section in AGENTS.md assigns responsibility
+
+## References
+
+- SECURITY.md (threat model source of truth for controls)
+- `docs/superpowers/plans/2026-09-27-phase2-critical-security-architecture.md`
+- `docs/superpowers/plans/2026-09-27-phase5-worker-sandbox-hardening.md`
+- `docs/superpowers/plans/2026-10-08-plugin-security-audit-fixes.md`
+- GHSA-87jf-gf75-wwfm (CVE-2025-26604) — plugin supply chain compromise case study
+- SEAL Security Alliance — community zero-trust framing for Discord bots
+
+---
