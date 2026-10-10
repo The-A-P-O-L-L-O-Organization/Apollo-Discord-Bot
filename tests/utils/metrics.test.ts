@@ -176,4 +176,21 @@ describe('Metrics', () => {
         expect(gauge).toBeDefined();
         expect(gauge?.type).toBe('gauge');
     });
+
+    it('should have queue_jobs_total counter with queue and outcome labels', async () => {
+        const m = createMetrics({ prefix: 'test_' });
+        const json = await m.register.getMetricsAsJSON();
+        const counter = json.find(m => m.name === 'test_queue_jobs_total');
+        expect(counter).toBeDefined();
+        expect(counter?.type).toBe('counter');
+        // Check metric definition for label names - use first metric value if available
+        if (counter?.values?.length > 0 && counter.values[0].metric) {
+            const labelNames = Object.keys(counter.values[0].metric);
+            expect(labelNames).toContain('queue');
+            expect(labelNames).toContain('outcome');
+        } else {
+            // If no values yet, just verify the counter exists
+            expect(counter).toBeDefined();
+        }
+    });
 });

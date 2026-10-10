@@ -12,7 +12,7 @@ import RemoteInteraction from '../remoteInteraction.js';
 import { serializeInteraction } from '../serializeInteraction.js';
 import { registerHandler } from '../jobHandler.js';
 import { createQueue } from '../queue.js';
-import { recordCommand, recordCommandDuration, recordError } from '../../utils/metrics.js';
+import { recordCommand, recordCommandDuration, recordError, queueJobsTotal } from '../../utils/metrics.js';
 import { logger } from '../../utils/logger.js';
 import { i18n } from '../../i18n/index.js';
 import { encode } from 'msgpackr';
@@ -152,6 +152,7 @@ export default function register(): void {
         // Verify HMAC signature
         if (!await verifyJobData(data)) {
             logger.warn('[Worker] Job HMAC verification failed — rejecting');
+            queueJobsTotal.inc({ queue: String(data['queueName'] ?? 'unknown'), outcome: 'failed' });
             return { status: 'error', reason: 'hmac_verification_failed' };
         }
 
@@ -208,6 +209,7 @@ export default function register(): void {
             logger.info({ msg: `[Worker] /${String(data['commandName'])} completed` });
             recordCommand(String(data['commandName']), String((data['guildId'] as string) ?? 'unknown'), 'success');
             recordCommandDuration(String(data['commandName']), Date.now() - startTime);
+            queueJobsTotal.inc({ queue: String(data['queueName'] ?? 'unknown'), outcome: 'success' });
             return { status: 'completed', commandName: data['commandName'] };
         } catch (error) {
             logger.error({ err: error as Error, msg: `[Worker] Error executing /${String(data['commandName'])}` });
@@ -228,6 +230,7 @@ export default function register(): void {
 
             recordCommand(String(data['commandName']), String((data['guildId'] as string) ?? 'unknown'), 'error');
             recordError('command_execution', String(data['commandName']));
+            queueJobsTotal.inc({ queue: String(data['queueName'] ?? 'unknown'), outcome: 'failed' });
             return { status: 'error', error: (error as Error).message };
         }
     });

@@ -32,6 +32,13 @@ export const queueDepth = new Gauge({
     registers: [register]
 });
 
+export const queueJobsTotal = new Counter({
+    name: 'apollo_queue_jobs_total',
+    help: 'Total number of queue jobs processed by outcome',
+    labelNames: ['queue', 'outcome'],
+    registers: [register]
+});
+
 export const dbQueryDuration = new Histogram({
     name: 'apollo_db_query_duration_seconds',
     help: 'Database query duration in seconds',
@@ -245,6 +252,7 @@ export default {
     commandsTotal,
     commandDuration,
     queueDepth,
+    queueJobsTotal,
     dbQueryDuration,
     activePlugins,
     workerMemoryUsage,
@@ -355,6 +363,13 @@ export function createMetrics({ prefix = 'apollo_' } = {}): {
         help: 'Database query duration in seconds',
         labelNames: ['operation', 'store'],
         buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1],
+        registers: [register]
+    });
+
+    const queueJobsTotal = new Counter({
+        name: `${prefix}queue_jobs_total`,
+        help: 'Total number of queue jobs processed by outcome',
+        labelNames: ['queue', 'outcome'],
         registers: [register]
     });
 
@@ -505,6 +520,7 @@ export function createMetrics({ prefix = 'apollo_' } = {}): {
         commandsTotal,
         commandDuration,
         queueDepth,
+        queueJobsTotal,
         dbQueryDuration,
         activePlugins,
         workerMemoryUsage,
