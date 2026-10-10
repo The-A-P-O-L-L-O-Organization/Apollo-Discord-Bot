@@ -168,4 +168,12 @@ describe('Metrics', () => {
         console.log('hasGuild:', hasGuild);
         expect(hasGuild).toBe(false);
     });
+
+    it('should have gateway_connected gauge', async () => {
+        const m = createMetrics({ prefix: 'test_' });
+        const json = await m.register.getMetricsAsJSON();
+        const gauge = json.find(m => m.name === 'test_gateway_connected');
+        expect(gauge).toBeDefined();
+        expect(gauge?.type).toBe('gauge');
+    });
 });

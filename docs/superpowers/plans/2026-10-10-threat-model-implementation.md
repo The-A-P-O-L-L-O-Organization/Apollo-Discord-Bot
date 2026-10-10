@@ -1,0 +1,580 @@
+# Threat Model Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Create a lightweight STRIDE-per-boundary threat model document for Apollo Discord Bot v3 synthesizing existing security controls from SECURITY.md and superpowers plans.
+
+**Architecture:** Single markdown document (`docs/security/threat-model.md`) with mermaid data flow diagram, 8 trust boundaries analyzed using STRIDE, threat tables per boundary with existing mitigations mapped, and explicit out-of-scope declarations. No formal threat modeling tools — pure markdown + mermaid.
+
+**Tech Stack:** Markdown, mermaid.js for diagrams, existing SECURITY.md and superpowers plan content as source material.
+
+**Spec:** Librarian research (proportional scaling for guild-scoped bot) + existing SECURITY.md (§§5-16) + superpowers plans (phase2-critical-security-architecture, phase5-worker-sandbox-hardening, plugin-security-audit-fixes).
+
+## Global Constraints
+
+- pnpm only; Node 22+; TypeScript strict mode
+- Document must be in `docs/security/threat-model.md`
+- Mermaid diagrams must render on GitHub/GitLab
+- Threats must reference existing mitigations by SECURITY.md section or plan file
+- Out-of-scope section must declare: no nation-state APT, no physical host access, no side-channel attacks
+- 8 trust boundaries as defined in librarian research
+- Format: mermaid DFD + STRIDE tables per boundary
+
+## Review Focus
+
+1. **Completeness of boundary coverage** — All 8 boundaries from research must have STRIDE table; no boundary missed
+2. **Mitigation traceability** — Every threat must link to existing control (SECURITY.md section, plan, or code location); no "TBD" mitigations
+3. **No tooling dependency** — Pure markdown + mermaid; no Threat Dragon, CAIRIS, or similar
+4. **Proportional scope** — Explicit out-of-scope section prevents scope creep; solo team can't maintain exhaustive threat model
+5. **Currency** — Document must be updateable when new plugins/external integrations added; include maintenance note
+
+---
+
+### Task 1: Create threat model document structure with mermaid DFD
+
+**Files:**
+- Create: `docs/security/threat-model.md`
+
+**Interfaces:**
+- Consumes: Architecture knowledge from SECURITY.md, superpowers plans
+- Produces: Document skeleton with DFD and 8 boundary sections
+
+- [ ] **Step 1: Write failing test - verify document can be created**
+
+```bash
+# Test: verify docs/security directory exists
+test -d docs/security || mkdir -p docs/security
+```
+
+- [ ] **Step 2: Create threat-model.md with header and mermaid DFD**
+
+```markdown
+# Apollo Discord Bot v3 — Threat Model
+
+> **Maintenance:** Update when adding new plugins, external integrations, or trust boundaries. Review quarterly.
+> **Methodology:** Lightweight STRIDE per trust boundary. Based on SECURITY.md and architecture decisions.
+> **Out of Scope:** Nation-state APT, physical host access, side-channel attacks, Discord infrastructure compromise.
+
+## System Context (Data Flow Diagram)
+
+```mermaid
+flowchart LR
+    subgraph Operator["Operator / CI"]
+        O1[Deploy / Secrets]
+        O2[Admin CLI]
+    end
+
+    subgraph Discord["Discord Platform"]
+        D1[Discord API]
+        D2[Gateway / Events]
+        D3[Interactions / Webhooks]
+    end
+
+    subgraph Apollo["Apollo Bot Cluster"]
+        subgraph Gateway["Gateway Pod (Leader)"]
+            G1[Discord Client]
+            G2[Plugin Manager]
+            G3[Command Router]
+            G4[Scheduler (withLock)]
+        end
+
+        subgraph Workers["Worker Pods"]
+            W1[Queue Processor]
+            W2[Plugin Sandbox]
+        end
+
+        subgraph Infra["Shared Infrastructure"]
+            R1[(Redis\nQueues / Locks / EventBus)]
+            R2[(PostgreSQL /\nSQLite)]
+            R3[Socket /tmp/apollo.sock]
+        end
+    end
+
+    subgraph External["External Services"]
+        E1[Interlink Relay\n(Go, per-group secrets)]
+        E2[NSFW Service\n(Rust, local)]
+        E3[OpenAI API]
+        E4[GitHub / Twitch / YouTube APIs]
+        E5[Webhook Sources\n(GitHub, etc.)]
+    end
+
+    O1 -->|Secrets / Config| G1
+    O2 -->|Socket RPC| R3
+    D1 -->|REST| G1
+    D2 -->|WebSocket| G1
+    D3 -->|HTTP| G1
+    G1 -->|Commands/Events| G3
+    G3 -->|Queue Jobs| R1
+    G3 -->|DB Read/Write| R2
+    G4 -.->|Locks| R1
+    R1 -->|Job Payloads| W1
+    W1 -->|Execute| W2
+    W2 -->|RPC| R3
+    W1 -->|Results| R1
+    G1 -->|Events| E1
+    E1 -->|Protobuf| Peers[Other Apollo Instances]
+    G3 -->|NSFW Check| E2
+    G3 -->|AI| E3
+    G3 -->|Integrations| E4
+    E5 -->|Webhook| G1
+```
+
+## Trust Boundaries
+
+| ID | Boundary | Description |
+|----|----------|-------------|
+| TB-01 | Discord API ↔ Gateway | Discord REST/WebSocket ingress, token handling, payload validation |
+| TB-02 | Gateway/Leader ↔ Redis | Queue jobs, leader locks, EventBus, fencing tokens |
+| TB-03 | Gateway ↔ Worker | BullMQ job payloads, HMAC verification, interaction revalidation |
+| TB-04 | Plugin Sandbox | Third-party plugin isolation, manifest verification, capabilities |
+| TB-05 | Interlink Relay ↔ Peers | Protobuf messages, per-group shared secrets, at-most-once delivery |
+| TB-06 | Webhook Ingress | GitHub HMAC, raw body preservation, signature verification |
+| TB-07 | External SaaS APIs | OpenAI, Twitch, YouTube, GitHub — auth, rate limits, data handling |
+| TB-08 | Operator/CI ↔ Secrets | ENCRYPTION_KEY, startup validation, filesystem/DB access |
+
+---
+```
+
+- [ ] **Step 3: Verify mermaid renders (manual - push to GitHub and check)**
+
+```bash
+# Push to remote and verify diagram renders in GitHub markdown view
+```
+
+- [ ] **Step 4: Commit skeleton**
+
+```bash
+git add docs/security/threat-model.md
+git commit -m "docs(security): create threat model skeleton with DFD and 8 trust boundaries"
+```
+
+---
+
+### Task 2: Document TB-01 — Discord API ↔ Gateway
+
+**Files:**
+- Modify: `docs/security/threat-model.md` (append TB-01 section)
+
+**Interfaces:**
+- Consumes: SECURITY.md §§5,6,7,8,11,13; superpowers phase2/phase5 plans
+- Produces: STRIDE table for Discord ingress boundary
+
+- [ ] **Step 1: Append TB-01 STRIDE table**
+
+```markdown
+## TB-01: Discord API ↔ Gateway
+
+**Boundary:** Discord REST/WebSocket → Apollo Gateway Pod
+**Assets:** Discord bot token, user PII in interactions, command payloads, guild data
+**Entry Points:** Discord WebSocket gateway, REST API callbacks, interaction endpoints
+
+### STRIDE Analysis
+
+| Threat | STRIDE | Likelihood | Impact | Existing Mitigation | Residual Risk |
+|--------|--------|------------|--------|---------------------|---------------|
+| Token theft from memory/logs | Information Disclosure | Medium | Critical | Token never logged (SECURITY.md §11); structured logging excludes secrets; ENCRYPTION_KEY for stored tokens | Low |
+| Malicious interaction payload | Spoofing / Tampering | High | High | Discord signature verification (Ed25519) in discord.js v14; all interactions validated before processing (SECURITY.md §5) | Low |
+| Replay attack on interactions | Spoofing | Medium | Medium | Discord includes timestamp + nonce; discord.js validates; idempotency keys for mutations (SECURITY.md §13) | Low |
+| Gateway hijack via malicious payload | Elevation of Privilege | Low | Critical | Input validation at command router; parameterized DB; no eval/exec (SECURITY.md §6,9) | Low |
+| DoS via flood of interactions | Denial of Service | Medium | High | Discord rate limits at API level; spam tracker per-guild (automod plugin); queue backpressure (BullMQ) | Medium |
+| PII leakage in logs/transcripts | Information Disclosure | Medium | High | Structured pino logs exclude message content (SECURITY.md §11); transcript sanitization; LOG_SAMPLE_RATE | Low |
+| Malicious webhook from Discord | Spoofing | Low | Medium | Discord signs webhooks; verification in integrations plugin (SECURITY.md §7) | Low |
+| Command injection via options | Injection | Medium | High | Zod/discord.js validation; no shell exec with user input (SECURITY.md §6,9) | Low |
+
+### Key Controls Summary
+- **Authentication**: Discord Ed25519 signature verification (discord.js v14 built-in)
+- **Authorization**: Plugin permission checks + Discord hierarchy checks per command
+- **Input Validation**: Zod schemas for all command options; discord.js option validation
+- **Secrets**: `DISCORD_TOKEN` only in memory; never persisted; rotation via Discord developer portal
+- **Observability**: `apollo_commands_total{status}`, `apollo_errors_total` for anomaly detection
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add docs/security/threat-model.md
+git commit -m "docs(security): add TB-01 Discord API ↔ Gateway STRIDE analysis"
+```
+
+---
+
+### Task 3: Document TB-02 — Gateway/Leader ↔ Redis
+
+**Files:**
+- Modify: `docs/security/threat-model.md` (append TB-02 section)
+
+**Interfaces:**
+- Consumes: SECURITY.md §§10,14; src/gateway/leader.ts; src/queue/queue.ts; src/core/EventBus.ts
+- Produces: STRIDE table for Redis boundary
+
+- [ ] **Step 1: Append TB-02 STRIDE table**
+
+```markdown
+## TB-02: Gateway/Leader ↔ Redis
+
+**Boundary:** Gateway pod (leader) + Worker pods ↔ Redis (queues, locks, EventBus, fencing)
+**Assets:** Queue job payloads, leader lock/fencing tokens, EventBus messages, scheduler state
+**Entry Points:** Redis protocol (TCP), ioredis client, BullMQ, custom Lua scripts
+
+### STRIDE Analysis
+
+| Threat | STRIDE | Likelihood | Impact | Existing Mitigation | Residual Risk |
+|--------|--------|------------|--------|---------------------|---------------|
+| Queue job payload tampering | Tampering | Medium | High | HMAC-SHA256 on all queue payloads (QUEUE_HMAC_SECRET); worker revalidates (SECURITY.md §10,14) | Low |
+| Leader lock theft/race | Spoofing / Tampering | Medium | Critical | Redis SET NX PX + Lua release script; fencing tokens with monotonic counter; TTL heartbeat (src/gateway/leader.ts) | Low |
+| Fencing token replay | Spoofing | Low | High | Monotonic counter stored in Redis; worker checks token > last seen (src/gateway/leader.ts) | Low |
+| EventBus message injection | Spoofing / Tampering | Medium | Medium | EventBus internal only; no external producers; plugin.action naming convention | Low |
+| Redis connection hijack | Information Disclosure | Low | High | TLS for managed Redis; password auth; network policies (SECURITY.md §10) | Low |
+| Queue backlog DoS | Denial of Service | Medium | High | BullMQ removeOnComplete/removeOnFail limits; max job size; worker concurrency limits | Medium |
+| Scheduler duplicate execution | Tampering | Medium | Medium | `withLock` coordination via Redis; only one pod holds lock (src/core/lock.ts) | Low |
+| Data exfiltration via keys | Information Disclosure | Low | High | Keys prefixed `apollo:`; no PII in queue payloads (serialized interactions only) | Low |
+
+### Key Controls Summary
+- **Authentication**: Redis password + TLS (production); localhost only (dev)
+- **Integrity**: HMAC on all queue payloads (`QUEUE_HMAC_SECRET`); Lua atomic lock release
+- **Authorization**: Fencing tokens for leader actions; worker capability checks
+- **Availability**: TTL-based locks with heartbeat; automatic failover; queue TTL cleanup
+- **Observability**: `apollo_redis_connections`, `apollo_queue_depth`, leader election metrics
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add docs/security/threat-model.md
+git commit -m "docs(security): add TB-02 Gateway ↔ Redis STRIDE analysis"
+```
+
+---
+
+### Task 4: Document TB-03 — Gateway ↔ Worker
+
+**Files:**
+- Modify: `docs/security/threat-model.md` (append TB-03 section)
+
+**Interfaces:**
+- Consumes: src/queue/jobs/processCommand.ts; src/queue/serializeInteraction.ts; src/queue/remoteInteraction.ts; SECURITY.md §10
+- Produces: STRIDE table for worker boundary
+
+- [ ] **Step 1: Append TB-03 STRIDE table**
+
+```markdown
+## TB-03: Gateway ↔ Worker
+
+**Boundary:** Gateway pod → BullMQ/Redis → Worker pod (command execution)
+**Assets:** Serialized Discord interactions, command execution results, user data
+**Entry Points:** BullMQ job processing, msgpackr deserialization, remoteInteraction reconstruction
+
+### STRIDE Analysis
+
+| Threat | STRIDE | Likelihood | Impact | Existing Mitigation | Residual Risk |
+|--------|--------|------------|--------|---------------------|---------------|
+| Malicious job payload | Tampering / Spoofing | Medium | High | HMAC verification on enqueue; worker verifies before deserialization (SECURITY.md §10) | Low |
+| Interaction reconstruction attack | Tampering | Medium | High | `serializeInteraction` flattens only safe fields; `remoteInteraction` reconstructs with validation; partial objects handled (src/queue/serializeInteraction.ts) | Low |
+| Worker compromise → gateway | Elevation of Privilege | Low | Critical | Workers stateless; no direct gateway RPC; results via queue only; plugin sandbox isolates third-party | Low |
+| Job replay | Spoofing | Medium | Medium | Job IDs unique; BullMQ deduplication; idempotency keys for mutating commands | Low |
+| Resource exhaustion in worker | Denial of Service | Medium | High | Worker concurrency limits; Node `--max-old-space-size`; cgroup limits (phase5 plan) | Medium |
+| msgpackr deserialization vuln | Remote Code Execution | Low | Critical | msgpackr safe mode; no prototype pollution; schema validation on reconstruct | Low |
+
+### Key Controls Summary
+- **Authentication**: HMAC on every job payload (shared `QUEUE_HMAC_SECRET`)
+- **Integrity**: Serialization allows only known-safe interaction fields; reconstruction validates
+- **Isolation**: Workers separate process; third-party plugins in child process with capabilities
+- **Availability**: Job TTL, retry limits (3), exponential backoff, dead-letter after max retries
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add docs/security/threat-model.md
+git commit -m "docs(security): add TB-03 Gateway ↔ Worker STRIDE analysis"
+```
+
+---
+
+### Task 5: Document TB-04 — Plugin Sandbox
+
+**Files:**
+- Modify: `docs/security/threat-model.md` (append TB-04 section)
+
+**Interfaces:**
+- Consumes: src/core/worker/workerHost.ts; src/core/worker/workerChild.ts; src/core/pluginManifest.ts; phase5-worker-sandbox-hardening.md; plugin-security-audit-fixes.md; GHSA-87jf-gf75-wwfm (CVE-2025-26604)
+- Produces: STRIDE table for plugin sandbox boundary
+
+- [ ] **Step 1: Append TB-04 STRIDE table**
+
+```markdown
+## TB-04: Plugin Sandbox
+
+**Boundary:** Host process ↔ Third-party plugin worker child process
+**Assets:** Host secrets (DISCORD_TOKEN, ENCRYPTION_KEY), filesystem, network, Discord client
+**Entry Points:** Socket RPC (`/tmp/apollo.sock`), `pluginManifest.ts` capabilities, `workerChild.ts` message handlers
+
+### STRIDE Analysis
+
+| Threat | STRIDE | Likelihood | Impact | Existing Mitigation | Residual Risk |
+|--------|--------|------------|--------|---------------------|---------------|
+| Plugin escapes sandbox | Elevation of Privilege | Medium | Critical | Child process isolation; capability allowlist in manifest; no direct Discord client access (phase5, phase2) | Low |
+| Malicious plugin steals secrets | Information Disclosure | Medium | Critical | Secrets NOT passed to worker child; host-side secret unset after spawn (audit finding 2 fix); only capabilities granted (phase5) | Low |
+| Plugin installs unverified code | Tampering | Medium | High | `plugin-manifest.json` with pinned hashes; `pnpm manifest` verification; `ALLOW_UNVERIFIED_PLUGINS=1` dev-only (SECURITY.md §14) | Low |
+| Sigstore bypass (supply chain) | Tampering | Low | Critical | `verifySignature: true` enforced in installPlugin; VITEST/test- keyid bypass REMOVED (audit finding 6 fix) | Low |
+| Plugin DoS via resource exhaustion | Denial of Service | Medium | High | Worker `--max-old-space-size`; cgroup PID/memory limits; execArgv restrictions (phase5) | Medium |
+| Plugin command injection | Injection | Medium | High | Command registration validated; SlashCommandBuilder only; no raw string execution | Low |
+| Lifecycle hook bypass | Tampering | Low | Medium | RPC handshake required; `onLoad`/`onEnable`/`onDisable`/`onUnload` dispatched via socket with ready ack (audit finding 3) | Low |
+| Manifest hash collision | Tampering | Very Low | High | SHA256 hashes; `pnpm manifest` regenerates; CI verifies manifest drift | Very Low |
+
+### Key Controls Summary
+- **Authentication**: Plugin manifest signature verification (Sigstore); hash pinning
+- **Authorization**: Capability-based (manifest declares needed caps; host grants subset)
+- **Isolation**: Separate Node process; restricted `execArgv`; cgroup limits; no host secrets
+- **Integrity**: Sigstore verification mandatory; manifest hash verification on load
+- **Supply Chain**: GHSA-87jf-gf75-wwfm (CVE-2025-26604) cited as justification for sandbox
+- **Observability**: `apollo_plugin_load_duration`, plugin load success/failure metrics
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add docs/security/threat-model.md
+git commit -m "docs(security): add TB-04 Plugin Sandbox STRIDE analysis (cites GHSA-87jf-gf75-wwfm)"
+```
+
+---
+
+### Task 6: Document TB-05 — Interlink Relay
+
+**Files:**
+- Modify: `docs/security/threat-model.md` (append TB-05 section)
+
+**Interfaces:**
+- Consumes: protos/interlink/; services/interlink/; SECURITY.md §15; interlink-go-service plan
+- Produces: STRIDE table for interlink boundary
+
+- [ ] **Step 1: Append TB-05 STRIDE table**
+
+```markdown
+## TB-05: Interlink Relay ↔ Peers
+
+**Boundary:** Apollo Go interlink relay ↔ other trusted Apollo instances (per trust group)
+**Assets:** Interlink messages (protobuf), per-group shared secrets, relay state
+**Entry Points:** Interlink gRPC/TCP, protobuf deserialization, shared secret authentication
+
+### STRIDE Analysis
+
+| Threat | STRIDE | Likelihood | Impact | Existing Mitigation | Residual Risk |
+|--------|--------|------------|--------|---------------------|---------------|
+| Message tampering in transit | Tampering | Medium | High | Protobuf serialization; TLS between relays; per-group shared secret HMAC | Low |
+| Replay attack | Spoofing | Medium | Medium | At-most-once delivery design; message IDs; no built-in replay protection (documented limitation) | Medium |
+| Secret compromise → impersonation | Spoofing / Information Disclosure | Low | Critical | Per-trust-group secrets; rotation procedure; secrets distinct from bot tokens (SECURITY.md §15) | Low |
+| Unauthorized peer joins group | Elevation of Privilege | Low | High | Shared secret required; operator controls group membership; no discovery protocol | Low |
+| Protobuf parsing vulnerability | Remote Code Execution | Very Low | Critical | buf lint/breaking enforced; generated code only; no dynamic parsing | Very Low |
+| DoS via message flood | Denial of Service | Medium | Medium | Rate limiting at relay; connection limits; small message size limits | Medium |
+| Cross-group message leakage | Information Disclosure | Low | Medium | Per-group secrets; relay enforces group isolation; no cross-group routing | Low |
+
+### Key Controls Summary
+- **Authentication**: Per-trust-group shared secrets (distinct from Discord tokens)
+- **Integrity**: TLS + HMAC on messages; protobuf schema validation via buf
+- **Authorization**: Group membership controlled by operators; no anonymous peers
+- **Delivery**: At-most-once (documented); application-level idempotency required
+- **Observability**: Interlink-specific metrics in Prometheus; structured logging
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add docs/security/threat-model.md
+git commit -m "docs(security): add TB-05 Interlink Relay STRIDE analysis"
+```
+
+---
+
+### Task 7: Document TB-06 — Webhook Ingress
+
+**Files:**
+- Modify: `docs/security/threat-model.md` (append TB-06 section)
+
+**Interfaces:**
+- Consumes: integrations plugin webhook handlers; SECURITY.md §7
+- Produces: STRIDE table for webhook boundary
+
+- [ ] **Step 1: Append TB-06 STRIDE table**
+
+```markdown
+## TB-06: Webhook Ingress
+
+**Boundary:** External webhook sources (GitHub, etc.) → Apollo HTTP endpoint
+**Assets:** Webhook payloads, HMAC secrets, repository/events data
+**Entry Points:** HTTP POST endpoints in integrations plugin
+
+### STRIDE Analysis
+
+| Threat | STRIDE | Likelihood | Impact | Existing Mitigation | Residual Risk |
+|--------|--------|------------|--------|---------------------|---------------|
+| Forged webhook payload | Spoofing / Tampering | Medium | High | GitHub HMAC-SHA256 verification; raw body preserved for verification (SECURITY.md §7) | Low |
+| Replay attack | Spoofing | Medium | Medium | GitHub includes delivery ID; idempotency handling in handler | Low |
+| Secret leakage in logs | Information Disclosure | Low | High | Raw body preserved but not logged; HMAC secret never logged (SECURITY.md §11) | Low |
+| DoS via webhook flood | Denial of Service | Medium | Medium | Rate limiting at reverse proxy; Discord API rate limits downstream | Medium |
+| Payload parsing vulnerability | Remote Code Execution | Low | High | JSON parsing with size limits; no eval; structured validation | Low |
+
+### Key Controls Summary
+- **Authentication**: HMAC-SHA256 verification (GitHub standard); raw body required
+- **Integrity**: Signature verification before parsing; idempotency keys
+- **Availability**: Reverse proxy rate limiting; payload size limits
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add docs/security/threat-model.md
+git commit -m "docs(security): add TB-06 Webhook Ingress STRIDE analysis"
+```
+
+---
+
+### Task 8: Document TB-07 — External SaaS APIs
+
+**Files:**
+- Modify: `docs/security/threat-model.md` (append TB-07 section)
+
+**Interfaces:**
+- Consumes: integrations plugin (OpenAI, Twitch, YouTube, GitHub); SECURITY.md §12
+- Produces: STRIDE table for external SaaS boundary
+
+- [ ] **Step 1: Append TB-07 STRIDE table**
+
+```markdown
+## TB-07: External SaaS APIs
+
+**Boundary:** Apollo → OpenAI, Twitch, YouTube, GitHub APIs
+**Assets:** API keys/tokens, user data sent to APIs, API responses
+**Entry Points:** HTTP/HTTPS clients in integrations/utility plugins
+
+### STRIDE Analysis
+
+| Threat | STRIDE | Likelihood | Impact | Existing Mitigation | Residual Risk |
+|--------|--------|------------|--------|---------------------|---------------|
+| API key leakage | Information Disclosure | Low | Critical | Keys in env vars only; never logged; rotation via provider (SECURITY.md §12) | Low |
+| Malicious API response | Tampering / Injection | Medium | Medium | Response validation; timeout bounds; circuit breaker on all external calls (src/utils/circuitBreaker.ts) | Low |
+| Data exfiltration via API | Information Disclosure | Medium | High | Only necessary data sent; user consent for integrations; no PII to OpenAI without opt-in | Medium |
+| Rate limit exhaustion | Denial of Service | Medium | Medium | Circuit breaker + exponential backoff; per-API rate limit tracking | Medium |
+| Supply chain: compromised dependency | Tampering | Low | Critical | `pnpm audit`; lockfile integrity; minimal dependencies; SBOM generation | Low |
+| TLS MITM | Spoofing / Information Disclosure | Very Low | High | HTTPS enforced; cert validation; no HTTP for external APIs (SECURITY.md §12) | Very Low |
+
+### Key Controls Summary
+- **Authentication**: API keys via env vars; OAuth where applicable
+- **Integrity**: Response validation; circuit breaker pattern on all external calls
+- **Confidentiality**: Minimal data sharing; HTTPS enforced; no logging of responses
+- **Resilience**: Circuit breaker (open/half-open/closed); timeouts; retry with jitter
+- **Supply Chain**: Lockfile + audit; `pnpm audit` in CI
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add docs/security/threat-model.md
+git commit -m "docs(security): add TB-07 External SaaS APIs STRIDE analysis"
+```
+
+---
+
+### Task 9: Document TB-08 — Operator/CI ↔ Secrets
+
+**Files:**
+- Modify: `docs/security/threat-model.md` (append TB-08 section)
+
+**Interfaces:**
+- Consumes: src/utils/startupChecks.ts; ENV vars; ENCRYPTION_KEY rotation; SECURITY.md §§4,16
+- Produces: STRIDE table for operator boundary
+
+- [ ] **Step 1: Append TB-08 STRIDE table**
+
+```markdown
+## TB-08: Operator/CI ↔ Secrets
+
+**Boundary:** Human operators / CI/CD → Apollo runtime (env vars, filesystem, DB)
+**Assets:** `DISCORD_TOKEN`, `ENCRYPTION_KEY`, `QUEUE_HMAC_SECRET`, interlink secrets, DB credentials
+**Entry Points:** `.env` file, environment variables, CI secrets, `bin/apollo.ts` CLI
+
+### STRIDE Analysis
+
+| Threat | STRIDE | Likelihood | Impact | Existing Mitigation | Residual Risk |
+|--------|--------|------------|--------|---------------------|---------------|
+| Secret leakage in CI logs | Information Disclosure | Medium | Critical | GitHub Actions secret masking; no `echo $SECRET`; EnvSitter tools for validation without printing | Low |
+| `.env` committed to git | Information Disclosure | Low | Critical | `.gitignore` includes `.env`; pre-commit hooks; CI checks (SECURITY.md §4) | Low |
+| ENCRYPTION_KEY rotation failure | Tampering / Denial of Service | Low | High | Comma-separated rotation (current first); re-encryption job; old key removal after verify (SECURITY.md §16) | Low |
+| Operator privilege escalation | Elevation of Privilege | Low | Critical | `OWNER_IDS` for Discord commands; CLI requires operator agreement; no sudo in CI | Low |
+| CI supply chain compromise | Tampering | Low | Critical | Signed commits; dependency review; `pnpm audit`; SLSA build provenance (future) | Low |
+| Database credential theft | Information Disclosure | Low | High | `DATABASE_URL` in env; Postgres TLS; least-privilege DB user; rotation | Low |
+
+### Key Controls Summary
+- **Authentication**: Startup validation requires `DISCORD_TOKEN`, `ENCRYPTION_KEY`, operator agreement, contact
+- **Authorization**: Owner-only Discord commands; CLI restricted; CI uses least-privilege tokens
+- **Secrets Management**: Env vars only; rotation procedure documented; EnvSitter for safe validation
+- **Supply Chain**: `pnpm` only; lockfile; audit in CI; signed commits
+- **Observability**: Startup checks log validation results (without secrets); audit trail via git
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add docs/security/threat-model.md
+git commit -m "docs(security): add TB-08 Operator/CI ↔ Secrets STRIDE analysis"
+```
+
+---
+
+### Task 10: Add out-of-scope, maintenance, and references sections
+
+**Files:**
+- Modify: `docs/security/threat-model.md` (append final sections)
+
+**Interfaces:**
+- Consumes: all previous tasks
+- Produces: Complete threat model document
+
+- [ ] **Step 1: Append out-of-scope and maintenance sections**
+
+```markdown
+## Out of Scope
+
+The following are explicitly **not** modeled. Acceptance of these risks is documented here.
+
+| Category | Rationale |
+|----------|-----------|
+| Nation-state / APT actors | Threat model assumes competent operator, not targeted advanced persistent threat |
+| Physical host access | Infrastructure security (cloud provider, bare metal) is out of scope |
+| Side-channel attacks (timing, cache, power) | Not feasible to mitigate at application layer for this threat profile |
+| Discord infrastructure compromise | Trust boundary at Discord API; we validate signatures but cannot control Discord |
+| Zero-day in Node.js / V8 / dependencies | Mitigated via `pnpm audit`, minimal deps, prompt updates; not individually modeled |
+| Insider threat (malicious operator) | Operators hold `DISCORD_TOKEN` and `ENCRYPTION_KEY` — full compromise possible by design |
+| Supply chain: malicious maintainer of transitive dep | `pnpm audit` + lockfile + minimal deps reduces but cannot eliminate |
+
+## Maintenance
+
+- **Review trigger**: New plugin added, new external integration, new trust boundary, security incident
+- **Review cadence**: Quarterly (align with SLO review)
+- **Update process**: Edit this file; add STRIDE table for new boundary; update DFD if topology changes
+- **Ownership**: Security section in AGENTS.md assigns responsibility
+
+## References
+
+- SECURITY.md (threat model source of truth for controls)
+- `docs/superpowers/plans/2026-09-27-phase2-critical-security-architecture.md`
+- `docs/superpowers/plans/2026-09-27-phase5-worker-sandbox-hardening.md`
+- `docs/superpowers/plans/2026-10-08-plugin-security-audit-fixes.md`
+- GHSA-87jf-gf75-wwfm (CVE-2025-26604) — plugin supply chain compromise case study
+- SEAL Security Alliance — community zero-trust framing for Discord bots
+```
+
+- [ ] **Step 2: Final validation - check document renders**
+
+```bash
+# Verify markdown renders correctly
+cat docs/security/threat-model.md | head -100
+```
+
+- [ ] **Step 3: Commit final document**
+
+```bash
+git add docs/security/threat-model.md
+git commit -m "docs(security): complete threat model with all 8 boundaries, out-of-scope, maintenance"
+```

@@ -155,6 +155,13 @@ export const gatewayLatencyMs = new Histogram({
     registers: [register]
 });
 
+export const gatewayConnected = new Gauge({
+    name: 'apollo_gateway_connected',
+    help: 'Whether this pod is the active gateway leader (1) or not (0)',
+    labelNames: [],
+    registers: [register]
+});
+
 // Helper functions
 export function recordCommand(command: string, status: 'success' | 'error'): void {
     commandsTotal.inc({ command, status });
@@ -273,7 +280,8 @@ export default {
     recordError,
     recordPluginLoad,
     recordStartupDuration,
-    recordGatewayLatency
+    recordGatewayLatency,
+    gatewayConnected
 };
 
 /**
