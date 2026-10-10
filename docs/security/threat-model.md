@@ -268,3 +268,29 @@ flowchart LR
 - **Supply Chain**: Lockfile + audit; `pnpm audit` in CI
 
 ---
+
+## TB-08: Operator/CI ↔ Secrets
+
+**Boundary:** Human operators / CI/CD → Apollo runtime (env vars, filesystem, DB)
+**Assets:** `DISCORD_TOKEN`, `ENCRYPTION_KEY`, `QUEUE_HMAC_SECRET`, interlink secrets, DB credentials
+**Entry Points:** `.env` file, environment variables, CI secrets, `bin/apollo.ts` CLI
+
+### STRIDE Analysis
+
+| Threat | STRIDE | Likelihood | Impact | Existing Mitigation | Residual Risk |
+|--------|--------|------------|--------|---------------------|---------------|
+| Secret leakage in CI logs | Information Disclosure | Medium | Critical | GitHub Actions secret masking; no `echo $SECRET`; EnvSitter tools for validation without printing | Low |
+| `.env` committed to git | Information Disclosure | Low | Critical | `.gitignore` includes `.env`; pre-commit hooks; CI checks (SECURITY.md §4) | Low |
+| ENCRYPTION_KEY rotation failure | Tampering / Denial of Service | Low | High | Comma-separated rotation (current first); re-encryption job; old key removal after verify (SECURITY.md §16) | Low |
+| Operator privilege escalation | Elevation of Privilege | Low | Critical | `OWNER_IDS` for Discord commands; CLI requires operator agreement; no sudo in CI | Low |
+| CI supply chain compromise | Tampering | Low | Critical | Signed commits; dependency review; `pnpm audit`; SLSA build provenance (future) | Low |
+| Database credential theft | Information Disclosure | Low | High | `DATABASE_URL` in env; Postgres TLS; least-privilege DB user; rotation | Low |
+
+### Key Controls Summary
+- **Authentication**: Startup validation requires `DISCORD_TOKEN`, `ENCRYPTION_KEY`, operator agreement, contact
+- **Authorization**: Owner-only Discord commands; CLI restricted; CI uses least-privilege tokens
+- **Secrets Management**: Env vars only; rotation procedure documented; EnvSitter for safe validation
+- **Supply Chain**: `pnpm` only; lockfile; audit in CI; signed commits
+- **Observability**: Startup checks log validation results (without secrets); audit trail via git
+
+---
