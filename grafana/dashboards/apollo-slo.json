@@ -1,0 +1,93 @@
+{
+  "dashboard": {
+    "title": "Apollo SLO Dashboard",
+    "uid": "apollo-slo",
+    "tags": ["apollo", "slo", "reliability"],
+    "timezone": "utc",
+    "refresh": "1m",
+    "time": { "from": "now-30d", "to": "now" },
+    "panels": [
+      {
+        "title": "Command Success Ratio (30d)",
+        "type": "stat",
+        "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+        "targets": [{ "expr": "apollo:sli:command_success_ratio:30d", "legendFormat": "Success Ratio" }],
+        "fieldConfig": {
+          "defaults": { "unit": "percentunit", "min": 0.9, "max": 1, "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 0.99 }, { "color": "green", "value": 0.995 }] }},
+          "overrides": []
+        }
+      },
+      {
+        "title": "Command Latency p95 (30d)",
+        "type": "stat",
+        "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+        "targets": [{ "expr": "apollo:sli:command_latency_p95:30d", "legendFormat": "p95" }],
+        "fieldConfig": {
+          "defaults": { "unit": "s", "min": 0, "max": 5, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1.5 }, { "color": "red", "value": 2.0 }] }},
+          "overrides": []
+        }
+      },
+      {
+        "title": "Command Latency p99 (30d)",
+        "type": "stat",
+        "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+        "targets": [{ "expr": "apollo:sli:command_latency_p99:30d", "legendFormat": "p99" }],
+        "fieldConfig": {
+          "defaults": { "unit": "s", "min": 0, "max": 10, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 3.0 }, { "color": "red", "value": 5.0 }] }},
+          "overrides": []
+        }
+      },
+      {
+        "title": "Gateway Availability (30d)",
+        "type": "stat",
+        "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+        "targets": [{ "expr": "apollo:sli:gateway_availability:30d", "legendFormat": "Availability" }],
+        "fieldConfig": {
+          "defaults": { "unit": "percentunit", "min": 0.95, "max": 1, "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 0.995 }, { "color": "green", "value": 0.999 }] }},
+          "overrides": []
+        }
+      },
+      {
+        "title": "Queue Job Reliability (30d)",
+        "type": "stat",
+        "gridPos": { "x": 0, "y": 4, "w": 6, "h": 4 },
+        "targets": [{ "expr": "apollo:sli:queue_job_reliability:30d", "legendFormat": "Reliability" }],
+        "fieldConfig": {
+          "defaults": { "unit": "percentunit", "min": 0.9, "max": 1, "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 0.99 }, { "color": "green", "value": 0.995 }] }},
+          "overrides": []
+        }
+      },
+      {
+        "title": "Error Rate (30d)",
+        "type": "stat",
+        "gridPos": { "x": 6, "y": 4, "w": 6, "h": 4 },
+        "targets": [{ "expr": "apollo:sli:error_rate:30d", "legendFormat": "Error Rate" }],
+        "fieldConfig": {
+          "defaults": { "unit": "percentunit", "min": 0, "max": 0.05, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 0.005 }, { "color": "red", "value": 0.01 }] }},
+          "overrides": []
+        }
+      },
+      {
+        "title": "Error Budget Burndown - Command Success",
+        "type": "timeseries",
+        "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+        "targets": [
+          { "expr": "1 - apollo:sli:command_success_ratio:30d", "legendFormat": "Consumed" },
+          { "expr": "0.01", "legendFormat": "Budget (1%)" }
+        ],
+        "fieldConfig": { "defaults": { "unit": "percentunit" }}
+      },
+      {
+        "title": "Error Budget Burndown - Latency p95",
+        "type": "timeseries",
+        "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+        "targets": [
+          { "expr": "apollo:sli:command_latency_p95:30d / 2.0", "legendFormat": "Consumed (ratio to target)" },
+          { "expr": "1.0", "legendFormat": "Budget (100%)" }
+        ],
+        "fieldConfig": { "defaults": { "unit": "percentunit" }}
+      }
+    ]
+  },
+  "overwrite": true
+}
