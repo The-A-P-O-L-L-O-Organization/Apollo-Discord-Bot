@@ -110,3 +110,31 @@ flowchart LR
 - **Observability**: `apollo_commands_total{status}`, `apollo_errors_total` for anomaly detection
 
 ---
+
+## TB-02: Gateway/Leader ↔ Redis
+
+**Boundary:** Gateway pod (leader) + Worker pods ↔ Redis (queues, locks, EventBus, fencing)
+**Assets:** Queue job payloads, leader lock/fencing tokens, EventBus messages, scheduler state
+**Entry Points:** Redis protocol (TCP), ioredis client, BullMQ, custom Lua scripts
+
+### STRIDE Analysis
+
+| Threat | STRIDE | Likelihood | Impact | Existing Mitigation | Residual Risk |
+|--------|--------|------------|--------|---------------------|---------------|
+| Queue job payload tampering | Tampering | Medium | High | HMAC-SHA256 on all queue payloads (QUEUE_HMAC_SECRET); worker revalidates (SECURITY.md §10,14) | Low |
+| Leader lock theft/race | Spoofing / Tampering | Medium | Critical | Redis SET NX PX + Lua release script; fencing tokens with monotonic counter; TTL heartbeat (src/gateway/leader.ts) | Low |
+| Fencing token replay | Spoofing | Low | High | Monotonic counter stored in Redis; worker checks token > last seen (src/gateway/leader.ts) | Low |
+| EventBus message injection | Spoofing / Tampering | Medium | Medium | EventBus internal only; no external producers; plugin.action naming convention | Low |
+| Redis connection hijack | Information Disclosure | Low | High | TLS for managed Redis; password auth; network policies (SECURITY.md §10) | Low |
+| Queue backlog DoS | Denial of Service | Medium | High | BullMQ removeOnComplete/removeOnFail limits; max job size; worker concurrency limits | Medium |
+| Scheduler duplicate execution | Tampering | Medium | Medium | `withLock` coordination via Redis; only one pod holds lock (src/core/lock.ts) | Low |
+| Data exfiltration via keys | Information Disclosure | Low | High | Keys prefixed `apollo:`; no PII in queue payloads (serialized interactions only) | Low |
+
+### Key Controls Summary
+- **Authentication**: Redis password + TLS (production); localhost only (dev)
+- **Integrity**: HMAC on all queue payloads (`QUEUE_HMAC_SECRET`); Lua atomic lock release
+- **Authorization**: Fencing tokens for leader actions; worker capability checks
+- **Availability**: TTL-based locks with heartbeat; automatic failover; queue TTL cleanup
+- **Observability**: `apollo_redis_connections`, `apollo_queue_depth`, leader election metrics
+
+---
