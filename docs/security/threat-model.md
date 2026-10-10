@@ -82,3 +82,31 @@ flowchart LR
 | TB-08 | Operator/CI ↔ Secrets | ENCRYPTION_KEY, startup validation, filesystem/DB access |
 
 ---
+
+## TB-01: Discord API ↔ Gateway
+
+**Boundary:** Discord REST/WebSocket → Apollo Gateway Pod
+**Assets:** Discord bot token, user PII in interactions, command payloads, guild data
+**Entry Points:** Discord WebSocket gateway, REST API callbacks, interaction endpoints
+
+### STRIDE Analysis
+
+| Threat | STRIDE | Likelihood | Impact | Existing Mitigation | Residual Risk |
+|--------|--------|------------|--------|---------------------|---------------|
+| Token theft from memory/logs | Information Disclosure | Medium | Critical | Token never logged (SECURITY.md §11); structured logging excludes secrets; ENCRYPTION_KEY for stored tokens | Low |
+| Malicious interaction payload | Spoofing / Tampering | High | High | Discord signature verification (Ed25519) in discord.js v14; all interactions validated before processing (SECURITY.md §5) | Low |
+| Replay attack on interactions | Spoofing | Medium | Medium | Discord includes timestamp + nonce; discord.js validates; idempotency keys for mutations (SECURITY.md §13) | Low |
+| Gateway hijack via malicious payload | Elevation of Privilege | Low | Critical | Input validation at command router; parameterized DB; no eval/exec (SECURITY.md §6,9) | Low |
+| DoS via flood of interactions | Denial of Service | Medium | High | Discord rate limits at API level; spam tracker per-guild (automod plugin); queue backpressure (BullMQ) | Medium |
+| PII leakage in logs/transcripts | Information Disclosure | Medium | High | Structured pino logs exclude message content (SECURITY.md §11); transcript sanitization; LOG_SAMPLE_RATE | Low |
+| Malicious webhook from Discord | Spoofing | Low | Medium | Discord signs webhooks; verification in integrations plugin (SECURITY.md §7) | Low |
+| Command injection via options | Injection | Medium | High | Zod/discord.js validation; no shell exec with user input (SECURITY.md §6,9) | Low |
+
+### Key Controls Summary
+- **Authentication**: Discord Ed25519 signature verification (discord.js v14 built-in)
+- **Authorization**: Plugin permission checks + Discord hierarchy checks per command
+- **Input Validation**: Zod schemas for all command options; discord.js option validation
+- **Secrets**: `DISCORD_TOKEN` only in memory; never persisted; rotation via Discord developer portal
+- **Observability**: `apollo_commands_total{status}`, `apollo_errors_total` for anomaly detection
+
+---
