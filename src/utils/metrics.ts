@@ -12,8 +12,8 @@ collectDefaultMetrics({ register, prefix: 'apollo_' });
 // Custom metrics
 export const commandsTotal = new Counter({
     name: 'apollo_commands_total',
-    help: 'Total commands executed',
-    labelNames: ['command', 'guild', 'status'],
+    help: 'Total number of slash commands executed',
+    labelNames: ['command', 'status'],
     registers: [register]
 });
 
@@ -156,8 +156,8 @@ export const gatewayLatencyMs = new Histogram({
 });
 
 // Helper functions
-export function recordCommand(command: string, guild: string | undefined, status: string): void {
-    commandsTotal.inc({ command, guild: guild ?? 'dm', status });
+export function recordCommand(command: string, status: 'success' | 'error'): void {
+    commandsTotal.inc({ command, status });
 }
 
 export function recordCommandDuration(command: string, durationMs: number): void {
@@ -300,7 +300,7 @@ export function createMetrics({ prefix = 'apollo_' } = {}): {
     errorsTotal: Counter;
     pluginLoadDuration: Histogram;
     startupDuration: Histogram;
-    recordCommand: (command: string, guild: string | undefined, status: string) => void;
+    recordCommand: (command: string, status: 'success' | 'error') => void;
     recordCommandDuration: (command: string, durationMs: number) => void;
     setQueueDepth: (queue: string, depth: number) => void;
     recordDbQuery: (operation: string, store: string, durationMs: number) => void;
@@ -322,8 +322,8 @@ export function createMetrics({ prefix = 'apollo_' } = {}): {
     // Custom metrics
     const commandsTotal = new Counter({
         name: `${prefix}commands_total`,
-        help: 'Total commands executed',
-        labelNames: ['command', 'guild', 'status'],
+        help: 'Total number of slash commands executed',
+        labelNames: ['command', 'status'],
         registers: [register]
     });
 
@@ -428,8 +428,8 @@ export function createMetrics({ prefix = 'apollo_' } = {}): {
     });
 
     // Helper functions (using locally created metrics)
-    function recordCommand(command: string, guild: string | undefined, status: string): void {
-        commandsTotal.inc({ command, guild: guild ?? 'dm', status });
+    function recordCommand(command: string, status: 'success' | 'error'): void {
+        commandsTotal.inc({ command, status });
     }
 
     function recordCommandDuration(command: string, durationMs: number): void {

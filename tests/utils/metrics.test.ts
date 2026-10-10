@@ -23,9 +23,9 @@ describe('Metrics', () => {
     });
 
     it('should record command metrics', async() => {
-        metrics.recordCommand('ping', 'guild1', 'success');
-        metrics.recordCommand('ping', 'guild1', 'success');
-        metrics.recordCommand('ping', 'guild2', 'error');
+        metrics.recordCommand('ping', 'success');
+        metrics.recordCommand('ping', 'success');
+        metrics.recordCommand('ping', 'error');
         
         const metricsList = await register.getMetricsAsJSON();
         const cmdMetric = metricsList.find(m => m.name === 'test_commands_total');
@@ -145,16 +145,27 @@ describe('Metrics', () => {
     });
 
     it('should expose metrics in Prometheus format', async() => {
-        metrics.recordCommand('test', 'guild1', 'success');
+        metrics.recordCommand('test', 'success');
         
         const output = await register.metrics();
         expect(output).toContain('test_commands_total');
         expect(output).toContain('test');
-        expect(output).toContain('guild1');
         expect(output).toContain('success');
     });
 
     it('should expose content type', () => {
         expect(register.contentType).toContain('text/plain');
+    });
+
+    it('commandsTotal should not have guild label', async () => {
+        const m = createMetrics({ prefix: 'test_' });
+        m.recordCommand('ping', 'success');
+        const json = await m.register.getMetricsAsJSON();
+        const cmdTotal = json.find(m => m.name === 'test_commands_total');
+        expect(cmdTotal).toBeDefined();
+        console.log('cmdTotal:', JSON.stringify(cmdTotal, null, 2));
+        const hasGuild = cmdTotal?.values.some(v => v.metric && v.metric.guild !== undefined);
+        console.log('hasGuild:', hasGuild);
+        expect(hasGuild).toBe(false);
     });
 });
