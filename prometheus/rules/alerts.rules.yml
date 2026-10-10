@@ -1,0 +1,82 @@
+# prometheus/rules/alerts.rules.yml
+groups:
+  - name: apollo-slo-alerts
+    interval: 1m
+    rules:
+      # Command success ratio - fast burn (2% error budget consumed in 1h)
+      - alert: ApolloCommandSuccessRatioSLOFastBurn
+        expr: |
+          (1 - apollo:sli:command_success_ratio:30d) * 30 * 24 > 0.02 * 24
+        for: 5m
+        labels:
+          severity: critical
+          slo: command_success_ratio
+        annotations:
+          summary: "Command success ratio SLO fast burn (2% budget in 1h)"
+          description: "Error budget consumption rate exceeds 2%/hour. Current ratio: {{ $value | humanizePercentage }}"
+
+      # Command success ratio - slow burn (10% budget in 6h)
+      - alert: ApolloCommandSuccessRatioSLOSlowBurn
+        expr: |
+          (1 - apollo:sli:command_success_ratio:30d) * 30 * 24 > 0.10 * 6
+        for: 30m
+        labels:
+          severity: warning
+          slo: command_success_ratio
+        annotations:
+          summary: "Command success ratio SLO slow burn (10% budget in 6h)"
+
+      # Command latency p95 - fast burn
+      - alert: ApolloCommandLatencyP95SLOFastBurn
+        expr: |
+          apollo:sli:command_latency_p95:30d > 2.0
+        for: 5m
+        labels:
+          severity: critical
+          slo: command_latency_p95
+        annotations:
+          summary: "Command p95 latency SLO breach (>2s)"
+
+      # Command latency p99 - fast burn
+      - alert: ApolloCommandLatencyP99SLOFastBurn
+        expr: |
+          apollo:sli:command_latency_p99:30d > 5.0
+        for: 5m
+        labels:
+          severity: critical
+          slo: command_latency_p99
+        annotations:
+          summary: "Command p99 latency SLO breach (>5s)"
+
+      # Gateway availability - fast burn (failover window accounted in 99.5%)
+      - alert: ApolloGatewayAvailabilitySLOFastBurn
+        expr: |
+          apollo:sli:gateway_availability:30d < 0.995
+        for: 5m
+        labels:
+          severity: critical
+          slo: gateway_availability
+        annotations:
+          summary: "Gateway availability SLO breach (<99.5%)"
+
+      # Queue job reliability - fast burn
+      - alert: ApolloQueueJobReliabilitySLOFastBurn
+        expr: |
+          apollo:sli:queue_job_reliability:30d < 0.99
+        for: 5m
+        labels:
+          severity: critical
+          slo: queue_job_reliability
+        annotations:
+          summary: "Queue job reliability SLO breach (<99%)"
+
+      # Error rate - fast burn
+      - alert: ApolloErrorRateSLOFastBurn
+        expr: |
+          apollo:sli:error_rate:30d > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          slo: error_rate
+        annotations:
+          summary: "Error rate SLO breach (>1%)"
