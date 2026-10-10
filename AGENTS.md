@@ -270,6 +270,7 @@ Agents must keep docs synchronized with implementation:
 - Update root `codemap.md` for new directories, entry points, responsibilities, flows, or integration points.
 - Update the relevant per-folder `codemap.md` using its Responsibility, Design, Flow, and Integration sections.
 - Update `docs/i18n.md`, `docs/architecture/`, and `docs/runbooks/` when their subjects change.
+- Update `docs/adr/` for architectural decisions: create ADR per CONTRIBUTING.md when adding trust boundaries, irreversible tech choices, architectural patterns, security model changes, or cross-process impacts. Use MADR format; update README index.
 - Never use emojis in docs or codemaps. Never add code comments unless explicitly requested.
 
 ## 18. Git, Commits, and Pull Requests
