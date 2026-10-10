@@ -138,3 +138,28 @@ flowchart LR
 - **Observability**: `apollo_redis_connections`, `apollo_queue_depth`, leader election metrics
 
 ---
+
+## TB-03: Gateway ↔ Worker
+
+**Boundary:** Gateway pod → BullMQ/Redis → Worker pod (command execution)
+**Assets:** Serialized Discord interactions, command execution results, user data
+**Entry Points:** BullMQ job processing, msgpackr deserialization, remoteInteraction reconstruction
+
+### STRIDE Analysis
+
+| Threat | STRIDE | Likelihood | Impact | Existing Mitigation | Residual Risk |
+|--------|--------|------------|--------|---------------------|---------------|
+| Malicious job payload | Tampering / Spoofing | Medium | High | HMAC verification on enqueue; worker verifies before deserialization (SECURITY.md §10) | Low |
+| Interaction reconstruction attack | Tampering | Medium | High | `serializeInteraction` flattens only safe fields; `remoteInteraction` reconstructs with validation; partial objects handled (src/queue/serializeInteraction.ts) | Low |
+| Worker compromise → gateway | Elevation of Privilege | Low | Critical | Workers stateless; no direct gateway RPC; results via queue only; plugin sandbox isolates third-party | Low |
+| Job replay | Spoofing | Medium | Medium | Job IDs unique; BullMQ deduplication; idempotency keys for mutating commands | Low |
+| Resource exhaustion in worker | Denial of Service | Medium | High | Worker concurrency limits; Node `--max-old-space-size`; cgroup limits (phase5 plan) | Medium |
+| msgpackr deserialization vuln | Remote Code Execution | Low | Critical | msgpackr safe mode; no prototype pollution; schema validation on reconstruct | Low |
+
+### Key Controls Summary
+- **Authentication**: HMAC on every job payload (shared `QUEUE_HMAC_SECRET`)
+- **Integrity**: Serialization allows only known-safe interaction fields; reconstruction validates
+- **Isolation**: Workers separate process; third-party plugins in child process with capabilities
+- **Availability**: Job TTL, retry limits (3), exponential backoff, dead-letter after max retries
+
+---
