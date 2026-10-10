@@ -192,3 +192,30 @@ flowchart LR
 - **Observability**: `apollo_plugin_load_duration`, plugin load success/failure metrics
 
 ---
+
+## TB-05: Interlink Relay ↔ Peers
+
+**Boundary:** Apollo Go interlink relay ↔ other trusted Apollo instances (per trust group)
+**Assets:** Interlink messages (protobuf), per-group shared secrets, relay state
+**Entry Points:** Interlink gRPC/TCP, protobuf deserialization, shared secret authentication
+
+### STRIDE Analysis
+
+| Threat | STRIDE | Likelihood | Impact | Existing Mitigation | Residual Risk |
+|--------|--------|------------|--------|---------------------|---------------|
+| Message tampering in transit | Tampering | Medium | High | Protobuf serialization; TLS between relays; per-group shared secret HMAC | Low |
+| Replay attack | Spoofing | Medium | Medium | At-most-once delivery design; message IDs; no built-in replay protection (documented limitation) | Medium |
+| Secret compromise → impersonation | Spoofing / Information Disclosure | Low | Critical | Per-trust-group secrets; rotation procedure; secrets distinct from bot tokens (SECURITY.md §15) | Low |
+| Unauthorized peer joins group | Elevation of Privilege | Low | High | Shared secret required; operator controls group membership; no discovery protocol | Low |
+| Protobuf parsing vulnerability | Remote Code Execution | Very Low | Critical | buf lint/breaking enforced; generated code only; no dynamic parsing | Very Low |
+| DoS via message flood | Denial of Service | Medium | Medium | Rate limiting at relay; connection limits; small message size limits | Medium |
+| Cross-group message leakage | Information Disclosure | Low | Medium | Per-group secrets; relay enforces group isolation; no cross-group routing | Low |
+
+### Key Controls Summary
+- **Authentication**: Per-trust-group shared secrets (distinct from Discord tokens)
+- **Integrity**: TLS + HMAC on messages; protobuf schema validation via buf
+- **Authorization**: Group membership controlled by operators; no anonymous peers
+- **Delivery**: At-most-once (documented); application-level idempotency required
+- **Observability**: Interlink-specific metrics in Prometheus; structured logging
+
+---
