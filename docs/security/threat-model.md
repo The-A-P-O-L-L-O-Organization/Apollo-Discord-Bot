@@ -219,3 +219,26 @@ flowchart LR
 - **Observability**: Interlink-specific metrics in Prometheus; structured logging
 
 ---
+
+## TB-06: Webhook Ingress
+
+**Boundary:** External webhook sources (GitHub, etc.) → Apollo HTTP endpoint
+**Assets:** Webhook payloads, HMAC secrets, repository/events data
+**Entry Points:** HTTP POST endpoints in integrations plugin
+
+### STRIDE Analysis
+
+| Threat | STRIDE | Likelihood | Impact | Existing Mitigation | Residual Risk |
+|--------|--------|------------|--------|---------------------|---------------|
+| Forged webhook payload | Spoofing / Tampering | Medium | High | GitHub HMAC-SHA256 verification; raw body preserved for verification (SECURITY.md §7) | Low |
+| Replay attack | Spoofing | Medium | Medium | GitHub includes delivery ID; idempotency handling in handler | Low |
+| Secret leakage in logs | Information Disclosure | Low | High | Raw body preserved but not logged; HMAC secret never logged (SECURITY.md §11) | Low |
+| DoS via webhook flood | Denial of Service | Medium | Medium | Rate limiting at reverse proxy; Discord API rate limits downstream | Medium |
+| Payload parsing vulnerability | Remote Code Execution | Low | High | JSON parsing with size limits; no eval; structured validation | Low |
+
+### Key Controls Summary
+- **Authentication**: HMAC-SHA256 verification (GitHub standard); raw body required
+- **Integrity**: Signature verification before parsing; idempotency keys
+- **Availability**: Reverse proxy rate limiting; payload size limits
+
+---
