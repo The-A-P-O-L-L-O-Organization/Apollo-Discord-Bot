@@ -163,3 +163,32 @@ flowchart LR
 - **Availability**: Job TTL, retry limits (3), exponential backoff, dead-letter after max retries
 
 ---
+
+## TB-04: Plugin Sandbox
+
+**Boundary:** Host process ↔ Third-party plugin worker child process
+**Assets:** Host secrets (DISCORD_TOKEN, ENCRYPTION_KEY), filesystem, network, Discord client
+**Entry Points:** Socket RPC (`/tmp/apollo.sock`), `pluginManifest.ts` capabilities, `workerChild.ts` message handlers
+
+### STRIDE Analysis
+
+| Threat | STRIDE | Likelihood | Impact | Existing Mitigation | Residual Risk |
+|--------|--------|------------|--------|---------------------|---------------|
+| Plugin escapes sandbox | Elevation of Privilege | Medium | Critical | Child process isolation; capability allowlist in manifest; no direct Discord client access (phase5, phase2) | Low |
+| Malicious plugin steals secrets | Information Disclosure | Medium | Critical | Secrets NOT passed to worker child; host-side secret unset after spawn (audit finding 2 fix); only capabilities granted (phase5) | Low |
+| Plugin installs unverified code | Tampering | Medium | High | `plugin-manifest.json` with pinned hashes; `pnpm manifest` verification; `ALLOW_UNVERIFIED_PLUGINS=1` dev-only (SECURITY.md §14) | Low |
+| Sigstore bypass (supply chain) | Tampering | Low | Critical | `verifySignature: true` enforced in installPlugin; VITEST/test- keyid bypass REMOVED (audit finding 6 fix) | Low |
+| Plugin DoS via resource exhaustion | Denial of Service | Medium | High | Worker `--max-old-space-size`; cgroup PID/memory limits; execArgv restrictions (phase5) | Medium |
+| Plugin command injection | Injection | Medium | High | Command registration validated; SlashCommandBuilder only; no raw string execution | Low |
+| Lifecycle hook bypass | Tampering | Low | Medium | RPC handshake required; `onLoad`/`onEnable`/`onDisable`/`onUnload` dispatched via socket with ready ack (audit finding 3) | Low |
+| Manifest hash collision | Tampering | Very Low | High | SHA256 hashes; `pnpm manifest` regenerates; CI verifies manifest drift | Very Low |
+
+### Key Controls Summary
+- **Authentication**: Plugin manifest signature verification (Sigstore); hash pinning
+- **Authorization**: Capability-based (manifest declares needed caps; host grants subset)
+- **Isolation**: Separate Node process; restricted `execArgv`; cgroup limits; no host secrets
+- **Integrity**: Sigstore verification mandatory; manifest hash verification on load
+- **Supply Chain**: GHSA-87jf-gf75-wwfm (CVE-2025-26604) cited as justification for sandbox
+- **Observability**: `apollo_plugin_load_duration`, plugin load success/failure metrics
+
+---
