@@ -1,0 +1,44 @@
+# prometheus/rules/slo.rules.yml
+groups:
+  - name: apollo-slo-recording
+    interval: 1m
+    rules:
+      # command_success_ratio: 30-day rolling success rate
+      - record: apollo:sli:command_success_ratio:30d
+        expr: |
+          sum(rate(apollo_commands_total{status="success"}[30d]))
+          /
+          sum(rate(apollo_commands_total[30d]))
+
+      # command_latency_p95: 30-day rolling p95 latency
+      - record: apollo:sli:command_latency_p95:30d
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(apollo_command_duration_seconds_bucket[30d]))
+          )
+
+      # command_latency_p99: 30-day rolling p99 latency
+      - record: apollo:sli:command_latency_p99:30d
+        expr: |
+          histogram_quantile(0.99,
+            sum by (le) (rate(apollo_command_duration_seconds_bucket[30d]))
+          )
+
+      # gateway_availability: 30-day rolling uptime (accounts for failover)
+      - record: apollo:sli:gateway_availability:30d
+        expr: |
+          avg_over_time(apollo_gateway_connected[30d])
+
+      # queue_job_reliability: 30-day rolling job success rate
+      - record: apollo:sli:queue_job_reliability:30d
+        expr: |
+          sum(rate(apollo_queue_jobs_total{outcome="success"}[30d]))
+          /
+          sum(rate(apollo_queue_jobs_total[30d]))
+
+      # error_rate: 30-day rolling error rate
+      - record: apollo:sli:error_rate:30d
+        expr: |
+          sum(rate(apollo_errors_total[30d]))
+          /
+          sum(rate(apollo_commands_total[30d]))
