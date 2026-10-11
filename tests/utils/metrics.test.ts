@@ -202,3 +202,49 @@ describe('Metrics', () => {
         expect(histogram?.type).toBe('histogram');
     });
 });
+
+describe('DORA metrics', () => {
+    it('records deployment frequency', async () => {
+        const m = createMetrics({ prefix: 'test_' });
+        m.recordDoraDeployment('production', true);
+        m.recordDoraDeployment('production', false);
+
+        const snapshots = await m.register.getMetricsAsJSON();
+        const freq = snapshots.find(s => s.name === 'test_dora_deployment_frequency_total');
+        const total = snapshots.find(s => s.name === 'test_dora_change_total');
+        const failed = snapshots.find(s => s.name === 'test_dora_change_failure_total');
+
+        expect(freq).toBeDefined();
+        expect(total).toBeDefined();
+        expect(failed).toBeDefined();
+        const freqValue = freq?.values.find(v => v.labels['environment'] === 'production')?.value;
+        const totalValue = total?.values.find(v => v.labels['environment'] === 'production')?.value;
+        const failedValue = failed?.values.find(v => v.labels['environment'] === 'production')?.value;
+        expect(freqValue).toBe(2);
+        expect(totalValue).toBe(2);
+        expect(failedValue).toBe(1);
+        m.register.clear();
+    });
+
+    it('records lead time histogram', async () => {
+        const m = createMetrics({ prefix: 'test_' });
+        m.recordDoraLeadTime('production', 1800);
+
+        const snapshots = await m.register.getMetricsAsJSON();
+        const hist = snapshots.find(s => s.name === 'test_dora_lead_time_seconds');
+        expect(hist).toBeDefined();
+        expect(hist?.type).toBe('histogram');
+        m.register.clear();
+    });
+
+    it('records MTTR histogram', async () => {
+        const m = createMetrics({ prefix: 'test_' });
+        m.recordDoraMTTR('production', 'critical', 3600);
+
+        const snapshots = await m.register.getMetricsAsJSON();
+        const hist = snapshots.find(s => s.name === 'test_dora_mttr_seconds');
+        expect(hist).toBeDefined();
+        expect(hist?.type).toBe('histogram');
+        m.register.clear();
+    });
+});

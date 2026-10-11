@@ -1,0 +1,29 @@
+# prometheus/rules/dora.rules.yml
+groups:
+  - name: apollo-dora
+    interval: 60s
+    rules:
+      - record: apollo:dora:deployment_frequency_per_day
+        expr: |
+          rate(apollo_dora_deployment_frequency_total[24h]) * 86400
+
+      - record: apollo:dora:lead_time:p50_1h
+        expr: |
+          histogram_quantile(0.50, rate(apollo_dora_lead_time_seconds_bucket[1h]))
+      - record: apollo:dora:lead_time:p95_1h
+        expr: |
+          histogram_quantile(0.95, rate(apollo_dora_lead_time_seconds_bucket[1h]))
+      - record: apollo:dora:lead_time:p99_1h
+        expr: |
+          histogram_quantile(0.99, rate(apollo_dora_lead_time_seconds_bucket[1h]))
+
+      - record: apollo:dora:mttr:p50_1h
+        expr: |
+          histogram_quantile(0.50, rate(apollo_dora_mttr_seconds_bucket[1h]))
+      - record: apollo:dora:mttr:p95_1h
+        expr: |
+          histogram_quantile(0.95, rate(apollo_dora_mttr_seconds_bucket[1h]))
+
+      - record: apollo:dora:change_failure_rate_7d
+        expr: |
+          rate(apollo_dora_change_failure_total[7d]) / rate(apollo_dora_change_total[7d])

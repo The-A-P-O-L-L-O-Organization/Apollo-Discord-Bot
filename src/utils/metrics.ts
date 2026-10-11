@@ -169,6 +169,43 @@ export const gatewayConnected = new Gauge({
     registers: [register]
 });
 
+export const doraDeploymentFrequency = new Counter({
+    name: 'apollo_dora_deployment_frequency_total',
+    help: 'Total number of production deployments',
+    labelNames: ['environment'],
+    registers: [register]
+});
+
+export const doraLeadTimeSeconds = new Histogram({
+    name: 'apollo_dora_lead_time_seconds',
+    help: 'Lead time from commit to production deployment in seconds',
+    labelNames: ['environment'],
+    buckets: [300, 600, 1800, 3600, 7200, 21600, 43200, 86400],
+    registers: [register]
+});
+
+export const doraMTTRSeconds = new Histogram({
+    name: 'apollo_dora_mttr_seconds',
+    help: 'Mean time to recovery from incident in seconds',
+    labelNames: ['environment', 'severity'],
+    buckets: [300, 600, 1800, 3600, 7200, 21600, 43200, 86400],
+    registers: [register]
+});
+
+export const doraChangeFailureTotal = new Counter({
+    name: 'apollo_dora_change_failure_total',
+    help: 'Total number of failed production deployments',
+    labelNames: ['environment'],
+    registers: [register]
+});
+
+export const doraChangeTotal = new Counter({
+    name: 'apollo_dora_change_total',
+    help: 'Total number of production deployments (success + failure)',
+    labelNames: ['environment'],
+    registers: [register]
+});
+
 // Helper functions
 export function recordCommand(command: string, status: 'success' | 'error'): void {
     commandsTotal.inc({ command, status });
@@ -247,6 +284,22 @@ export function recordGatewayLatency(shard: string, latencyMs: number): void {
     gatewayLatencyMs.observe({ shard }, latencyMs);
 }
 
+export function recordDoraDeployment(environment: string, success: boolean): void {
+    doraDeploymentFrequency.inc({ environment });
+    doraChangeTotal.inc({ environment });
+    if (!success) {
+        doraChangeFailureTotal.inc({ environment });
+    }
+}
+
+export function recordDoraLeadTime(environment: string, seconds: number): void {
+    doraLeadTimeSeconds.observe({ environment }, seconds);
+}
+
+export function recordDoraMTTR(environment: string, severity: string, seconds: number): void {
+    doraMTTRSeconds.observe({ environment, severity }, seconds);
+}
+
 export default {
     register,
     commandsTotal,
@@ -289,7 +342,15 @@ export default {
     recordPluginLoad,
     recordStartupDuration,
     recordGatewayLatency,
-    gatewayConnected
+    gatewayConnected,
+    doraDeploymentFrequency,
+    doraLeadTimeSeconds,
+    doraMTTRSeconds,
+    doraChangeFailureTotal,
+    doraChangeTotal,
+    recordDoraDeployment,
+    recordDoraLeadTime,
+    recordDoraMTTR
 };
 
 /**
@@ -304,6 +365,7 @@ export function createMetrics({ prefix = 'apollo_' } = {}): {
     commandsTotal: Counter;
     commandDuration: Histogram;
     queueDepth: Gauge;
+    queueJobsTotal: Counter;
     dbQueryDuration: Histogram;
     activePlugins: Gauge;
     workerMemoryUsage: Gauge;
@@ -316,6 +378,12 @@ export function createMetrics({ prefix = 'apollo_' } = {}): {
     errorsTotal: Counter;
     pluginLoadDuration: Histogram;
     startupDuration: Histogram;
+    gatewayConnected: Gauge;
+    doraDeploymentFrequency: Counter;
+    doraLeadTimeSeconds: Histogram;
+    doraMTTRSeconds: Histogram;
+    doraChangeFailureTotal: Counter;
+    doraChangeTotal: Counter;
     recordCommand: (command: string, status: 'success' | 'error') => void;
     recordCommandDuration: (command: string, durationMs: number) => void;
     setQueueDepth: (queue: string, depth: number) => void;
@@ -330,6 +398,9 @@ export function createMetrics({ prefix = 'apollo_' } = {}): {
     recordError: (type: string, component: string) => void;
     recordPluginLoad: (plugin: string, durationMs: number) => void;
     recordStartupDuration: (durationMs: number) => void;
+    recordDoraDeployment: (environment: string, success: boolean) => void;
+    recordDoraLeadTime: (environment: string, seconds: number) => void;
+    recordDoraMTTR: (environment: string, severity: string, seconds: number) => void;
 } {
     const register = new Registry();
     register.setDefaultLabels({ app: 'apollo-bot', pod: config.podId });
@@ -457,6 +528,43 @@ export function createMetrics({ prefix = 'apollo_' } = {}): {
         registers: [register]
     });
 
+    const doraDeploymentFrequency = new Counter({
+        name: `${prefix}dora_deployment_frequency_total`,
+        help: 'Total number of production deployments',
+        labelNames: ['environment'],
+        registers: [register]
+    });
+
+    const doraLeadTimeSeconds = new Histogram({
+        name: `${prefix}dora_lead_time_seconds`,
+        help: 'Lead time from commit to production deployment in seconds',
+        labelNames: ['environment'],
+        buckets: [300, 600, 1800, 3600, 7200, 21600, 43200, 86400],
+        registers: [register]
+    });
+
+    const doraMTTRSeconds = new Histogram({
+        name: `${prefix}dora_mttr_seconds`,
+        help: 'Mean time to recovery from incident in seconds',
+        labelNames: ['environment', 'severity'],
+        buckets: [300, 600, 1800, 3600, 7200, 21600, 43200, 86400],
+        registers: [register]
+    });
+
+    const doraChangeFailureTotal = new Counter({
+        name: `${prefix}dora_change_failure_total`,
+        help: 'Total number of failed production deployments',
+        labelNames: ['environment'],
+        registers: [register]
+    });
+
+    const doraChangeTotal = new Counter({
+        name: `${prefix}dora_change_total`,
+        help: 'Total number of production deployments (success + failure)',
+        labelNames: ['environment'],
+        registers: [register]
+    });
+
     // Helper functions (using locally created metrics)
     function recordCommand(command: string, status: 'success' | 'error'): void {
         commandsTotal.inc({ command, status });
@@ -515,6 +623,22 @@ export function createMetrics({ prefix = 'apollo_' } = {}): {
         startupDuration.observe(durationMs / 1000);
     }
 
+    function recordDoraDeployment(environment: string, success: boolean): void {
+        doraDeploymentFrequency.inc({ environment });
+        doraChangeTotal.inc({ environment });
+        if (!success) {
+            doraChangeFailureTotal.inc({ environment });
+        }
+    }
+
+    function recordDoraLeadTime(environment: string, seconds: number): void {
+        doraLeadTimeSeconds.observe({ environment }, seconds);
+    }
+
+    function recordDoraMTTR(environment: string, severity: string, seconds: number): void {
+        doraMTTRSeconds.observe({ environment, severity }, seconds);
+    }
+
     return {
         register,
         commandsTotal,
@@ -547,6 +671,14 @@ export function createMetrics({ prefix = 'apollo_' } = {}): {
         recordHttpRequest,
         recordError,
         recordPluginLoad,
-        recordStartupDuration
+        recordStartupDuration,
+        recordDoraDeployment,
+        recordDoraLeadTime,
+        recordDoraMTTR,
+        doraDeploymentFrequency,
+        doraLeadTimeSeconds,
+        doraMTTRSeconds,
+        doraChangeFailureTotal,
+        doraChangeTotal
     };
 }

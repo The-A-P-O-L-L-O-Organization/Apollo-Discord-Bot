@@ -1,0 +1,60 @@
+name: DORA Deployment Metrics
+
+on:
+  deployment_status:
+    types: [created, success, failure, error]
+
+env:
+  PROM_PUSHGATEWAY_URL: ${{ secrets.PROM_PUSHGATEWAY_URL }}
+  PROM_JOB_NAME: apollo-dora-deployment
+
+jobs:
+  record-deployment:
+    if: github.event.deployment.environment == 'production'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 100
+
+      - name: Calculate lead time
+        id: leadtime
+        run: |
+          SHA="${{ github.event.deployment.sha }}"
+          COMMIT_TIME=$(git show -s --format=%ct "$SHA")
+          DEPLOY_TIME=$(date +%s)
+          LEAD_TIME=$((DEPLOY_TIME - COMMIT_TIME))
+          echo "lead_time=$LEAD_TIME" >> $GITHUB_OUTPUT
+
+      - name: Push deployment metrics
+        if: env.PROM_PUSHGATEWAY_URL != ''
+        run: |
+          ENVIRONMENT="${{ github.event.deployment.environment }}"
+          STATUS="${{ github.event.deployment_status.state }}"
+          LEAD_TIME="${{ steps.leadtime.outputs.lead_time }}"
+
+          cat <<EOF | curl -s --data-binary @- "${PROM_PUSHGATEWAY_URL}/metrics/job/${PROM_JOB_NAME}/instance/${ENVIRONMENT}"
+          # TYPE apollo_dora_deployment_frequency_total counter
+          apollo_dora_deployment_frequency_total{environment="${ENVIRONMENT}"} 1
+          # TYPE apollo_dora_change_total counter
+          apollo_dora_change_total{environment="${ENVIRONMENT}"} 1
+          # TYPE apollo_dora_lead_time_seconds histogram
+          apollo_dora_lead_time_seconds_bucket{environment="${ENVIRONMENT}",le="3600"} ${LEAD_TIME}
+          apollo_dora_lead_time_seconds_bucket{environment="${ENVIRONMENT}",le="+Inf"} 1
+          apollo_dora_lead_time_seconds_sum{environment="${ENVIRONMENT}"} ${LEAD_TIME}
+          apollo_dora_lead_time_seconds_count{environment="${ENVIRONMENT}"} 1
+          EOF
+
+          if [ "$STATUS" != "success" ]; then
+            cat <<EOF | curl -s --data-binary @- "${PROM_PUSHGATEWAY_URL}/metrics/job/${PROM_JOB_NAME}/instance/${ENVIRONMENT}"
+          # TYPE apollo_dora_change_failure_total counter
+          apollo_dora_change_failure_total{environment="${ENVIRONMENT}"} 1
+          EOF
+          fi
+
+      - name: Log deployment info
+        run: |
+          echo "Deployment ${{ github.event.deployment.id }} to ${{ github.event.deployment.environment }}: ${{ github.event.deployment_status.state }}"
+          echo "Lead time: ${{ steps.leadtime.outputs.lead_time }}s"

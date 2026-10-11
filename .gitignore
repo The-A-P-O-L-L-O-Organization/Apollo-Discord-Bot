@@ -44,7 +44,6 @@ models/*.onnx
 
 # Documentation (generated)
 docs/api/
-docs/architecture/
 docs/runbooks/
 
 # Superpowers

@@ -1,0 +1,69 @@
+name: DORA MTTR Metrics
+
+on:
+  repository_dispatch:
+    types: [incident_created, incident_resolved]
+  workflow_dispatch:
+    inputs:
+      incident_id:
+        required: true
+        type: string
+      action:
+        required: true
+        type: choice
+        options: [created, resolved]
+      severity:
+        required: true
+        type: choice
+        options: [critical, warning, info]
+
+env:
+  PROM_PUSHGATEWAY_URL: ${{ secrets.PROM_PUSHGATEWAY_URL }}
+  PROM_JOB_NAME: apollo-dora-mttr
+
+jobs:
+  record-mttr:
+    if: env.PROM_PUSHGATEWAY_URL != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Record incident timestamp
+        id: timestamp
+        run: |
+          ACTION="${{ github.event.inputs.action || github.event.client_payload.action }}"
+          INCIDENT_ID="${{ github.event.inputs.incident_id || github.event.client_payload.incident_id }}"
+
+          if [ "$ACTION" = "created" ]; then
+            echo "$INCIDENT_ID=$(date +%s)" >> $GITHUB_ENV
+            echo "incident_created=true" >> $GITHUB_OUTPUT
+          elif [ "$ACTION" = "resolved" ]; then
+            START_TIME="${INCIDENT_ID}"
+            if [ -z "$START_TIME" ]; then
+              echo "No start time recorded for incident $INCIDENT_ID"
+              exit 1
+            fi
+            END_TIME=$(date +%s)
+            MTTR=$((END_TIME - START_TIME))
+            echo "mttr=$MTTR" >> $GITHUB_OUTPUT
+            echo "incident_resolved=true" >> $GITHUB_OUTPUT
+          fi
+        env:
+          INCIDENT_ID: ${{ github.event.inputs.incident_id || github.event.client_payload.incident_id }}
+
+      - name: Push MTTR metric on resolution
+        if: steps.timestamp.outputs.incident_resolved == 'true'
+        run: |
+          MTTR="${{ steps.timestamp.outputs.mttr }}"
+          SEVERITY="${{ github.event.inputs.severity || github.event.client_payload.severity }}"
+
+          cat <<EOF | curl -s --data-binary @- "${PROM_PUSHGATEWAY_URL}/metrics/job/${PROM_JOB_NAME}/instance/production"
+          # TYPE apollo_dora_mttr_seconds histogram
+          apollo_dora_mttr_seconds_bucket{environment="production",severity="${SEVERITY}",le="3600"} ${MTTR}
+          apollo_dora_mttr_seconds_bucket{environment="production",severity="${SEVERITY}",le="+Inf"} 1
+          apollo_dora_mttr_seconds_sum{environment="production",severity="${SEVERITY}"} ${MTTR}
+          apollo_dora_mttr_seconds_count{environment="production",severity="${SEVERITY}"} 1
+          EOF
+
+      - name: Log MTTR
+        if: steps.timestamp.outputs.incident_resolved == 'true'
+        run: echo "Incident ${{ github.event.inputs.incident_id }} resolved in ${{ steps.timestamp.outputs.mttr }}s (${{ github.event.inputs.severity }})"

@@ -1,0 +1,44 @@
+# prometheus/rules/dora-alerts.rules.yml
+groups:
+  - name: apollo-dora-alerts
+    interval: 60s
+    rules:
+      - alert: ApolloDORADeploymentFrequencyLow
+        expr: |
+          apollo:dora:deployment_frequency_per_day < 0.5
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Deployment frequency below 0.5/day"
+          description: "No production deployment in >48 hours. Consider deploying more frequently."
+
+      - alert: ApolloDORALeadTimeHigh
+        expr: |
+          apollo:dora:lead_time:p95_1h > 21600
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Lead time p95 > 6 hours"
+          description: "Time from commit to production exceeds 6 hours at p95. Review CI/CD pipeline."
+
+      - alert: ApolloDORAMTTRHigh
+        expr: |
+          apollo:dora:mttr:p95_1h > 7200
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "MTTR p95 > 2 hours"
+          description: "Incident resolution taking too long. Review runbooks and on-call processes."
+
+      - alert: ApolloDORAChangeFailureRateHigh
+        expr: |
+          apollo:dora:change_failure_rate_7d > 0.3
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Change failure rate > 30% (7d)"
+          description: "More than 30% of deployments failing. Review deployment process and testing."
