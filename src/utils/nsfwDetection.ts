@@ -5,6 +5,7 @@ import type { Attachment, Collection } from 'discord.js';
 import { safeFetch } from './safeFetch.js';
 import { getGuildData } from './db.js';
 import { createQueue, JobNames } from '../queue/queue.js';
+import { buildNsfwJobId, NSFW_DEDUPE_TTL_MS } from '../queue/jobs/nsfwAnalyze.js';
 import type { NSFWAnalyzeJobData } from '../types/queue.js';
 import { config } from '../config/config.js';
 import { analyzeImageGrpc, isRustWorkerAvailable, getCircuitBreakerStatus, resetCircuitBreaker } from '../queue/nsfwClient.js';
@@ -188,8 +189,14 @@ export async function checkMessageAttachments(
  * @returns Job info
  */
 export async function enqueueNsfwAnalysis(imageUrl: string, guildId: string, threshold = 0.6): Promise<NSFWAnalyzeJobData> {
+    const jobId = buildNsfwJobId(imageUrl, guildId);
     const queue = await createQueue(JobNames.NSFW_ANALYZE);
     await queue.add(JobNames.NSFW_ANALYZE, { imageUrl, guildId, threshold }, {
+        jobId,
+        deduplication: {
+            id: jobId,
+            ttl: NSFW_DEDUPE_TTL_MS
+        },
         attempts: 2,
         backoff: { type: 'exponential', delay: 2000 },
         removeOnComplete: { age: 3600 },
