@@ -538,5 +538,10 @@
     "datarequest.userData": "Per-Guild User Data",
     "datarequest.none": "No Data Found",
     "datarequest.noneDesc": "No personal data found for your user ID.",
-    "datarequest.footer": "Total records: {{total}}. Use /export-my-data for full JSON export. Use /data-deletion to delete."
+    "datarequest.footer": "Total records: {{total}}. Use /export-my-data for full JSON export. Use /data-deletion to delete.",
+    "dataexport.dmContent": "Here is your complete data export from Apollo Discord Bot (GDPR Art. 20). This file contains all data associated with your user ID.",
+    "dataexport.sentTitle": "Export Sent",
+    "dataexport.sentDesc": "Your data export has been sent to your DMs as a JSON file.",
+    "dataexport.dmFailedTitle": "Could Not Send DM",
+    "dataexport.dmFailedDesc": "I couldn't send the export via DM. Please enable DMs from server members and try again, or contact the server administrator."
 }
