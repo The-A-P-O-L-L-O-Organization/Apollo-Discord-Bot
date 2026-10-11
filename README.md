@@ -4,6 +4,7 @@
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D26-brightgreen.svg)](https://nodejs.org/)
 [![Discord.js](https://img.shields.io/badge/discord.js-v14-blue.svg)](https://discord.js.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue.svg)](https://www.typescriptlang.org/)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/The-A-P-O-L-L-O-Organization/Apollo-Discord-Bot)
 
 A feature-rich, modular Discord bot built with TypeScript and discord.js v14. Designed for horizontal scaling with a plugin-based architecture, multi-instance support via Redis-backed work queues, and PostgreSQL or SQLite persistence.
 
