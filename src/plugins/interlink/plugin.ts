@@ -9,6 +9,8 @@ import { extractInterlinkLocale, resolveInterlinkLocale } from './locale.js';
 import { config } from '../../config/config.js';
 import type { EventBusImpl } from '../../core/EventBus.js';
 import { verifyInterlinkToken, type InterlinkTokenPayload } from './auth.js';
+import { NonceStore } from '../../queue/nonceStore.js';
+import { getLockRedis } from '../../utils/lock.js';
 
 // Trust model: the shared INTERLINK_AUTH_KEY defines the full trust domain.
 // Any key holder can assert any bot identity (per-bot source is self-asserted).
@@ -39,6 +41,14 @@ const HEARTBEAT_FAILURES_BEFORE_REREGISTER = 3;
 const LISTENER_BASE_BACKOFF_MS = 1000;
 const LISTENER_MAX_BACKOFF_MS = 30000;
 const MIN_AUTH_KEY_LENGTH = 32;
+
+export const CONSUMER_DEDUPE_TTL_SECONDS = 86400;
+export const CONSUMER_DEDUPE_KEY_PREFIX = 'apollo:interlink:consumer:';
+export const CONSUMER_NONCE_TIMESTAMP = 0;
+
+export function buildConsumerNonce(nonce: string, eventType: string): string {
+    return `${nonce}:${eventType}`;
+}
 
 function forwardEvents(): string[] {
     return (process.env['INTERLINK_FORWARD_EVENTS'] ?? 'memberJoin,guildBanAdd').split(',').filter(Boolean);
@@ -133,6 +143,7 @@ export default class InterlinkPlugin extends Plugin {
     private _connectBotId = '';
     private _heartbeatFailures = 0;
     private _eventUnsubscribers: (() => void)[] = [];
+    private _consumerDedupe: NonceStore | null = null;
 
     constructor(client: TypedClient, manager: PluginManagerRef) {
         super(client, manager);
@@ -146,6 +157,7 @@ export default class InterlinkPlugin extends Plugin {
         }
 
         await this._startConnectBridge();
+        await this.initializeConsumerDedupe();
         this._setupEventBridge();
         await this._loadCommands();
         this.logger.info('[Interlink] Plugin enabled (Connect-only)');
@@ -153,9 +165,70 @@ export default class InterlinkPlugin extends Plugin {
 
     override async onDisable(): Promise<void> {
         await this._stopConnectBridge();
+        await this.closeConsumerDedupe();
         this._unloadCommands();
         this._teardownEventBridge();
         this.logger.info('[Interlink] Plugin disabled');
+    }
+
+    override async onUnload(): Promise<void> {
+        await this.closeConsumerDedupe();
+    }
+
+    async initializeConsumerDedupe(): Promise<NonceStore | null> {
+        if (this._consumerDedupe) {
+            return this._consumerDedupe;
+        }
+        try {
+            const redis = await getLockRedis();
+            if (!redis) {
+                return null;
+            }
+            const store = new NonceStore(redis, {
+                ttlSeconds: CONSUMER_DEDUPE_TTL_SECONDS,
+                keyPrefix: CONSUMER_DEDUPE_KEY_PREFIX
+            });
+            await store.initialize();
+            this._consumerDedupe = store;
+            return store;
+        } catch {
+            return null;
+        }
+    }
+
+    getConsumerDedupe(): NonceStore | null {
+        return this._consumerDedupe;
+    }
+
+    setConsumerDedupeForTests(store: NonceStore | null): void {
+        this._consumerDedupe = store;
+    }
+
+    async closeConsumerDedupe(): Promise<void> {
+        this._consumerDedupe = null;
+    }
+
+    async isDuplicateEnvelope(nonce: string, eventType: string): Promise<boolean> {
+        if (!nonce) {
+            return false;
+        }
+        let dedupe = this._consumerDedupe;
+        if (!dedupe) {
+            try {
+                dedupe = await this.initializeConsumerDedupe();
+            } catch {
+                return false;
+            }
+        }
+        if (!dedupe) {
+            return false;
+        }
+        try {
+            const claimed = await dedupe.checkAndSet(buildConsumerNonce(nonce, eventType), CONSUMER_NONCE_TIMESTAMP);
+            return !claimed;
+        } catch {
+            return false;
+        }
     }
 
     async _startConnectBridge(): Promise<void> {
@@ -256,6 +329,11 @@ export default class InterlinkPlugin extends Plugin {
                 this.logger.warn({ err: err as Error, msg: '[Interlink] Incoming envelope rejected: invalid JWT' });
                 return;
             }
+        }
+
+        if (await this.isDuplicateEnvelope(envelope.nonce, envelope.type)) {
+            this.logger.debug({ nonce: envelope.nonce }, '[Interlink] Duplicate envelope skipped');
+            return;
         }
 
         if (envelope.type === 'ping') {
