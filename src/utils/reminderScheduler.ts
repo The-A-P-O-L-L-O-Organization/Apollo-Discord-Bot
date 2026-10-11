@@ -93,10 +93,30 @@ export function stopReminderScheduler(): void {
 }
 
 /**
- * Checks for due reminders and sends them
+ * Requeues a reminder whose delivery failed so a later tick retries it
+ * @param reminder - The reminder object
  */
-async function checkReminders(): Promise<void> {
-    if (!client) {return;}
+async function requeueReminder(reminder: Reminder): Promise<void> {
+    try {
+        const data = await getData('reminders') as unknown as RemindersData | null;
+        const reminders = data?.reminders ?? [];
+        const exists = reminders.some(r => r.id === reminder.id);
+        if (!exists) {
+            reminders.push(reminder);
+            await setData('reminders', { reminders } as unknown as GlobalConfig);
+        }
+    } catch (error) {
+        logger.error({ err: error as Error, msg: '[ERROR] Failed to requeue reminder' });
+    }
+}
+
+/**
+ * Checks for due reminders and sends them
+ * @param clientOverride - Optional client for testing
+ */
+export async function checkReminders(clientOverride?: Client): Promise<void> {
+    const activeClient = clientOverride ?? client;
+    if (!activeClient) {return;}
 
     const startTime = Date.now();
 
@@ -115,14 +135,15 @@ async function checkReminders(): Promise<void> {
             return;
         }
 
-        // Process each due reminder
-        for (const reminder of dueReminders) {
-            await sendReminder(reminder);
-        }
-
-        // Remove sent reminders
         data['reminders'] = reminders.filter(r => r.remindAt > now);
-await setData('reminders', data as unknown as GlobalConfig);
+        await setData('reminders', data as unknown as GlobalConfig);
+
+        for (const reminder of dueReminders) {
+            const ok = await sendReminder(activeClient, reminder);
+            if (!ok) {
+                await requeueReminder(reminder);
+            }
+        }
 
         // Update performance stats
         performanceStats.checksPerformed++;
@@ -142,10 +163,11 @@ await setData('reminders', data as unknown as GlobalConfig);
 
 /**
  * Sends a reminder to the user
+ * @param activeClient - The Discord client instance
  * @param reminder - The reminder object
+ * @returns Whether the reminder was delivered
  */
-async function sendReminder(reminder: Reminder): Promise<void> {
-    if (!client) {return;}
+async function sendReminder(activeClient: Client, reminder: Reminder): Promise<boolean> {
     try {
         // Create reminder embed
         const embed = new EmbedBuilder()
@@ -162,9 +184,9 @@ async function sendReminder(reminder: Reminder): Promise<void> {
 
         // Try to DM the user first
         try {
-            const user = await client.users.fetch(reminder.userId);
+            const user = await activeClient.users.fetch(reminder.userId);
             await user.send({ embeds: [embed] });
-            return;
+            return true;
         } catch {
             // DM failed, try to send in the original channel
             logger.info({ msg: `[INFO] Could not DM user ${reminder.userId}, trying channel` });
@@ -173,20 +195,24 @@ async function sendReminder(reminder: Reminder): Promise<void> {
         // Try to send in the original channel
         if (reminder.channelId) {
             try {
-                const channel = await client.channels.fetch(reminder.channelId);
+                const channel = await activeClient.channels.fetch(reminder.channelId);
                 if (channel?.isTextBased()) {
                     await (channel as TextChannel).send({
                         content: `<@${reminder.userId}>`,
                         embeds: [embed]
                     });
+                    return true;
                 }
             } catch (channelError) {
                 logger.error({ err: channelError as Error, msg: `[ERROR] Could not send reminder to channel ${reminder.channelId}` });
             }
         }
 
+        return false;
+
     } catch (error) {
         logger.error({ err: error as Error, msg: `[ERROR] Failed to send reminder ${reminder.id}` });
+        return false;
     }
 }
 

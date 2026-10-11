@@ -1,6 +1,7 @@
 // Integration Poller
 // Periodically polls Twitch, YouTube, and RSS feeds for new content
 import { withLock, getLockRedis } from './lock.js';
+import { getData, setData } from './db.js';
 import { checkTwitchStream, checkYoutubeUploads, checkRssFeed } from './integrationClients.js';
 import { formatTwitchNotification, formatYoutubeNotification, formatRssNotification } from './integrationFormatters.js';
 import type { Client } from '../types/shared.js';
@@ -82,22 +83,36 @@ export function stopIntegrationPoller(): void {
     integrationConfig = null;
 }
 
+let dbWriteQueue: Promise<void> = Promise.resolve();
+
+async function withDbWriteMutex<T>(fn: () => Promise<T>): Promise<T> {
+    const previous = dbWriteQueue;
+    let release: () => void = () => undefined;
+    dbWriteQueue = new Promise<void>((resolve) => { release = resolve; });
+    await previous;
+    try {
+        return await fn();
+    } finally {
+        release();
+    }
+}
+
 async function getSubs(): Promise<Subscription[]> {
-    const { getData } = await import('./db.js');
     const data = await getData('integrations') as Record<string, unknown> | undefined;
     return (data?.['subscriptions'] as Subscription[]) || [];
 }
 
 async function updateSub(subId: string, updates: Partial<Subscription>): Promise<void> {
-    const { getData, setData } = await import('./db.js');
-    const data = await getData('integrations') as Record<string, unknown> | undefined;
-    if (!data?.['subscriptions']) { return; }
-    const subscriptions = data['subscriptions'] as Subscription[];
-    const idx = subscriptions.findIndex((s: Subscription) => s.id === subId);
-    if (idx === -1) { return; }
-    subscriptions[idx] = { ...subscriptions[idx], ...updates } as Subscription;
-    data['subscriptions'] = subscriptions;
-    await setData('integrations', data);
+    await withDbWriteMutex(async () => {
+        const data = await getData('integrations') as Record<string, unknown> | undefined;
+        if (!data?.['subscriptions']) { return; }
+        const subscriptions = data['subscriptions'] as Subscription[];
+        const idx = subscriptions.findIndex((s: Subscription) => s.id === subId);
+        if (idx === -1) { return; }
+        subscriptions[idx] = { ...subscriptions[idx], ...updates } as Subscription;
+        data['subscriptions'] = subscriptions;
+        await setData('integrations', data);
+    });
 }
 
 async function loadKnownItems(): Promise<void> {
@@ -110,7 +125,7 @@ async function loadKnownItems(): Promise<void> {
     }
 }
 
-async function pollTwitchSubscriptions(): Promise<void> {
+export async function pollTwitchSubscriptions(): Promise<void> {
     if (!client || !integrationConfig?.twitchClientId) { return; }
 
     try {
@@ -135,7 +150,7 @@ async function pollTwitchSubscriptions(): Promise<void> {
     }
 }
 
-async function pollYoutubeSubscriptions(): Promise<void> {
+export async function pollYoutubeSubscriptions(): Promise<void> {
     if (!client || !integrationConfig?.youtubeApiKey) { return; }
 
     try {
@@ -172,7 +187,7 @@ async function pollYoutubeSubscriptions(): Promise<void> {
     }
 }
 
-async function pollRssSubscriptions(): Promise<void> {
+export async function pollRssSubscriptions(): Promise<void> {
     if (!client) { return; }
 
     try {

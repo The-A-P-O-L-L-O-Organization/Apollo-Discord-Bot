@@ -1,9 +1,10 @@
 import { logger } from '../utils/logger.js';
-import type { Client} from 'discord.js';
+import type { Client, Message } from 'discord.js';
 import { EmbedBuilder } from 'discord.js';
 import { getData, setData } from './db.js';
 import { config } from '../config/config.js';
 import { getLockRedis, withLock } from './lock.js';
+import type { GlobalConfig } from '../db/schemas.js';
 
 let client: Client | null = null;
 let schedulerInterval: NodeJS.Timeout | null = null;
@@ -102,10 +103,33 @@ export function stopPollScheduler(): void {
 }
 
 /**
- * Checks for expired polls and tallies them
+ * Requeues a poll whose tally failed so a later tick retries it
+ * @param guildId - The guild ID
+ * @param poll - The poll object
  */
-async function checkPolls(): Promise<void> {
-    if (!client) {return;}
+async function requeuePoll(guildId: string, poll: PollData): Promise<void> {
+    try {
+        const data = await getData('polls') as unknown as Record<string, GuildPollData> | null;
+        const guildData = data?.[guildId];
+        if (!guildData) { return; }
+        guildData.active ??= [];
+        const exists = guildData.active.some(p => p.id === poll.id);
+        if (!exists) {
+            guildData.active.push(poll);
+            await setData('polls', data as unknown as GlobalConfig);
+        }
+    } catch (error) {
+        logger.error({ err: error as Error, msg: '[ERROR] Failed to requeue poll' });
+    }
+}
+
+/**
+ * Checks for expired polls and tallies them
+ * @param clientOverride - Optional client for testing
+ */
+export async function checkPolls(clientOverride?: Client): Promise<void> {
+    const activeClient = clientOverride ?? client;
+    if (!activeClient) {return;}
 
     const startTime = Date.now();
 
@@ -119,21 +143,37 @@ async function checkPolls(): Promise<void> {
         }
 
         const now = Date.now();
-        let tallyCount = 0;
+        const claimed: { guildId: string; poll: PollData }[] = [];
 
-        // Process each guild's polls
         for (const [guildId, guildData] of Object.entries(data as Record<string, GuildPollData>)) {
             if (!guildData.active || guildData.active.length === 0) {continue;}
 
             const expiredPolls = guildData.active.filter(p => p.endTime <= now);
+            if (expiredPolls.length === 0) {continue;}
 
-            for (const poll of expiredPolls) {
-                await tallyPoll(guildId, poll);
-                tallyCount++;
-            }
-
-            // Remove expired polls from active list
             guildData.active = guildData.active.filter(p => p.endTime > now);
+            for (const poll of expiredPolls) {
+                claimed.push({ guildId, poll });
+            }
+        }
+
+        if (claimed.length === 0) {
+            performanceStats.checksPerformed++;
+            performanceStats.lastCheckTime = Date.now() - startTime;
+            performanceStats.totalCheckTime += performanceStats.lastCheckTime;
+            return;
+        }
+
+        await setData('polls', data);
+
+        let tallyCount = 0;
+        for (const { guildId, poll } of claimed) {
+            const ok = await tallyPoll(activeClient, guildId, poll);
+            if (ok) {
+                tallyCount++;
+            } else {
+                await requeuePoll(guildId, poll);
+            }
         }
 
         // Update performance stats
@@ -143,7 +183,6 @@ async function checkPolls(): Promise<void> {
         performanceStats.totalCheckTime += performanceStats.lastCheckTime;
 
         if (tallyCount > 0) {
-            await setData('polls', data);
             logger.info({ msg: `[INFO] Tallied ${tallyCount} poll(s) in ${performanceStats.lastCheckTime}ms` });
         }
 
@@ -155,26 +194,28 @@ async function checkPolls(): Promise<void> {
 
 /**
  * Tallies a poll and posts results
+ * @param activeClient - The Discord client instance
  * @param guildId - The guild ID
  * @param poll - The poll object
+ * @returns Whether the poll was fully handled
  */
-async function tallyPoll(guildId: string, poll: PollData): Promise<void> {
+async function tallyPoll(activeClient: Client, guildId: string, poll: PollData): Promise<boolean> {
     try {
         // Fetch the guild
-        const guild = await client?.guilds.fetch(guildId);
-        if (!guild) {return;}
+        const guild = await activeClient.guilds.fetch(guildId).catch(() => null);
+        if (!guild) {return true;}
 
         // Fetch the channel
-        const channel = await guild.channels.fetch(poll.channelId);
-        if (!channel?.isTextBased()) {return;}
+        const channel = await guild.channels.fetch(poll.channelId).catch(() => null);
+        if (!channel?.isTextBased()) {return true;}
 
         // Fetch the poll message
-        let message;
+        let message: Message;
         try {
             message = await channel.messages.fetch(poll.messageId);
         } catch {
             logger.info({ msg: `[INFO] Poll message ${poll.messageId} not found, skipping tally` });
-            return;
+            return true;
         }
 
         // Count reactions
@@ -258,8 +299,11 @@ async function tallyPoll(guildId: string, poll: PollData): Promise<void> {
             logger.info({ msg: '[INFO] Failed to send poll results' });
         }
 
+        return true;
+
     } catch (error) {
         logger.error({ err: error as Error, msg: `[ERROR] Failed to tally poll ${poll.id}` });
+        return false;
     }
 }
 

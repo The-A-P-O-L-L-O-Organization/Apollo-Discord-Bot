@@ -61,29 +61,31 @@ export function stopTempbanScheduler(): void {
 
 /**
  * Checks for expired tempbans and unbans users
+ * @param clientOverride - Optional client for testing
  */
-async function checkTempbans(): Promise<void> {
-    if (!client) { return; }
+export async function checkTempbans(clientOverride?: Client): Promise<void> {
+    const activeClient = clientOverride ?? client;
+    if (!activeClient) { return; }
 
     try {
         const data = (await getData('tempbans')) as unknown as TempbansData | null;
         const tempbans = data?.tempbans ?? [];
         const now = Date.now();
 
-        // Find expired tempbans
         const expiredBans = tempbans.filter(t => t.unbanAt <= now);
 
         if (expiredBans.length === 0) { return; }
 
-        // Process each expired tempban
-        for (const tempban of expiredBans) {
-            await processTempbanExpiry(tempban);
-        }
-
-        // Remove processed tempbans
         if (data) {
             data.tempbans = tempbans.filter(t => t.unbanAt > now);
             await setData('tempbans', data as unknown as GlobalConfig);
+        }
+
+        for (const tempban of expiredBans) {
+            const ok = await processTempbanExpiry(activeClient, tempban);
+            if (!ok) {
+                await requeueTempban(tempban);
+            }
         }
 
         if (expiredBans.length > 0) {
@@ -96,26 +98,43 @@ async function checkTempbans(): Promise<void> {
 }
 
 /**
- * Processes an expired tempban (unbans the user)
+ * Requeues a tempban whose expiry side effect failed so a later tick retries it
  * @param tempban - The tempban object
  */
-async function processTempbanExpiry(tempban: TempbanData): Promise<void> {
-    if (!client) { return; }
+async function requeueTempban(tempban: TempbanData): Promise<void> {
+    try {
+        const data = ((await getData('tempbans')) as unknown as TempbansData | null) ?? { tempbans: [] as TempbanData[] };
+        data.tempbans ??= [];
+        const exists = data.tempbans.some(t => t.guildId === tempban.guildId && t.userId === tempban.userId);
+        if (!exists) {
+            data.tempbans.push(tempban);
+            await setData('tempbans', data as unknown as GlobalConfig);
+        }
+    } catch (error) {
+        logger.error({ err: error as Error, msg: '[ERROR] Failed to requeue tempban' });
+    }
+}
+
+/**
+ * Processes an expired tempban (unbans the user)
+ * @param activeClient - The Discord client instance
+ * @param tempban - The tempban object
+ * @returns Whether the expiry was fully handled
+ */
+async function processTempbanExpiry(activeClient: Client, tempban: TempbanData): Promise<boolean> {
     try {
         // Get the guild
-        const guild = await client.guilds.fetch(tempban.guildId).catch(() => null);
+        const guild = await activeClient.guilds.fetch(tempban.guildId).catch(() => null);
 
         if (!guild) {
             logger.info({ msg: `[WARNING] Guild ${tempban.guildId} not found for tempban expiry` });
-            return;
+            return true;
         }
 
         // Try to unban the user
         try {
             await guild.bans.remove(tempban.userId, 'Temporary ban expired');
             logger.info({ msg: `[MODERATION] User ${tempban.userId} unbanned automatically (tempban expired)` });
-
-            // Try to send a notification to the mod log channel
             const logChannel = guild.channels.cache.find(
                 channel => channel.name === 'mod-logs' || channel.name === 'moderation-logs'
             );
@@ -157,18 +176,23 @@ async function processTempbanExpiry(tempban: TempbanData): Promise<void> {
                 });
             }
 
+            return true;
+
         } catch (unbanError: unknown) {
             // User might not be banned anymore
             const error = unbanError as { code?: number; message?: string };
             if (error.code === 10026) {
                 logger.info({ msg: `[INFO] User ${tempban.userId} is no longer banned in guild ${tempban.guildId}` });
+                return true;
             } else {
                 logger.error({ err: unbanError as Error, msg: `[ERROR] Failed to unban user ${tempban.userId}` });
+                return false;
             }
         }
 
     } catch (error) {
         logger.error({ err: error as Error, msg: `[ERROR] Failed to process tempban expiry for user ${tempban.userId}` });
+        return false;
     }
 }
 
