@@ -531,5 +531,12 @@
     "help.howTo": "How to Use Commands",
     "help.howToValue": "1. Type `/` in the chat\n2. Select the bot from the list\n3. Choose a command\n4. Fill in any required parameters\n5. Press Enter to execute",
     "help.legend": "Legend",
-    "help.legendValue": "`<param>` = Required parameter\n`[param]` = Optional parameter"
+    "help.legendValue": "`<param>` = Required parameter\n`[param]` = Optional parameter",
+    "datarequest.title": "Your Data Request (Art. 15 GDPR)",
+    "datarequest.desc": "Here is a summary of all data Apollo has stored about you:",
+    "datarequest.guildData": "Guild-Scoped Data",
+    "datarequest.userData": "Per-Guild User Data",
+    "datarequest.none": "No Data Found",
+    "datarequest.noneDesc": "No personal data found for your user ID.",
+    "datarequest.footer": "Total records: {{total}}. Use /export-my-data for full JSON export. Use /data-deletion to delete."
 }

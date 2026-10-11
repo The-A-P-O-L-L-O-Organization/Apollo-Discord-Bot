@@ -531,5 +531,12 @@
     "help.howTo": "",
     "help.howToValue": "",
     "help.legend": "",
-    "help.legendValue": ""
+    "help.legendValue": "",
+    "datarequest.title": "Your Data Request (Art. 15 GDPR)",
+    "datarequest.desc": "Here is a summary of all data Apollo has stored about you:",
+    "datarequest.guildData": "Guild-Scoped Data",
+    "datarequest.userData": "Per-Guild User Data",
+    "datarequest.none": "No Data Found",
+    "datarequest.noneDesc": "No personal data found for your user ID.",
+    "datarequest.footer": "Total records: {{total}}. Use /export-my-data for full JSON export. Use /data-deletion to delete."
 }
