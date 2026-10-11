@@ -2,8 +2,11 @@ import type { ChatInputCommandInteraction, ButtonInteraction, StringSelectMenuIn
 import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
 import { getAllGuildData, setGuildData, getUserData, setUserData } from '../../../utils/db.js';
 import { logSecurityEvent } from '../../../utils/securityLog.js';
+import { createLogger } from '../../../utils/logger.js';
 import { handleDiscordError, safeReply, safeFollowUp } from '../../../utils/discordErrors.js';
 import { i18n } from '../../../i18n/index.js';
+
+const logger = createLogger({ component: 'plugin:utility:datadeletion' });
 
 const GUILD_ARRAY_STORES: Record<string, { key: string; match: (item: unknown, userId: string) => boolean }> = {
     warnings: { key: 'warnings', match: (item, userId) => (item as { userId?: string }).userId === userId },
@@ -12,8 +15,26 @@ const GUILD_ARRAY_STORES: Record<string, { key: string; match: (item: unknown, u
     reminders: { key: 'reminders', match: (item, userId) => (item as { userId?: string }).userId === userId },
     polls: { key: 'polls', match: (item, userId) => (item as { creatorId?: string }).creatorId === userId },
     giveaways: { key: 'giveaways', match: (item, userId) => (item as { creatorId?: string }).creatorId === userId },
-    tags: { key: 'tags', match: (item, userId) => (item as { ownerId?: string }).ownerId === userId }
+    tags: { key: 'tags', match: (item, userId) => (item as { ownerId?: string }).ownerId === userId },
+    cases: { key: 'cases', match: (item, userId) => (item as { userId?: string }).userId === userId },
+    blacklist: { key: 'blacklist', match: (item, userId) => item === userId || (item as { userId?: string }).userId === userId },
+    reports: { key: 'reports', match: (item, userId) => (item as { reporterId?: string }).reporterId === userId || (item as { reportedId?: string }).reportedId === userId },
+    temproles: { key: 'temproles', match: (item, userId) => (item as { userId?: string }).userId === userId },
+    tempbans: { key: 'tempbans', match: (item, userId) => (item as { userId?: string }).userId === userId },
+    rolepersistence: { key: 'rolepersistence', match: (item, userId) => (item as { userId?: string }).userId === userId },
+    nickname: { key: 'savedNicknames', match: (item, userId) => (item as { userId?: string }).userId === userId },
+    voicestate: { key: 'voiceLogs', match: (item, userId) => (item as { userId?: string }).userId === userId },
+    invites: { key: 'inviteTracker', match: (item, userId) => (item as { userId?: string }).userId === userId }
 };
+
+const NESTED_ARRAY_STORES: Record<string, { outer: string; inner: string }> = {
+    nickname: { outer: 'nickname', inner: 'savedNicknames' },
+    voicestate: { outer: 'voicestate', inner: 'voiceLogs' },
+    invites: { outer: 'invites', inner: 'inviteTracker' },
+    rolepersistence: { outer: 'rolepersistence', inner: 'savedRoles' }
+};
+
+const ANALYTICS_OBJECT_KEYS = ['commandCounts', 'messageCounts', 'moderationActions', 'violationsDetected'];
 
 const TICKET_KEYS = ['openTickets', 'closedTickets'];
 
@@ -68,6 +89,60 @@ export async function deleteUserData(userId: string): Promise<{ total: number; b
         }
     }
 
+    for (const [category, { outer, inner }] of Object.entries(NESTED_ARRAY_STORES)) {
+        try {
+            const allGuildData = await getAllGuildData(category);
+            for (const { guildId, data } of allGuildData) {
+                if (!data || typeof data !== 'object') { continue; }
+                const wrapper = (data as Record<string, unknown>)[outer];
+                if (!wrapper || typeof wrapper !== 'object' || !Array.isArray((wrapper as Record<string, unknown>)[inner])) { continue; }
+                const wrapObj = wrapper as Record<string, unknown[]>;
+                const arr = wrapObj[inner] ?? [];
+                const before = arr.length;
+                const filtered = arr.filter((item) => (item as { userId?: string }).userId !== userId);
+                const removed = before - filtered.length;
+                if (removed > 0) {
+                    wrapObj[inner] = filtered;
+                    await setGuildData(category, guildId, data);
+                    byCategory[category] = (byCategory[category] ?? 0) + removed;
+                    total += removed;
+                }
+            }
+        } catch (err) {
+            logger.warn({ err, store: category }, 'Failed to scrub nested store during data deletion');
+        }
+    }
+
+    try {
+        const allAnalyticsData = await getAllGuildData('analytics');
+        for (const { guildId, data } of allAnalyticsData) {
+            if (!data || typeof data !== 'object') { continue; }
+            const dataObj = data as Record<string, unknown>;
+            const containers: Record<string, unknown>[] = [dataObj];
+            const nested = dataObj['analytics'];
+            if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+                containers.push(nested as Record<string, unknown>);
+            }
+            let storeChanged = false;
+            for (const container of containers) {
+                for (const key of ANALYTICS_OBJECT_KEYS) {
+                    const bucket = container[key];
+                    if (bucket && typeof bucket === 'object' && !Array.isArray(bucket) && userId in (bucket as Record<string, unknown>)) {
+                        delete (bucket as Record<string, unknown>)[userId];
+                        byCategory['analytics'] = (byCategory['analytics'] ?? 0) + 1;
+                        total += 1;
+                        storeChanged = true;
+                    }
+                }
+            }
+            if (storeChanged) {
+                await setGuildData('analytics', guildId, data);
+            }
+        }
+    } catch (err) {
+        logger.warn({ err, store: 'analytics' }, 'Failed to scrub analytics store during data deletion');
+    }
+
     const userStores = ['levels', 'reminders', 'polls', 'giveaways', 'tags'];
     for (const store of userStores) {
         const allGuildData = await getAllGuildData(store);
@@ -100,7 +175,17 @@ export function buildDeletionSummary(summary: { total: number; byCategory: Recor
         giveaways: 'giveaways',
         tags: 'tags',
         tickets: 'tickets',
-        levels: 'level/XP records'
+        levels: 'level/XP records',
+        cases: 'moderation cases',
+        blacklist: 'blacklist entries',
+        reports: 'reports',
+        temproles: 'temp roles',
+        tempbans: 'temp bans',
+        rolepersistence: 'role persistence records',
+        nickname: 'saved nicknames',
+        voicestate: 'voice state logs',
+        analytics: 'analytics records',
+        invites: 'invite tracker entries'
     };
 
     for (const [category, count] of Object.entries(summary.byCategory)) {

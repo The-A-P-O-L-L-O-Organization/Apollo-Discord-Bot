@@ -423,6 +423,126 @@ describe('deleteUserData helper', () => {
     });
 });
 
+describe('deleteUserData extended coverage', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.mocked(getUserData).mockResolvedValue(undefined);
+        vi.mocked(setGuildData).mockResolvedValue();
+        vi.mocked(setUserData).mockResolvedValue();
+    });
+
+    it('deletes moderation cases and blacklist entries', async() => {
+        vi.mocked(getAllGuildData).mockResolvedValue([
+            { guildId: 'guild1', data: { cases: [{ userId: 'user123' }], blacklist: ['user123'] } }
+        ]);
+
+        const summary = await deleteUserData('user123');
+
+        expect(summary.byCategory['cases']).toBeGreaterThan(0);
+        expect(summary.byCategory['blacklist']).toBeGreaterThan(0);
+    });
+
+    it('deletes blacklist entries stored as objects', async() => {
+        vi.mocked(getAllGuildData).mockResolvedValue([
+            { guildId: 'guild1', data: { blacklist: [{ userId: 'user123' }, { userId: 'other-user' }] } }
+        ]);
+
+        const summary = await deleteUserData('user123');
+
+        expect(summary.byCategory['blacklist']).toBe(1);
+        expect(setGuildData).toHaveBeenCalledWith(
+            'blacklist',
+            'guild1',
+            expect.objectContaining({
+                blacklist: expect.arrayContaining([
+                    expect.objectContaining({ userId: 'other-user' })
+                ])
+            })
+        );
+    });
+
+    it('deletes reports as reporter and reported', async() => {
+        vi.mocked(getAllGuildData).mockResolvedValue([
+            { guildId: 'guild1', data: { reports: [{ reporterId: 'user123' }, { reportedId: 'user123' }] } }
+        ]);
+
+        const summary = await deleteUserData('user123');
+
+        expect(summary.byCategory['reports']).toBe(2);
+    });
+
+    it('deletes temproles, tempbans and rolepersistence', async() => {
+        vi.mocked(getAllGuildData).mockResolvedValue([
+            {
+                guildId: 'guild1',
+                data: {
+                    temproles: [{ userId: 'user123' }],
+                    tempbans: [{ userId: 'user123' }],
+                    rolepersistence: [{ userId: 'user123' }]
+                }
+            }
+        ]);
+
+        const summary = await deleteUserData('user123');
+
+        expect(summary.byCategory['temproles']).toBeGreaterThan(0);
+        expect(summary.byCategory['tempbans']).toBeGreaterThan(0);
+        expect(summary.byCategory['rolepersistence']).toBeGreaterThan(0);
+    });
+
+    it('deletes nickname, voicestate, analytics and invites', async() => {
+        vi.mocked(getAllGuildData).mockResolvedValue([
+            {
+                guildId: 'guild1',
+                data: {
+                    nickname: { savedNicknames: [{ userId: 'user123' }] },
+                    voicestate: { voiceLogs: [{ userId: 'user123' }] },
+                    analytics: { commandCounts: { user123: 5 } },
+                    invites: { inviteTracker: [{ userId: 'user123' }] }
+                }
+            }
+        ]);
+
+        const summary = await deleteUserData('user123');
+
+        expect(summary.byCategory['nickname']).toBeGreaterThan(0);
+        expect(summary.byCategory['voicestate']).toBeGreaterThan(0);
+        expect(summary.byCategory['analytics']).toBeGreaterThan(0);
+        expect(summary.byCategory['invites']).toBeGreaterThan(0);
+    });
+
+    it('deletes flat savedNicknames, voiceLogs and inviteTracker arrays', async() => {
+        vi.mocked(getAllGuildData).mockResolvedValue([
+            {
+                guildId: 'guild1',
+                data: {
+                    savedNicknames: [{ userId: 'user123' }],
+                    voiceLogs: [{ userId: 'user123' }],
+                    inviteTracker: [{ userId: 'user123' }]
+                }
+            }
+        ]);
+
+        const summary = await deleteUserData('user123');
+
+        expect(summary.byCategory['nickname']).toBe(1);
+        expect(summary.byCategory['voicestate']).toBe(1);
+        expect(summary.byCategory['invites']).toBe(1);
+    });
+
+    it('uses friendly labels for new categories in the summary', async() => {
+        const text = buildDeletionSummary({
+            total: 4,
+            byCategory: { cases: 1, blacklist: 1, reports: 1, analytics: 1 }
+        });
+
+        expect(text.toLowerCase()).toContain('moderation cases');
+        expect(text.toLowerCase()).toContain('blacklist entries');
+        expect(text.toLowerCase()).toContain('reports');
+        expect(text.toLowerCase()).toContain('analytics records');
+    });
+});
+
 describe('buildDeletionSummary helper', () => {
     it('should return a human-readable summary', () => {
         const summary = {
