@@ -15,7 +15,7 @@ Apollo v2 ran as a single process handling Discord gateway, command execution, s
 - **Deployment coupling**: Any change requires full restart
 
 We evaluated:
-1. **Pure microservices** — Rejected: premature for guild-scoped bot (100-1000 guilds); operational overhead unjustified
+1. **Pure microservices** — Rejected: premature for **guild-scoped bot architected for** 100-1000 guilds; operational overhead unjustified
 2. **Monolith with role modes** — Selected: single codebase, distinct runtime roles via `RUN_MODE`
 3. **External queue workers only** — Rejected: still single gateway process
 

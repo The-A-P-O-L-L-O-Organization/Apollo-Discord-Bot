@@ -8,7 +8,7 @@
 
 **Tech Stack:** TypeScript, @prometheus-io/client, Prometheus recording/alerting rules, Grafana dashboard JSON, markdown documentation.
 
-**Spec:** Librarian research output (proportional scaling for guild-scoped bot, 100-1000 guilds, solo/small team) + existing metrics substrate in `src/utils/metrics.ts`, `src/utils/healthServer.ts`, `src/gateway/leader.ts`, `src/queue/queue.ts`.
+**Spec:** Librarian research output (proportional scaling for guild-scoped bot **architected for** 100-1000 guilds, solo/small team) + existing metrics substrate in `src/utils/metrics.ts`, `src/utils/healthServer.ts`, `src/gateway/leader.ts`, `src/queue/queue.ts`.
 
 ## Global Constraints
 
@@ -732,7 +732,7 @@ The queue job reliability SLO (99%) assumes jobs complete within 5 minutes. Back
 
 ## Out of Scope
 
-- Per-guild SLOs (cardinality not justified at 100-1000 guilds)
+- Per-guild SLOs (cardinality not justified for **architected for** 100-1000 guilds)
 - SLA/external contracts (Apollo is self-hosted, no customer SLA)
 - Infrastructure SLOs (Redis, PostgreSQL, Discord API) — tracked separately
 

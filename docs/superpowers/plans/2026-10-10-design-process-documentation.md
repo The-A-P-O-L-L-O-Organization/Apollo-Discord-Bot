@@ -1,3 +1,45 @@
+# Design Process Documentation Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Create `docs/architecture/design-process.md` documenting Apollo's actual design process derived from the v2 rewrite (PR #29) and subsequent governance work.
+
+**Architecture:** Single markdown document synthesizing the phased, evidence-based process used in PR #29 (67 commits, phase1-4 prefixes, bot review loops) and the governance implementation (SLI/SLO, threat model, ADRs, chaos tests, runbooks). No code changes — documentation only.
+
+**Tech Stack:** Markdown, Mermaid diagrams for process flow.
+
+**Spec:** PR #29 (The-A-P-O-L-L-O-Organization/Apollo-Discord-Bot#29) + governance plans in `docs/superpowers/plans/`
+
+## Global Constraints
+
+- No emojis in documentation (per AGENTS.md)
+- No code comments unless explicitly requested
+- Follow existing docs style in `docs/architecture/` and `docs/runbooks/`
+- Use imperative, concise language
+- Reference existing artifacts (ADRs, SLOs, threat model, chaos tests, runbooks) by filename
+
+## Review Focus
+
+1. **Process authenticity** — Does the doc reflect actual practice (phased commits, review loops) not aspirational theory?
+2. **Artifact traceability** — Are all current governance artifacts (SLIs, threat model, ADRs, chaos tests, runbooks) mapped to process steps?
+3. **Scalability clarity** — Does it distinguish solo/small-team practices from what would change at scale?
+4. **Decision gates** — Are the explicit review/approval points (Oracle review, reviewer gate, verification) documented?
+5. **Tool integration** — Are opencode subagents (oracle, fixer, librarian, reviewer, explorer) mapped to process phases?
+
+---
+
+### Task 1: Create Design Process Document
+
+**Files:**
+- Create: `docs/architecture/design-process.md`
+
+**Interfaces:**
+- Consumes: PR #29 commit history, governance plans (2026-10-10-*.md), existing ADRs, SLO doc, threat model, chaos tests, runbooks
+- Produces: Single authoritative design process document
+
+- [ ] **Step 1: Write the document header and overview**
+
+```markdown
 # Apollo Design Process
 
 > Documents the actual design and development process used for Apollo Discord Bot v2 rewrite (PR #29) and v3 governance implementation. Not a theoretical framework — a record of what worked.
@@ -12,7 +54,16 @@ Apollo's design process is **phased, evidence-driven, and review-gated**. It evo
 - Mandatory verification gates (lint, typecheck, tests, security)
 - Documentation as final phase, not afterthought
 - Decision capture via ADRs, not meeting notes
+```
 
+- [ ] **Step 2: Run a syntax check on the markdown**
+
+Run: `npx markdownlint docs/architecture/design-process.md` (or equivalent)
+Expected: PASS (no errors)
+
+- [ ] **Step 3: Write Phase 1 — Problem Definition & Requirements**
+
+```markdown
 ## Phase 1: Problem Definition & Requirements
 
 **Trigger:** New feature, architectural change, or technical debt initiative.
@@ -35,7 +86,11 @@ Apollo's design process is **phased, evidence-driven, and review-gated**. It evo
 **Gate:** Plan reviewed by human (or Oracle subagent) before Phase 2.
 
 **Artifacts Created:** Plan file in `docs/superpowers/plans/`
+```
 
+- [ ] **Step 4: Write Phase 2 — Architecture & Design**
+
+```markdown
 ## Phase 2: Architecture & Design
 
 **Trigger:** Approved plan from Phase 1.
@@ -63,7 +118,11 @@ Apollo's design process is **phased, evidence-driven, and review-gated**. It evo
 **Gate:** Oracle subagent review of architecture before implementation.
 
 **Artifacts Created/Updated:** ADR, threat-model.md, slos.md, plan task list
+```
 
+- [ ] **Step 5: Write Phase 3 — Implementation**
+
+```markdown
 ## Phase 3: Implementation
 
 **Trigger:** Architecture approved, tasks defined.
@@ -90,7 +149,11 @@ Apollo's design process is **phased, evidence-driven, and review-gated**. It evo
 **Gate:** All tasks pass `pnpm lint`, `pnpm typecheck`, relevant `pnpm vitest run` before Phase 4.
 
 **Artifacts Created/Updated:** Source code, tests, codemaps
+```
 
+- [ ] **Step 6: Write Phase 4 — Verification & Review**
+
+```markdown
 ## Phase 4: Verification & Review
 
 **Trigger:** Implementation complete, all task tests passing.
@@ -122,7 +185,11 @@ Apollo's design process is **phased, evidence-driven, and review-gated**. It evo
 **Gate:** Reviewer + verifier approval before Phase 5.
 
 **Artifacts:** None (verification only)
+```
 
+- [ ] **Step 7: Write Phase 5 — Documentation & Knowledge Capture**
+
+```markdown
 ## Phase 5: Documentation & Knowledge Capture
 
 **Trigger:** Verification passed, review approved.
@@ -149,7 +216,11 @@ Apollo's design process is **phased, evidence-driven, and review-gated**. It evo
 **Gate:** Documentation review (human or oracle) before merge.
 
 **Artifacts Updated:** README, INSTALLATION, CONTRIBUTING, SECURITY, codemaps, runbooks, ADRs
+```
 
+- [ ] **Step 8: Write Phase 6 — Evolution & Feedback**
+
+```markdown
 ## Phase 6: Evolution & Feedback
 
 **Trigger:** Post-deploy (days/weeks after merge).
@@ -175,7 +246,11 @@ Apollo's design process is **phased, evidence-driven, and review-gated**. It evo
 **Gate:** Continuous — no formal gate, driven by metrics and incidents.
 
 **Artifacts Updated:** slos.md, threat-model.md, runbooks, ADRs, chaos tests
+```
 
+- [ ] **Step 9: Write Process Flow Diagram (Mermaid)**
+
+```markdown
 ## Process Flow
 
 ```mermaid
@@ -212,7 +287,11 @@ flowchart TD
 | 4 Verification | `reviewer`, `verifier`, `oracle` | Review, auto-checks, high-risk audit |
 | 5 Documentation | `fixer`, `oracle` | Sync docs, architecture review |
 | 6 Evolution | `oracle`, `librarian` | Arch review, new tech eval |
+```
 
+- [ ] **Step 10: Write Artifact Traceability Matrix**
+
+```markdown
 ## Artifact Traceability Matrix
 
 | Governance Artifact | Created In Phase | Updated In Phases | Source of Truth |
@@ -225,7 +304,11 @@ flowchart TD
 | Fitness Functions (`tests/architecture/`) | 2, 6 | 3, 6 | Architecture invariants |
 | Codemaps (`codemap.md`, `*/codemap.md`) | 5 | 5 | Codebase navigation |
 | Plan Files (`docs/superpowers/plans/`) | 1 | 1-5 | Work tracking |
+```
 
+- [ ] **Step 11: Write Scaling Considerations**
+
+```markdown
 ## Scaling Considerations
 
 **Current Scale:** Solo/small team; **Architected for:** 100-1000 guilds, single maintainer.
@@ -248,7 +331,11 @@ flowchart TD
 - Threat Dragon / CAIRIS (overhead)
 - ADR linters in CI (until >20 ADRs)
 - Error-budget automation (manual monthly review sufficient)
+```
 
+- [ ] **Step 12: Write Tooling & Subagent Reference**
+
+```markdown
 ## Tooling & Subagent Reference
 
 **Subagents (opencode):**
@@ -286,3 +373,15 @@ flowchart TD
 | Locales | `pnpm lint:locales` + i18n tests |
 | Protobuf | `pnpm proto:lint`, `pnpm proto:breaking` |
 | Observability | `pnpm lint`, `pnpm typecheck`, metrics tests, `promtool`, dashboard JSON validation |
+```
+
+- [ ] **Step 13: Final review and save**
+
+Run: `cat docs/architecture/design-process.md` — verify complete, no placeholders, all sections present.
+
+- [ ] **Step 14: Commit**
+
+```bash
+git add docs/architecture/design-process.md
+git commit -m "docs: add design process documentation from PR #29 evidence"
+```
