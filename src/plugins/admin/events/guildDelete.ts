@@ -1,4 +1,5 @@
 import { createLogger } from '../../../utils/logger.js';
+import { isDuplicateEvent } from '../../../utils/eventDedupe.js';
 import type { Guild, Client } from 'discord.js';
 
 const logger = createLogger({ component: 'admin:guildDelete' });
@@ -6,7 +7,10 @@ const logger = createLogger({ component: 'admin:guildDelete' });
 export default {
     name: 'guildDelete',
     once: false,
-    execute(guild: Guild, client: Client) {
+    async execute(guild: Guild, client: Client) {
+        if (await isDuplicateEvent('guildDelete', guild.id)) {
+            return;
+        }
         try {
             logger.info(`[INFO] Bot removed from server: ${guild.name} (${guild.id})`);
             logger.info(`[INFO] Server had ${guild.memberCount} members`);

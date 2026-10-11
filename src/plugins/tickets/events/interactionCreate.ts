@@ -1,6 +1,7 @@
 import type { ButtonInteraction, FetchMessagesOptions, GuildMember, GuildTextBasedChannel, Message } from 'discord.js';
 import { EmbedBuilder, ChannelType, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { getGuildData, updateGuildData, generateId, writeToSubDir } from '../../../utils/db.js';
+import { isDuplicateEvent } from '../../../utils/eventDedupe.js';
 import { config } from '../../../config/config.js';
 import { logger } from '../../../utils/logger.js';
 import { MessageFlags } from 'discord.js';
@@ -12,6 +13,8 @@ export default {
 
     async execute(interaction: ButtonInteraction, _client: unknown): Promise<void> {
         if (!interaction.isButton()) { return; }
+
+        if (await isDuplicateEvent('ticketInteraction', interaction.id)) { return; }
 
         const customId = interaction.customId;
 

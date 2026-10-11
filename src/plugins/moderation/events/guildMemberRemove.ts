@@ -1,5 +1,6 @@
 import type { GuildMember } from 'discord.js';
 import { logEvent, createMemberLeaveEmbed } from '../../../utils/guildLogging.js';
+import { isDuplicateEvent } from '../../../utils/eventDedupe.js';
 import { trackMemberChange } from '../../../utils/analyticsCollector.js';
 import { getGuildData, updateGuildData } from '../../../utils/db.js';
 
@@ -9,6 +10,8 @@ export default {
 
     async execute(member: GuildMember, _client: unknown) {
         if (member.user.bot) { return; }
+
+        if (await isDuplicateEvent('guildMemberRemove', `${member.guild.id}:${member.id}`)) { return; }
 
         void trackMemberChange(member.guild.id, false, member.guild.memberCount);
 

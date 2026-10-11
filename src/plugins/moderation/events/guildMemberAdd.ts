@@ -7,6 +7,7 @@ import { getGuildData, getData, updateGuildData } from '../../../utils/db.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { checkRaidPattern, handleRaidDetected, checkRaidPatternRedis, trackJoinRedis } from '../../../utils/raidDetection.js';
 import { getLockRedis } from '../../../utils/lock.js';
+import { isDuplicateEvent } from '../../../utils/eventDedupe.js';
 import { trackMemberChange } from '../../../utils/analyticsCollector.js';
 import { i18n } from '../../../i18n/index.js';
 
@@ -21,6 +22,10 @@ export default {
     once: false,
     async execute(member: GuildMember, _client: unknown) {
         const { guild } = member;
+
+        if (await isDuplicateEvent('guildMemberAdd', `${guild.id}:${member.id}`)) {
+            return;
+        }
 
         // Track member join for analytics
         void trackMemberChange(guild.id, true, guild.memberCount);

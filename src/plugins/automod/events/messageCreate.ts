@@ -1,4 +1,5 @@
 import { createLogger } from '../../../utils/logger.js';
+import { isDuplicateEvent } from '../../../utils/eventDedupe.js';
 import { trackMessage, trackViolation } from '../../../utils/analyticsCollector.js';
 import { getGuildData, appendToUserArray } from '../../../utils/db.js';
 import { checkSpam, checkBurstSpam, getAutomodConfig, isExempt, isChannelExempt, checkBannedWords, checkInvites, checkLinks, checkMentionSpam, checkCapsSpam, checkPhishingLinks, checkAccountAge } from '../../../utils/automod.js';
@@ -142,6 +143,8 @@ export default {
 
         // Skip if no member (DMs, webhooks, etc.)
         if (!message.member) {return;}
+
+        if (await isDuplicateEvent('automodMessageCreate', `${message.guild.id}:${message.id}`)) {return;}
 
         const guildId = message.guild.id;
         const userId = message.author.id;

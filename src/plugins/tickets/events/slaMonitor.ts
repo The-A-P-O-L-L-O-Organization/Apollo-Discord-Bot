@@ -8,6 +8,7 @@ import type { Ticket, SLAThresholds } from '../../../utils/slaTracker.js';
 import { sendModLog } from '../../../utils/modLog.js';
 import { config } from '../../../config/config.js';
 import { getGuildData, getAllGuildIds } from '../../../utils/db.js';
+import { isDuplicateEvent } from '../../../utils/eventDedupe.js';
 
 // Track which tickets have already been alerted to avoid spam
 // Map<guildId, Map<ticketId, { alertedAt, count }>>
@@ -104,6 +105,11 @@ async function checkGuildTickets(client: Client, guildId: string): Promise<void>
  */
 async function handleSlaBreach(guild: Guild, ticket: Record<string, unknown>, slaThresholds: Record<string, number>, client: Client): Promise<void> {
     const now = Date.now();
+
+    const slaWindow = Math.floor(now / ALERT_COOLDOWN);
+    if (await isDuplicateEvent('slaBreach', `${guild.id}:${ticket['id'] as string}:${slaWindow}`)) {
+        return;
+    }
 
     // Check if already alerted (with cooldown)
     if (!alertedTickets.has(guild.id)) {

@@ -1,5 +1,6 @@
 import type { Message } from 'discord.js';
 import { logger } from '../../../utils/logger.js';
+import { isDuplicateEvent } from '../../../utils/eventDedupe.js';
 import { EmbedBuilder } from 'discord.js';
 import { getLevelsConfig, isOnCooldown, awardXp } from '../../../utils/xp.js';
 import { i18n } from '../../../i18n/index.js';
@@ -12,6 +13,8 @@ export default {
         // Ignore DMs and bots
         if (!message.guild) { return; }
         if (message.author.bot) { return; }
+
+        if (await isDuplicateEvent('utilityMessageCreate', `${message.guild.id}:${message.id}`)) { return; }
 
         try {
             const cfg = await getLevelsConfig(message.guild.id);

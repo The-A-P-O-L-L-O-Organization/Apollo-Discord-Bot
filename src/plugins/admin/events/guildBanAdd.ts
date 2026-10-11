@@ -1,4 +1,5 @@
 import { logEvent } from '../../../utils/guildLogging.js';
+import { isDuplicateEvent } from '../../../utils/eventDedupe.js';
 import type { GuildBan } from 'discord.js';
 
 export default {
@@ -10,6 +11,10 @@ export default {
             const user = ban.user;
 
             if (!guild || !user) {
+                return;
+            }
+
+            if (await isDuplicateEvent('guildBanAdd', `${guild.id}:${user.id}`)) {
                 return;
             }
 

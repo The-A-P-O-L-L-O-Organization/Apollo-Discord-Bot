@@ -1,4 +1,5 @@
 import { getGuildData } from '../../../utils/db.js';
+import { isDuplicateEvent } from '../../../utils/eventDedupe.js';
 import { logger } from '../../../utils/logger.js';
 import type { MessageReaction, PartialMessageReaction, User, PartialUser, GuildMember } from 'discord.js';
 
@@ -27,6 +28,8 @@ export default {
         const emojiIdentifier = reaction.emoji.id
             ? `${reaction.emoji.name}:${reaction.emoji.id}`
             : reaction.emoji.name;
+
+        if (await isDuplicateEvent('messageReactionRemove', `${guild.id}:${messageId}:${user.id}:${emojiIdentifier}`)) { return; }
 
         const reactionRoles = await getGuildData('reactionroles', guildId);
         const roles = (reactionRoles['roles'] ?? []) as { messageId: string; emoji: string; roleId: string }[];

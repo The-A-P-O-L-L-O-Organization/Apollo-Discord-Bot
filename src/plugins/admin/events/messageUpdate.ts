@@ -1,4 +1,5 @@
 import { logEvent, createMessageEditEmbed } from '../../../utils/guildLogging.js';
+import { isDuplicateEvent } from '../../../utils/eventDedupe.js';
 import type { Message } from 'discord.js';
 
 export default {
@@ -10,6 +11,8 @@ export default {
         if (!newMessage.author) { return; }
 
         if (newMessage.author?.bot) { return; }
+
+        if (await isDuplicateEvent('messageUpdate', `${newMessage.guild.id}:${newMessage.id}:${newMessage.editedTimestamp ?? 0}`)) { return; }
 
         if (oldMessage.partial) {
             try {

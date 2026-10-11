@@ -1,5 +1,6 @@
 import { logger } from '../../../utils/logger.js';
 import { setGuildData } from '../../../utils/db.js';
+import { isDuplicateEvent } from '../../../utils/eventDedupe.js';
 import { config } from '../../../config/config.js';
 import type { Guild, GuildTextBasedChannel, Client } from 'discord.js';
 
@@ -8,6 +9,9 @@ export default {
     once: false,
     async execute(guild: Guild, client: Client) {
         const guildId = guild.id;
+        if (await isDuplicateEvent('guildCreate', guildId)) {
+            return;
+        }
         try {
             logger.info(`[SUCCESS] Bot joined new server: ${guild.name} (${guild.id})`);
             logger.info(`[INFO] Server has ${guild.memberCount} members`);

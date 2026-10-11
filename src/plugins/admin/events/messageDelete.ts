@@ -1,4 +1,5 @@
 import { logEvent, createMessageDeleteEmbed } from '../../../utils/guildLogging.js';
+import { isDuplicateEvent } from '../../../utils/eventDedupe.js';
 import type { Message } from 'discord.js';
 
 export default {
@@ -11,6 +12,8 @@ export default {
         if (!message.author) { return; }
 
         if (message.author?.bot) { return; }
+
+        if (await isDuplicateEvent('messageDelete', `${message.guild.id}:${message.id}`)) { return; }
 
         if (message.partial) {
             try {

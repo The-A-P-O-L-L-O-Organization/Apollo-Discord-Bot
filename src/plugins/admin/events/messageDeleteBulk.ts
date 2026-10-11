@@ -1,4 +1,5 @@
 import { logEvent } from '../../../utils/guildLogging.js';
+import { isDuplicateEvent } from '../../../utils/eventDedupe.js';
 import type { Message, Collection, GuildChannel } from 'discord.js';
 
 export default {
@@ -7,6 +8,9 @@ export default {
     async execute(messages: Collection<string, Message>, channel: GuildChannel, _client: unknown) {
         try {
             if (!channel.guild) { return; }
+
+            const bulkEventId = `${channel.guild.id}:${channel.id}:${[...messages.keys()].toSorted().join(',')}`;
+            if (await isDuplicateEvent('messageDeleteBulk', bulkEventId)) { return; }
 
             const guild = channel.guild;
             const messageCount = messages.size;
