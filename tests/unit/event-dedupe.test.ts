@@ -167,17 +167,23 @@ describe('EventDedupe', () => {
     });
 
     describe('close', () => {
-        it('should close the Redis connection', async () => {
+        it('should mark the instance closed without disconnecting shared Redis', async () => {
             await dedupe.close();
 
-            expect(mockRedis.quit).toHaveBeenCalledTimes(1);
+            expect(dedupe.isClosed()).toBe(true);
+            expect(mockRedis.quit).not.toHaveBeenCalled();
         });
 
         it('should be idempotent', async () => {
             await dedupe.close();
             await dedupe.close();
 
-            expect(mockRedis.quit).toHaveBeenCalledTimes(1);
+            expect(dedupe.isClosed()).toBe(true);
+            expect(mockRedis.quit).not.toHaveBeenCalled();
+        });
+
+        it('should throw when constructed without a Redis client', () => {
+            expect(() => new EventDedupe(null as never)).toThrow('EventDedupe requires a Redis client');
         });
     });
 

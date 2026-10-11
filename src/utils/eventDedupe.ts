@@ -41,6 +41,9 @@ export class EventDedupe {
     private closed = false;
 
     constructor(redis: RedisClient, options: EventDedupeOptions = {}) {
+        if (!redis) {
+            throw new Error('EventDedupe requires a Redis client');
+        }
         this.redis = redis;
         this.ttlSeconds = options.ttlSeconds ?? 600;
         this.keyPrefix = options.keyPrefix ?? 'event:dedupe:';
@@ -112,7 +115,9 @@ export class EventDedupe {
     async close(): Promise<void> {
         if (!this.closed) {
             this.closed = true;
-            await this.redis.quit();
+        }
+        if (sharedDedupe === this) {
+            sharedDedupe = null;
         }
     }
 
@@ -129,14 +134,20 @@ export function resetSharedEventDedupe(): void {
 
 export async function isDuplicateEvent(eventType: string, eventId: string): Promise<boolean> {
     try {
-        if (!sharedDedupe) {
+        if (!sharedDedupe || sharedDedupe.isClosed()) {
+            sharedDedupe = null;
             const { getLockRedis } = await import('./lock.js');
             const redis = await getLockRedis();
             if (!redis) {
                 return false;
             }
             const dedupe = new EventDedupe(redis, { ttlSeconds: 600 });
-            await dedupe.initialize();
+            try {
+                await dedupe.initialize();
+            } catch {
+                sharedDedupe = null;
+                return false;
+            }
             sharedDedupe = dedupe;
         }
         const isNew = await sharedDedupe.checkAndSetEvent(eventType, eventId);

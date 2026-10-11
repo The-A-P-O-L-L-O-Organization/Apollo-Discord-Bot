@@ -144,7 +144,7 @@ export default {
         // Skip if no member (DMs, webhooks, etc.)
         if (!message.member) {return;}
 
-        if (await isDuplicateEvent('automodMessageCreate', `${message.guild.id}:${message.id}`)) {return;}
+        if (await isDuplicateEvent('automodMessageCreate', `${message.guild.id}:${message.id}`)) { return; }
 
         const guildId = message.guild.id;
         const userId = message.author.id;
