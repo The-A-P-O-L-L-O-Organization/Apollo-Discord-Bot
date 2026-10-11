@@ -285,23 +285,23 @@ graph TD
 
 | Artifact | OpEx | Security | Reliability | Perf | Cost | Sustainability |
 |----------|------|----------|-------------|------|------|----------------|
-| ADR Process | ✅ | | | | | |
-| SLOs + Error Budgets | ✅ | | ✅ | ✅ | | |
-| Threat Model | | ✅ | | | | |
-| Plugin Sandbox | | ✅ | | | | |
-| Leader Election + Fencing | ✅ | | ✅ | | | |
-| Circuit Breakers | | | ✅ | | | |
-| Chaos Tests | ✅ | | ✅ | | | |
-| Runbooks | ✅ | ✅ | ✅ | | | |
-| DORA Metrics | ✅ | | | ✅ | ✅ | |
-| Fitness Functions | ✅ | | ✅ | ✅ | | |
-| Health Endpoints | ✅ | | ✅ | | | |
-| Encryption Rotation | | ✅ | | | | |
-| Sigstore Verification | | ✅ | | | | |
-| BullMQ + Redis | | | ✅ | ✅ | ✅ | ✅ |
-| SQLite / PG Dual DB | | | | | ✅ | |
-| ARM64 Docker | | | | | | ✅ |
-| msgpackr Serialization | | | | ✅ | | ✅ |
+| ADR Process | Yes | | | | | |
+| SLOs + Error Budgets | Yes | | Yes | Yes | | |
+| Threat Model | | Yes | | | | |
+| Plugin Sandbox | | Yes | | | | |
+| Leader Election + Fencing | Yes | | Yes | | | |
+| Circuit Breakers | | | Yes | | | |
+| Chaos Tests | Yes | | Yes | | | |
+| Runbooks | Yes | Yes | Yes | | | |
+| DORA Metrics | Yes | | | Yes | Yes | |
+| Fitness Functions | Yes | | Yes | Yes | | |
+| Health Endpoints | Yes | | Yes | | | |
+| Encryption Rotation | | Yes | | | | |
+| Sigstore Verification | | Yes | | | | |
+| BullMQ + Redis | | | Yes | Yes | Yes | Yes |
+| SQLite / PG Dual DB | | | | | Yes | |
+| ARM64 Docker | | | | | | Yes |
+| msgpackr Serialization | | | | Yes | | Yes |
 
 ## Conclusion
 
