@@ -133,7 +133,12 @@ export class EventCore {
 
         if (this._crossPodEnabled && set.size > 0) {
             try {
-                await this._redisPub?.publish(`apollo:event:${event}`, JSON.stringify(message));
+                const wire: CrossPodEventMessage = {
+                    ...message,
+                    _sourcePodId: this._podId ?? 'local',
+                    _event: event
+                };
+                await this._redisPub?.publish(`apollo:event:${event}`, JSON.stringify(wire));
                 this._publishedCount++;
             } catch (err) {
                 logger.error({ err, msg: '[EventBus] Failed to publish cross-pod event' });
