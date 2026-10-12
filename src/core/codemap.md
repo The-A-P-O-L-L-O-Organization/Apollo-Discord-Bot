@@ -20,14 +20,24 @@ Owns plugin lifecycle, cross-pod event distribution, and plugin integrity. Provi
 | `PluginRegistry.ts` | Manifest-backed third-party plugin registry with list, get, search, and reload. |
 | `pluginDownloader.ts` | HTTPS-only plugin archive download with hash and zip traversal checks. |
 | `pluginSigstore.ts` | Sigstore signature verification for plugin archives. |
-| `EventBus.ts` | EventBusImpl with local handlers plus optional Redis cross-pod replication. |
+| `EventBus.ts` | Facade over the `eventBus/` modules preserving the full public EventBusImpl API. |
+| `eventBus/eventCore.ts` | Handler registry, priority- and filter-aware emit dispatch, cross-pod event replication. |
+| `eventBus/rpcRegistry.ts` | API registry with bounded-timeout RPC calls and per-plugin cleanup. |
+| `eventBus/stateStore.ts` | Reactive shared state with watchers, TTL expiry, and cross-pod replication. |
+| `eventBus/contractRegistry.ts` | Per-plugin event, RPC, and state contracts with deterministic snapshots. |
+| `eventBus/pluginBusView.ts` | Per-plugin typed bus view with namespace enforcement, schema validation, and disposal. |
 
 Subdirectory `worker/` holds sandboxed third-party plugin execution; see `src/core/worker/codemap.md`.
 
 ## Design
 - `Plugin.ts`: abstract class extending nothing external. Holds `commands`, `eventHandlers`, `schedulers` maps, lifecycle hooks `onLoad`, `onEnable`, `onDisable`, `onUnload`. Loads `commands/` and `events/` modules from its own directory. Exposes `manager.registerSocketHandler(namespace, handler)` reference for `namespace.action` socket RPC.
 - `PluginManager.ts`: coordinator delegating to focused helpers: `PluginLoader.ts`, `PluginEnabler.ts`, `PluginDisabler.ts`, `PluginReloader.ts`, `PluginInstaller.ts`, `PluginDependencyResolver.ts` (`sortByDependencies`, `enablePluginsParallel`), `CommandSync.ts`, `BuiltinPluginLoader.ts`. Tracks `plugins`, `installedPlugins`, `_capabilityIndex`, `_socketHandlers`. Owns a `WorkerHost` for sandboxed third-party plugins.
-- `EventBus.ts`: `EventBusImpl` with `on`, `once`, `emit`, `provide`, `call`, `provideState`, `getState`, `setState`, `watchState`. Event names use `plugin.action` form. Optional cross-pod replication via injected Redis pub/sub clients and `podId`.
+- `EventBus.ts`: facade delegating to the `eventBus/` modules. Public API unchanged (`on`, `once`, `emit`, `provide`, `call`, `provideState`, `getState`, `setState`, `watchState`) plus `createView` and `viewFor` returning cached `PluginBusView` instances (disposed views are replaced), `rpcEntryFor`, `callWithTimeout`, and `provideStateWithTtl`. Event names use `plugin.action` form. Optional cross-pod replication via injected Redis pub/sub clients and `podId`; published event messages carry `_sourcePodId` and `_event` wire fields on channel `apollo:event:${event}`, and own-pod messages are skipped on receive.
+- `eventBus/pluginBusView.ts`: per-plugin view exposed as the `Plugin.busView` getter. Emits must use the plugin's own `${pluginId}:` prefix, `on` and `once` accept own-prefix or bare names, foreign namespaces throw at registration, emits validate payloads against registered schemas, RPC calls honor provider `timeoutMs` metadata with a 5000 ms default, state keys are scoped `${pluginId}:${key}` with opt-in TTL, and `dispose` is idempotent, removes all plugin registrations, and makes every later method throw. Documented gap: cross-pod received messages dispatch without schema validation.
+- `eventBus/eventCore.ts`: handler sets with priority sort and filter matching, subscribe-on-first and unsubscribe-on-last Redis channels, `handleCrossPodEvent` routing, and health counters.
+- `eventBus/rpcRegistry.ts`: `provide`, `call`, `callWithTimeout` raising `RpcTimeoutError` with namespace, timeout, and caller metadata; registration stays intact after timeouts; `removeAll` clears a plugin's APIs.
+- `eventBus/stateStore.ts`: `provide`/`get`/`set`/`watch` with TTL expiry, cross-pod state messages on `apollo:state:${key}`, and per-plugin removal that detaches foreign watchers.
+- `eventBus/contractRegistry.ts`: last-write-wins contract registration keyed by plugin, kind, and name; `attachSchema` validation; deterministic sorted snapshots for manifests.
 - `pluginSigstore.ts`: Sigstore signature verification for plugin archives.
 - `pluginDownloader.ts`: HTTPS-only download, hash check, zip extraction with traversal and symlink rejection.
 - `PluginRegistry.ts`: manifest-backed registry with `listAvailable`, `get`, `search`, `reload`.
@@ -38,12 +48,13 @@ Subdirectory `worker/` holds sandboxed third-party plugin execution; see `src/co
 1. Discovery: `PluginManager` scans built-in and installed directories, `BuiltinPluginLoader` verifies file hashes against the manifest.
 2. Load: instantiate plugin class, call `onLoad`, populate `commands` and `eventHandlers`.
 3. Enable: dependency order via `sortByDependencies`, parallel groups via `enablePluginsParallel`, call `onEnable`, subscribe `EventBus` handlers under the plugin id.
-4. Events: `bus.on(event, handler, pluginId)` then `bus.emit('plugin.action', payload)` runs local handlers and, when cross-pod is enabled, publishes over Redis pub/sub to other pods.
-5. Socket RPC: plugins call `manager.registerSocketHandler('namespace.action', handler)`; `src/cli/socket-server.ts` dispatches socket messages to those handlers.
-6. Installed plugins: `PluginInstaller` downloads via `pluginDownloader`, verifies via `pluginSigstore` and `worker/pluginManifest.ts`, then `WorkerHost.startPlugin` forks `workerChild.ts` with signed capabilities.
+4. Events: plugins use `this.busView.on(event, handler)` and `this.busView.emit('plugin.action', payload)`; the view registers contracts and validates namespace and schema before delegating to the facade, which runs local handlers and, when cross-pod is enabled, publishes over Redis pub/sub to other pods. Raw `bus.on` and `bus.emit` remain the compatibility surface.
+5. Disposal: `PluginManager.disablePlugin` and `PluginReloader` call `bus.viewFor(id)?.dispose()` plus `bus.removeAll(id)` so re-enabling yields a fresh live view; `Plugin.busView` resolves through the cached view map.
+6. Socket RPC: plugins call `manager.registerSocketHandler('namespace.action', handler)`; `src/cli/socket-server.ts` dispatches socket messages to those handlers.
+7. Installed plugins: `PluginInstaller` downloads via `pluginDownloader`, verifies via `pluginSigstore` and `worker/pluginManifest.ts`, then `WorkerHost.startPlugin` forks `workerChild.ts` with signed capabilities.
 
 ## Integration
 - Consumes `src/utils/logger.ts` (pino, never console), `src/utils/manifest.ts`, `src/utils/securityLog.ts`, `src/config/config.ts` (`config.plugins`), `src/types/plugin.ts` and `src/types/shared.ts`.
 - Drives `client.commands` on the discord.js v14 client and delegates Discord application-command sync to `CommandSync.ts`.
-- Publishes cross-pod `plugin.action` events over Redis when `enableCrossPod` is configured.
+- Publishes cross-pod `plugin.action` events over Redis when `enableCrossPod` is configured; received events carry `_sourcePodId` and `_event` for routing and own-pod skip.
 - Spawns sandboxed third-party plugins via `worker/workerHost.ts` and `worker/workerChild.ts` with zod-validated RPC from `worker/rpc-schemas.ts`.

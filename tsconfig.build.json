@@ -19,12 +19,5 @@
         "src/handlers/**",
         "src/generated/nsfw/nsfw/v1/nsfw.ts",
         "src/generated/nsfw/interlink/v1/interlink.ts"
-    ],
-    "references": [
-        { "path": "./tsconfig.core.json" },
-        { "path": "./tsconfig.plugins.json" },
-        { "path": "./tsconfig.queue.json" },
-        { "path": "./tsconfig.generated.json" },
-        { "path": "./tsconfig.admin.json" }
     ]
 }

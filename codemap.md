@@ -34,14 +34,14 @@ Strict TypeScript ESM Discord bot on discord.js v14, Node 22+ (CI and production
 | `src/` | Application source root with top-level entries plus config, core, cli, db, gateway, queue, utils, i18n, observability, types, generated, and plugins | [View Map](src/codemap.md) |
 | `src/cli/` | Terminal administration with arg parsing, plugin command discovery, formatting, and Unix-socket dispatch | [View Map](src/cli/codemap.md) |
 | `src/config/` | Immutable ApolloConfig singleton built from env with typed defaults | [View Map](src/config/codemap.md) |
-| `src/core/` | Plugin lifecycle, cross-pod EventBus distribution, and manifest integrity with worker sandboxing | [View Map](src/core/codemap.md) |
+| `src/core/` | Plugin lifecycle, cross-pod EventBus distribution behind a decomposed facade with typed per-plugin views, and manifest integrity with worker sandboxing | [View Map](src/core/codemap.md) |
 | `src/core/worker/` | Third-party plugin isolation in forked child processes with capability security and zod RPC | [View Map](src/core/worker/codemap.md) |
 | `src/db/` | Knex connectivity and guild/user data bridge for Postgres and SQLite with encryption and migrations | [View Map](src/db/codemap.md) |
 | `src/db/migrations/` | Versioned reversible DDL for SQLite and Postgres shared schema | [View Map](src/db/migrations/codemap.md) |
 | `src/gateway/` | Single leader election with Redis fencing for Discord connection and schedulers | [View Map](src/gateway/codemap.md) |
 | `src/generated/` | Buf-generated TypeScript clients and message types, never hand-edited | [View Map](src/generated/codemap.md) |
 | `src/i18n/` | Internationalization core for 6 locales with en-US canonical and per-guild/user resolution | [View Map](src/i18n/codemap.md) |
-| `src/observability/` | OpenTelemetry tracing bootstrap with Prometheus metrics and structured pino logs | [View Map](src/observability/codemap.md) |
+| `src/observability/` | OpenTelemetry tracing bootstrap, W3C traceparent correlation for queue jobs, Prometheus metrics, and structured pino logs | [View Map](src/observability/codemap.md) |
 | `src/plugins/` | Container for 7 first-party plugins with plugin.ts, commands/, events/, and optional cli/ | [View Map](src/plugins/codemap.md) |
 | `src/plugins/admin/` | Bot administration for plugins, logging, queue, migrations, health, language, and reaction roles | [View Map](src/plugins/admin/codemap.md) |
 | `src/plugins/admin/cli/` | CLI registry for system info, plugin management, and logging configuration | [View Map](src/plugins/admin/cli/codemap.md) |

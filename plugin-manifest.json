@@ -81,7 +81,7 @@
   "src/plugins/interlink/locales/es-ES/common.json": "0c5d33ac51278c97ccf5e53da3c1975d83f3b811b7280353734400654858e4c0",
   "src/plugins/interlink/locales/it/common.json": "0c5d33ac51278c97ccf5e53da3c1975d83f3b811b7280353734400654858e4c0",
   "src/plugins/interlink/locales/pl/common.json": "0c5d33ac51278c97ccf5e53da3c1975d83f3b811b7280353734400654858e4c0",
-  "src/plugins/interlink/plugin.ts": "d063f7fea0fba54a64d548c65aebc837803299c7c3f4f0d2e995e84ae802bc58",
+  "src/plugins/interlink/plugin.ts": "74be6f3a00cfd00590c96fb9d699a6327d4940536b32558080c5c48123cafb43",
   "src/plugins/interlink/tls.ts": "5737f250bc445c7d1bd657829e65bf57f4d38404aa04b931ed8411a49cac1925",
   "src/plugins/interlink/validation.ts": "5b61ee2f4b44bd55537bc9d548887406374a3e6dca661805c109ae73a23bcfd4",
   "src/plugins/moderation/cli/codemap.md": "98cf4dc5cfc7bb0151c6481be062bf4ece1e3fa14657965231457b716ef3adc8",

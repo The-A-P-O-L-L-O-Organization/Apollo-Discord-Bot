@@ -282,6 +282,7 @@ export default class PluginManager {
 
         // For built-in plugins, we still need to call onDisable and remove events
         await this._disabler.disable(id, plugin);
+        this.bus.viewFor(id)?.dispose();
         this.bus.removeAll(id);
         plugin.enabled = false;
 

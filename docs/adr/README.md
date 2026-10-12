@@ -14,6 +14,7 @@ We use the [MADR format](https://adr.github.io/madr/) (Markdown ADRs).
 | 0005 | Interlink At-Most-Once Protobuf Relay | Accepted | 2026-09-19 | — |
 | 0006 | i18n Contract (Namespace=Plugin, en-US Canonical) | Accepted | 2026-09-22 | — |
 | 0007 | Observability Stack (OTel+Prometheus+Pino) | Accepted | 2026-09-27 | — |
+| 0008 | Mandatory Health and Socket Authentication in Production | Accepted | 2026-10-11 | — |
 
 ## Process
 

@@ -33,7 +33,7 @@ Cross-cutting helpers for persistence, logging, security, scheduling, locking, e
 | `integrationPoller.ts` | Periodic polling of integration feeds for new events. |
 | `integrationWebhook.ts` | GitHub webhook receipt with HMAC verification, HTTPS-only except local. |
 | `lock.ts` | withLock single-pod scheduler coordination over Redis. |
-| `logger.ts` | Pino structured logger factory used everywhere instead of console. |
+| `logger.ts` | Pino structured logger factory used everywhere instead of console; stamps OTel `trace_id`/`span_id` via the `traceLogFields` mixin. |
 | `lruCache.ts` | In-process LRU cache. |
 | `manifest.ts` | Plugin manifest hash verification helpers. |
 | `markdownParser.ts` | Markdown parsing and escaping for embeds and transcripts. |
@@ -62,7 +62,6 @@ Cross-cutting helpers for persistence, logging, security, scheduling, locking, e
 | `tempbanScheduler.ts` | Temporary ban expiry scheduler. |
 | `tempRolesScheduler.ts` | Temporary role expiry scheduler. |
 | `threatScore.ts` | Threat scoring for users and content. |
-| `tracing.ts` | OpenTelemetry tracing setup helpers. |
 | `transcriptGenerator.ts` | Ticket transcript HTML and markdown generation. |
 | `translation.ts` | Message translation helpers. |
 | `xp.ts` | XP and level calculation plus award helpers. |
@@ -72,18 +71,18 @@ No subdirectories; all modules are top-level files in `src/utils/`.
 ## Design
 - Persistence: `db.ts` routes `getGuildData`, `setGuildData`, `updateGuildData`, `getAllGuildData`, `getUserData`, `setUserData`, `getAllUserData`, `getData`, `setData` to `src/db/adapter.ts` plus `src/db/knex.ts` for Postgres or embedded `better-sqlite3` for SQLite. `dataStore.ts` is the Redis-backed key-value store with in-memory fallback. `lruCache.ts` is the in-process LRU.
 - Logging: `logger.ts` (`createLogger`, pino structured logs, never `console.log`) and `structuredLogger.ts`; `securityLog.ts` (`logSecurityEvent`); `guildLogging.ts`, `modLog.ts` build moderation embeds.
-- Security: `encryption.ts` (AES-256-GCM, `ENCRYPTION_KEY` rotation as comma-separated values with the first key active for encryption and all keys tried for decryption); `startupChecks.ts` (requires `DISCORD_TOKEN`, `OPERATOR_AGREEMENT=true`, `OPERATOR_CONTACT`, `ENCRYPTION_KEY`; rejects placeholder tokens; caps Postgres pool max near 80 percent of `max_connections`; warns on `ALLOW_UNVERIFIED_PLUGINS=1`); `accessControl.ts`, `commandValidator.ts`, `safeError.ts` (safe user-facing summaries), `safeFetch.ts` (bounded timeout, retry, size limits), `circuitBreaker.ts`, `threatScore.ts`, `simhash.ts`.
+- Security: `encryption.ts` (AES-256-GCM, `ENCRYPTION_KEY` rotation as comma-separated values with the first key active for encryption and all keys tried for decryption); `startupChecks.ts` (requires `DISCORD_TOKEN`, `OPERATOR_AGREEMENT=true`, `OPERATOR_CONTACT`, `ENCRYPTION_KEY`; rejects placeholder tokens; caps Postgres pool max near 80 percent of `max_connections`; warns on `ALLOW_UNVERIFIED_PLUGINS=1`; production FATAL when `HEALTH_AUTH_TOKEN` or `APOLLO_SOCKET_TOKEN` is unset; warns when production lacks `OTEL_ENDPOINT`); `accessControl.ts`, `commandValidator.ts`, `safeError.ts` (safe user-facing summaries), `safeFetch.ts` (bounded timeout, retry, size limits), `circuitBreaker.ts`, `threatScore.ts`, `simhash.ts`.
 - Concurrency: `lock.ts` (`withLock` plus `getLockRedis`) so schedulers run on one pod only; `redis.ts` and `redisCluster.ts` client factories.
 - Scheduling: `reminderScheduler.ts`, `pollScheduler.ts`, `tempbanScheduler.ts`, `tempRolesScheduler.ts`, `integrationPoller.ts`.
 - Content: `automod.ts` barrel over `automodConfig.ts`, `automodChecking.ts`, `automodSpam.ts`; `raidDetection.ts` barrel over `raidDetectionTypes.ts`, `raidDetectionRedis.ts`, `raidDetectionCore.ts`, `raidDetectionSimilarity.ts`; `moderation.ts`, `nsfwDetection.ts`, `openaiModeration.ts`, `translation.ts`, `markdownParser.ts`, `duration.ts`, `xp.ts`, `transcriptGenerator.ts`, `reportHandler.ts`.
 - Analytics: `analyticsCollector.ts` barrel over `analyticsCache.ts`, `analyticsFlush.ts`, `analyticsStats.ts`; `exportAnalytics.ts`, `charts.ts`.
 - Integrations: `integrationClients.ts`, `integrationFormatters.ts`, `integrationWebhook.ts` (GitHub HMAC verification, HTTPS-only except local).
-- Observability: `metrics.ts` (Prometheus counters, histograms, gauges), `healthServer.ts` (liveness and readiness), `tracing.ts` (OpenTelemetry), `slaTracker.ts`.
+- Observability: `metrics.ts` (Prometheus counters, histograms, gauges), `healthServer.ts` (liveness and readiness; every endpoint requires Bearer `HEALTH_AUTH_TOKEN` when set), `slaTracker.ts`. Distributed tracing lives in `src/observability/otel.ts` and `src/observability/traceparent.ts`.
 - Misc: `manifest.ts` (plugin integrity), `discordErrors.ts` (shared translators, `getCommonT`), `featureFlags.ts`.
 - Patterns: Facade (`db.ts` sanctioned bridge over `src/db/adapter.ts`, barrel re-exports over automod/raid/analytics modules), Adapter (`dataStore.ts` Redis store with in-memory fallback), Circuit Breaker (`circuitBreaker.ts` with safe fallback for external calls), Distributed Lock (`lock.ts withLock` single-pod scheduler coordination).
 
 ## Flow
-1. Startup: `startupChecks.ts` validates boot secrets and pool caps; `db.ts` lazily initializes the adapter; `dataStore.ts` connects Redis when configured.
+1. Startup: `startupChecks.ts` validates boot secrets and pool caps and fails closed in production when `HEALTH_AUTH_TOKEN` or `APOLLO_SOCKET_TOKEN` is missing; `db.ts` lazily initializes the adapter; `dataStore.ts` connects Redis when configured.
 2. Commands and events call `db.ts` getters and setters for guild and user state, `logger.ts` child loggers for structured logs, and `accessControl.ts` plus `commandValidator.ts` before acting.
 3. External calls go through `safeFetch.ts` with circuit breaker, bounded timeouts, and safe fallbacks; user-facing errors pass through `safeError.ts` without stacks, SQL, paths, or secrets.
 4. Schedulers and pollers wrap each tick in `withLock` for single-pod execution and persist via `db.ts` or `dataStore.ts`.

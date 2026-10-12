@@ -22,6 +22,8 @@ vi.mock('../../src/utils/lock.js', () => ({
 
 import { getLockRedis } from '../../src/utils/lock.js';
 import { NonceStore } from '../../src/queue/nonceStore.js';
+import { EventBusImpl } from '../../src/core/EventBus.js';
+import type { PublishOptions } from '../../src/types/eventbus.js';
 import InterlinkPlugin, {
     buildConsumerNonce,
     CONSUMER_DEDUPE_TTL_SECONDS,
@@ -93,8 +95,10 @@ function makeEnvelope(overrides: Partial<TestEnvelope> = {}): TestEnvelope {
 }
 
 function makePlugin() {
-    const emit = vi.fn(async () => undefined);
-    const bus = { on: vi.fn(), emit } as never;
+    const bus = new EventBusImpl();
+    const originalEmit = bus.emit.bind(bus);
+    const emit = vi.fn((event: string, payload: unknown, options?: PublishOptions) => originalEmit(event, payload, options));
+    bus.emit = emit as typeof bus.emit;
     const manager = { bus, registerSocketHandler: vi.fn() } as never;
     const plugin = new InterlinkPlugin({} as never, manager);
     return { plugin, emit };
