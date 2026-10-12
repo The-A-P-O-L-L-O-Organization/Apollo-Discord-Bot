@@ -22,6 +22,8 @@ export class PluginBusView {
         return this._pluginId;
     }
 
+    public get isDisposed(): boolean { return this._disposed; }
+
     private _assertNotDisposed(): void {
         if (this._disposed) {
             throw new Error(`PluginBusView for "${this._pluginId}" is disposed`);
@@ -96,9 +98,7 @@ export class PluginBusView {
     } {
         this._assertNotDisposed();
         const fullKey = `${this._pluginId}:${key}`;
-        if (!this._contracts.get('state', fullKey)) {
-            this._contracts.register({ pluginId: this._pluginId, kind: 'state', name: fullKey });
-        }
+        this._contracts.register({ pluginId: this._pluginId, kind: 'state', name: fullKey });
         return {
             get: <T>() => { this._assertNotDisposed(); return this._bus.getState<T>(fullKey); },
             set: async <T>(value: T) => { this._assertNotDisposed(); await this._bus.setState(fullKey, value); },
@@ -111,5 +111,6 @@ export class PluginBusView {
         if (this._disposed) { return; }
         this._disposed = true;
         this._bus.removeAll(this._pluginId);
+        this._contracts.removeAllForPlugin(this._pluginId);
     }
 }

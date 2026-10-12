@@ -313,6 +313,7 @@ export interface PluginContext {
 // Service Interfaces (for ApolloClientExtensions)
 // ============================================
 export interface PluginManager {
+    bus: { viewFor: (pluginId: string) => { dispose: () => void } | undefined; removeAll: (pluginId: string) => void };
     loadPlugin: (name: string, path: string) => Promise<BasePlugin | PluginInstance>;
     enablePlugin: (name: string) => Promise<void>;
     disablePlugin: (name: string) => Promise<void>;

@@ -256,7 +256,6 @@ export default class PluginManager {
             }
         }
 
-        this.bus.viewFor(id)?.dispose();
         this.bus.removeAll(id);
         const loaded = this._loader.getLoadedPlugin(id);
         const manifest = loaded?.manifest ?? { id, name: id, capabilities: [] };

@@ -36,6 +36,9 @@ export class PluginReloader {
         // Disable first (using the instantiated plugin)
         await this.disabler.disable(pluginId, loaded.plugin);
 
+        manager.bus.viewFor(pluginId)?.dispose();
+        manager.bus.removeAll(pluginId);
+
         // Clear command module cache (for queue workers)
         this.loader.clearCache(pluginId);
 

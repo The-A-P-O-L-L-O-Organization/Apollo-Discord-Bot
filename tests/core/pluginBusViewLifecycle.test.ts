@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { z } from 'zod';
 import { Plugin } from '../../src/core/Plugin.js';
 import type { TypedClient as PluginClient } from '../../src/core/Plugin.js';
+import PluginManager from '../../src/core/PluginManager.js';
+import type { TypedClient as ManagerClient, PluginConstructor } from '../../src/core/PluginManager.js';
 import EventBusImpl from '../../src/core/EventBus.js';
 import { RpcRegistry } from '../../src/core/eventBus/rpcRegistry.js';
 
@@ -42,10 +44,13 @@ describe('Plugin busView lifecycle', () => {
         const { plugin, bus } = makePlugin();
         const seen: unknown[] = [];
         plugin.busView.on('testplugin:ping', async (m) => { seen.push(m.payload); });
-        bus.viewFor('testplugin')?.dispose();
+        const disposed = bus.viewFor('testplugin');
+        disposed?.dispose();
         await bus.emit('testplugin:ping', { n: 1 });
         expect(seen).toEqual([]);
-        await expect(plugin.busView.emit('testplugin:ping', { n: 1 })).rejects.toThrow(/disposed/);
+        await expect(disposed!.emit('testplugin:ping', { n: 1 })).rejects.toThrow(/disposed/);
+        expect(plugin.busView.isDisposed).toBe(false);
+        expect(plugin.busView).not.toBe(disposed);
     });
 
     it('state accessors throw the disposed error after dispose', async () => {
@@ -95,5 +100,75 @@ describe('Plugin busView lifecycle', () => {
         } finally {
             spy.mockRestore();
         }
+    });
+});
+
+const received: unknown[] = [];
+
+class LifecyclePlugin extends Plugin {
+    static override get id(): string { return 'lifecyclea'; }
+    override async onEnable(): Promise<void> {
+        this.busView.on('lifecyclea:ping', async (m) => { received.push(m.payload); });
+    }
+}
+
+function makeManager(pluginClass: PluginConstructor): { manager: PluginManager; bus: EventBusImpl } {
+    const client = { commands: new Map(), config: { plugins: { enabled: [], directory: './src/plugins' } }, on: vi.fn(), once: vi.fn(), removeListener: vi.fn(), rest: { put: vi.fn() } } as unknown as PluginClient & ManagerClient;
+    const bus = new EventBusImpl();
+    const manager = new PluginManager(client, bus);
+    manager._pluginRegistry.set(pluginClass.id, pluginClass);
+    return { manager, bus };
+}
+
+describe('PluginBusView manager lifecycle', () => {
+    it('enabled plugin subscribes in onEnable and receives emits', async () => {
+        received.length = 0;
+        const { manager, bus } = makeManager(LifecyclePlugin as unknown as PluginConstructor);
+        await manager.loadPlugin('lifecyclea');
+        await manager.enablePlugin('lifecyclea');
+        await bus.emit('lifecyclea:ping', { n: 1 });
+        expect(received).toEqual([{ n: 1 }]);
+    });
+
+    it('disable disposes the view and removes handlers', async () => {
+        received.length = 0;
+        const { manager, bus } = makeManager(LifecyclePlugin as unknown as PluginConstructor);
+        await manager.loadPlugin('lifecyclea');
+        await manager.enablePlugin('lifecyclea');
+        const view = bus.viewFor('lifecyclea');
+        await manager.disablePlugin('lifecyclea');
+        expect(view?.isDisposed).toBe(true);
+        await bus.emit('lifecyclea:ping', { n: 2 });
+        expect(received).toEqual([]);
+    });
+
+    it('re-enable yields a live view and re-subscribing works', async () => {
+        received.length = 0;
+        const { manager, bus } = makeManager(LifecyclePlugin as unknown as PluginConstructor);
+        const plugin = await manager.loadPlugin('lifecyclea');
+        await manager.enablePlugin('lifecyclea');
+        await manager.disablePlugin('lifecyclea');
+        await manager.enablePlugin('lifecyclea');
+        const view = (plugin as unknown as LifecyclePlugin).busView;
+        expect(view.isDisposed).toBe(false);
+        await bus.emit('lifecyclea:ping', { n: 3 });
+        expect(received).toEqual([{ n: 3 }]);
+    });
+
+    it('repeated on once and state registration does not throw duplicate-contract', async () => {
+        received.length = 0;
+        const { manager, bus } = makeManager(LifecyclePlugin as unknown as PluginConstructor);
+        const plugin = await manager.loadPlugin('lifecyclea');
+        await manager.enablePlugin('lifecyclea');
+        const view = (plugin as unknown as LifecyclePlugin).busView;
+        expect(() => {
+            view.on('lifecyclea:ping', async (m) => { received.push(m.payload); });
+            view.once('lifecyclea:pong', async () => {});
+            view.once('lifecyclea:pong', async () => {});
+            view.state('counter').provide(0);
+            view.state('counter').get();
+        }).not.toThrow();
+        await bus.emit('lifecyclea:ping', { n: 4 });
+        expect(received).toContainEqual({ n: 4 });
     });
 });

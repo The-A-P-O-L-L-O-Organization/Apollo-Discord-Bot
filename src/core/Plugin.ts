@@ -39,7 +39,6 @@ export abstract class Plugin<C extends CommandModule = CommandModule, _E extends
     public client: TypedClient;
     public manager: PluginManagerRef;
     public bus: EventBusImpl;
-    public busView: PluginBusView;
     public commands = new Map<string, C>();
     public eventHandlers: { name: string; handler: (...args: unknown[]) => void; once: boolean }[] = [];
     public schedulers: NodeJS.Timeout[] = [];
@@ -73,7 +72,10 @@ export abstract class Plugin<C extends CommandModule = CommandModule, _E extends
         this.version = PluginClass.version;
         this.description = PluginClass.description || '';
         this.capabilities = PluginClass.capabilities || [];
-        this.busView = manager.bus.createView(this.name);
+    }
+
+    public get busView(): PluginBusView {
+        return this.bus.createView(this.name);
     }
 
     // Use proper static getter with type assertion

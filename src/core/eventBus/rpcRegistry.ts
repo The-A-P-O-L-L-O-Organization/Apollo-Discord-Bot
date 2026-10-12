@@ -1,3 +1,7 @@
+import { createLogger } from '../../utils/logger.js';
+
+const logger = createLogger({ component: 'eventbus' });
+
 export interface RpcMeta {
     timeoutMs?: number;
     description?: string;
@@ -43,17 +47,26 @@ export class RpcRegistry {
         const entry = this._apis.get(namespace);
         if (!entry) { return Promise.reject(new Error(`Unknown API: "${namespace}"`)); }
 
+        let timer: NodeJS.Timeout | undefined;
+        let timedOut = false;
         const timeout = new Promise<never>((_, reject) => {
-            const timer = setTimeout(() => {
+            timer = setTimeout(() => {
+                timedOut = true;
                 reject(new RpcTimeoutError(namespace, timeoutMs, callerPluginId));
             }, timeoutMs);
             timer.unref();
         });
 
         const provider = entry.fn(...args) as Promise<T>;
-        void provider.catch(() => {});
+        void provider.catch((err) => {
+            if (timedOut) {
+                logger.warn({ err, msg: `[EventBus] RPC provider for "${namespace}" failed after timeout` });
+            }
+        });
 
-        return Promise.race([provider, timeout]);
+        return Promise.race([provider, timeout]).finally(() => {
+            if (timer) { clearTimeout(timer); }
+        });
     }
 
     get(namespace: string): ApiEntry | undefined {

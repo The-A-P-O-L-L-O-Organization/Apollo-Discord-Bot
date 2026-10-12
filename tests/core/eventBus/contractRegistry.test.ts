@@ -10,10 +10,12 @@ describe('ContractRegistry', () => {
         expect(registry.get('rpc', 'interlink:message:ping')).toBeUndefined();
     });
 
-    it('throws on duplicate registration of the same contract', () => {
+    it('upserts on duplicate registration of the same contract', () => {
         const registry = new ContractRegistry();
-        registry.register({ pluginId: 'interlink', kind: 'event', name: 'interlink:message:ping' });
-        expect(() => registry.register({ pluginId: 'interlink', kind: 'event', name: 'interlink:message:ping' })).toThrow(/already registered/);
+        registry.register({ pluginId: 'interlink', kind: 'event', name: 'interlink:message:ping', description: 'a' });
+        registry.register({ pluginId: 'interlink', kind: 'event', name: 'interlink:message:ping', description: 'b' });
+        expect(registry.get('event', 'interlink:message:ping')?.description).toBe('b');
+        expect(registry.snapshot().contracts).toHaveLength(1);
     });
 
     it('allows the same name under different kinds and plugin ids', () => {

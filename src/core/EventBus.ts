@@ -42,6 +42,7 @@ export class EventBusImpl implements EventBus {
     private _rpcRegistry = new RpcRegistry();
     private _stateStore = new StateStore();
     private _contractRegistry = new ContractRegistry();
+    private _views = new Map<string, PluginBusView>();
     private _redisPub: EventBusImplOptions['redisPub'] = undefined;
     private _redisSub: EventBusImplOptions['redisSub'] = undefined;
     private _podId: string | undefined = undefined;
@@ -81,11 +82,9 @@ export class EventBusImpl implements EventBus {
         this._stateStore.provide(key, defaultValue, pluginId);
     }
 
-    private _views = new Map<string, PluginBusView>();
-
     createView(pluginId: string): PluginBusView {
         const existing = this._views.get(pluginId);
-        if (existing) { return existing; }
+        if (existing && !existing.isDisposed) { return existing; }
         const view = new PluginBusView(this, pluginId, this._contractRegistry);
         this._views.set(pluginId, view);
         return view;

@@ -23,10 +23,15 @@ export class ContractRegistry {
 
     register(entry: ContractEntry): void {
         const key = this._key(entry.pluginId, entry.kind, entry.name);
-        if (this._entries.has(key)) {
-            throw new Error(`Contract "${key}" is already registered`);
-        }
         this._entries.set(key, entry);
+    }
+
+    removeAllForPlugin(pluginId: string): void {
+        for (const [key, entry] of this._entries) {
+            if (entry.pluginId === pluginId) {
+                this._entries.delete(key);
+            }
+        }
     }
 
     attachSchema(kind: ContractKind, name: string, schema: ZodType): void {
