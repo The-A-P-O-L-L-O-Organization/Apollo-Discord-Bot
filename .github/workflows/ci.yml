@@ -79,19 +79,6 @@ jobs:
           toolchain: ${{ env.RUST_VERSION }}
           components: rustfmt, clippy
 
-      - name: Cache Rust dependencies
-        uses: actions/cache@3edfce9056124e459a23f683a21433670d47daca
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
-
       - name: Install buf
         run: |
           BUF_VERSION="v1.50.0"
@@ -214,18 +201,11 @@ jobs:
           toolchain: ${{ env.RUST_VERSION }}
           components: rustfmt, clippy
 
-      - name: Cache Rust dependencies
-        uses: actions/cache@3edfce9056124e459a23f683a21433670d47daca
+      - name: Cache Rust release build
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+          prefix-key: v1-rust-release
+          cache-on-failure: true
 
       - name: Install protobuf-compiler
         run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
@@ -248,18 +228,11 @@ jobs:
           toolchain: ${{ env.RUST_VERSION }}
           components: rustfmt, clippy
 
-      - name: Cache Rust dependencies
-        uses: actions/cache@3edfce9056124e459a23f683a21433670d47daca
+      - name: Cache Rust test build
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+          prefix-key: v1-rust-test
+          cache-on-failure: true
 
       - name: Install protobuf-compiler
         run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
