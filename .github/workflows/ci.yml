@@ -79,8 +79,8 @@ jobs:
         with:
           path: |
             /usr/local/bin/buf
-            ~/.npm
-          key: linux-tools-buf-v1.50.0-ts-proto-2.12.4-protoc-gen-es-2.16.0
+            ~/.npm-global
+          key: linux-tools-buf-v1.50.0-ts-proto-2.12.4-protoc-gen-es-2.16.0-v2
 
       - name: Install buf
         if: steps.tools-cache.outputs.cache-hit != 'true'
@@ -96,11 +96,12 @@ jobs:
       - name: Install ts-proto and protoc-gen-es plugins
         if: steps.tools-cache.outputs.cache-hit != 'true'
         run: |
+          npm config set prefix "$HOME/.npm-global"
           npm install -g ts-proto@2.12.4
           npm install -g @bufbuild/protoc-gen-es@2.16.0
 
       - name: Put global npm bin on PATH
-        run: echo "$HOME/.npm/bin" >> $GITHUB_PATH
+        run: echo "$HOME/.npm-global/bin" >> $GITHUB_PATH
 
       - name: Generate protobuf code
         run: buf generate
