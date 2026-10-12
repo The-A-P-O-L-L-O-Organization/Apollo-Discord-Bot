@@ -1,6 +1,8 @@
 import pino from 'pino';
 import { hostname } from 'node:os';
 import { randomUUID as cryptoRandomUUID } from 'node:crypto';
+import { trace } from '@opentelemetry/api';
+import { ZERO_TRACE_ID, ZERO_SPAN_ID } from '../observability/traceparent.js';
 
 // Generate a traceId for the service instance (fallback when no trace context)
 const serviceTraceId = cryptoRandomUUID();
@@ -31,6 +33,14 @@ function createSampler(sampleRate: number): (_level: string) => boolean {
 
 createSampler(LOG_SAMPLE_RATE); // Initialize sampler (logger uses internal sampling)
 
+export function traceLogFields(): Record<string, string> {
+    const spanContext = trace.getActiveSpan()?.spanContext();
+    if (!spanContext || spanContext.traceId === ZERO_TRACE_ID || spanContext.spanId === ZERO_SPAN_ID) {
+        return {};
+    }
+    return { trace_id: spanContext.traceId, span_id: spanContext.spanId };
+}
+
 // Create a logger instance for this module
 const logger = pino({
     level: process.env['LOG_LEVEL'] ?? 'info',
@@ -40,6 +50,7 @@ const logger = pino({
         hostname: hostname(),
         traceId: serviceTraceId
     },
+    mixin: traceLogFields,
     timestamp: pino.stdTimeFunctions.isoTime,
     // Use pretty print in development, JSON in production
     transport: IS_PRODUCTION ? undefined : {

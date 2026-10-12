@@ -142,6 +142,29 @@ export function validateSocketToken(): void {
     }
 }
 
+export function assertHealthAuthToken(): void {
+    const isProduction = process.env['NODE_ENV'] === 'production';
+    const token = process.env['HEALTH_AUTH_TOKEN'];
+
+    if (isProduction && !token) {
+        throw new Error(
+            '[FATAL] HEALTH_AUTH_TOKEN is required in production. ' +
+            'Generate a secure random token (e.g., `openssl rand -hex 32`) ' +
+            'and set it in your .env file; clients must send it as a Bearer token.'
+        );
+    }
+}
+
+export function warnMissingOtelEndpoint(): void {
+    const isProduction = process.env['NODE_ENV'] === 'production';
+
+    if (isProduction && !process.env['OTEL_ENDPOINT']) {
+        logger.warn('[OBSERVABILITY] OTEL_ENDPOINT is not set in production. ' +
+            'Distributed traces will not be exported and cross-service trace correlation is disabled. ' +
+            'Set OTEL_ENDPOINT (e.g., http://otel-collector:4318/v1/traces) to enable tracing.');
+    }
+}
+
 export async function validateRedisAuth(): Promise<void> {
     const isProduction = process.env['NODE_ENV'] === 'production';
     const { createRedisClient } = await import('./redis.js');

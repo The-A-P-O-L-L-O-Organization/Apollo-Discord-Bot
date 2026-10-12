@@ -32,10 +32,10 @@ Subdirectories `jobs/` (worker job handlers) and `remote/` (RemoteInteraction re
 
 ## Flow
 1. Gateway receives an interaction; `gatewayRouter.queueOrRun` checks `config.queue`.
-2. `serializeInteraction` flattens the interaction, `jobs/processCommand.ts` signs it with `QUEUE_HMAC_SECRET` and adds a `process-command` job under `QUEUE_PREFIX`.
-3. A worker pulls the job, verifies HMAC and nonce, rebuilds a `RemoteInteraction` from the payload, and revalidates fields because queue data crosses a trust boundary.
+2. `serializeInteraction` flattens the interaction, `jobs/processCommand.ts` attaches the active span's W3C `traceparent` (from `src/observability/traceparent.ts`), signs it with `QUEUE_HMAC_SECRET`, and adds a `process-command` job under `QUEUE_PREFIX`.
+3. A worker pulls the job, verifies HMAC and nonce, rebuilds a `RemoteInteraction` from the payload, and revalidates fields because queue data crosses a trust boundary. The verified handler runs inside `runWithExtractedTrace`, so job spans and logs carry the originating gateway trace IDs.
 4. The registered handler executes the command module and records metrics. Failures follow BullMQ retry and removal policy.
 
 ## Integration
-- Depends on `bullmq`, `ioredis`, `msgpackr`, `src/config/config.ts` (`config.queue`, `QUEUE_HMAC_SECRET`, `QUEUE_PREFIX`), `src/utils/redis.ts`, `src/utils/logger.ts`, `src/utils/metrics.ts`.
+- Depends on `bullmq`, `ioredis`, `msgpackr`, `src/config/config.ts` (`config.queue`, `QUEUE_HMAC_SECRET`, `QUEUE_PREFIX`), `src/utils/redis.ts`, `src/utils/logger.ts`, `src/utils/metrics.ts`, `src/observability/traceparent.ts` (cross-pod trace correlation).
 - Consumed by command modules (enqueue path) and `src/worker.ts` / `RUN_MODE=worker` processes (consume path). Queue names, prefixes, and failure semantics feed queue health commands and dashboards; do not rename without updating workers, docs, and tests.

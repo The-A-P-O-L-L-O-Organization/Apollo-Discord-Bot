@@ -41,7 +41,7 @@ Strict TypeScript ESM Discord bot on discord.js v14, Node 22+ (CI and production
 | `src/gateway/` | Single leader election with Redis fencing for Discord connection and schedulers | [View Map](src/gateway/codemap.md) |
 | `src/generated/` | Buf-generated TypeScript clients and message types, never hand-edited | [View Map](src/generated/codemap.md) |
 | `src/i18n/` | Internationalization core for 6 locales with en-US canonical and per-guild/user resolution | [View Map](src/i18n/codemap.md) |
-| `src/observability/` | OpenTelemetry tracing bootstrap with Prometheus metrics and structured pino logs | [View Map](src/observability/codemap.md) |
+| `src/observability/` | OpenTelemetry tracing bootstrap, W3C traceparent correlation for queue jobs, Prometheus metrics, and structured pino logs | [View Map](src/observability/codemap.md) |
 | `src/plugins/` | Container for 7 first-party plugins with plugin.ts, commands/, events/, and optional cli/ | [View Map](src/plugins/codemap.md) |
 | `src/plugins/admin/` | Bot administration for plugins, logging, queue, migrations, health, language, and reaction roles | [View Map](src/plugins/admin/codemap.md) |
 | `src/plugins/admin/cli/` | CLI registry for system info, plugin management, and logging configuration | [View Map](src/plugins/admin/cli/codemap.md) |

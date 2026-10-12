@@ -19,6 +19,7 @@ import { encode } from 'msgpackr';
 import type { Job } from 'bullmq';
 import { NonceStore } from '../nonceStore.js';
 import { createRedisClientFromEnv } from '../../utils/redisCluster.js';
+import { currentTraceparent, runWithExtractedTrace } from '../../observability/traceparent.js';
 
 export const JobNames = {
     PROCESS_COMMAND: 'process-command'
@@ -132,6 +133,11 @@ export async function enqueueCommand(_interaction: {
         guildId: _interaction.guildId
     });
 
+    const traceparent = currentTraceparent();
+    if (traceparent) {
+        (data as unknown as Record<string, unknown>)['traceparent'] = traceparent;
+    }
+
     // Sign job data with HMAC
     const signedData = signJobData(data as unknown as Record<string, unknown>);
 
@@ -152,88 +158,96 @@ export default function register(): void {
         // Verify HMAC signature
         if (!await verifyJobData(data)) {
             logger.warn('[Worker] Job HMAC verification failed — rejecting');
-            queueJobsTotal.inc({ queue: String(data['queueName'] ?? 'unknown'), outcome: 'failed' });
+            queueJobsTotal.inc({ queue: queueName(data), outcome: 'failed' });
             return { status: 'error', reason: 'hmac_verification_failed' };
         }
 
-        logger.info(`[Worker] Processing /${String(data['commandName'])} in guild ${String(data['guildId'])}`);
+        return runWithExtractedTrace(data['traceparent'], () => processVerifiedCommand(data));
+    });
+}
 
-        if (typeof data['resolvedLocale'] !== 'string' || data['resolvedLocale'].length === 0) {
-            data['resolvedLocale'] = await i18n.resolveLocale({
-                locale: typeof data['locale'] === 'string' ? data['locale'] : null,
-                guildLocale: typeof data['guildLocale'] === 'string' ? data['guildLocale'] : null,
-                guildId: typeof data['guildId'] === 'string' ? data['guildId'] : null
-            });
-        }
-        const lng = data['resolvedLocale'] as string;
+function queueName(data: Record<string, unknown>): string {
+    return typeof data['queueName'] === 'string' ? data['queueName'] : 'unknown';
+}
 
-        const r = getRest();
+async function processVerifiedCommand(data: Record<string, unknown>): Promise<{ status: string; reason?: string; commandName?: unknown; error?: string }> {
+    logger.info(`[Worker] Processing /${String(data['commandName'])} in guild ${String(data['guildId'])}`);
 
-        const interaction = new RemoteInteraction(data, r, {
-            commands: new Collection(),
-            config: {
-                ...config,
-                CLIENT_ID: config.discord.clientId
-            }
+    if (typeof data['resolvedLocale'] !== 'string' || data['resolvedLocale'].length === 0) {
+        data['resolvedLocale'] = await i18n.resolveLocale({
+            locale: typeof data['locale'] === 'string' ? data['locale'] : null,
+            guildLocale: typeof data['guildLocale'] === 'string' ? data['guildLocale'] : null,
+            guildId: typeof data['guildId'] === 'string' ? data['guildId'] : null
         });
+    }
+    const lng = data['resolvedLocale'] as string;
 
-        const startTime = Date.now();
-        try {
-            const commandModule = await importCommandModule(data['commandName'] as string, data['pluginId'] as string | null);
-            if (!commandModule) {
-                await interaction.editReply({
-                    embeds: [{
-                        color: 0xFF0000,
-                        title: i18n.t('common:errorTitle', { lng, defaultValue: 'Error' }),
-                        description: i18n.t('common:queue.commandNotFound', { lng, defaultValue: `\`/${String(data['commandName'])}\` not found on worker.` })
-                    }]
-                });
-                recordCommand(String(data['commandName']), String(data['guildId']), 'not_found');
-                return { status: 'error', reason: 'command_not_found' };
-            }
+    const r = getRest();
 
-            if (typeof commandModule.execute !== 'function') {
-                await interaction.editReply({
-                    embeds: [{
-                        color: 0xFF0000,
-                        title: i18n.t('common:errorTitle', { lng, defaultValue: 'Error' }),
-                        description: i18n.t('common:queue.invalidCommand', { lng, defaultValue: `\`/${String(data['commandName'])}\` has invalid execute method.` })
-                    }]
-                });
-                recordCommand(String(data['commandName']), String(data['guildId']), 'invalid');
-                return { status: 'error', reason: 'invalid_command' };
-            }
-
-            await commandModule.execute(interaction);
-
-            logger.info({ msg: `[Worker] /${String(data['commandName'])} completed` });
-            recordCommand(String(data['commandName']), String((data['guildId'] as string) ?? 'unknown'), 'success');
-            recordCommandDuration(String(data['commandName']), Date.now() - startTime);
-            queueJobsTotal.inc({ queue: String(data['queueName'] ?? 'unknown'), outcome: 'success' });
-            return { status: 'completed', commandName: data['commandName'] };
-        } catch (error) {
-            logger.error({ err: error as Error, msg: `[Worker] Error executing /${String(data['commandName'])}` });
-
-            const errorEmbed = {
-                color: 0xFF0000,
-                title: i18n.t('common:errorTitle', { lng, defaultValue: 'Error' }),
-                description: i18n.t('common:error', { lng, defaultValue: 'An error occurred while executing this command.' }),
-                fields: [{ name: 'Error', value: (error as Error).message ?? 'Unknown error' }],
-                timestamp: new Date().toISOString()
-            };
-
-            try {
-                await interaction.editReply({ embeds: [errorEmbed] });
-            } catch (e) {
-                logger.error({ err: e as Error, msg: '[Worker] Failed to send error response' });
-            }
-
-            recordCommand(String(data['commandName']), String((data['guildId'] as string) ?? 'unknown'), 'error');
-            recordError('command_execution', String(data['commandName']));
-            queueJobsTotal.inc({ queue: String(data['queueName'] ?? 'unknown'), outcome: 'failed' });
-            return { status: 'error', error: (error as Error).message };
+    const interaction = new RemoteInteraction(data, r, {
+        commands: new Collection(),
+        config: {
+            ...config,
+            CLIENT_ID: config.discord.clientId
         }
     });
+
+    const startTime = Date.now();
+    try {
+        const commandModule = await importCommandModule(data['commandName'] as string, data['pluginId'] as string | null);
+        if (!commandModule) {
+            await interaction.editReply({
+                embeds: [{
+                    color: 0xFF0000,
+                    title: i18n.t('common:errorTitle', { lng, defaultValue: 'Error' }),
+                    description: i18n.t('common:queue.commandNotFound', { lng, defaultValue: `\`/${String(data['commandName'])}\` not found on worker.` })
+                }]
+            });
+            recordCommand(String(data['commandName']), String(data['guildId']), 'not_found');
+            return { status: 'error', reason: 'command_not_found' };
+        }
+
+        if (typeof commandModule.execute !== 'function') {
+            await interaction.editReply({
+                embeds: [{
+                    color: 0xFF0000,
+                    title: i18n.t('common:errorTitle', { lng, defaultValue: 'Error' }),
+                    description: i18n.t('common:queue.invalidCommand', { lng, defaultValue: `\`/${String(data['commandName'])}\` has invalid execute method.` })
+                }]
+            });
+            recordCommand(String(data['commandName']), String(data['guildId']), 'invalid');
+            return { status: 'error', reason: 'invalid_command' };
+        }
+
+        await commandModule.execute(interaction);
+
+        logger.info({ msg: `[Worker] /${String(data['commandName'])} completed` });
+        recordCommand(String(data['commandName']), String((data['guildId'] as string) ?? 'unknown'), 'success');
+        recordCommandDuration(String(data['commandName']), Date.now() - startTime);
+        queueJobsTotal.inc({ queue: queueName(data), outcome: 'success' });
+        return { status: 'completed', commandName: data['commandName'] };
+    } catch (error) {
+        logger.error({ err: error as Error, msg: `[Worker] Error executing /${String(data['commandName'])}` });
+
+        const errorEmbed = {
+            color: 0xFF0000,
+            title: i18n.t('common:errorTitle', { lng, defaultValue: 'Error' }),
+            description: i18n.t('common:error', { lng, defaultValue: 'An error occurred while executing this command.' }),
+            fields: [{ name: 'Error', value: (error as Error).message ?? 'Unknown error' }],
+            timestamp: new Date().toISOString()
+        };
+
+        try {
+            await interaction.editReply({ embeds: [errorEmbed] });
+        } catch (e) {
+            logger.error({ err: e as Error, msg: '[Worker] Failed to send error response' });
+        }
+
+        recordCommand(String(data['commandName']), String((data['guildId'] as string) ?? 'unknown'), 'error');
+        recordError('command_execution', String(data['commandName']));
+        queueJobsTotal.inc({ queue: queueName(data), outcome: 'failed' });
+        return { status: 'error', error: (error as Error).message };
+    }
 }
 
 async function importCommandModule(commandName: string, pluginId: string | null): Promise<{ execute: (_interaction: unknown) => Promise<unknown> } | null> {

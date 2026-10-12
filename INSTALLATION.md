@@ -236,9 +236,11 @@ Delivery is at-most-once. Acceptance by the relay does not guarantee the remote 
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
+| `HEALTH_AUTH_TOKEN` | unset | Bearer token for `/health`, `/ready`, and `/metrics`; required in production, startup fails without it |
 | `SECURITY_LOG_RETENTION_DAYS` | `90` | Security event retention window |
 | `ALLOW_UNVERIFIED_PLUGINS` | `0` | Set `1` only for local development; warns in production |
 | `LOG_SAMPLE_RATE` | `1.0` | Fraction of logs emitted under load |
+| `OTEL_ENDPOINT` | unset | OTLP trace endpoint; recommended in production, startup warns when unset. Enables trace IDs in logs and cross-pod command trace correlation |
 
 ## 5. Slash Command Registration
 

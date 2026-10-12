@@ -1,6 +1,40 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { assertOperatorAgreement } from '../../src/utils/startupChecks.js';
+import { assertHealthAuthToken, assertOperatorAgreement, validateSocketToken } from '../../src/utils/startupChecks.js';
 import type { OperatorConfig } from '../../src/utils/startupChecks.js';
+
+describe('assertHealthAuthToken', () => {
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+        process.env = { ...originalEnv };
+        delete process.env['HEALTH_AUTH_TOKEN'];
+    });
+
+    afterEach(() => {
+        process.env = originalEnv;
+    });
+
+    it('should throw when HEALTH_AUTH_TOKEN is missing in production', () => {
+        process.env['NODE_ENV'] = 'production';
+        expect(() => assertHealthAuthToken()).toThrow(/HEALTH_AUTH_TOKEN is required in production/);
+    });
+
+    it('should not throw when HEALTH_AUTH_TOKEN is set in production', () => {
+        process.env['NODE_ENV'] = 'production';
+        process.env['HEALTH_AUTH_TOKEN'] = 'a'.repeat(64);
+        expect(() => assertHealthAuthToken()).not.toThrow();
+    });
+
+    it('should not throw when HEALTH_AUTH_TOKEN is missing outside production', () => {
+        process.env['NODE_ENV'] = 'development';
+        expect(() => assertHealthAuthToken()).not.toThrow();
+    });
+
+    it('should not throw when NODE_ENV is unset', () => {
+        delete process.env['NODE_ENV'];
+        expect(() => assertHealthAuthToken()).not.toThrow();
+    });
+});
 
 describe('assertOperatorAgreement', () => {
     it('should throw when operator config is missing', () => {
@@ -134,5 +168,107 @@ describe('warnUnverifiedPlugins', () => {
         warnUnverifiedPlugins();
         
         expect(mockLogger.warn).not.toHaveBeenCalled();
+    });
+});
+
+describe('warnMissingOtelEndpoint', () => {
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+        vi.resetModules();
+        process.env = { ...originalEnv };
+        delete process.env['OTEL_ENDPOINT'];
+    });
+
+    afterEach(() => {
+        process.env = originalEnv;
+    });
+
+    it('should warn when OTEL_ENDPOINT is missing in production', async () => {
+        process.env['NODE_ENV'] = 'production';
+
+        const mockLogger = { warn: vi.fn() };
+        vi.doMock('../../src/utils/logger.js', () => ({
+            createLogger: () => mockLogger
+        }));
+
+        const { warnMissingOtelEndpoint } = await import('../../src/utils/startupChecks.js');
+        warnMissingOtelEndpoint();
+
+        expect(mockLogger.warn).toHaveBeenCalledWith(
+            expect.stringContaining('[OBSERVABILITY] OTEL_ENDPOINT is not set in production.')
+        );
+    });
+
+    it('should not warn when OTEL_ENDPOINT is set in production', async () => {
+        process.env['NODE_ENV'] = 'production';
+        process.env['OTEL_ENDPOINT'] = 'http://otel-collector:4318/v1/traces';
+
+        const mockLogger = { warn: vi.fn() };
+        vi.doMock('../../src/utils/logger.js', () => ({
+            createLogger: () => mockLogger
+        }));
+
+        const { warnMissingOtelEndpoint } = await import('../../src/utils/startupChecks.js');
+        warnMissingOtelEndpoint();
+
+        expect(mockLogger.warn).not.toHaveBeenCalled();
+    });
+
+    it('should not warn when OTEL_ENDPOINT is missing outside production', async () => {
+        process.env['NODE_ENV'] = 'development';
+
+        const mockLogger = { warn: vi.fn() };
+        vi.doMock('../../src/utils/logger.js', () => ({
+            createLogger: () => mockLogger
+        }));
+
+        const { warnMissingOtelEndpoint } = await import('../../src/utils/startupChecks.js');
+        warnMissingOtelEndpoint();
+
+        expect(mockLogger.warn).not.toHaveBeenCalled();
+    });
+
+    it('should not warn when NODE_ENV is unset', async () => {
+        delete process.env['NODE_ENV'];
+
+        const mockLogger = { warn: vi.fn() };
+        vi.doMock('../../src/utils/logger.js', () => ({
+            createLogger: () => mockLogger
+        }));
+
+        const { warnMissingOtelEndpoint } = await import('../../src/utils/startupChecks.js');
+        warnMissingOtelEndpoint();
+
+        expect(mockLogger.warn).not.toHaveBeenCalled();
+    });
+});
+
+describe('validateSocketToken', () => {
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+        process.env = { ...originalEnv };
+        delete process.env['APOLLO_SOCKET_TOKEN'];
+    });
+
+    afterEach(() => {
+        process.env = originalEnv;
+    });
+
+    it('should throw when APOLLO_SOCKET_TOKEN is missing in production', () => {
+        process.env['NODE_ENV'] = 'production';
+        expect(() => validateSocketToken()).toThrow(/APOLLO_SOCKET_TOKEN is required in production/);
+    });
+
+    it('should not throw when APOLLO_SOCKET_TOKEN is set in production', () => {
+        process.env['NODE_ENV'] = 'production';
+        process.env['APOLLO_SOCKET_TOKEN'] = 'a'.repeat(64);
+        expect(() => validateSocketToken()).not.toThrow();
+    });
+
+    it('should not throw when APOLLO_SOCKET_TOKEN is missing outside production', () => {
+        process.env['NODE_ENV'] = 'development';
+        expect(() => validateSocketToken()).not.toThrow();
     });
 });

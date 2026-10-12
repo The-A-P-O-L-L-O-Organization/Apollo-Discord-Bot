@@ -9,8 +9,9 @@ import { closeAll as closeQueues } from './queue/queue.js';
 import registerProcessCommand from './queue/jobs/processCommand.js';
 import registerNsfwAnalyze from './queue/jobs/nsfwAnalyze.js';
 import { createLogger } from './utils/logger.js';
-import { warnUnverifiedPlugins } from './utils/startupChecks.js';
+import { warnMissingOtelEndpoint, warnUnverifiedPlugins } from './utils/startupChecks.js';
 import { closeLockRedis } from './utils/lock.js';
+import { initializeOtel, shutdownOtel } from './observability/otel.js';
 
 const logger = createLogger({ component: 'worker' });
 
@@ -20,6 +21,18 @@ export async function startWorker(): Promise<Worker> {
     logger.info('[Worker] Starting in worker mode...');
 
     warnUnverifiedPlugins();
+
+    const otelEndpoint = process.env['OTEL_ENDPOINT'];
+    if (otelEndpoint) {
+        try {
+            initializeOtel({ serviceName: 'apollo-worker', endpoint: otelEndpoint });
+            logger.info('[Worker] OpenTelemetry initialized');
+        } catch (error: unknown) {
+            logger.warn({ err: error as Error }, '[WARN] OpenTelemetry failed to initialize');
+        }
+    } else {
+        warnMissingOtelEndpoint();
+    }
 
     const db = getDb();
     await runMigrations();
@@ -70,6 +83,7 @@ export async function stopWorker(): Promise<void> {
     await closeQueues();
     await closeDb();
     await closeLockRedis();
+    await shutdownOtel();
 }
 
 // Entry point is now src/index.ts with RUN_MODE=worker

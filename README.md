@@ -244,7 +244,7 @@ pnpm dev
 
 ### Environment Variables
 
-The authoritative template is `.env.example`. Required on every boot: `DISCORD_TOKEN`, `CLIENT_ID`, `OWNER_IDS`, `ENCRYPTION_KEY`, `OPERATOR_AGREEMENT=true`, `OPERATOR_CONTACT`.
+The authoritative template is `.env.example`. Required on every boot: `DISCORD_TOKEN`, `CLIENT_ID`, `OWNER_IDS`, `ENCRYPTION_KEY`, `OPERATOR_AGREEMENT=true`, `OPERATOR_CONTACT`. Additionally required in production: `HEALTH_AUTH_TOKEN`, `APOLLO_SOCKET_TOKEN`, and `QUEUE_HMAC_SECRET` plus Redis credentials when the queue is enabled.
 
 | Group | Key Variables |
 |-------|---------------|
@@ -255,7 +255,8 @@ The authoritative template is `.env.example`. Required on every boot: `DISCORD_T
 | Integrations | `INTEGRATIONS_WEBHOOK_PORT`, `GITHUB_WEBHOOK_SECRET`, `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET`, `YOUTUBE_API_KEY`, `INTEGRATIONS_POLL_TWITCH`, `INTEGRATIONS_POLL_YOUTUBE`, `INTEGRATIONS_POLL_RSS` |
 | AI and translation | `OPENAI_API_KEY`, `TRANSLATION_API_BASE_URL`, `TRANSLATION_API_KEY`, `NSFW_USE_RUST`, `NSFW_GRPC_ADDR`, `NSFW_THRESHOLD`, `NSFW_RUST_TIMEOUT_MS` |
 | CLI and sockets | `APOLLO_GUILD_ID`, `APOLLO_SOCKET_PATH`, `APOLLO_SOCKET_TOKEN` |
-| Security | `SECURITY_LOG_RETENTION_DAYS`, `ALLOW_UNVERIFIED_PLUGINS`, `LOG_SAMPLE_RATE` |
+| Observability | `OTEL_ENDPOINT`, `LOG_LEVEL`, `LOG_SAMPLE_RATE` |
+| Security | `HEALTH_AUTH_TOKEN`, `SECURITY_LOG_RETENTION_DAYS`, `ALLOW_UNVERIFIED_PLUGINS` |
 
 Runtime defaults live in `src/config/config.ts` (`ApolloConfig` type in `src/types/config.ts`). Environment parsing helpers tolerate missing values and fall back to documented defaults.
 
@@ -421,11 +422,11 @@ CI runs `buf lint`, Go builds and tests, Rust builds and tests for NSFW componen
 
 ## Observability
 
-- OpenTelemetry bootstrap in `src/observability/otel.ts` with HTTP, ConnectRPC, and auto-instrumentations
+- OpenTelemetry bootstrap in `src/observability/otel.ts` with HTTP instrumentation, gated on `OTEL_ENDPOINT`; startup warns in production when unset
+- W3C trace context on log lines correlated to the active OTel span (`trace_id`/`span_id` via the Pino mixin) and `traceparent` propagated through command queue jobs for cross-pod correlation (`src/observability/traceparent.ts`)
 - Prometheus client metrics plus BullMQ queue depth for autoscaling
-- Health endpoint via `HEALTH_PORT`/`HEALTH_HOST` with Docker healthchecks
+- Health endpoint via `HEALTH_PORT`/`HEALTH_HOST` with Docker healthchecks; all endpoints require Bearer `HEALTH_AUTH_TOKEN` when set, and `HEALTH_AUTH_TOKEN` is required in production
 - Pino structured logs with configurable sampling through `LOG_SAMPLE_RATE`
-- Tracing helpers in `src/utils/tracing.ts`
 
 ## Docker
 
