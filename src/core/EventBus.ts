@@ -9,6 +9,7 @@ import type {
 } from '../types/eventbus.js';
 import { EventCore, type CrossPodEventMessage } from './eventBus/eventCore.js';
 import { RpcRegistry } from './eventBus/rpcRegistry.js';
+import { StateStore, type CrossPodStateMessage } from './eventBus/stateStore.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger({ component: 'eventbus' });
@@ -34,21 +35,10 @@ export interface HandlerEntry {
     subscriptionId?: string;
 }
 
-interface StateEntry<T = unknown> {
-    value: T;
-    watchers: Set<StateWatcher>;
-    owner: string;
-}
-
-interface StateWatcher {
-    fn: (_newValue: unknown, _oldValue: unknown) => void;
-    pluginId: string;
-}
-
 export class EventBusImpl implements EventBus {
     private _eventCore = new EventCore();
     private _rpcRegistry = new RpcRegistry();
-    private _state = new Map<string, StateEntry>();
+    private _stateStore = new StateStore();
     private _redisPub: EventBusImplOptions['redisPub'] = undefined;
     private _redisSub: EventBusImplOptions['redisSub'] = undefined;
     private _podId: string | undefined = undefined;
@@ -60,6 +50,7 @@ export class EventBusImpl implements EventBus {
         this._podId = options.podId;
         if (options.redisPub || options.redisSub) {
             this._eventCore.setCrossPod({ redisPub: options.redisPub, redisSub: options.redisSub, podId: options.podId });
+            this._stateStore.setCrossPod({ redisPub: options.redisPub, redisSub: options.redisSub, podId: options.podId });
         }
     }
 
@@ -84,83 +75,25 @@ export class EventBusImpl implements EventBus {
     }
 
     provideState<T = unknown>(key: string, defaultValue: T, pluginId: string): void {
-        if (this._state.has(key)) {
-            throw new Error(`State key "${key}" is already registered`);
-        }
-        this._state.set(key, { value: defaultValue, watchers: new Set(), owner: pluginId });
+        this._stateStore.provide(key, defaultValue, pluginId);
     }
 
     getState<T = unknown>(key: string): T | undefined {
-        const entry = this._state.get(key);
-        return entry?.value as T | undefined;
+        return this._stateStore.get<T>(key);
     }
 
     async setState<T = unknown>(key: string, value: T): Promise<void> {
-        const entry = this._state.get(key);
-        if (!entry) { throw new Error(`Unknown state key: "${key}"`); }
-        const oldValue = entry.value;
-        entry.value = value;
-        for (const w of entry.watchers) {
-            try {
-                w.fn(value, oldValue);
-            } catch (err) {
-                logger.error({ err, msg: `[EventBus] Error in state watcher for "${key}"` });
-                try {
-                    await this.emit('error', err, { persistent: false });
-                } catch (e) {
-                    logger.error({ err: e, msg: '[EventBus] Error while emitting error event' });
-                }
-            }
-        }
-
-        if (this._crossPodEnabled) {
-            try {
-                await this._redisPub?.publish(`apollo:state:${key}`, JSON.stringify({
-                    _sourcePodId: this._podId,
-                    _stateKey: key,
-                    _stateValue: value
-                }));
-            } catch (err) {
-                logger.error({ err, msg: '[EventBus] Failed to publish cross-pod state' });
-            }
-        }
+        return this._stateStore.set(key, value);
     }
 
     watchState(key: string, fn: (_newValue: unknown, _oldValue: unknown) => void, pluginId: string): () => void {
-        const entry = this._state.get(key);
-        if (!entry) { throw new Error(`Unknown state key: "${key}"`); }
-        const watcher: StateWatcher = { fn, pluginId };
-        const wasEmpty = entry.watchers.size === 0;
-        entry.watchers.add(watcher);
-
-        if (this._crossPodEnabled && wasEmpty) {
-            this._redisSub?.subscribe(`apollo:state:${key}`).catch(err => {
-                logger.error({ err, msg: `[EventBus] Failed to subscribe to state ${key}` });
-            });
-        }
-
-        return () => {
-            entry.watchers.delete(watcher);
-            if (this._crossPodEnabled && entry.watchers.size === 0) {
-                this._redisSub?.unsubscribe(`apollo:state:${key}`).catch(() => {
-                    // ignore unsubscribe errors
-                });
-            }
-        };
+        return this._stateStore.watch(key, fn, pluginId);
     }
 
     removeAll(pluginId: string): void {
         this._eventCore.removeAll(pluginId);
         this._rpcRegistry.removeAll(pluginId);
-        for (const [key, entry] of this._state) {
-            if (entry.owner === pluginId) {
-                this._state.delete(key);
-            } else {
-                for (const w of entry.watchers) {
-                    if (w.pluginId === pluginId) { entry.watchers.delete(w); }
-                }
-            }
-        }
+        this._stateStore.removeAll(pluginId);
     }
 
     enableCrossPod(pubClient: EventBusImplOptions['redisPub'], subClient: EventBusImplOptions['redisSub'], podId: string): void {
@@ -169,6 +102,7 @@ export class EventBusImpl implements EventBus {
         this._podId = podId;
         this._crossPodEnabled = true;
         this._eventCore.setCrossPod({ redisPub: pubClient, redisSub: subClient, podId });
+        this._stateStore.setCrossPod({ redisPub: pubClient, redisSub: subClient, podId });
 
         this._redisSub?.on('message', (channel, message) => {
             this._handleCrossPodMessage(channel, message);
@@ -177,7 +111,7 @@ export class EventBusImpl implements EventBus {
 
     private _handleCrossPodMessage(channel: string, message: string): void {
         try {
-            const data = JSON.parse(message) as CrossPodEventMessage | { _sourcePodId: string; _stateKey: string; _stateValue: unknown };
+            const data = JSON.parse(message) as CrossPodEventMessage | CrossPodStateMessage;
             if (data._sourcePodId === this._podId) { return; }
 
             if ('_event' in data) {
@@ -185,25 +119,10 @@ export class EventBusImpl implements EventBus {
             }
 
             if ('_stateKey' in data) {
-                this._handleCrossPodStateLegacy(data);
+                this._stateStore.handleCrossPodState(data);
             }
         } catch (err) {
             logger.error({ err: err as Error, msg: '[EventBus] Error handling cross-pod message' });
-        }
-    }
-
-    private _handleCrossPodStateLegacy(data: { _stateKey: string; _stateValue: unknown }): void {
-        const entry = this._state.get(data._stateKey);
-        if (entry && data._stateValue !== entry.value) {
-            const oldValue = entry.value;
-            entry.value = data._stateValue;
-            for (const w of entry.watchers) {
-                try {
-                    w.fn(data._stateValue, oldValue);
-                } catch (err) {
-                    logger.error({ err: err as Error, msg: `[EventBus] Error in cross-pod state watcher for "${data._stateKey}"` });
-                }
-            }
         }
     }
 
