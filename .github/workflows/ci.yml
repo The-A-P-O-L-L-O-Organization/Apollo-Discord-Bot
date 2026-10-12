@@ -73,33 +73,34 @@ jobs:
             ~/.pnpm-store
           key: ${{ steps.cache-key.outputs.key }}
 
-      - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+      - name: Restore CLI tools cache
+        id: tools-cache
+        uses: actions/cache@3edfce9056124e459a23f683a21433670d47daca
         with:
-          toolchain: ${{ env.RUST_VERSION }}
-          components: rustfmt, clippy
+          path: |
+            /usr/local/bin/buf
+            ~/.npm
+          key: linux-tools-buf-v1.50.0-ts-proto-2.12.4-protoc-gen-es-2.16.0
 
       - name: Install buf
+        if: steps.tools-cache.outputs.cache-hit != 'true'
         run: |
           BUF_VERSION="v1.50.0"
           sudo curl -sSL -o /usr/local/bin/buf "https://github.com/bufbuild/buf/releases/download/${BUF_VERSION}/buf-Linux-x86_64"
           sudo chmod +x /usr/local/bin/buf
-          buf --version
 
       - name: Install protobuf-compiler
+        if: steps.tools-cache.outputs.cache-hit != 'true'
         run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
 
-      - name: Install protoc-gen-ts_proto
+      - name: Install ts-proto and protoc-gen-es plugins
+        if: steps.tools-cache.outputs.cache-hit != 'true'
         run: |
           npm install -g ts-proto@2.12.4
-          echo "$HOME/.npm/bin" >> $GITHUB_PATH
-        # Using npm to install ts-proto plugin globally
-
-      - name: Install protoc-gen-es
-        run: |
           npm install -g @bufbuild/protoc-gen-es@2.16.0
-          echo "$HOME/.npm/bin" >> $GITHUB_PATH
-        # Using npm to install protoc-gen-es plugin globally for buf generate
+
+      - name: Put global npm bin on PATH
+        run: echo "$HOME/.npm/bin" >> $GITHUB_PATH
 
       - name: Generate protobuf code
         run: buf generate
