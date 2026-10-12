@@ -81,8 +81,18 @@ export class EventBusImpl implements EventBus {
         this._stateStore.provide(key, defaultValue, pluginId);
     }
 
+    private _views = new Map<string, PluginBusView>();
+
     createView(pluginId: string): PluginBusView {
-        return new PluginBusView(this, pluginId, this._contractRegistry);
+        const existing = this._views.get(pluginId);
+        if (existing) { return existing; }
+        const view = new PluginBusView(this, pluginId, this._contractRegistry);
+        this._views.set(pluginId, view);
+        return view;
+    }
+
+    viewFor(pluginId: string): PluginBusView | undefined {
+        return this._views.get(pluginId);
     }
 
     rpcEntryFor(namespace: string): { fn: (...args: unknown[]) => Promise<unknown>; pluginId: string; meta?: RpcMeta } | undefined {

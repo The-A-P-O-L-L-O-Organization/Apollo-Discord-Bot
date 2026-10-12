@@ -4,6 +4,7 @@ import { i18n } from '../i18n/index.js';
 import type { CommandModule, EventHandlerModule } from '../types/plugin.js';
 import type { BasePlugin, PluginCapability, PluginInstance, PluginCommand, PluginEvent, CLICommand } from '../types/shared.js';
 import type { EventBusImpl } from './EventBus.js';
+import type { PluginBusView } from './eventBus/pluginBusView.js';
 
 export type PluginDependencies = Record<string, string>;
 
@@ -38,6 +39,7 @@ export abstract class Plugin<C extends CommandModule = CommandModule, _E extends
     public client: TypedClient;
     public manager: PluginManagerRef;
     public bus: EventBusImpl;
+    public busView: PluginBusView;
     public commands = new Map<string, C>();
     public eventHandlers: { name: string; handler: (...args: unknown[]) => void; once: boolean }[] = [];
     public schedulers: NodeJS.Timeout[] = [];
@@ -71,6 +73,7 @@ export abstract class Plugin<C extends CommandModule = CommandModule, _E extends
         this.version = PluginClass.version;
         this.description = PluginClass.description || '';
         this.capabilities = PluginClass.capabilities || [];
+        this.busView = manager.bus.createView(this.name);
     }
 
     // Use proper static getter with type assertion
