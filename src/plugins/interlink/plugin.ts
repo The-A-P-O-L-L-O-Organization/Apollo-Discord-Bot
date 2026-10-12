@@ -348,11 +348,11 @@ export default class InterlinkPlugin extends Plugin {
                 nonce: generateNonce(),
                 payload: { status: 'ok', uptime: process.uptime() }
             });
-            await this.bus.emit('interlink:message:ping', envelope);
+            await this.busView.emit('interlink:message:ping', envelope);
             return;
         }
         envelope.locale = resolveInterlinkLocale(extractInterlinkLocale(envelope.payload));
-        await this.bus.emit(`interlink:message:${envelope.type}`, envelope);
+        await this.busView.emit(`interlink:message:${envelope.type}`, envelope);
     }
 
     async _stopConnectBridge(): Promise<void> {
@@ -406,7 +406,7 @@ export default class InterlinkPlugin extends Plugin {
 
         this._eventUnsubscribers = [];
         for (const eventName of events) {
-            const unsub = this.bus.on(eventName, async (payload: unknown) => {
+            const unsub = this.busView.on(eventName, async (payload: unknown) => {
                 try {
                     const client = this._connectClient;
                     if (!client) { return; }
@@ -428,7 +428,7 @@ export default class InterlinkPlugin extends Plugin {
                 } catch (err) {
                     this.logger.error({ err: err as Error, msg: `[Interlink] Error forwarding event ${eventName}` });
                 }
-            }, 'interlink');
+            });
             this._eventUnsubscribers.push(unsub);
         }
         this.logger.info(`[Interlink] Forwarding events: ${events.join(', ')}`);
