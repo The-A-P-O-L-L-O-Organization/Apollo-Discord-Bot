@@ -8,6 +8,7 @@ import type {
     EventHandler
 } from '../types/eventbus.js';
 import { EventCore, type CrossPodEventMessage } from './eventBus/eventCore.js';
+import { RpcRegistry } from './eventBus/rpcRegistry.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger({ component: 'eventbus' });
@@ -33,11 +34,6 @@ export interface HandlerEntry {
     subscriptionId?: string;
 }
 
-interface ApiEntry {
-    fn: (..._args: unknown[]) => Promise<unknown>;
-    pluginId: string;
-}
-
 interface StateEntry<T = unknown> {
     value: T;
     watchers: Set<StateWatcher>;
@@ -51,7 +47,7 @@ interface StateWatcher {
 
 export class EventBusImpl implements EventBus {
     private _eventCore = new EventCore();
-    private _apis = new Map<string, ApiEntry>();
+    private _rpcRegistry = new RpcRegistry();
     private _state = new Map<string, StateEntry>();
     private _redisPub: EventBusImplOptions['redisPub'] = undefined;
     private _redisSub: EventBusImplOptions['redisSub'] = undefined;
@@ -80,16 +76,11 @@ export class EventBusImpl implements EventBus {
     }
 
     provide(namespace: string, fn: (..._args: unknown[]) => Promise<unknown>, pluginId: string): void {
-        if (this._apis.has(namespace)) {
-            throw new Error(`API "${namespace}" is already registered`);
-        }
-        this._apis.set(namespace, { fn, pluginId });
+        this._rpcRegistry.provide(namespace, fn, pluginId);
     }
 
     async call<T = unknown>(namespace: string, ...args: unknown[]): Promise<T> {
-        const entry = this._apis.get(namespace);
-        if (!entry) { throw new Error(`Unknown API: "${namespace}"`); }
-        return entry.fn(...args) as Promise<T>;
+        return this._rpcRegistry.call<T>(namespace, ...args);
     }
 
     provideState<T = unknown>(key: string, defaultValue: T, pluginId: string): void {
@@ -160,11 +151,7 @@ export class EventBusImpl implements EventBus {
 
     removeAll(pluginId: string): void {
         this._eventCore.removeAll(pluginId);
-        for (const [ns, entry] of this._apis) {
-            if (entry.pluginId === pluginId) {
-                this._apis.delete(ns);
-            }
-        }
+        this._rpcRegistry.removeAll(pluginId);
         for (const [key, entry] of this._state) {
             if (entry.owner === pluginId) {
                 this._state.delete(key);
