@@ -49,7 +49,8 @@ export class PluginBusView {
         this._assertNotDisposed();
         this._assertRegistrableEvent(event);
         this._contracts.register({ pluginId: this._pluginId, kind: 'event', name: event, schema: options?.schema });
-        return this._bus.on(event, handler, this._pluginId, options);
+        const { schema: _schema, ...rest } = options ?? {};
+        return this._bus.on(event, handler, this._pluginId, Object.keys(rest).length > 0 ? rest : undefined);
     }
 
     once(event: string, handler: EventHandler): () => void {
@@ -95,12 +96,14 @@ export class PluginBusView {
     } {
         this._assertNotDisposed();
         const fullKey = `${this._pluginId}:${key}`;
-        this._contracts.register({ pluginId: this._pluginId, kind: 'state', name: fullKey });
+        if (!this._contracts.get('state', fullKey)) {
+            this._contracts.register({ pluginId: this._pluginId, kind: 'state', name: fullKey });
+        }
         return {
-            get: <T>() => this._bus.getState<T>(fullKey),
-            set: async <T>(value: T) => { await this._bus.setState(fullKey, value); },
-            watch: (fn: (next: unknown, prev: unknown) => void) => this._bus.watchState(fullKey, fn, this._pluginId),
-            provide: <T>(defaultValue: T, ttlMs?: number) => this._bus.provideStateWithTtl(fullKey, defaultValue, this._pluginId, ttlMs)
+            get: <T>() => { this._assertNotDisposed(); return this._bus.getState<T>(fullKey); },
+            set: async <T>(value: T) => { this._assertNotDisposed(); await this._bus.setState(fullKey, value); },
+            watch: (fn: (next: unknown, prev: unknown) => void) => { this._assertNotDisposed(); return this._bus.watchState(fullKey, fn, this._pluginId); },
+            provide: <T>(defaultValue: T, ttlMs?: number) => { this._assertNotDisposed(); this._bus.provideStateWithTtl(fullKey, defaultValue, this._pluginId, ttlMs); }
         };
     }
 

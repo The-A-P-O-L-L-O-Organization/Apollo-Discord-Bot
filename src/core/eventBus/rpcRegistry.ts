@@ -50,7 +50,10 @@ export class RpcRegistry {
             timer.unref();
         });
 
-        return Promise.race([entry.fn(...args) as Promise<T>, timeout]);
+        const provider = entry.fn(...args) as Promise<T>;
+        void provider.catch(() => {});
+
+        return Promise.race([provider, timeout]);
     }
 
     get(namespace: string): ApiEntry | undefined {
