@@ -203,7 +203,7 @@ async function processVerifiedCommand(data: Record<string, unknown>): Promise<{ 
                     description: i18n.t('common:queue.commandNotFound', { lng, defaultValue: `\`/${String(data['commandName'])}\` not found on worker.` })
                 }]
             });
-            recordCommand(String(data['commandName']), String(data['guildId']), 'not_found');
+            recordCommand(String(data['commandName']), 'not_found');
             return { status: 'error', reason: 'command_not_found' };
         }
 
@@ -215,14 +215,14 @@ async function processVerifiedCommand(data: Record<string, unknown>): Promise<{ 
                     description: i18n.t('common:queue.invalidCommand', { lng, defaultValue: `\`/${String(data['commandName'])}\` has invalid execute method.` })
                 }]
             });
-            recordCommand(String(data['commandName']), String(data['guildId']), 'invalid');
+            recordCommand(String(data['commandName']), 'invalid');
             return { status: 'error', reason: 'invalid_command' };
         }
 
         await commandModule.execute(interaction);
 
         logger.info({ msg: `[Worker] /${String(data['commandName'])} completed` });
-        recordCommand(String(data['commandName']), String((data['guildId'] as string) ?? 'unknown'), 'success');
+        recordCommand(String(data['commandName']), 'success');
         recordCommandDuration(String(data['commandName']), Date.now() - startTime);
         queueJobsTotal.inc({ queue: queueName(data), outcome: 'success' });
         return { status: 'completed', commandName: data['commandName'] };
@@ -243,7 +243,7 @@ async function processVerifiedCommand(data: Record<string, unknown>): Promise<{ 
             logger.error({ err: e as Error, msg: '[Worker] Failed to send error response' });
         }
 
-        recordCommand(String(data['commandName']), String((data['guildId'] as string) ?? 'unknown'), 'error');
+        recordCommand(String(data['commandName']), 'error');
         recordError('command_execution', String(data['commandName']));
         queueJobsTotal.inc({ queue: queueName(data), outcome: 'failed' });
         return { status: 'error', error: (error as Error).message };

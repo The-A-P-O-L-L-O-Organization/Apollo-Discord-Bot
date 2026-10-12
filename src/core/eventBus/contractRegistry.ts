@@ -35,7 +35,7 @@ export class ContractRegistry {
     }
 
     attachSchema(kind: ContractKind, name: string, schema: ZodType): void {
-        for (const [key, entry] of this._entries) {
+        for (const entry of this._entries.values()) {
             if (entry.kind === kind && entry.name === name) {
                 entry.schema = schema;
                 return;

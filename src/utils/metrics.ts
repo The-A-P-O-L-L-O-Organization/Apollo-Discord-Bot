@@ -207,7 +207,9 @@ export const doraChangeTotal = new Counter({
 });
 
 // Helper functions
-export function recordCommand(command: string, status: 'success' | 'error'): void {
+export type CommandStatus = 'success' | 'error' | 'not_found' | 'invalid';
+
+export function recordCommand(command: string, status: CommandStatus): void {
     commandsTotal.inc({ command, status });
 }
 
@@ -384,7 +386,7 @@ export function createMetrics({ prefix = 'apollo_' } = {}): {
     doraMTTRSeconds: Histogram;
     doraChangeFailureTotal: Counter;
     doraChangeTotal: Counter;
-    recordCommand: (command: string, status: 'success' | 'error') => void;
+    recordCommand: (command: string, status: CommandStatus) => void;
     recordCommandDuration: (command: string, durationMs: number) => void;
     setQueueDepth: (queue: string, depth: number) => void;
     recordDbQuery: (operation: string, store: string, durationMs: number) => void;
@@ -566,7 +568,7 @@ export function createMetrics({ prefix = 'apollo_' } = {}): {
     });
 
     // Helper functions (using locally created metrics)
-    function recordCommand(command: string, status: 'success' | 'error'): void {
+    function recordCommand(command: string, status: CommandStatus): void {
         commandsTotal.inc({ command, status });
     }
 
