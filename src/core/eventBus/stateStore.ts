@@ -81,7 +81,7 @@ export class StateStore {
         if (this._crossPodEnabled) {
             try {
                 await this._redisPub?.publish(`apollo:state:${key}`, JSON.stringify({
-                    _sourcePodId: this._podId,
+                    _sourcePodId: this._podId ?? 'local',
                     _stateKey: key,
                     _stateValue: value
                 }));

@@ -1,5 +1,6 @@
 import type {
     EventBus,
+    EventBusMessage,
     EventFilter,
     PublishOptions,
     SubscribeOptions,
@@ -137,17 +138,32 @@ export class EventBusImpl implements EventBus {
         });
     }
 
+    private _warnedLegacyEventMessage = false;
+
+    private _warnLegacyEventMessage(): void {
+        if (this._warnedLegacyEventMessage) { return; }
+        this._warnedLegacyEventMessage = true;
+        logger.warn({ msg: '[EventBus] Cross-pod event without routing fields received from an older pod; routing by event name' });
+    }
+
     private _handleCrossPodMessage(channel: string, message: string): void {
         try {
-            const data = JSON.parse(message) as CrossPodEventMessage | CrossPodStateMessage;
-            if (data._sourcePodId === this._podId) { return; }
-
-            if ('_event' in data) {
-                this._eventCore.handleCrossPodEvent(data);
-            }
+            const data = JSON.parse(message) as CrossPodEventMessage | CrossPodStateMessage | EventBusMessage;
+            if ('_sourcePodId' in data && data._sourcePodId === this._podId) { return; }
 
             if ('_stateKey' in data) {
                 this._stateStore.handleCrossPodState(data);
+                return;
+            }
+
+            if ('_event' in data) {
+                this._eventCore.handleCrossPodEvent(data);
+                return;
+            }
+
+            if ('event' in data) {
+                this._warnLegacyEventMessage();
+                this._eventCore.handleCrossPodEvent({ ...data, _sourcePodId: data.source.botId, _event: data.event });
             }
         } catch (err) {
             logger.error({ err: err as Error, msg: '[EventBus] Error handling cross-pod message' });

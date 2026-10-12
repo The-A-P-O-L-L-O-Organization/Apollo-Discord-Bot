@@ -401,12 +401,18 @@ export default class InterlinkPlugin extends Plugin {
     }
 
     _setupEventBridge(): void {
-        const events = forwardEvents();
+        const requested = forwardEvents();
+        const events = requested.filter((name) => !name.includes(':') || name.startsWith('interlink:'));
+        const rejected = requested.filter((name) => name.includes(':') && !name.startsWith('interlink:'));
+        if (rejected.length > 0) {
+            this.logger.warn({ msg: `[Interlink] Ignoring forward events outside the interlink namespace: ${rejected.join(', ')}` });
+        }
         if (!events || events.length === 0) { return; }
 
         this._eventUnsubscribers = [];
         for (const eventName of events) {
             const unsub = this.busView.on(eventName, async (payload: unknown) => {
+                if (payload !== null && typeof payload === 'object' && '_sourcePodId' in payload) { return; }
                 try {
                     const client = this._connectClient;
                     if (!client) { return; }
