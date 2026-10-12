@@ -34,7 +34,7 @@ A feature-rich, modular Discord bot built with TypeScript and discord.js v14. De
 ### Core Platform
 
 - **Plugin System**: Seven first-party plugins (`admin`, `automod`, `integrations`, `interlink`, `moderation`, `tickets`, `utility`) with lifecycle hooks (`onLoad`, `onEnable`, `onDisable`, `onUnload`), dependency resolution, hot reload, and signed third-party installs
-- **Inter-Plugin Communication**: EventBus with three layers — event emit/listen, API registry (`provide`/`call`/`unprovide`), reactive shared state (`provideState`/`setState`/`getState`/`watchState`)
+- **Inter-Plugin Communication**: EventBus with three layers — event emit/listen, API registry (`provide`/`call`/`unprovide`), reactive shared state (`provideState`/`setState`/`getState`/`watchState`) — plus typed per-plugin `busView` wrappers enforcing namespaces, schemas, and bounded RPC timeouts
 - **Cross-Pod Messaging**: Redis pub/sub bridging for EventBus events across gateway and worker instances
 - **Sandboxed Workers**: Third-party plugins run isolated in worker child processes with capability-gated RPC (`src/core/worker/`)
 - **Multi-Instance HA**: Gateway leader election with fencing (`src/gateway/leader.ts`, `fencing.ts`), worker auto-scaling via BullMQ metrics
@@ -139,7 +139,9 @@ The EventBus (`src/core/EventBus.ts`) provides three layers:
 | API Registry | `provide(name, fn)` / `call(name, ...args)` / `unprovide(name)` | Request-response between plugins |
 | Reactive State | `provideState(key, initial)` / `setState(key, value)` / `getState(key)` / `watchState(key, cb)` | Shared mutable state with watchers |
 
-Cross-pod bridging uses Redis pub/sub. Sandboxed third-party plugins reach host services through the capability-gated `api:*` RPC surface defined in `src/core/worker/rpc-schemas.ts`.
+Cross-pod bridging uses Redis pub/sub; published event messages carry `_sourcePodId` and `_event` so receiving pods can route them and skip their own.
+
+Plugins access the bus through `this.busView` (`src/core/eventBus/pluginBusView.ts`), a typed per-plugin view that auto-binds the plugin identity: emits must use the plugin's own `${pluginId}:` prefix, `on`/`once` accept the plugin's own prefix or bare event names, RPC calls default to a 5000 ms timeout that the provider can override via `timeoutMs` metadata, state keys are scoped `${pluginId}:${key}` with opt-in TTL, and `dispose()` (called by disable and reload) removes all of the plugin's bus registrations and invalidates the view. The raw bus on `src/core/EventBus.ts` remains the compatibility surface for existing code. Sandboxed third-party plugins reach host services through the capability-gated `api:*` RPC surface defined in `src/core/worker/rpc-schemas.ts`.
 
 ### Multi-Instance Topology
 

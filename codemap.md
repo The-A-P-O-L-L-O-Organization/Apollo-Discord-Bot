@@ -34,7 +34,7 @@ Strict TypeScript ESM Discord bot on discord.js v14, Node 22+ (CI and production
 | `src/` | Application source root with top-level entries plus config, core, cli, db, gateway, queue, utils, i18n, observability, types, generated, and plugins | [View Map](src/codemap.md) |
 | `src/cli/` | Terminal administration with arg parsing, plugin command discovery, formatting, and Unix-socket dispatch | [View Map](src/cli/codemap.md) |
 | `src/config/` | Immutable ApolloConfig singleton built from env with typed defaults | [View Map](src/config/codemap.md) |
-| `src/core/` | Plugin lifecycle, cross-pod EventBus distribution, and manifest integrity with worker sandboxing | [View Map](src/core/codemap.md) |
+| `src/core/` | Plugin lifecycle, cross-pod EventBus distribution behind a decomposed facade with typed per-plugin views, and manifest integrity with worker sandboxing | [View Map](src/core/codemap.md) |
 | `src/core/worker/` | Third-party plugin isolation in forked child processes with capability security and zod RPC | [View Map](src/core/worker/codemap.md) |
 | `src/db/` | Knex connectivity and guild/user data bridge for Postgres and SQLite with encryption and migrations | [View Map](src/db/codemap.md) |
 | `src/db/migrations/` | Versioned reversible DDL for SQLite and Postgres shared schema | [View Map](src/db/migrations/codemap.md) |

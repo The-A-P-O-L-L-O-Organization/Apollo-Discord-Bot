@@ -1,7 +1,7 @@
 # EventBus Split with Typed PluginBusView (C-Prepared)
 
 - Date: 2026-10-11
-- Status: Approved design, pending implementation plan
+- Status: Implemented (see docs/superpowers/plans/2026-10-11-eventbus-split.md)
 - Follows: TECHNICAL_DEBT_REPORT.md finding "EventBus.ts conflates event emission, RPC, and distributed state" (Code Quality)
 - Prepares: Future C-path (manifest-declared RPC surfaces)
 
