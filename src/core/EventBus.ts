@@ -8,8 +8,10 @@ import type {
     EventHandler
 } from '../types/eventbus.js';
 import { EventCore, type CrossPodEventMessage } from './eventBus/eventCore.js';
-import { RpcRegistry } from './eventBus/rpcRegistry.js';
+import { RpcRegistry, type RpcMeta } from './eventBus/rpcRegistry.js';
 import { StateStore, type CrossPodStateMessage } from './eventBus/stateStore.js';
+import { ContractRegistry } from './eventBus/contractRegistry.js';
+import { PluginBusView } from './eventBus/pluginBusView.js';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger({ component: 'eventbus' });
@@ -39,6 +41,7 @@ export class EventBusImpl implements EventBus {
     private _eventCore = new EventCore();
     private _rpcRegistry = new RpcRegistry();
     private _stateStore = new StateStore();
+    private _contractRegistry = new ContractRegistry();
     private _redisPub: EventBusImplOptions['redisPub'] = undefined;
     private _redisSub: EventBusImplOptions['redisSub'] = undefined;
     private _podId: string | undefined = undefined;
@@ -66,8 +69,8 @@ export class EventBusImpl implements EventBus {
         return this._eventCore.emit(event, payload, options);
     }
 
-    provide(namespace: string, fn: (..._args: unknown[]) => Promise<unknown>, pluginId: string): void {
-        this._rpcRegistry.provide(namespace, fn, pluginId);
+    provide(namespace: string, fn: (..._args: unknown[]) => Promise<unknown>, pluginId: string, meta?: RpcMeta): void {
+        this._rpcRegistry.provide(namespace, fn, pluginId, meta);
     }
 
     async call<T = unknown>(namespace: string, ...args: unknown[]): Promise<T> {
@@ -76,6 +79,22 @@ export class EventBusImpl implements EventBus {
 
     provideState<T = unknown>(key: string, defaultValue: T, pluginId: string): void {
         this._stateStore.provide(key, defaultValue, pluginId);
+    }
+
+    createView(pluginId: string): PluginBusView {
+        return new PluginBusView(this, pluginId, this._contractRegistry);
+    }
+
+    rpcEntryFor(namespace: string): { fn: (...args: unknown[]) => Promise<unknown>; pluginId: string; meta?: RpcMeta } | undefined {
+        return this._rpcRegistry.get(namespace);
+    }
+
+    callWithTimeout<T = unknown>(namespace: string, timeoutMs: number, callerPluginId: string, ...args: unknown[]): Promise<T> {
+        return this._rpcRegistry.callWithTimeout<T>(namespace, timeoutMs, callerPluginId, ...args);
+    }
+
+    provideStateWithTtl<T = unknown>(key: string, defaultValue: T, pluginId: string, ttlMs?: number): void {
+        this._stateStore.provide(key, defaultValue, pluginId, ttlMs);
     }
 
     getState<T = unknown>(key: string): T | undefined {
