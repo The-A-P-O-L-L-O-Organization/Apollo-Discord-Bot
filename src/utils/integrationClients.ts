@@ -297,10 +297,16 @@ function parseFeedXml(xml: string): RssFeedResult {
     }
 
     const rss = document['rss'];
-    const channel = rss && typeof rss === 'object' ? (rss as Record<string, ParsedXmlValue>)['channel'] : undefined;
+    const rdf = document['RDF'];
+    const rootRecord = rss && typeof rss === 'object' && !Array.isArray(rss)
+        ? rss as ParsedXmlObject
+        : rdf && typeof rdf === 'object' && !Array.isArray(rdf)
+            ? rdf as ParsedXmlObject
+            : {};
+    const channel = rootRecord['channel'];
     const channelRecord = channel && typeof channel === 'object' ? channel as Record<string, ParsedXmlValue> : {};
     return {
         feedTitle: textValue(channelRecord['title']),
-        items: asArray(channelRecord['item']).map(entry => normalizeFeedItem(entry, false))
+        items: asArray(channelRecord['item'] ?? rootRecord['item']).map(entry => normalizeFeedItem(entry, false))
     };
 }

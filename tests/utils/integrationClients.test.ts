@@ -102,6 +102,40 @@ describe('integrationClients', () => {
             });
         });
 
+        it('parses RSS 1.0 RDF feeds with top-level items', async() => {
+            const xml = `<?xml version="1.0"?>
+          <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://purl.org/rss/1.0/">
+            <channel rdf:about="https://example.com/">
+              <title>RDF Feed</title>
+              <link>https://example.com/</link>
+              <description>RDF feed description</description>
+              <items>
+                <rdf:Seq>
+                  <rdf:li rdf:resource="https://example.com/rdf-1"/>
+                </rdf:Seq>
+              </items>
+            </channel>
+            <item rdf:about="https://example.com/rdf-1">
+              <title>RDF Post</title>
+              <link>https://example.com/rdf-1</link>
+              <description>RDF item description</description>
+            </item>
+          </rdf:RDF>`;
+            const { safeFetch } = await import('../../src/utils/safeFetch.js');
+            vi.mocked(safeFetch).mockResolvedValue({ buffer: Buffer.from(xml), contentType: 'application/rss+xml', finalUrl: 'https://example.com/feed.xml' });
+            const { checkRssFeed } = await import('../../src/utils/integrationClients.js');
+
+            await expect(checkRssFeed('https://example.com/feed.xml')).resolves.toEqual({
+                feedTitle: 'RDF Feed',
+                items: [{
+                    title: 'RDF Post',
+                    link: 'https://example.com/rdf-1',
+                    guid: 'https://example.com/rdf-1',
+                    pubDate: ''
+                }]
+            });
+        });
+
         it('parses Atom items from XML', async() => {
             const xml = `<?xml version="1.0"?>
           <feed xmlns="http://www.w3.org/2005/Atom">
