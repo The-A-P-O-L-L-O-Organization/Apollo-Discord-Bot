@@ -33,6 +33,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
+    "audit:check": "pnpm install --frozen-lockfile && pnpm audit --audit-level=moderate",
     "lint": "oxlint --type-aware --type-check",
     "lint:fix": "oxlint --type-aware --type-check --fix",
     "lint:locales": "node scripts/lint-locales.mjs",
@@ -93,8 +94,8 @@
     "@types/node": "^26.6.4",
     "@types/pg": "^8.23.1",
     "@types/supertest": "^7.2.1",
-    "@vitest/coverage-v8": "^5.0.3",
-    "@vitest/ui": "^5.0.3",
+    "@vitest/coverage-v8": "^5.0.5",
+    "@vitest/ui": "^5.0.5",
     "esbuild": "^0.28.2",
     "i18next-cli": "^1.74.4",
     "madge": "^8.0.0",
@@ -105,6 +106,6 @@
     "testcontainers": "^12.2.0",
     "tsx": "^4.23.15",
     "typescript": "7.0.2",
-    "vitest": "^5.0.3"
+    "vitest": "^5.0.5"
   }
 }

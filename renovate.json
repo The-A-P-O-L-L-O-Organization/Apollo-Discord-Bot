@@ -24,7 +24,7 @@
     },
     {
       "groupName": "vitest",
-      "matchPackageNames": ["vitest", "@vitest/*", "@types/vitest"],
+      "matchPackageNames": ["vite", "vitest", "@vitest/*", "@types/vitest"],
       "groupSlug": "vitest",
       "schedule": ["every weekend"]
     },
