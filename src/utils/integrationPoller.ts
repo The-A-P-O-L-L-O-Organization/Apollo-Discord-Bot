@@ -5,6 +5,7 @@ import { getData, setData } from './db.js';
 import { NonceStore } from '../queue/nonceStore.js';
 import { checkTwitchStream, checkYoutubeUploads, checkRssFeed } from './integrationClients.js';
 import { formatTwitchNotification, formatYoutubeNotification, formatRssNotification } from './integrationFormatters.js';
+import { createLocalLimiter, type LocalLimiter } from './localConcurrency.js';
 import type { Client } from '../types/shared.js';
 import type { TextChannel } from 'discord.js';
 
@@ -16,6 +17,11 @@ export interface IntegrationConfig {
         twitch: number;
         youtube: number;
         rss: number;
+    };
+    pollConcurrency?: {
+        twitch?: number;
+        youtube?: number;
+        rss?: number;
     };
 }
 
@@ -32,6 +38,13 @@ let integrationConfig: IntegrationConfig | null = null;
 let intervals: NodeJS.Timeout[] = [];
 const knownItems = new Map<string, Set<string>>();
 let startupTimeout: NodeJS.Timeout | null = null;
+let pollerLimiters: {
+    twitch: LocalLimiter;
+    youtube: LocalLimiter;
+    rss: LocalLimiter;
+} | null = null;
+
+const DEFAULT_POLL_CONCURRENCY = 4;
 
 export const POLLER_DEDUPE_TTL_SECONDS = 2592000;
 export const POLLER_DEDUPE_KEY_PREFIX = 'apollo:poller:';
@@ -123,6 +136,11 @@ async function isPollerDuplicate(mapKey: string, nonce: string, itemId: string):
 export function initIntegrationPoller(discordClient: Client, cfg: { integrations: IntegrationConfig }): void {
     client = discordClient;
     integrationConfig = cfg.integrations;
+    pollerLimiters = {
+        twitch: createLocalLimiter('twitch', integrationConfig.pollConcurrency?.twitch ?? DEFAULT_POLL_CONCURRENCY),
+        youtube: createLocalLimiter('youtube', integrationConfig.pollConcurrency?.youtube ?? DEFAULT_POLL_CONCURRENCY),
+        rss: createLocalLimiter('rss', integrationConfig.pollConcurrency?.rss ?? DEFAULT_POLL_CONCURRENCY)
+    };
 
     if (!integrationConfig?.pollInterval) {
         return;
@@ -167,6 +185,10 @@ export function stopIntegrationPoller(): void {
         startupTimeout = null;
     }
     knownItems.clear();
+    pollerLimiters?.twitch.shutdown();
+    pollerLimiters?.youtube.shutdown();
+    pollerLimiters?.rss.shutdown();
+    pollerLimiters = null;
     pollerDedupe = null;
     client = null;
     integrationConfig = null;
@@ -216,29 +238,43 @@ async function loadKnownItems(): Promise<void> {
 
 export async function pollTwitchSubscriptions(): Promise<void> {
     if (!client || !integrationConfig?.twitchClientId) { return; }
+    const config = integrationConfig;
 
     try {
         const subs = (await getSubs()).filter((s: Subscription) => s.type === 'twitch');
-        for (const sub of subs) {
-            const streamData = await checkTwitchStream(sub.target_id, integrationConfig);
-            if (streamData?.live) {
-                const streamId = streamData.title ?? 'live';
-                const nonce = buildTwitchNonce(sub.id, streamId);
-                if (await isPollerDuplicate(`twitch:${sub.id}`, nonce, streamId)) {
-                    await updateSub(sub.id, { last_checked: new Date().toISOString() });
-                    continue;
-                }
-                const channel = client.channels.cache.get(sub.channel_id);
-                if (channel?.isTextBased()) {
-                    const notification = formatTwitchNotification(sub.target_id, streamData);
-                    if (notification) {
-                        (channel as TextChannel).send(notification).catch(() => undefined);
+        const limiter = getPollerLimiter('twitch');
+        const results = await Promise.all(subs.map((sub) => limiter.run(async() => {
+            try {
+                return { sub, streamData: await checkTwitchStream(sub.target_id, config) };
+            } catch {
+                return null;
+            }
+        })));
+        for (const result of results) {
+            if (!result) { continue; }
+            try {
+                const { sub, streamData } = result;
+                if (streamData?.live) {
+                    const streamId = streamData.title ?? 'live';
+                    const nonce = buildTwitchNonce(sub.id, streamId);
+                    if (await isPollerDuplicate(`twitch:${sub.id}`, nonce, streamId)) {
+                        await updateSub(sub.id, { last_checked: new Date().toISOString() });
+                        continue;
                     }
+                    const channel = client?.channels.cache.get(sub.channel_id);
+                    if (channel?.isTextBased()) {
+                        const notification = formatTwitchNotification(sub.target_id, streamData);
+                        if (notification) {
+                            (channel as TextChannel).send(notification).catch(() => undefined);
+                        }
+                    }
+                    await updateSub(sub.id, { last_checked: new Date().toISOString() });
+                } else if (streamData && !streamData.live) {
+                    knownItems.delete(`twitch:${sub.id}`);
+                    await updateSub(sub.id, { last_checked: new Date().toISOString() });
                 }
-                await updateSub(sub.id, { last_checked: new Date().toISOString() });
-            } else if (streamData && !streamData.live) {
-                knownItems.delete(`twitch:${sub.id}`);
-                await updateSub(sub.id, { last_checked: new Date().toISOString() });
+            } catch {
+                // silently ignore api/channel errors for this subscription
             }
         }
     } catch {
@@ -248,21 +284,31 @@ export async function pollTwitchSubscriptions(): Promise<void> {
 
 export async function pollYoutubeSubscriptions(): Promise<void> {
     if (!client || !integrationConfig?.youtubeApiKey) { return; }
+    const config = integrationConfig;
 
     try {
         const subs = (await getSubs()).filter((s: Subscription) => s.type === 'youtube');
-        for (const sub of subs) {
-            const videos = await checkYoutubeUploads(sub.target_id, integrationConfig);
-            if (!videos || videos.length === 0) { continue; }
+        const limiter = getPollerLimiter('youtube');
+        const results = await Promise.all(subs.map((sub) => limiter.run(async() => {
+            try {
+                return { sub, videos: await checkYoutubeUploads(sub.target_id, config) };
+            } catch {
+                return null;
+            }
+        })));
+        for (const result of results) {
+            if (!result) { continue; }
+            try {
+                const { sub, videos } = result;
+                if (!videos || videos.length === 0) { continue; }
+                let posted = false;
 
-            let posted = false;
-
-            for (const video of videos) {
-                const nonce = buildYoutubeNonce(sub.id, video.videoId);
-                if (await isPollerDuplicate(`youtube:${sub.id}`, nonce, video.videoId)) {
-                    continue;
-                }
-                    const channel = client.channels.cache.get(sub.channel_id);
+                for (const video of videos) {
+                    const nonce = buildYoutubeNonce(sub.id, video.videoId);
+                    if (await isPollerDuplicate(`youtube:${sub.id}`, nonce, video.videoId)) {
+                        continue;
+                    }
+                    const channel = client?.channels.cache.get(sub.channel_id);
                     if (channel?.isTextBased()) {
                         const notification = formatYoutubeNotification(sub.target_id, video);
                         if (notification) {
@@ -271,10 +317,13 @@ export async function pollYoutubeSubscriptions(): Promise<void> {
                     }
                     posted = true;
                     break;
-            }
+                }
 
-            if (posted) {
-                await updateSub(sub.id, { last_checked: new Date().toISOString() });
+                if (posted) {
+                    await updateSub(sub.id, { last_checked: new Date().toISOString() });
+                }
+            } catch {
+                // silently ignore api/channel errors for this subscription
             }
         }
     } catch {
@@ -287,36 +336,60 @@ export async function pollRssSubscriptions(): Promise<void> {
 
     try {
         const subs = (await getSubs()).filter((s: Subscription) => s.type === 'rss');
-        for (const sub of subs) {
-            const feed = await checkRssFeed(sub.target_id);
-            if (!feed || feed.items.length === 0) { continue; }
-
-            let posted = false;
-
-            for (const item of feed.items) {
-                const key = item.guid || item.link;
-                const nonce = buildRssNonce(sub.id, key);
-                if (await isPollerDuplicate(`rss:${sub.id}`, nonce, key)) {
-                    continue;
-                }
-                const channel = client.channels.cache.get(sub.channel_id);
-                if (channel?.isTextBased()) {
-                    const notification = formatRssNotification(feed.feedTitle, item);
-                    if (notification) {
-                        (channel as TextChannel).send(notification).catch(() => undefined);
-                    }
-                }
-                posted = true;
-                break;
+        const limiter = getPollerLimiter('rss');
+        const results = await Promise.all(subs.map((sub) => limiter.run(async() => {
+            try {
+                return { sub, feed: await checkRssFeed(sub.target_id) };
+            } catch {
+                return null;
             }
+        })));
+        for (const result of results) {
+            if (!result) { continue; }
+            try {
+                const { sub, feed } = result;
+                if (!feed || feed.items.length === 0) { continue; }
+                let posted = false;
 
-            if (posted) {
-                await updateSub(sub.id, { last_checked: new Date().toISOString() });
+                for (const item of feed.items) {
+                    const key = item.guid || item.link;
+                    const nonce = buildRssNonce(sub.id, key);
+                    if (await isPollerDuplicate(`rss:${sub.id}`, nonce, key)) {
+                        continue;
+                    }
+                    const channel = client?.channels.cache.get(sub.channel_id);
+                    if (channel?.isTextBased()) {
+                        const notification = formatRssNotification(feed.feedTitle, item);
+                        if (notification) {
+                            (channel as TextChannel).send(notification).catch(() => undefined);
+                        }
+                    }
+                    posted = true;
+                    break;
+                }
+
+                if (posted) {
+                    await updateSub(sub.id, { last_checked: new Date().toISOString() });
+                }
+            } catch {
+                // silently ignore api/channel errors for this subscription
             }
         }
     } catch {
         // silently ignore api/channel errors
     }
+}
+
+function getPollerLimiter(name: 'twitch' | 'youtube' | 'rss'): LocalLimiter {
+    if (pollerLimiters) {
+        return pollerLimiters[name];
+    }
+    pollerLimiters = {
+        twitch: createLocalLimiter('twitch', DEFAULT_POLL_CONCURRENCY),
+        youtube: createLocalLimiter('youtube', DEFAULT_POLL_CONCURRENCY),
+        rss: createLocalLimiter('rss', DEFAULT_POLL_CONCURRENCY)
+    };
+    return pollerLimiters[name];
 }
 
 export default {

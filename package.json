@@ -82,6 +82,7 @@
     "jose": "^6.2.12",
     "knex": "^3.3.0",
     "msgpackr": "^2.1.0",
+    "p-limit": "catalog:",
     "pg": "^8.23.1",
     "pino": "^10.4.0",
     "pino-pretty": "^13.2.0",

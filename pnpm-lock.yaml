@@ -9,6 +9,9 @@ catalogs:
     fast-xml-parser:
       specifier: ^5.11.2
       version: 5.11.2
+    p-limit:
+      specifier: 7.3.3
+      version: 7.3.3
 
 overrides:
   glob: 11.1.0
@@ -140,6 +143,9 @@ importers:
       msgpackr:
         specifier: ^2.1.0
         version: 2.1.0
+      p-limit:
+        specifier: 'catalog:'
+        version: 7.3.3
       pg:
         specifier: ^8.23.1
         version: 8.23.1
@@ -3239,6 +3245,10 @@ packages:
       vite-plus:
         optional: true
 
+  p-limit@7.3.3:
+    resolution: {integrity: sha512-SKgVvDU5TNIxQ4r30U75BNLC6a+6GOEjngrk/ysM5+Zu3oJuk1SC5ApzIzY/7PjCEjoVPMWJ0zho/4QUiEB7TQ==}
+    engines: {node: '>=20'}
+
   package-json-from-dist@1.0.1:
     resolution: {integrity: sha512-UEZIS3/by4OC8vL3P2dTXRETpebLI2NiI5vIrjaD/5UtrkFX/tNbwjTSRAGC/+7CAo2pIcBaRgWmcBBHcsaCIw==}
 
@@ -4046,6 +4056,10 @@ packages:
   yargs@17.7.3:
     resolution: {integrity: sha512-GZtjxm/J/4TSxuL3FNYjCmLktBTnIw/rVmKSIyKeYAZpmJB2ig9VauCC5xsa82GNKVKDAqpOn3KVzNt0zmrU0g==}
     engines: {node: '>=12'}
+
+  yocto-queue@1.2.2:
+    resolution: {integrity: sha512-4LCcse/U2MHZ63HAJVE+v71o7yOdIe4cZ70Wpf8D/IyjDKYQLV5GD46B+hSTjJsvV5PztjvHoU580EftxjDZFQ==}
+    engines: {node: '>=12.20'}
 
   yoctocolors@2.2.0:
     resolution: {integrity: sha512-xYqdZFUK/VYazNl/oCDYN+3WloWQwMfZxBoiNt6qNyk+xfOdi598muWE42rNZFp1kNOiqW936q5RhUdnpqElSg==}
@@ -6977,6 +6991,10 @@ snapshots:
       '@oxlint/binding-win32-x64-msvc': 1.87.0
       oxlint-tsgolint: 7.0.2003
 
+  p-limit@7.3.3:
+    dependencies:
+      yocto-queue: 1.2.2
+
   package-json-from-dist@1.0.1: {}
 
   parse-ms@2.1.0: {}
@@ -7799,6 +7817,8 @@ snapshots:
       string-width: 4.2.3
       y18n: 5.0.8
       yargs-parser: 21.1.1
+
+  yocto-queue@1.2.2: {}
 
   yoctocolors@2.2.0: {}
 
