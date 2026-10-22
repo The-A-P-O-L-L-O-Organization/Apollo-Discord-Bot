@@ -12,6 +12,11 @@ vi.mock('../../src/utils/integrationClients.js', () => ({
     checkRssFeed: vi.fn()
 }));
 
+vi.mock('../../src/utils/lock.js', () => ({
+    getLockRedis: vi.fn().mockResolvedValue(null),
+    withLock: vi.fn((_redis: unknown, _key: string, _owner: string, fn: () => Promise<unknown>) => fn())
+}));
+
 import { getData, setData } from '../../src/utils/db.js';
 import { checkTwitchStream, checkYoutubeUploads } from '../../src/utils/integrationClients.js';
 
@@ -42,6 +47,37 @@ describe('integrationPoller', () => {
     it('stopIntegrationPoller does not throw when not started', async() => {
         const poller = await import('../../src/utils/integrationPoller.js');
         expect(() => poller.stopIntegrationPoller()).not.toThrow();
+    });
+
+    it('tears down the previous generation before direct reinitialization', async() => {
+        const poller = await import('../../src/utils/integrationPoller.js');
+        mockGetData.mockResolvedValue({
+            subscriptions: [
+                { id: 'yt1', type: 'youtube', target_id: 'channel', channel_id: 'channel' }
+            ]
+        } as never);
+        mockCheckYoutube.mockResolvedValue([] as never);
+
+        const config = {
+            integrations: {
+                pollInterval: { twitch: 10000, youtube: 0, rss: 0 },
+                twitchClientId: '',
+                twitchClientSecret: '',
+                youtubeApiKey: 'youtube-key'
+            }
+        };
+        const client = { channels: { cache: { get: vi.fn() } } };
+
+        poller.initIntegrationPoller(client as unknown as Client, config);
+        expect(vi.getTimerCount()).toBe(2);
+
+        poller.initIntegrationPoller(client as unknown as Client, config);
+        expect(vi.getTimerCount()).toBe(2);
+
+        await vi.advanceTimersByTimeAsync(5000);
+
+        expect(mockCheckYoutube).toHaveBeenCalledTimes(1);
+        poller.stopIntegrationPoller();
     });
 
     it('ignores in-flight results from a stopped generation after reinitialization', async() => {
@@ -99,6 +135,83 @@ describe('integrationPoller', () => {
 
         expect(newSend).not.toHaveBeenCalled();
         expect(mockSetData).not.toHaveBeenCalled();
+        poller.stopIntegrationPoller();
+    });
+
+    it('drains an in-flight old write before persisting the reinitialized generation', async() => {
+        const poller = await import('../../src/utils/integrationPoller.js');
+        vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
+        const stored: {
+            subscriptions: Array<{
+                id: string;
+                type: 'youtube';
+                target_id: string;
+                channel_id: string;
+                last_checked?: string;
+            }>;
+        } = {
+            subscriptions: [
+                { id: 'yt1', type: 'youtube', target_id: 'channel', channel_id: 'channel' }
+            ]
+        };
+        mockGetData.mockImplementation(async() => structuredClone(stored) as never);
+
+        let releaseOldWrite!: () => void;
+        const oldWriteGate = new Promise<void>((resolve) => { releaseOldWrite = resolve; });
+        let resolveOldWriteStarted!: () => void;
+        const oldWriteStarted = new Promise<void>((resolve) => { resolveOldWriteStarted = resolve; });
+        let resolveNewCheckStarted!: () => void;
+        const newCheckStarted = new Promise<void>((resolve) => { resolveNewCheckStarted = resolve; });
+        let setDataCalls = 0;
+        mockSetData.mockImplementation(async(_store, data) => {
+            setDataCalls += 1;
+            if (setDataCalls === 1) {
+                resolveOldWriteStarted();
+                await oldWriteGate;
+            }
+            Object.assign(stored, structuredClone(data));
+        });
+
+        const oldVideo = {
+            title: 'Old video',
+            description: 'Description',
+            thumbnail: 'thumbnail',
+            videoId: 'old-video',
+            publishedAt: new Date().toISOString()
+        };
+        const newVideo = { ...oldVideo, title: 'New video', videoId: 'new-video' };
+        mockCheckYoutube
+            .mockResolvedValueOnce([oldVideo] as never)
+            .mockImplementationOnce(async() => {
+                resolveNewCheckStarted();
+                return [newVideo] as never;
+            });
+
+        const config = {
+            integrations: {
+                pollInterval: { twitch: 0, youtube: 0, rss: 0 },
+                twitchClientId: '',
+                twitchClientSecret: '',
+                youtubeApiKey: 'youtube-key'
+            }
+        };
+        const client = { channels: { cache: { get: vi.fn() } } };
+        poller.initIntegrationPoller(client as unknown as Client, config);
+        const oldPoll = poller.pollYoutubeSubscriptions();
+        await oldWriteStarted;
+
+        poller.initIntegrationPoller(client as unknown as Client, config);
+        vi.setSystemTime(new Date('2026-01-01T00:00:01.000Z'));
+        const newPoll = poller.pollYoutubeSubscriptions();
+
+        expect(setDataCalls).toBe(1);
+        releaseOldWrite();
+        await newCheckStarted;
+        await Promise.all([oldPoll, newPoll]);
+
+        expect(setDataCalls).toBe(2);
+        expect(stored.subscriptions[0]?.last_checked).toBe('2026-01-01T00:00:01.000Z');
         poller.stopIntegrationPoller();
     });
 

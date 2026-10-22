@@ -48,6 +48,7 @@ interface PollerContext {
     knownItems: Map<string, Set<string>>;
     dedupe: NonceStore | null;
     limiters: PollerLimiters;
+    writeBarrier: Promise<void>;
 }
 
 let client: Client | null = null;
@@ -183,6 +184,7 @@ async function isPollerDuplicate(context: PollerContext, mapKey: string, nonce: 
 }
 
 export function initIntegrationPoller(discordClient: Client, cfg: { integrations: IntegrationConfig }): void {
+    stopIntegrationPoller();
     pollerGeneration += 1;
     client = discordClient;
     integrationConfig = cfg.integrations;
@@ -220,6 +222,7 @@ export function initIntegrationPoller(discordClient: Client, cfg: { integrations
 }
 
 export function stopIntegrationPoller(): void {
+    pollerWriteBarrier = dbWriteQueue;
     pollerGeneration += 1;
     for (const id of intervals) {
         clearInterval(id);
@@ -241,13 +244,17 @@ export function stopIntegrationPoller(): void {
 }
 
 let dbWriteQueue: Promise<void> = Promise.resolve();
+let pollerWriteBarrier: Promise<void> = dbWriteQueue;
 
-async function withDbWriteMutex<T>(fn: () => Promise<T>): Promise<T> {
+async function withDbWriteMutex<T>(generation: number, fn: () => Promise<T>): Promise<T | undefined> {
     const previous = dbWriteQueue;
     let release: () => void = () => undefined;
     dbWriteQueue = new Promise<void>((resolve) => { release = resolve; });
     await previous;
     try {
+        if (generation !== pollerGeneration) {
+            return undefined;
+        }
         return await fn();
     } finally {
         release();
@@ -260,7 +267,7 @@ async function getSubs(): Promise<Subscription[]> {
 }
 
 async function updateSub(context: PollerContext, subId: string, updates: Partial<Subscription>): Promise<void> {
-    await withDbWriteMutex(async () => {
+    await withDbWriteMutex(context.generation, async () => {
         if (!isCurrentPoller(context)) {
             return;
         }
@@ -299,6 +306,9 @@ async function runScheduledPoll(generation: number, type: PollerType): Promise<v
     if (!context) {
         return;
     }
+    if (!await waitForPollerWriteBarrier(context)) {
+        return;
+    }
     const redis = await getLockRedis();
     if (!isCurrentPoller(context)) {
         return;
@@ -320,6 +330,9 @@ async function runStartupPoll(generation: number): Promise<void> {
     if (!context) {
         return;
     }
+    if (!await waitForPollerWriteBarrier(context)) {
+        return;
+    }
     await loadKnownItems(context);
     if (!isCurrentPoller(context)) {
         return;
@@ -339,6 +352,9 @@ export async function pollTwitchSubscriptions(): Promise<void> {
 
 async function pollTwitchSubscriptionsForContext(context: PollerContext): Promise<void> {
     if (!isCurrentPoller(context)) {
+        return;
+    }
+    if (!await waitForPollerWriteBarrier(context)) {
         return;
     }
 
@@ -415,6 +431,9 @@ async function pollYoutubeSubscriptionsForContext(context: PollerContext): Promi
     if (!isCurrentPoller(context)) {
         return;
     }
+    if (!await waitForPollerWriteBarrier(context)) {
+        return;
+    }
 
     try {
         const subs = (await getSubs()).filter((s: Subscription) => s.type === 'youtube');
@@ -487,6 +506,9 @@ export async function pollRssSubscriptions(): Promise<void> {
 
 async function pollRssSubscriptionsForContext(context: PollerContext): Promise<void> {
     if (!isCurrentPoller(context)) {
+        return;
+    }
+    if (!await waitForPollerWriteBarrier(context)) {
         return;
     }
 
@@ -579,7 +601,8 @@ function getPollerContext(generation = pollerGeneration): PollerContext | null {
         config,
         knownItems,
         dedupe: pollerDedupe,
-        limiters
+        limiters,
+        writeBarrier: pollerWriteBarrier
     };
 }
 
@@ -587,6 +610,11 @@ function isCurrentPoller(context: PollerContext): boolean {
     return context.generation === pollerGeneration
         && client === context.client
         && integrationConfig === context.config;
+}
+
+async function waitForPollerWriteBarrier(context: PollerContext): Promise<boolean> {
+    await context.writeBarrier;
+    return isCurrentPoller(context);
 }
 
 export default {
