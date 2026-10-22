@@ -40,8 +40,8 @@ export const queueJobsTotal = new Counter({
     registers: [register]
 });
 
-const queueLabels = ['commands', 'nsfw', 'heavy', 'scheduled', 'default'] as const;
-const jobLabels = ['process-command', 'nsfw:analyze', 'heavy-operation', 'scheduled-task', 'unknown'] as const;
+const queueLabels = ['commands', 'nsfw', 'heavy', 'scheduled', 'webhook', 'default'] as const;
+const jobLabels = ['process-command', 'nsfw:analyze', 'heavy-operation', 'scheduled-task', 'webhook:delivery', 'unknown'] as const;
 const outcomeLabels = ['success', 'retry', 'failure'] as const;
 type QueueLabel = typeof queueLabels[number];
 type JobLabel = typeof jobLabels[number];
@@ -52,6 +52,7 @@ function normalizeQueueLabel(value: string): QueueLabel {
     if (normalized.includes('nsfw')) { return 'nsfw'; }
     if (normalized.includes('heavy')) { return 'heavy'; }
     if (normalized.includes('scheduled')) { return 'scheduled'; }
+    if (normalized.includes('webhook')) { return 'webhook'; }
     if (normalized.includes('command')) { return 'commands'; }
     return 'default';
 }

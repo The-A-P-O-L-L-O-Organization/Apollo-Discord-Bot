@@ -39,6 +39,22 @@ export interface QueueMetricsResult {
     failed: number;
 }
 
+export interface QueueBenchmarkSummary {
+    completedJobs: number;
+    failureCount: number;
+    failureRate: number;
+}
+
+export function summarizeQueueBenchmark(completedJobs: number, failureCount: number): QueueBenchmarkSummary {
+    const completed = Math.max(0, Math.trunc(completedJobs));
+    const failures = Math.min(completed, Math.max(0, Math.trunc(failureCount)));
+    return {
+        completedJobs: completed,
+        failureCount: failures,
+        failureRate: completed === 0 ? 0 : failures / completed
+    };
+}
+
 export async function getQueueMetrics(queueConfig: ApolloConfig['queue']): Promise<QueueMetricsResult> {
     if (!queueConfig.enabled) {
         return { waiting: 0, active: 0, failed: 0 };
