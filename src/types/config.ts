@@ -2,7 +2,7 @@
 // Mirrors src/config/config.js structure with explicit interfaces
 
 import type { ClientOptions } from 'discord.js';
-import type { DefaultJobOptions, JobSerializer } from './queue.js';
+import type { DefaultJobOptions, JobSerializer, WorkerRuntimeConfig } from './queue.js';
 
 export interface DiscordConfig {
     token: string;
@@ -60,13 +60,7 @@ export interface QueueConfig {
     defaultJobOptions?: DefaultJobOptions;
     serializer?: JobSerializer;
     hmacSecret?: string;
-    worker: {
-        concurrency: number;
-        limiter: {
-            max: number;
-            duration: number;
-        };
-    };
+    worker: WorkerRuntimeConfig;
 }
 
 export interface InterlinkConfig {

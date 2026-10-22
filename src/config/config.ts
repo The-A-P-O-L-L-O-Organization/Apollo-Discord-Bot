@@ -9,9 +9,23 @@ function parseIntSafe(value: string | undefined, defaultValue: number): number {
     return Number.isFinite(n) ? n : defaultValue;
 }
 
-function parseBoundedInt(value: string | undefined, defaultValue: number, minimum: number, maximum: number): number {
-    const parsed = parseIntSafe(value, defaultValue);
-    return Math.min(maximum, Math.max(minimum, parsed));
+function parseBoundedInt(
+    value: string | undefined,
+    defaultValue: number,
+    minimum: number,
+    maximum: number,
+    key: string
+): number {
+    if (value === undefined) {
+        return defaultValue;
+    }
+
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed) || parsed < minimum || parsed > maximum) {
+        throw new Error(`[FATAL] ${key} must be an integer between ${minimum} and ${maximum}.`);
+    }
+
+    return parsed;
 }
 
 function parseBoolSafe(value: string | undefined): boolean {
@@ -282,10 +296,33 @@ const config = {
         },
         hmacSecret: getEnv('QUEUE_HMAC_SECRET'),
         worker: {
-            concurrency: parseBoundedInt(getEnv('WORKER_CONCURRENCY'), 4, 1, 100),
+            concurrency: parseBoundedInt(getEnv('WORKER_CONCURRENCY'), 4, 1, 100, 'WORKER_CONCURRENCY'),
             limiter: {
-                max: parseBoundedInt(getEnv('WORKER_LIMITER_MAX'), 50, 1, 10000),
-                duration: parseBoundedInt(getEnv('WORKER_LIMITER_DURATION_MS'), 1000, 100, 60000)
+                max: parseBoundedInt(getEnv('WORKER_LIMITER_MAX'), 50, 1, 10000, 'WORKER_LIMITER_MAX'),
+                duration: parseBoundedInt(
+                    getEnv('WORKER_LIMITER_DURATION_MS'),
+                    1000,
+                    100,
+                    60000,
+                    'WORKER_LIMITER_DURATION_MS'
+                )
+            },
+            lockDuration: parseBoundedInt(
+                getEnv('WORKER_LOCK_DURATION_MS'),
+                60000,
+                1000,
+                300000,
+                'WORKER_LOCK_DURATION_MS'
+            ),
+            retry: {
+                attempts: parseBoundedInt(getEnv('QUEUE_ATTEMPTS'), 3, 1, 10, 'QUEUE_ATTEMPTS'),
+                backoffDelay: parseBoundedInt(
+                    getEnv('QUEUE_BACKOFF_DELAY_MS'),
+                    1000,
+                    100,
+                    60000,
+                    'QUEUE_BACKOFF_DELAY_MS'
+                )
             }
         }
     },

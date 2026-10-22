@@ -194,6 +194,12 @@ pnpm dev
 | `REDIS_PASSWORD` | unset | Redis password; required in production |
 | `QUEUE_PREFIX` | `apollo` | Key prefix isolating environments |
 | `QUEUE_STALLED_INTERVAL` | `30000` | Stalled-job scan interval in milliseconds |
+| `WORKER_CONCURRENCY` | `4` | Concurrent jobs per worker; integer from 1 to 100 |
+| `WORKER_LIMITER_MAX` | `50` | Jobs allowed per limiter window; integer from 1 to 10000 |
+| `WORKER_LIMITER_DURATION_MS` | `1000` | Limiter window in milliseconds; integer from 100 to 60000 |
+| `WORKER_LOCK_DURATION_MS` | `60000` | BullMQ lock duration in milliseconds; integer from 1000 to 300000 |
+| `QUEUE_ATTEMPTS` | `3` | Maximum attempts per job; integer from 1 to 10 |
+| `QUEUE_BACKOFF_DELAY_MS` | `1000` | Exponential retry backoff base delay; integer from 100 to 60000 |
 | `QUEUE_HMAC_SECRET` | unset | Job integrity secret; generate with `openssl rand -base64 32` |
 
 ### 4.5 Interlink
@@ -433,6 +439,12 @@ REDIS_USERNAME=default
 REDIS_PASSWORD=strong-password
 QUEUE_PREFIX=apollo
 QUEUE_STALLED_INTERVAL=30000
+WORKER_CONCURRENCY=4
+WORKER_LIMITER_MAX=50
+WORKER_LIMITER_DURATION_MS=1000
+WORKER_LOCK_DURATION_MS=60000
+QUEUE_ATTEMPTS=3
+QUEUE_BACKOFF_DELAY_MS=1000
 QUEUE_HMAC_SECRET=your-base64-encoded-32-byte-secret
 ```
 

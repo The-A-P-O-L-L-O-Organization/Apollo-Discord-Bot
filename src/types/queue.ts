@@ -118,6 +118,16 @@ export interface QueueConfig {
     serializer: JobSerializer;
 }
 
+export interface WorkerRuntimeConfig {
+    concurrency: number;
+    limiter: RateLimiterOptions;
+    lockDuration: number;
+    retry: {
+        attempts: number;
+        backoffDelay: number;
+    };
+}
+
 export interface RedisConnectionConfig {
     host: string;
     port: number;

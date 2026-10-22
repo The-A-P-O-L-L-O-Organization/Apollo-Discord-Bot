@@ -1,4 +1,4 @@
-import { Worker } from 'bullmq';
+import { Worker, type WorkerOptions as BullWorkerOptions } from 'bullmq';
 import Redis from 'ioredis';
 import type { Redis as RedisType } from 'ioredis';
 import { config } from './config/config.js';
@@ -22,10 +22,20 @@ import {
     startPerformanceMetrics,
     stopPerformanceMetrics
 } from './utils/metrics.js';
+import type { WorkerRuntimeConfig } from './types/queue.js';
 
 const logger = createLogger({ component: 'worker' });
 
 let worker: Worker | null = null;
+
+export function getWorkerOptions(workerConfig: WorkerRuntimeConfig, connection: RedisType): BullWorkerOptions {
+    return {
+        connection,
+        concurrency: workerConfig.concurrency,
+        lockDuration: workerConfig.lockDuration,
+        limiter: workerConfig.limiter
+    };
+}
 
 export async function startWorker(): Promise<Worker> {
     logger.info('[Worker] Starting in worker mode...');
@@ -82,12 +92,7 @@ export async function startWorker(): Promise<Worker> {
             recordQueueJobDuration(config.queue.prefix, job.name, performance.now() - startedAt);
             setWorkerMemory('worker', process.memoryUsage().rss);
         }
-    }, {
-        connection,
-        concurrency: config.queue.worker.concurrency,
-        lockDuration: 60000,
-        limiter: config.queue.worker.limiter
-    });
+    }, getWorkerOptions(config.queue.worker, connection));
 
     worker.on('completed', (job) => {
         logger.info(`[Worker] Job ${String(job.id)} completed`);
