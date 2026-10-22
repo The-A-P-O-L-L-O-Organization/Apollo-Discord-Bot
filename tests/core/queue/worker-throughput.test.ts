@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { runQueueThroughputBenchmark } from '../../../benchmarks/queue-worker-benchmark.js';
+import type { BenchmarkHandler } from '../../../benchmarks/queue-worker-benchmark.js';
 
 function delay(milliseconds: number): Promise<void> {
     return new Promise(resolve => {
@@ -60,21 +61,43 @@ describe('queue worker throughput benchmark', () => {
         });
     });
 
-    it('reports handlers that exceed the timeout as failures', async() => {
+    it('waits for timed-out handlers to settle before starting another job', async() => {
+        let activeHandlers = 0;
+        let peakActiveHandlers = 0;
+        const handler: BenchmarkHandler = async(_workload, _jobNumber, signal) => {
+            activeHandlers += 1;
+            peakActiveHandlers = Math.max(peakActiveHandlers, activeHandlers);
+            try {
+                await new Promise<void>(resolve => {
+                    const timer = setTimeout(resolve, 100);
+                    signal?.addEventListener('abort', () => {
+                        clearTimeout(timer);
+                        resolve();
+                    }, { once: true });
+                });
+            } finally {
+                activeHandlers -= 1;
+            }
+        };
         const report = await runQueueThroughputBenchmark({
-            concurrency: 4,
+            concurrency: 1,
             jobsPerWorkload: 1,
             handlerTimeoutMs: 10,
             handlers: {
-                command: () => new Promise<void>(() => undefined)
+                command: handler,
+                nsfw: handler,
+                scheduled: handler,
+                webhook: handler
             }
         });
 
         expect(report.totalJobs).toBe(4);
         expect(report.completedJobs).toBe(4);
-        expect(report.failureCount).toBe(1);
-        expect(report.failureRate).toBe(0.25);
-        expect(report.workloads.command.failureCount).toBe(1);
+        expect(report.failureCount).toBe(4);
+        expect(report.failureRate).toBe(1);
+        expect(report.peakActiveJobs).toBe(1);
+        expect(peakActiveHandlers).toBe(1);
+        expect(activeHandlers).toBe(0);
         expect(report.processingDurationMs.average).toBeGreaterThan(0);
         expect(Number.isFinite(report.processingDurationMs.p95)).toBe(true);
     });

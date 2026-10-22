@@ -22,4 +22,6 @@ pnpm exec tsx benchmarks/queue-worker-benchmark.ts --concurrency 1,4,8
 
 The JSON output reports queue wait, processing duration, throughput, failure rate, peak active jobs, and per-workload totals for command, NSFW, scheduled, and webhook jobs. The harness uses in-memory deterministic handlers; it does not connect to Redis, Discord, a database, or production queues.
 
+Injected handlers receive an `AbortSignal`. A timeout aborts the signal, records the job as a failure, and does not release the concurrency slot until the handler settles. Handlers must observe the signal and return after cancellation; synchronous or never-returning handlers cannot be interrupted safely and are not valid benchmark handlers.
+
 Do not increase concurrency based on throughput alone. Compare the result with Redis latency, database pool pressure, Discord rate-limit responses, event-loop delay, and worker memory. A throughput increase that raises queue wait, database saturation, rate limits, event-loop delay, or memory pressure is not an improvement. Keep the concurrency that meets latency and failure-rate targets without exhausting those dependencies.

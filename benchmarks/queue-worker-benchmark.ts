@@ -4,7 +4,11 @@ import { createMetrics } from '../src/utils/metrics.js';
 
 export const benchmarkWorkloads = ['command', 'nsfw', 'scheduled', 'webhook'] as const;
 export type BenchmarkWorkload = typeof benchmarkWorkloads[number];
-export type BenchmarkHandler = (workload: BenchmarkWorkload, jobNumber: number) => Promise<void>;
+export type BenchmarkHandler = (
+    workload: BenchmarkWorkload,
+    jobNumber: number,
+    signal: AbortSignal
+) => Promise<void>;
 
 export interface QueueBenchmarkWorkloadResult {
     totalJobs: number;
@@ -76,29 +80,32 @@ function validateOptions(options: QueueBenchmarkOptions): {
     return { concurrency: options.concurrency, jobsPerWorkload, handlerTimeoutMs };
 }
 
-function runHandlerWithTimeout(
+async function runHandlerWithTimeout(
     handler: BenchmarkHandler,
     workload: BenchmarkWorkload,
     jobNumber: number,
     timeoutMs: number
 ): Promise<void> {
-    return new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-            reject(new Error(`benchmark handler timed out after ${timeoutMs}ms`));
-        }, timeoutMs);
-        void Promise.resolve()
-            .then(() => handler(workload, jobNumber))
-            .then(
-                () => {
-                    clearTimeout(timeout);
-                    resolve();
-                },
-                error => {
-                    clearTimeout(timeout);
-                    reject(error);
-                }
-            );
-    });
+    const controller = new AbortController();
+    const timeoutError = new Error(`benchmark handler timed out after ${timeoutMs}ms`);
+    let timedOut = false;
+    const timeout = setTimeout(() => {
+        timedOut = true;
+        controller.abort(timeoutError);
+    }, timeoutMs);
+    try {
+        await Promise.resolve().then(() => handler(workload, jobNumber, controller.signal));
+        if (timedOut) {
+            throw timeoutError;
+        }
+    } catch (error) {
+        if (timedOut) {
+            throw timeoutError;
+        }
+        throw error;
+    } finally {
+        clearTimeout(timeout);
+    }
 }
 
 export async function runQueueThroughputBenchmark(options: QueueBenchmarkOptions): Promise<QueueBenchmarkReport> {
