@@ -3,6 +3,7 @@
 import { safeFetch } from './safeFetch.js';
 import { createServiceBreaker, CircuitBreakerOpenError } from './circuitBreaker.js';
 import { logger } from './logger.js';
+import { XMLParser, XMLValidator } from 'fast-xml-parser';
 
 interface TwitchConfig {
     twitchClientId: string;
@@ -199,6 +200,14 @@ export async function checkRssFeed(feedUrl: string): Promise<RssFeedResult | nul
     }
 }
 
+interface ParsedXmlObject {
+    [key: string]: ParsedXmlValue;
+}
+
+interface ParsedXmlArray extends Array<ParsedXmlValue> {}
+
+type ParsedXmlValue = ParsedXmlObject | ParsedXmlArray | string | number | boolean | null | undefined;
+
 interface ParsedFeedItem {
     title: string;
     link: string;
@@ -206,45 +215,92 @@ interface ParsedFeedItem {
     pubDate: string;
 }
 
-/**
- * Parses RSS/Atom XML into structured data
- * @param {string} xml - Raw XML string
- * @returns {RssFeedResult} Parsed feed data
- */
-function parseFeedXml(xml: string): RssFeedResult {
-    const items: ParsedFeedItem[] = [];
-    let feedTitle = '';
+const feedParser = new XMLParser({
+    ignoreAttributes: false,
+    removeNSPrefix: true,
+    parseTagValue: false,
+    parseAttributeValue: false,
+    trimValues: true,
+    processEntities: true,
+    maxNestedTags: 50,
+    isArray: (tagName: string) => tagName === 'item' || tagName === 'entry' || tagName === 'link'
+});
 
-    const titleMatch = /<title[^>]*>([^<]+)<\/title>/.exec(xml);
-    if (titleMatch?.[1]) { feedTitle = titleMatch[1]; }
+function asArray(value: ParsedXmlValue): ParsedXmlValue[] {
+    if (Array.isArray(value)) {
+        return value as ParsedXmlValue[];
+    }
+    return value === undefined || value === null ? [] : [value];
+}
 
-    const isAtom = xml.includes('<feed ');
+function textValue(value: ParsedXmlValue): string {
+    if (Array.isArray(value)) {
+        return textValue(value[0]);
+    }
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+        return String(value).trim();
+    }
+    if (!value || typeof value !== 'object') {
+        return '';
+    }
+    const text = value['#text'];
+    return typeof text === 'string' || typeof text === 'number' || typeof text === 'boolean'
+        ? String(text).trim()
+        : '';
+}
 
-    if (isAtom) {
-        const entryRegex = /<entry[^>]*>([\s\S]*?)<\/entry>/gi;
-        let entryMatch: RegExpExecArray | null;
-        while ((entryMatch = entryRegex.exec(xml)) !== null) {
-            const entry = entryMatch[1];
-            if (!entry) {continue;}
-            const title = (/<title[^>]*>([^<]+)<\/title>/.exec(entry))?.[1] ?? '';
-            const link = (/<link[^>]+href="([^"]+)"/.exec(entry))?.[1] ?? '';
-            const guid = (/<id[^>]*>([^<]+)<\/id>/.exec(entry))?.[1] ?? '';
-            const pubDate = (/<published[^>]*>([^<]+)<\/published>/.exec(entry))?.[1] ?? '';
-            items.push({ title, link, guid, pubDate });
+function atomLinkValue(value: ParsedXmlValue): string {
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+        return textValue(value);
+    }
+    for (const link of asArray(value)) {
+        if (!link || typeof link !== 'object' || Array.isArray(link)) {
+            continue;
         }
-    } else {
-        const itemRegex = /<item[^>]*>([\s\S]*?)<\/item>/gi;
-        let itemMatch: RegExpExecArray | null;
-        while ((itemMatch = itemRegex.exec(xml)) !== null) {
-            const entry = itemMatch[1];
-            if (!entry) {continue;}
-            const title = (/<title[^>]*>([^<]+)<\/title>/.exec(entry))?.[1] ?? '';
-            const link = (/<link[^>]*>([^<]+)<\/link>/.exec(entry))?.[1] ?? '';
-            const guid = (/<guid[^>]*>([^<]+)<\/guid>/.exec(entry))?.[1] ?? '';
-            const pubDate = (/<pubDate[^>]*>([^<]+)<\/pubDate>/.exec(entry))?.[1] ?? '';
-            items.push({ title, link, guid, pubDate });
+        const href = link['@_href'];
+        if (typeof href === 'string' && href.trim()) {
+            const rel = link['@_rel'];
+            if (rel === undefined || rel === 'alternate') {
+                return href.trim();
+            }
         }
     }
+    return textValue(value);
+}
 
-    return { feedTitle, items };
+function normalizeFeedItem(entry: ParsedXmlValue, atom: boolean): ParsedFeedItem {
+    const record: ParsedXmlObject = entry && typeof entry === 'object' && !Array.isArray(entry)
+        ? entry
+        : {};
+    const title = textValue(record['title']);
+    const link = atom ? atomLinkValue(record['link']) : textValue(record['link']);
+    const sourceGuid = textValue(atom ? record['id'] : record['guid']);
+    const guid = sourceGuid || link;
+    const pubDate = textValue(atom ? (record['published'] ?? record['updated']) : record['pubDate']);
+    return { title, link, guid, pubDate };
+}
+
+function parseFeedXml(xml: string): RssFeedResult {
+    const validation = XMLValidator.validate(xml);
+    if (validation !== true) {
+        throw new Error(`Invalid feed XML: ${validation.err.msg}`);
+    }
+
+    const document = feedParser.parse(xml) as Record<string, ParsedXmlValue>;
+    const atomFeed = document['feed'];
+    if (atomFeed && typeof atomFeed === 'object') {
+        const feed = atomFeed as Record<string, ParsedXmlValue>;
+        return {
+            feedTitle: textValue(feed['title']),
+            items: asArray(feed['entry']).map(entry => normalizeFeedItem(entry, true))
+        };
+    }
+
+    const rss = document['rss'];
+    const channel = rss && typeof rss === 'object' ? (rss as Record<string, ParsedXmlValue>)['channel'] : undefined;
+    const channelRecord = channel && typeof channel === 'object' ? channel as Record<string, ParsedXmlValue> : {};
+    return {
+        feedTitle: textValue(channelRecord['title']),
+        items: asArray(channelRecord['item']).map(entry => normalizeFeedItem(entry, false))
+    };
 }

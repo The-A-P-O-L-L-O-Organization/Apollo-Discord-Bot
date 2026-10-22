@@ -88,3 +88,4 @@ catalog:
   adm-zip: 0.6.1
   buffer: 6.0.3
   madge: 8.0.0
+  fast-xml-parser: ^5.11.2
