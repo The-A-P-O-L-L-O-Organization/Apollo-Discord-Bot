@@ -35,6 +35,7 @@ export interface QueueBenchmarkReport {
 export interface QueueBenchmarkOptions {
     concurrency: number;
     jobsPerWorkload?: number;
+    handlerTimeoutMs?: number;
     handlers?: Partial<Record<BenchmarkWorkload, BenchmarkHandler>>;
 }
 
@@ -43,6 +44,9 @@ interface BenchmarkJob {
     jobNumber: number;
     enqueuedAt: number;
 }
+
+const DEFAULT_HANDLER_TIMEOUT_MS = 5000;
+const MAX_HANDLER_TIMEOUT_MS = 60000;
 
 function percentile(values: number[], percentileValue: number): number {
     if (values.length === 0) {
@@ -53,7 +57,11 @@ function percentile(values: number[], percentileValue: number): number {
     return sorted[index] ?? 0;
 }
 
-function validateOptions(options: QueueBenchmarkOptions): { concurrency: number; jobsPerWorkload: number } {
+function validateOptions(options: QueueBenchmarkOptions): {
+    concurrency: number;
+    jobsPerWorkload: number;
+    handlerTimeoutMs: number;
+} {
     if (!Number.isInteger(options.concurrency) || options.concurrency < 1 || options.concurrency > 100) {
         throw new Error('concurrency must be an integer between 1 and 100');
     }
@@ -61,11 +69,40 @@ function validateOptions(options: QueueBenchmarkOptions): { concurrency: number;
     if (!Number.isInteger(jobsPerWorkload) || jobsPerWorkload < 1 || jobsPerWorkload > 10000) {
         throw new Error('jobsPerWorkload must be an integer between 1 and 10000');
     }
-    return { concurrency: options.concurrency, jobsPerWorkload };
+    const handlerTimeoutMs = options.handlerTimeoutMs ?? DEFAULT_HANDLER_TIMEOUT_MS;
+    if (!Number.isInteger(handlerTimeoutMs) || handlerTimeoutMs < 1 || handlerTimeoutMs > MAX_HANDLER_TIMEOUT_MS) {
+        throw new Error(`handlerTimeoutMs must be an integer between 1 and ${MAX_HANDLER_TIMEOUT_MS}`);
+    }
+    return { concurrency: options.concurrency, jobsPerWorkload, handlerTimeoutMs };
+}
+
+function runHandlerWithTimeout(
+    handler: BenchmarkHandler,
+    workload: BenchmarkWorkload,
+    jobNumber: number,
+    timeoutMs: number
+): Promise<void> {
+    return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+            reject(new Error(`benchmark handler timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+        void Promise.resolve()
+            .then(() => handler(workload, jobNumber))
+            .then(
+                () => {
+                    clearTimeout(timeout);
+                    resolve();
+                },
+                error => {
+                    clearTimeout(timeout);
+                    reject(error);
+                }
+            );
+    });
 }
 
 export async function runQueueThroughputBenchmark(options: QueueBenchmarkOptions): Promise<QueueBenchmarkReport> {
-    const { concurrency, jobsPerWorkload } = validateOptions(options);
+    const { concurrency, jobsPerWorkload, handlerTimeoutMs } = validateOptions(options);
     const metrics = createMetrics({ prefix: 'benchmark_' });
     const queue = 'benchmark';
     const jobs = benchmarkWorkloads.flatMap(workload => Array.from({ length: jobsPerWorkload }, (_, jobNumber) => ({
@@ -110,7 +147,12 @@ export async function runQueueThroughputBenchmark(options: QueueBenchmarkOptions
         const processingStartedAt = performance.now();
         let failed = false;
         try {
-            await (options.handlers?.[job.workload] ?? (async() => undefined))(job.workload, job.jobNumber);
+            await runHandlerWithTimeout(
+                options.handlers?.[job.workload] ?? (async() => undefined),
+                job.workload,
+                job.jobNumber,
+                handlerTimeoutMs
+            );
         } catch {
             failed = true;
             failureCount += 1;
