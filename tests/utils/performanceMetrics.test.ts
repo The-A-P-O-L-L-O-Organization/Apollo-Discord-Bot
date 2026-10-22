@@ -36,4 +36,20 @@ describe('performance metrics', () => {
         expect(serializedLabels).toContain('"queue":"commands"');
         expect(serializedLabels).toContain('"job":"process-command"');
     });
+
+    it('preserves allowlisted namespaced job labels', async() => {
+        const metrics = createMetrics({ prefix: 'test_' });
+        metrics.recordQueueWait('nsfw', 'nsfw:analyze', 25);
+        metrics.recordQueueJobDuration('nsfw', 'nsfw:analyze', 50);
+        metrics.recordQueueOutcome('nsfw', 'nsfw:analyze', 'failure');
+
+        const snapshots = await metrics.register.getMetricsAsJSON();
+        const wait = snapshots.find(metric => metric.name === 'test_queue_wait_seconds');
+        const duration = snapshots.find(metric => metric.name === 'test_queue_job_duration_seconds');
+        const outcomes = snapshots.find(metric => metric.name === 'test_queue_job_outcomes_total');
+
+        expect(wait?.values.some(value => value.labels['job'] === 'nsfw:analyze')).toBe(true);
+        expect(duration?.values.some(value => value.labels['job'] === 'nsfw:analyze')).toBe(true);
+        expect(outcomes?.values.some(value => value.labels['job'] === 'nsfw:analyze')).toBe(true);
+    });
 });

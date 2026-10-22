@@ -57,6 +57,9 @@ function normalizeQueueLabel(value: string): QueueLabel {
 }
 
 function normalizeJobLabel(value: string): JobLabel {
+    if ((jobLabels as readonly string[]).includes(value)) {
+        return value as JobLabel;
+    }
     const candidate = value.split(':', 1)[0] ?? value;
     return (jobLabels as readonly string[]).includes(candidate) ? candidate as JobLabel : 'unknown';
 }
