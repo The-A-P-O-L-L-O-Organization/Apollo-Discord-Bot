@@ -33,16 +33,30 @@ interface Subscription {
     last_checked?: string;
 }
 
-let client: Client | null = null;
-let integrationConfig: IntegrationConfig | null = null;
-let intervals: NodeJS.Timeout[] = [];
-const knownItems = new Map<string, Set<string>>();
-let startupTimeout: NodeJS.Timeout | null = null;
-let pollerLimiters: {
+type PollerType = 'twitch' | 'youtube' | 'rss';
+
+interface PollerLimiters {
     twitch: LocalLimiter;
     youtube: LocalLimiter;
     rss: LocalLimiter;
-} | null = null;
+}
+
+interface PollerContext {
+    generation: number;
+    client: Client;
+    config: IntegrationConfig;
+    knownItems: Map<string, Set<string>>;
+    dedupe: NonceStore | null;
+    limiters: PollerLimiters;
+}
+
+let client: Client | null = null;
+let integrationConfig: IntegrationConfig | null = null;
+let intervals: NodeJS.Timeout[] = [];
+let knownItems = new Map<string, Set<string>>();
+let startupTimeout: NodeJS.Timeout | null = null;
+let pollerLimiters: PollerLimiters | null = null;
+let pollerGeneration = 0;
 
 const DEFAULT_POLL_CONCURRENCY = 4;
 
@@ -52,19 +66,24 @@ const POLLER_NONCE_TIMESTAMP = 0;
 let pollerDedupe: NonceStore | null = null;
 
 export async function initializePollerDedupe(): Promise<NonceStore | null> {
+    const generation = pollerGeneration;
     if (pollerDedupe) {
         return pollerDedupe;
     }
     const redis = await getLockRedis();
-    if (!redis) {
+    if (!redis || generation !== pollerGeneration) {
         return null;
     }
-    pollerDedupe = new NonceStore(redis, {
+    const dedupe = new NonceStore(redis, {
         ttlSeconds: POLLER_DEDUPE_TTL_SECONDS,
         keyPrefix: POLLER_DEDUPE_KEY_PREFIX
     });
-    await pollerDedupe.initialize();
-    return pollerDedupe;
+    await dedupe.initialize();
+    if (generation !== pollerGeneration) {
+        return null;
+    }
+    pollerDedupe = dedupe;
+    return dedupe;
 }
 
 export function getPollerDedupe(): NonceStore | null {
@@ -91,19 +110,43 @@ export function buildTwitchNonce(subId: string, streamId: string): string {
     return `twitch:${subId}:${streamId}`;
 }
 
-async function ensurePollerDedupe(): Promise<NonceStore | null> {
+async function ensurePollerDedupe(context: PollerContext): Promise<NonceStore | null> {
+    if (context.dedupe) {
+        return context.dedupe;
+    }
+    if (!isCurrentPoller(context)) {
+        return null;
+    }
     if (pollerDedupe) {
+        context.dedupe = pollerDedupe;
         return pollerDedupe;
     }
     try {
-        return await initializePollerDedupe();
+        const redis = await getLockRedis();
+        if (!redis || !isCurrentPoller(context)) {
+            return null;
+        }
+        const dedupe = new NonceStore(redis, {
+            ttlSeconds: POLLER_DEDUPE_TTL_SECONDS,
+            keyPrefix: POLLER_DEDUPE_KEY_PREFIX
+        });
+        await dedupe.initialize();
+        if (!isCurrentPoller(context)) {
+            return null;
+        }
+        context.dedupe = dedupe;
+        pollerDedupe = dedupe;
+        return dedupe;
     } catch {
         return null;
     }
 }
 
-async function isPollerDuplicate(mapKey: string, nonce: string, itemId: string): Promise<boolean> {
-    const dedupe = await ensurePollerDedupe();
+async function isPollerDuplicate(context: PollerContext, mapKey: string, nonce: string, itemId: string): Promise<boolean | null> {
+    const dedupe = await ensurePollerDedupe(context);
+    if (!isCurrentPoller(context)) {
+        return null;
+    }
     if (dedupe) {
         let claimed: boolean | null = null;
         try {
@@ -111,20 +154,26 @@ async function isPollerDuplicate(mapKey: string, nonce: string, itemId: string):
         } catch {
             claimed = null;
         }
+        if (!isCurrentPoller(context)) {
+            return null;
+        }
         if (claimed !== null) {
-            let set = knownItems.get(mapKey);
+            let set = context.knownItems.get(mapKey);
             if (!set) {
                 set = new Set();
-                knownItems.set(mapKey, set);
+                context.knownItems.set(mapKey, set);
             }
             set.add(itemId);
             return !claimed;
         }
     }
-    let set = knownItems.get(mapKey);
+    if (!isCurrentPoller(context)) {
+        return null;
+    }
+    let set = context.knownItems.get(mapKey);
     if (!set) {
         set = new Set();
-        knownItems.set(mapKey, set);
+        context.knownItems.set(mapKey, set);
     }
     if (set.has(itemId)) {
         return true;
@@ -134,8 +183,10 @@ async function isPollerDuplicate(mapKey: string, nonce: string, itemId: string):
 }
 
 export function initIntegrationPoller(discordClient: Client, cfg: { integrations: IntegrationConfig }): void {
+    pollerGeneration += 1;
     client = discordClient;
     integrationConfig = cfg.integrations;
+    knownItems = new Map();
     pollerLimiters = {
         twitch: createLocalLimiter('twitch', integrationConfig.pollConcurrency?.twitch ?? DEFAULT_POLL_CONCURRENCY),
         youtube: createLocalLimiter('youtube', integrationConfig.pollConcurrency?.youtube ?? DEFAULT_POLL_CONCURRENCY),
@@ -147,35 +198,29 @@ export function initIntegrationPoller(discordClient: Client, cfg: { integrations
     }
 
     const pollers = [
-        { type: 'twitch' as const, interval: integrationConfig.pollInterval.twitch, check: pollTwitchSubscriptions },
-        { type: 'youtube' as const, interval: integrationConfig.pollInterval.youtube, check: pollYoutubeSubscriptions },
-        { type: 'rss' as const, interval: integrationConfig.pollInterval.rss, check: pollRssSubscriptions }
+        { type: 'twitch' as const, interval: integrationConfig.pollInterval.twitch },
+        { type: 'youtube' as const, interval: integrationConfig.pollInterval.youtube },
+        { type: 'rss' as const, interval: integrationConfig.pollInterval.rss }
     ];
+    const generation = pollerGeneration;
 
     for (const p of pollers) {
         if (p.interval <= 0) { continue; }
-        const id = setInterval(() => { void (async () => {
-            const redis = await getLockRedis();
-            if (redis) {
-                await withLock(redis, `poller:${p.type}`, 'integrations', async () => {
-                    await p.check();
-                }, 60000);
-            } else {
-                await p.check();
-            }
-        })(); }, p.interval);
+        const id = setInterval(() => {
+            void runScheduledPoll(generation, p.type);
+        }, p.interval);
         intervals.push(id);
     }
 
     startupTimeout ??= setTimeout(() => { void (async () => {
+        if (generation !== pollerGeneration) { return; }
         startupTimeout = null;
-        await loadKnownItems();
-        await pollYoutubeSubscriptions();
-        await pollRssSubscriptions();
+        await runStartupPoll(generation);
     })(); }, 5000);
 }
 
 export function stopIntegrationPoller(): void {
+    pollerGeneration += 1;
     for (const id of intervals) {
         clearInterval(id);
     }
@@ -185,6 +230,7 @@ export function stopIntegrationPoller(): void {
         startupTimeout = null;
     }
     knownItems.clear();
+    knownItems = new Map();
     pollerLimiters?.twitch.shutdown();
     pollerLimiters?.youtube.shutdown();
     pollerLimiters?.rss.shutdown();
@@ -213,65 +259,142 @@ async function getSubs(): Promise<Subscription[]> {
     return (data?.['subscriptions'] as Subscription[]) || [];
 }
 
-async function updateSub(subId: string, updates: Partial<Subscription>): Promise<void> {
+async function updateSub(context: PollerContext, subId: string, updates: Partial<Subscription>): Promise<void> {
     await withDbWriteMutex(async () => {
+        if (!isCurrentPoller(context)) {
+            return;
+        }
         const data = await getData('integrations') as Record<string, unknown> | undefined;
+        if (!isCurrentPoller(context)) {
+            return;
+        }
         if (!data?.['subscriptions']) { return; }
         const subscriptions = data['subscriptions'] as Subscription[];
         const idx = subscriptions.findIndex((s: Subscription) => s.id === subId);
         if (idx === -1) { return; }
+        if (!isCurrentPoller(context)) {
+            return;
+        }
         subscriptions[idx] = { ...subscriptions[idx], ...updates } as Subscription;
         data['subscriptions'] = subscriptions;
         await setData('integrations', data);
     });
 }
 
-async function loadKnownItems(): Promise<void> {
+async function loadKnownItems(context: PollerContext): Promise<void> {
     const subs = await getSubs();
+    if (!isCurrentPoller(context)) {
+        return;
+    }
     for (const sub of subs) {
         if (sub.type === 'youtube' || sub.type === 'rss') {
             const key = `${sub.type}:${sub.id}`;
-            if (!knownItems.has(key)) { knownItems.set(key, new Set()); }
+            if (!context.knownItems.has(key)) { context.knownItems.set(key, new Set()); }
         }
     }
 }
 
+async function runScheduledPoll(generation: number, type: PollerType): Promise<void> {
+    const context = getPollerContext(generation);
+    if (!context) {
+        return;
+    }
+    const redis = await getLockRedis();
+    if (!isCurrentPoller(context)) {
+        return;
+    }
+    if (redis) {
+        await withLock(redis, `poller:${type}`, 'integrations', async () => {
+            if (!isCurrentPoller(context)) {
+                return;
+            }
+            await runPoller(type, context);
+        }, 60000);
+        return;
+    }
+    await runPoller(type, context);
+}
+
+async function runStartupPoll(generation: number): Promise<void> {
+    const context = getPollerContext(generation);
+    if (!context) {
+        return;
+    }
+    await loadKnownItems(context);
+    if (!isCurrentPoller(context)) {
+        return;
+    }
+    await pollYoutubeSubscriptionsForContext(context);
+    if (!isCurrentPoller(context)) {
+        return;
+    }
+    await pollRssSubscriptionsForContext(context);
+}
+
 export async function pollTwitchSubscriptions(): Promise<void> {
-    if (!client || !integrationConfig?.twitchClientId) { return; }
-    const config = integrationConfig;
+    const context = getPollerContext();
+    if (!context?.config.twitchClientId) { return; }
+    await pollTwitchSubscriptionsForContext(context);
+}
+
+async function pollTwitchSubscriptionsForContext(context: PollerContext): Promise<void> {
+    if (!isCurrentPoller(context)) {
+        return;
+    }
 
     try {
         const subs = (await getSubs()).filter((s: Subscription) => s.type === 'twitch');
-        const limiter = getPollerLimiter('twitch');
-        const results = await Promise.all(subs.map((sub) => limiter.run(async() => {
+        if (!isCurrentPoller(context)) {
+            return;
+        }
+        const results = await Promise.all(subs.map((sub) => context.limiters.twitch.run(async() => {
+            if (!isCurrentPoller(context)) {
+                return null;
+            }
             try {
-                return { sub, streamData: await checkTwitchStream(sub.target_id, config) };
+                return { sub, streamData: await checkTwitchStream(sub.target_id, context.config) };
             } catch {
                 return null;
             }
         })));
+        if (!isCurrentPoller(context)) {
+            return;
+        }
         for (const result of results) {
+            if (!isCurrentPoller(context)) {
+                return;
+            }
             if (!result) { continue; }
             try {
                 const { sub, streamData } = result;
                 if (streamData?.live) {
                     const streamId = streamData.title ?? 'live';
                     const nonce = buildTwitchNonce(sub.id, streamId);
-                    if (await isPollerDuplicate(`twitch:${sub.id}`, nonce, streamId)) {
-                        await updateSub(sub.id, { last_checked: new Date().toISOString() });
+                    const duplicate = await isPollerDuplicate(context, `twitch:${sub.id}`, nonce, streamId);
+                    if (duplicate === null) {
+                        return;
+                    }
+                    if (duplicate) {
+                        await updateSub(context, sub.id, { last_checked: new Date().toISOString() });
                         continue;
                     }
-                    const channel = client?.channels.cache.get(sub.channel_id);
+                    if (!isCurrentPoller(context)) {
+                        return;
+                    }
+                    const channel = context.client.channels.cache.get(sub.channel_id);
                     if (channel?.isTextBased()) {
                         const notification = formatTwitchNotification(sub.target_id, streamData);
                         if (notification) {
                             (channel as TextChannel).send(notification).catch(() => undefined);
                         }
                     }
-                    await updateSub(sub.id, { last_checked: new Date().toISOString() });
+                    await updateSub(context, sub.id, { last_checked: new Date().toISOString() });
                 } else if (streamData && !streamData.live) {
-                    knownItems.delete(`twitch:${sub.id}`);
-                    await updateSub(sub.id, { last_checked: new Date().toISOString() });
+                    if (!isCurrentPoller(context)) {
+                        return;
+                    }
+                    context.knownItems.delete(`twitch:${sub.id}`);
+                    await updateSub(context, sub.id, { last_checked: new Date().toISOString() });
                 }
             } catch {
                 // silently ignore api/channel errors for this subscription
@@ -283,20 +406,38 @@ export async function pollTwitchSubscriptions(): Promise<void> {
 }
 
 export async function pollYoutubeSubscriptions(): Promise<void> {
-    if (!client || !integrationConfig?.youtubeApiKey) { return; }
-    const config = integrationConfig;
+    const context = getPollerContext();
+    if (!context?.config.youtubeApiKey) { return; }
+    await pollYoutubeSubscriptionsForContext(context);
+}
+
+async function pollYoutubeSubscriptionsForContext(context: PollerContext): Promise<void> {
+    if (!isCurrentPoller(context)) {
+        return;
+    }
 
     try {
         const subs = (await getSubs()).filter((s: Subscription) => s.type === 'youtube');
-        const limiter = getPollerLimiter('youtube');
-        const results = await Promise.all(subs.map((sub) => limiter.run(async() => {
+        if (!isCurrentPoller(context)) {
+            return;
+        }
+        const results = await Promise.all(subs.map((sub) => context.limiters.youtube.run(async() => {
+            if (!isCurrentPoller(context)) {
+                return null;
+            }
             try {
-                return { sub, videos: await checkYoutubeUploads(sub.target_id, config) };
+                return { sub, videos: await checkYoutubeUploads(sub.target_id, context.config) };
             } catch {
                 return null;
             }
         })));
+        if (!isCurrentPoller(context)) {
+            return;
+        }
         for (const result of results) {
+            if (!isCurrentPoller(context)) {
+                return;
+            }
             if (!result) { continue; }
             try {
                 const { sub, videos } = result;
@@ -305,10 +446,17 @@ export async function pollYoutubeSubscriptions(): Promise<void> {
 
                 for (const video of videos) {
                     const nonce = buildYoutubeNonce(sub.id, video.videoId);
-                    if (await isPollerDuplicate(`youtube:${sub.id}`, nonce, video.videoId)) {
+                    const duplicate = await isPollerDuplicate(context, `youtube:${sub.id}`, nonce, video.videoId);
+                    if (duplicate === null) {
+                        return;
+                    }
+                    if (duplicate) {
                         continue;
                     }
-                    const channel = client?.channels.cache.get(sub.channel_id);
+                    if (!isCurrentPoller(context)) {
+                        return;
+                    }
+                    const channel = context.client.channels.cache.get(sub.channel_id);
                     if (channel?.isTextBased()) {
                         const notification = formatYoutubeNotification(sub.target_id, video);
                         if (notification) {
@@ -320,7 +468,7 @@ export async function pollYoutubeSubscriptions(): Promise<void> {
                 }
 
                 if (posted) {
-                    await updateSub(sub.id, { last_checked: new Date().toISOString() });
+                    await updateSub(context, sub.id, { last_checked: new Date().toISOString() });
                 }
             } catch {
                 // silently ignore api/channel errors for this subscription
@@ -332,19 +480,38 @@ export async function pollYoutubeSubscriptions(): Promise<void> {
 }
 
 export async function pollRssSubscriptions(): Promise<void> {
-    if (!client) { return; }
+    const context = getPollerContext();
+    if (!context) { return; }
+    await pollRssSubscriptionsForContext(context);
+}
+
+async function pollRssSubscriptionsForContext(context: PollerContext): Promise<void> {
+    if (!isCurrentPoller(context)) {
+        return;
+    }
 
     try {
         const subs = (await getSubs()).filter((s: Subscription) => s.type === 'rss');
-        const limiter = getPollerLimiter('rss');
-        const results = await Promise.all(subs.map((sub) => limiter.run(async() => {
+        if (!isCurrentPoller(context)) {
+            return;
+        }
+        const results = await Promise.all(subs.map((sub) => context.limiters.rss.run(async() => {
+            if (!isCurrentPoller(context)) {
+                return null;
+            }
             try {
                 return { sub, feed: await checkRssFeed(sub.target_id) };
             } catch {
                 return null;
             }
         })));
+        if (!isCurrentPoller(context)) {
+            return;
+        }
         for (const result of results) {
+            if (!isCurrentPoller(context)) {
+                return;
+            }
             if (!result) { continue; }
             try {
                 const { sub, feed } = result;
@@ -354,10 +521,17 @@ export async function pollRssSubscriptions(): Promise<void> {
                 for (const item of feed.items) {
                     const key = item.guid || item.link;
                     const nonce = buildRssNonce(sub.id, key);
-                    if (await isPollerDuplicate(`rss:${sub.id}`, nonce, key)) {
+                    const duplicate = await isPollerDuplicate(context, `rss:${sub.id}`, nonce, key);
+                    if (duplicate === null) {
+                        return;
+                    }
+                    if (duplicate) {
                         continue;
                     }
-                    const channel = client?.channels.cache.get(sub.channel_id);
+                    if (!isCurrentPoller(context)) {
+                        return;
+                    }
+                    const channel = context.client.channels.cache.get(sub.channel_id);
                     if (channel?.isTextBased()) {
                         const notification = formatRssNotification(feed.feedTitle, item);
                         if (notification) {
@@ -369,7 +543,7 @@ export async function pollRssSubscriptions(): Promise<void> {
                 }
 
                 if (posted) {
-                    await updateSub(sub.id, { last_checked: new Date().toISOString() });
+                    await updateSub(context, sub.id, { last_checked: new Date().toISOString() });
                 }
             } catch {
                 // silently ignore api/channel errors for this subscription
@@ -380,16 +554,39 @@ export async function pollRssSubscriptions(): Promise<void> {
     }
 }
 
-function getPollerLimiter(name: 'twitch' | 'youtube' | 'rss'): LocalLimiter {
-    if (pollerLimiters) {
-        return pollerLimiters[name];
+async function runPoller(type: PollerType, context: PollerContext): Promise<void> {
+    if (type === 'twitch') {
+        await pollTwitchSubscriptionsForContext(context);
+        return;
     }
-    pollerLimiters = {
-        twitch: createLocalLimiter('twitch', DEFAULT_POLL_CONCURRENCY),
-        youtube: createLocalLimiter('youtube', DEFAULT_POLL_CONCURRENCY),
-        rss: createLocalLimiter('rss', DEFAULT_POLL_CONCURRENCY)
+    if (type === 'youtube') {
+        await pollYoutubeSubscriptionsForContext(context);
+        return;
+    }
+    await pollRssSubscriptionsForContext(context);
+}
+
+function getPollerContext(generation = pollerGeneration): PollerContext | null {
+    const currentClient = client;
+    const config = integrationConfig;
+    const limiters = pollerLimiters;
+    if (generation !== pollerGeneration || !currentClient || !config || !limiters) {
+        return null;
+    }
+    return {
+        generation,
+        client: currentClient,
+        config,
+        knownItems,
+        dedupe: pollerDedupe,
+        limiters
     };
-    return pollerLimiters[name];
+}
+
+function isCurrentPoller(context: PollerContext): boolean {
+    return context.generation === pollerGeneration
+        && client === context.client
+        && integrationConfig === context.config;
 }
 
 export default {

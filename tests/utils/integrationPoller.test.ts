@@ -13,11 +13,12 @@ vi.mock('../../src/utils/integrationClients.js', () => ({
 }));
 
 import { getData, setData } from '../../src/utils/db.js';
-import { checkTwitchStream } from '../../src/utils/integrationClients.js';
+import { checkTwitchStream, checkYoutubeUploads } from '../../src/utils/integrationClients.js';
 
 const mockGetData = vi.mocked(getData);
 const mockSetData = vi.mocked(setData);
 const mockCheckTwitch = vi.mocked(checkTwitchStream);
+const mockCheckYoutube = vi.mocked(checkYoutubeUploads);
 
 describe('integrationPoller', () => {
     beforeEach(() => {
@@ -41,6 +42,64 @@ describe('integrationPoller', () => {
     it('stopIntegrationPoller does not throw when not started', async() => {
         const poller = await import('../../src/utils/integrationPoller.js');
         expect(() => poller.stopIntegrationPoller()).not.toThrow();
+    });
+
+    it('ignores in-flight results from a stopped generation after reinitialization', async() => {
+        const poller = await import('../../src/utils/integrationPoller.js');
+        mockGetData.mockResolvedValue({
+            subscriptions: [
+                { id: 'yt1', type: 'youtube', target_id: 'channel', channel_id: 'channel' }
+            ]
+        } as never);
+        mockSetData.mockResolvedValue(undefined as never);
+
+        const video = {
+            title: 'Video',
+            description: 'Description',
+            thumbnail: 'thumbnail',
+            videoId: 'video-1',
+            publishedAt: new Date().toISOString()
+        };
+        let resolveStarted!: () => void;
+        const started = new Promise<void>((resolve) => { resolveStarted = resolve; });
+        let releaseCheck!: () => void;
+        const checkGate = new Promise<void>((resolve) => { releaseCheck = resolve; });
+        mockCheckYoutube.mockImplementationOnce(async() => {
+            resolveStarted();
+            await checkGate;
+            return [video];
+        });
+
+        const oldClient = { channels: { cache: { get: vi.fn() } } };
+        const newSend = vi.fn(() => Promise.resolve({}));
+        const newClient = {
+            channels: {
+                cache: {
+                    get: vi.fn(() => ({ isTextBased: () => true, send: newSend }))
+                }
+            }
+        };
+
+        const config = {
+            integrations: {
+                pollInterval: { twitch: 0, youtube: 0, rss: 0 },
+                twitchClientId: '',
+                twitchClientSecret: '',
+                youtubeApiKey: 'youtube-key'
+            }
+        };
+        poller.initIntegrationPoller(oldClient as unknown as Client, config);
+        const oldPoll = poller.pollYoutubeSubscriptions();
+        await started;
+
+        poller.stopIntegrationPoller();
+        poller.initIntegrationPoller(newClient as unknown as Client, config);
+        releaseCheck();
+        await oldPoll;
+
+        expect(newSend).not.toHaveBeenCalled();
+        expect(mockSetData).not.toHaveBeenCalled();
+        poller.stopIntegrationPoller();
     });
 
     it('bounds concurrent subscription checks using the configured limit', async() => {
