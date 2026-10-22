@@ -60,6 +60,13 @@ export interface QueueConfig {
     defaultJobOptions?: DefaultJobOptions;
     serializer?: JobSerializer;
     hmacSecret?: string;
+    worker: {
+        concurrency: number;
+        limiter: {
+            max: number;
+            duration: number;
+        };
+    };
 }
 
 export interface InterlinkConfig {

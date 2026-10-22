@@ -9,6 +9,11 @@ function parseIntSafe(value: string | undefined, defaultValue: number): number {
     return Number.isFinite(n) ? n : defaultValue;
 }
 
+function parseBoundedInt(value: string | undefined, defaultValue: number, minimum: number, maximum: number): number {
+    const parsed = parseIntSafe(value, defaultValue);
+    return Math.min(maximum, Math.max(minimum, parsed));
+}
+
 function parseBoolSafe(value: string | undefined): boolean {
     return value === 'true';
 }
@@ -275,7 +280,14 @@ const config = {
             socketPathBase: '/tmp/apollo.sock',
             redisKeyPrefixBase: 'apollo'
         },
-        hmacSecret: getEnv('QUEUE_HMAC_SECRET')
+        hmacSecret: getEnv('QUEUE_HMAC_SECRET'),
+        worker: {
+            concurrency: parseBoundedInt(getEnv('WORKER_CONCURRENCY'), 4, 1, 100),
+            limiter: {
+                max: parseBoundedInt(getEnv('WORKER_LIMITER_MAX'), 50, 1, 10000),
+                duration: parseBoundedInt(getEnv('WORKER_LIMITER_DURATION_MS'), 1000, 100, 60000)
+            }
+        }
     },
 
     // Reminders Configuration
@@ -321,4 +333,3 @@ const config = {
 
 export { config };
 export default config;
-

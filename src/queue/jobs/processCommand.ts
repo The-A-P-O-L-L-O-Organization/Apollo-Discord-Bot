@@ -12,7 +12,7 @@ import RemoteInteraction from '../remoteInteraction.js';
 import { serializeInteraction } from '../serializeInteraction.js';
 import { registerHandler } from '../jobHandler.js';
 import { createQueue } from '../queue.js';
-import { recordCommand, recordCommandDuration, recordError, queueJobsTotal } from '../../utils/metrics.js';
+import { recordCommand, recordCommandDuration, recordError, queueJobsTotal, recordQueueEnqueue } from '../../utils/metrics.js';
 import { logger } from '../../utils/logger.js';
 import { i18n } from '../../i18n/index.js';
 import { encode } from 'msgpackr';
@@ -146,6 +146,7 @@ export async function enqueueCommand(_interaction: {
         jobId: _interaction.id,
         deduplication: { id: _interaction.id, ttl: 300000 }
     });
+    recordQueueEnqueue(config.queue.prefix, JobNames.PROCESS_COMMAND);
 
     return { id: job.id!, name: job.name, data: job.data };
 }

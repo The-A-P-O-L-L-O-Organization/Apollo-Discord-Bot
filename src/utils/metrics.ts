@@ -1,6 +1,7 @@
 // Metrics Utility
 // Prometheus metrics for monitoring and observability
 import { Registry, Counter, Gauge, Histogram, collectDefaultMetrics } from '@prometheus-io/client';
+import { monitorEventLoopDelay } from 'node:perf_hooks';
 import { config } from '../config/config.js';
 
 export const register = new Registry();
@@ -38,6 +39,91 @@ export const queueJobsTotal = new Counter({
     labelNames: ['queue', 'outcome'],
     registers: [register]
 });
+
+const queueLabels = ['commands', 'nsfw', 'heavy', 'scheduled', 'default'] as const;
+const jobLabels = ['process-command', 'nsfw:analyze', 'heavy-operation', 'scheduled-task', 'unknown'] as const;
+const outcomeLabels = ['success', 'retry', 'failure'] as const;
+type QueueLabel = typeof queueLabels[number];
+type JobLabel = typeof jobLabels[number];
+type OutcomeLabel = typeof outcomeLabels[number];
+
+function normalizeQueueLabel(value: string): QueueLabel {
+    const normalized = value.toLowerCase();
+    if (normalized.includes('nsfw')) { return 'nsfw'; }
+    if (normalized.includes('heavy')) { return 'heavy'; }
+    if (normalized.includes('scheduled')) { return 'scheduled'; }
+    if (normalized.includes('command')) { return 'commands'; }
+    return 'default';
+}
+
+function normalizeJobLabel(value: string): JobLabel {
+    const candidate = value.split(':', 1)[0] ?? value;
+    return (jobLabels as readonly string[]).includes(candidate) ? candidate as JobLabel : 'unknown';
+}
+
+function normalizeOutcomeLabel(value: string): OutcomeLabel {
+    return (outcomeLabels as readonly string[]).includes(value) ? value as OutcomeLabel : 'failure';
+}
+
+export const queueWaitSeconds = new Histogram({
+    name: 'apollo_queue_wait_seconds',
+    help: 'Time spent waiting for a queue worker in seconds',
+    labelNames: ['queue', 'job'],
+    buckets: [0.001, 0.01, 0.05, 0.1, 0.5, 1, 5, 30, 60],
+    registers: [register]
+});
+
+export const queueJobDurationSeconds = new Histogram({
+    name: 'apollo_queue_job_duration_seconds',
+    help: 'Queue job processing duration in seconds',
+    labelNames: ['queue', 'job'],
+    buckets: [0.001, 0.01, 0.05, 0.1, 0.5, 1, 5, 30, 60],
+    registers: [register]
+});
+
+export const queueActiveJobs = new Gauge({
+    name: 'apollo_queue_active_jobs',
+    help: 'Number of jobs currently being processed by queue workers',
+    labelNames: ['queue'],
+    registers: [register]
+});
+
+export const queueJobOutcomesTotal = new Counter({
+    name: 'apollo_queue_job_outcomes_total',
+    help: 'Queue job outcomes by bounded queue, job, and outcome labels',
+    labelNames: ['queue', 'job', 'outcome'],
+    registers: [register]
+});
+
+export const redisOperationDurationSeconds = new Histogram({
+    name: 'apollo_redis_operation_duration_seconds',
+    help: 'Redis operation latency in seconds',
+    labelNames: ['operation'],
+    buckets: [0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1],
+    registers: [register]
+});
+
+export const eventLoopDelaySeconds = new Histogram({
+    name: 'apollo_event_loop_delay_seconds',
+    help: 'Event-loop delay in seconds',
+    buckets: [0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.5, 1],
+    registers: [register]
+});
+
+let eventLoopMonitor: ReturnType<typeof monitorEventLoopDelay> | null = null;
+
+export function startPerformanceMetrics(): void {
+    if (eventLoopMonitor) { return; }
+    eventLoopMonitor = monitorEventLoopDelay({ resolution: 20 });
+    eventLoopMonitor.enable();
+}
+
+export function stopPerformanceMetrics(): void {
+    if (!eventLoopMonitor) { return; }
+    eventLoopMonitor.disable();
+    eventLoopDelaySeconds.observe(eventLoopMonitor.mean / 1_000_000_000);
+    eventLoopMonitor = null;
+}
 
 export const dbQueryDuration = new Histogram({
     name: 'apollo_db_query_duration_seconds',
@@ -221,6 +307,51 @@ export function setQueueDepth(queue: string, depth: number): void {
     queueDepth.set({ queue }, depth);
 }
 
+export function recordQueueEnqueue(queue: string, job: string): void {
+    queueJobOutcomesTotal.inc({ queue: normalizeQueueLabel(queue), job: normalizeJobLabel(job), outcome: 'success' }, 0);
+}
+
+export function recordQueueWait(queue: string, job: string, durationMs: number): void {
+    queueWaitSeconds.observe({ queue: normalizeQueueLabel(queue), job: normalizeJobLabel(job) }, Math.max(0, durationMs) / 1000);
+}
+
+export function recordQueueStart(queue: string, job: string, waitSeconds: number): void {
+    recordQueueWait(queue, job, waitSeconds * 1000);
+    setQueueActive(queue, getQueueActive(queue) + 1);
+}
+
+export function recordQueueJobDuration(queue: string, job: string, durationMs: number): void {
+    queueJobDurationSeconds.observe({ queue: normalizeQueueLabel(queue), job: normalizeJobLabel(job) }, Math.max(0, durationMs) / 1000);
+}
+
+const activeQueueCounts = new Map<QueueLabel, number>();
+
+function getQueueActive(queue: string): number {
+    return activeQueueCounts.get(normalizeQueueLabel(queue)) ?? 0;
+}
+
+export function setQueueActive(queue: string, count: number): void {
+    const label = normalizeQueueLabel(queue);
+    const boundedCount = Math.max(0, Number.isFinite(count) ? count : 0);
+    activeQueueCounts.set(label, boundedCount);
+    queueActiveJobs.set({ queue: label }, boundedCount);
+}
+
+export function recordQueueOutcome(queue: string, job: string, outcome: string): void {
+    const label = normalizeQueueLabel(queue);
+    if (outcome === 'success' || outcome === 'retry' || outcome === 'failure') {
+        setQueueActive(label, Math.max(0, getQueueActive(label) - 1));
+    }
+    queueJobOutcomesTotal.inc({ queue: label, job: normalizeJobLabel(job), outcome: normalizeOutcomeLabel(outcome) });
+}
+
+export function recordRedisOperation(operation: string, durationMs: number): void {
+    const safeOperation = ['get', 'set', 'del', 'ping', 'connect', 'publish', 'subscribe', 'unknown'].includes(operation)
+        ? operation
+        : 'unknown';
+    redisOperationDurationSeconds.observe({ operation: safeOperation }, Math.max(0, durationMs) / 1000);
+}
+
 export function recordDbQuery(operation: string, store: string, durationMs: number): void {
     dbQueryDuration.observe({ operation, store }, durationMs / 1000);
 }
@@ -230,7 +361,7 @@ export function setActivePlugins(count: number): void {
 }
 
 export function setWorkerMemory(plugin: string, bytes: number): void {
-    workerMemoryUsage.set({ plugin }, bytes);
+    workerMemoryUsage.set({ plugin: plugin === 'worker' ? 'worker' : 'plugin' }, bytes);
 }
 
 export function setRedisConnections(count: number): void {
@@ -308,6 +439,12 @@ export default {
     commandDuration,
     queueDepth,
     queueJobsTotal,
+    queueWaitSeconds,
+    queueJobDurationSeconds,
+    queueActiveJobs,
+    queueJobOutcomesTotal,
+    redisOperationDurationSeconds,
+    eventLoopDelaySeconds,
     dbQueryDuration,
     activePlugins,
     workerMemoryUsage,
@@ -328,6 +465,13 @@ export default {
     recordCommand,
     recordCommandDuration,
     setQueueDepth,
+    recordQueueEnqueue,
+    recordQueueWait,
+    recordQueueStart,
+    recordQueueJobDuration,
+    setQueueActive,
+    recordQueueOutcome,
+    recordRedisOperation,
     recordDbQuery,
     setActivePlugins,
     setWorkerMemory,
@@ -368,6 +512,12 @@ export function createMetrics({ prefix = 'apollo_' } = {}): {
     commandDuration: Histogram;
     queueDepth: Gauge;
     queueJobsTotal: Counter;
+    queueWaitSeconds: Histogram;
+    queueJobDurationSeconds: Histogram;
+    queueActiveJobs: Gauge;
+    queueJobOutcomesTotal: Counter;
+    redisOperationDurationSeconds: Histogram;
+    eventLoopDelaySeconds: Histogram;
     dbQueryDuration: Histogram;
     activePlugins: Gauge;
     workerMemoryUsage: Gauge;
@@ -389,6 +539,13 @@ export function createMetrics({ prefix = 'apollo_' } = {}): {
     recordCommand: (command: string, status: CommandStatus) => void;
     recordCommandDuration: (command: string, durationMs: number) => void;
     setQueueDepth: (queue: string, depth: number) => void;
+    recordQueueEnqueue: (queue: string, job: string) => void;
+    recordQueueWait: (queue: string, job: string, durationMs: number) => void;
+    recordQueueStart: (queue: string, job: string, waitSeconds: number) => void;
+    recordQueueJobDuration: (queue: string, job: string, durationMs: number) => void;
+    setQueueActive: (queue: string, count: number) => void;
+    recordQueueOutcome: (queue: string, job: string, outcome: string) => void;
+    recordRedisOperation: (operation: string, durationMs: number) => void;
     recordDbQuery: (operation: string, store: string, durationMs: number) => void;
     setActivePlugins: (count: number) => void;
     setWorkerMemory: (plugin: string, bytes: number) => void;
@@ -443,6 +600,51 @@ export function createMetrics({ prefix = 'apollo_' } = {}): {
         name: `${prefix}queue_jobs_total`,
         help: 'Total number of queue jobs processed by outcome',
         labelNames: ['queue', 'outcome'],
+        registers: [register]
+    });
+
+    const queueWaitSeconds = new Histogram({
+        name: `${prefix}queue_wait_seconds`,
+        help: 'Time spent waiting for a queue worker in seconds',
+        labelNames: ['queue', 'job'],
+        buckets: [0.001, 0.01, 0.05, 0.1, 0.5, 1, 5, 30, 60],
+        registers: [register]
+    });
+
+    const queueJobDurationSeconds = new Histogram({
+        name: `${prefix}queue_job_duration_seconds`,
+        help: 'Queue job processing duration in seconds',
+        labelNames: ['queue', 'job'],
+        buckets: [0.001, 0.01, 0.05, 0.1, 0.5, 1, 5, 30, 60],
+        registers: [register]
+    });
+
+    const queueActiveJobs = new Gauge({
+        name: `${prefix}queue_active_jobs`,
+        help: 'Number of jobs currently being processed by queue workers',
+        labelNames: ['queue'],
+        registers: [register]
+    });
+
+    const queueJobOutcomesTotal = new Counter({
+        name: `${prefix}queue_job_outcomes_total`,
+        help: 'Queue job outcomes by bounded queue, job, and outcome labels',
+        labelNames: ['queue', 'job', 'outcome'],
+        registers: [register]
+    });
+
+    const redisOperationDurationSeconds = new Histogram({
+        name: `${prefix}redis_operation_duration_seconds`,
+        help: 'Redis operation latency in seconds',
+        labelNames: ['operation'],
+        buckets: [0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1],
+        registers: [register]
+    });
+
+    const eventLoopDelaySeconds = new Histogram({
+        name: `${prefix}event_loop_delay_seconds`,
+        help: 'Event-loop delay in seconds',
+        buckets: [0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.5, 1],
         registers: [register]
     });
 
@@ -580,6 +782,41 @@ export function createMetrics({ prefix = 'apollo_' } = {}): {
         queueDepth.set({ queue }, depth);
     }
 
+    const activeQueueCounts = new Map<QueueLabel, number>();
+    const getQueueActive = (queue: string): number => activeQueueCounts.get(normalizeQueueLabel(queue)) ?? 0;
+    function setQueueActive(queue: string, count: number): void {
+        const label = normalizeQueueLabel(queue);
+        const boundedCount = Math.max(0, Number.isFinite(count) ? count : 0);
+        activeQueueCounts.set(label, boundedCount);
+        queueActiveJobs.set({ queue: label }, boundedCount);
+    }
+    function recordQueueEnqueue(queue: string, job: string): void {
+        queueJobOutcomesTotal.inc({ queue: normalizeQueueLabel(queue), job: normalizeJobLabel(job), outcome: 'success' }, 0);
+    }
+    function recordQueueWait(queue: string, job: string, durationMs: number): void {
+        queueWaitSeconds.observe({ queue: normalizeQueueLabel(queue), job: normalizeJobLabel(job) }, Math.max(0, durationMs) / 1000);
+    }
+    function recordQueueStart(queue: string, job: string, waitSeconds: number): void {
+        recordQueueWait(queue, job, waitSeconds * 1000);
+        setQueueActive(queue, getQueueActive(queue) + 1);
+    }
+    function recordQueueJobDuration(queue: string, job: string, durationMs: number): void {
+        queueJobDurationSeconds.observe({ queue: normalizeQueueLabel(queue), job: normalizeJobLabel(job) }, Math.max(0, durationMs) / 1000);
+    }
+    function recordQueueOutcome(queue: string, job: string, outcome: string): void {
+        const label = normalizeQueueLabel(queue);
+        if (outcome === 'success' || outcome === 'retry' || outcome === 'failure') {
+            setQueueActive(label, Math.max(0, getQueueActive(label) - 1));
+        }
+        queueJobOutcomesTotal.inc({ queue: label, job: normalizeJobLabel(job), outcome: normalizeOutcomeLabel(outcome) });
+    }
+    function recordRedisOperation(operation: string, durationMs: number): void {
+        const safeOperation = ['get', 'set', 'del', 'ping', 'connect', 'publish', 'subscribe', 'unknown'].includes(operation)
+            ? operation
+            : 'unknown';
+        redisOperationDurationSeconds.observe({ operation: safeOperation }, Math.max(0, durationMs) / 1000);
+    }
+
     function recordDbQuery(operation: string, store: string, durationMs: number): void {
         dbQueryDuration.observe({ operation, store }, durationMs / 1000);
     }
@@ -589,7 +826,7 @@ export function createMetrics({ prefix = 'apollo_' } = {}): {
     }
 
     function setWorkerMemory(plugin: string, bytes: number): void {
-        workerMemoryUsage.set({ plugin }, bytes);
+        workerMemoryUsage.set({ plugin: plugin === 'worker' ? 'worker' : 'plugin' }, bytes);
     }
 
     function setRedisConnections(count: number): void {
@@ -647,6 +884,12 @@ export function createMetrics({ prefix = 'apollo_' } = {}): {
         commandDuration,
         queueDepth,
         queueJobsTotal,
+        queueWaitSeconds,
+        queueJobDurationSeconds,
+        queueActiveJobs,
+        queueJobOutcomesTotal,
+        redisOperationDurationSeconds,
+        eventLoopDelaySeconds,
         dbQueryDuration,
         activePlugins,
         workerMemoryUsage,
@@ -663,6 +906,13 @@ export function createMetrics({ prefix = 'apollo_' } = {}): {
         recordCommand,
         recordCommandDuration,
         setQueueDepth,
+        recordQueueEnqueue,
+        recordQueueWait,
+        recordQueueStart,
+        recordQueueJobDuration,
+        setQueueActive,
+        recordQueueOutcome,
+        recordRedisOperation,
         recordDbQuery,
         setActivePlugins,
         setWorkerMemory,
