@@ -161,7 +161,7 @@ export class TranslationService {
                 const errorData = await translateResponse.json().catch(() => ({})) as Record<string, unknown>;
                 if (translateResponse.status === 429) {
                     const error = new Error('Too many translation requests. Please wait a moment.') as Error & { retryAfterMs?: number };
-                    const retryAfter = translateResponse.headers.get('retry-after');
+                    const retryAfter = translateResponse.headers?.get?.('retry-after');
                     if (retryAfter) {
                         error.retryAfterMs = Number(retryAfter) * 1000;
                     }

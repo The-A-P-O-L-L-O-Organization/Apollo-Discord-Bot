@@ -4,7 +4,7 @@ import { resourceFromAttributes } from '@opentelemetry/resources';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
-import { W3CTraceContextPropagator } from '@opentelemetry/core';
+import { ExportResultCode, W3CTraceContextPropagator } from '@opentelemetry/core';
 import { AsyncHooksContextManager } from '@opentelemetry/context-async-hooks';
 import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
 import { IORedisInstrumentation } from '@opentelemetry/instrumentation-ioredis';
@@ -30,22 +30,41 @@ export function initializeOtel(options: OtelInitOptions): void {
         [SemanticResourceAttributes.SERVICE_NAME]: options.serviceName
     });
 
-    sdk = new NodeSDK({
-        resource,
-        contextManager,
-        textMapPropagator: new W3CTraceContextPropagator(),
-        instrumentations: [
-            new HttpInstrumentation(),
-            new PgInstrumentation(),
-            new IORedisInstrumentation()
-        ],
-        ...(options.endpoint ? {
-            traceExporter: new OTLPTraceExporter({
-                url: options.endpoint,
-                headers: options.headers
-            })
-        } : {})
-    });
+    const exportEnabled = Boolean(options.endpoint) && process.env['NODE_ENV'] !== 'test';
+    const previousExporterSetting = process.env['OTEL_TRACES_EXPORTER'];
+    if (!exportEnabled) {
+        process.env['OTEL_TRACES_EXPORTER'] = 'none';
+    }
+    try {
+        sdk = new NodeSDK({
+            resource,
+            contextManager,
+            textMapPropagator: new W3CTraceContextPropagator(),
+            instrumentations: [
+                new HttpInstrumentation(),
+                new PgInstrumentation(),
+                new IORedisInstrumentation()
+            ],
+            traceExporter: exportEnabled && options.endpoint
+                ? new OTLPTraceExporter({
+                    url: options.endpoint,
+                    headers: options.headers
+                })
+                : {
+                    export: (_spans: unknown[], callback: (result: { code: ExportResultCode }) => void) => {
+                        callback({ code: ExportResultCode.SUCCESS });
+                    },
+                    shutdown: async() => undefined,
+                    forceFlush: async() => undefined
+                }
+        });
+    } finally {
+        if (previousExporterSetting === undefined) {
+            delete process.env['OTEL_TRACES_EXPORTER'];
+        } else {
+            process.env['OTEL_TRACES_EXPORTER'] = previousExporterSetting;
+        }
+    }
     sdk.start();
     if (options.endpoint) {
         bullMqTelemetry = new BullMQOtel({
