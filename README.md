@@ -246,7 +246,7 @@ pnpm dev
 
 ### Environment Variables
 
-The authoritative template is `.env.example`. Required on every boot: `DISCORD_TOKEN`, `CLIENT_ID`, `OWNER_IDS`, `ENCRYPTION_KEY`, `OPERATOR_AGREEMENT=true`, `OPERATOR_CONTACT`. Additionally required in production: `HEALTH_AUTH_TOKEN`, `APOLLO_SOCKET_TOKEN`, and `QUEUE_HMAC_SECRET` plus Redis credentials when the queue is enabled.
+The authoritative template is `.env.example`. Required on every boot: `DISCORD_TOKEN`, `CLIENT_ID`, `OWNER_IDS`, `ENCRYPTION_KEY`, `OPERATOR_AGREEMENT=true`, `OPERATOR_CONTACT`. Additionally required in production: `HEALTH_AUTH_TOKEN`, `ADMIN_AUTH_TOKENS`, `APOLLO_SOCKET_TOKEN`, and `QUEUE_HMAC_SECRET` plus Redis credentials when the queue is enabled. `ADMIN_AUTH_TOKENS` is a comma-separated `userId=token` list; only identities also present in `OWNER_IDS` can access Bull Board.
 
 | Group | Key Variables |
 |-------|---------------|

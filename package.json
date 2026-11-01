@@ -87,6 +87,7 @@
     "p-limit": "catalog:",
     "pg": "^8.23.1",
     "pino": "^10.4.0",
+    "pino-http": "catalog:",
     "pino-pretty": "^13.2.0",
     "zod": "^4.6.5"
   },

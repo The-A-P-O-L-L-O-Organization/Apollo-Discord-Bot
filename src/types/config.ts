@@ -221,6 +221,10 @@ export interface HealthConfig {
     authToken: string | undefined;
 }
 
+export interface AdminConfig {
+    authTokens: Record<string, string>;
+}
+
 export interface NsfwConfig {
     useRust: boolean;
     grpcAddr: string;
@@ -247,6 +251,7 @@ export interface ApolloConfig {
     integrations: IntegrationsConfig;
     reactionRoles: ReactionRolesConfig;
     health: HealthConfig;
+    admin: AdminConfig;
     nsfw: NsfwConfig;
     threshold: number;
     deleteMessages: boolean;

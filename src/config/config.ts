@@ -36,6 +36,22 @@ function getEnv(key: string): string | undefined {
     return process.env[key];
 }
 
+function parseAdminAuthTokens(value: string | undefined): Record<string, string> {
+    const tokens: Record<string, string> = {};
+    for (const entry of value?.split(',') ?? []) {
+        const separator = entry.indexOf('=');
+        if (separator <= 0 || separator === entry.length - 1) {
+            continue;
+        }
+        const userId = entry.slice(0, separator).trim();
+        const token = entry.slice(separator + 1).trim();
+        if (userId && token) {
+            tokens[userId] = token;
+        }
+    }
+    return tokens;
+}
+
 // NSFW feature flag configuration
 const nsfwConfig = {
     useRust: parseBoolSafe(getEnv('NSFW_USE_RUST')),
@@ -241,6 +257,9 @@ const config = {
     // Health check server
     health: {
         authToken: getEnv('HEALTH_AUTH_TOKEN')
+    },
+    admin: {
+        authTokens: parseAdminAuthTokens(getEnv('ADMIN_AUTH_TOKENS'))
     },
 
     // Interlink (Cross-Bot Communication via ConnectRPC Go service)

@@ -70,3 +70,6 @@
 - Task 9: complete with BullMQ, PostgreSQL, and ioredis instrumentation wiring and commit pending.
 - Task 9 review: focused queue/observability tests, build, lint, and diff checks passed; repository typecheck remains blocked by the established unrelated generated and test errors.
 - Task 9 ruling: use shared BullMQ telemetry only when an OTLP endpoint is configured, keep Apollo's existing Prometheus queue metrics authoritative, and pin datastore instrumentation to the compatible OpenTelemetry package generation.
+- Task 10: complete with bearer-token Bull Board authentication, owner authorization, and pino-http diagnostics; commit pending.
+- Task 10 review: admin auth, webhook, and startup tests passed; lint, build, and diff checks passed.
+- Task 10 ruling: use `ADMIN_AUTH_TOKENS` userId-to-token credentials, derive identity only from the bearer token, and keep `OWNER_IDS` as the authorization source of truth.

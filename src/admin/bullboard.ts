@@ -7,20 +7,44 @@ import { Hono } from 'hono';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { queues } from '../queue/queue.js';
 import { isOwner } from '../utils/accessControl.js';
+import { config } from '../config/config.js';
+import { createHash, timingSafeEqual } from 'node:crypto';
+import { createLogger } from '../utils/logger.js';
 import type { Context, Next } from 'hono';
 import type { Queue } from 'bullmq';
+
+const logger = createLogger({ component: 'admin:bullboard' });
 
 // Create Hono app for bull board
 const bullBoardApp = new Hono();
 
 // Owner authentication middleware (non-async as per Hono best practices)
 async function requireOwnerAuth(c: Context, next: Next): Promise<Response | void> {
-    const userId = c.req.header('X-User-ID');
-    if (userId && isOwner(userId)) {
-        await next();
-        return;
+    const authorization = c.req.header('Authorization');
+    const suppliedToken = authorization?.startsWith('Bearer ')
+        ? authorization.slice('Bearer '.length).trim()
+        : '';
+    let authenticatedUserId: string | undefined;
+    const suppliedHash = createHash('sha256').update(suppliedToken).digest();
+
+    for (const [userId, configuredToken] of Object.entries(config.admin.authTokens)) {
+        const configuredHash = createHash('sha256').update(configuredToken).digest();
+        if (timingSafeEqual(suppliedHash, configuredHash)) {
+            authenticatedUserId = userId;
+        }
     }
-    return c.json({ error: 'Owner authentication required' }, 401);
+
+    if (!authenticatedUserId) {
+        logger.warn({ method: c.req.method, path: new URL(c.req.url).pathname }, 'Admin authentication failed');
+        return c.json({ error: 'Authentication required' }, 401);
+    }
+
+    if (!isOwner(authenticatedUserId)) {
+        logger.warn({ method: c.req.method, path: new URL(c.req.url).pathname }, 'Admin authorization denied');
+        return c.json({ error: 'Owner authorization required' }, 403);
+    }
+
+    await next();
 }
 
 // Apply owner check to all bull board routes
