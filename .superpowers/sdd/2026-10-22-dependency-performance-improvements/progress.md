@@ -73,3 +73,9 @@
 - Task 10: complete with bearer-token Bull Board authentication, owner authorization, and pino-http diagnostics; commit pending.
 - Task 10 review: admin auth, webhook, and startup tests passed; lint, build, and diff checks passed.
 - Task 10 ruling: use `ADMIN_AUTH_TOKENS` userId-to-token credentials, derive identity only from the bearer token, and keep `OWNER_IDS` as the authorization source of truth.
+- Task 11: complete as a no-go decision; benchmarked the existing locale cache and did not add `lru-cache`.
+- Task 11 ruling: retain `LocaleCache` because it satisfies the required bounded TTL/LRU/invalidation contract at approximately 2.2 million get/set operations per second in the representative benchmark.
+- Task 12: complete as a no-go decision; benchmarked Node's built-in Undici-backed fetch against a controlled local fixture and did not add direct `undici` usage.
+- Task 12 ruling: retain `safeFetch` as the transport boundary and avoid exposing dispatcher configuration without production evidence for pools, proxies, custom CA, or connection limits.
+- Task 13: complete as a no-go decision; no measured CPU or event-loop hotspot justified adding `0x`.
+- Task 14: complete as a no-go decision; the controlled HTTP fixture benchmark was sufficient and did not justify adding `autocannon`.
