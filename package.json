@@ -62,6 +62,7 @@
     "@opentelemetry/instrumentation-pg": "catalog:",
     "@opentelemetry/resources": "^3.0.0",
     "@opentelemetry/sdk-node": "^0.300.0",
+    "@opentelemetry/sdk-trace": "^3.0.0",
     "@opentelemetry/semantic-conventions": "^1.44.0",
     "@prometheus-io/client": "^0.16.1",
     "acorn": "8.19.0",
