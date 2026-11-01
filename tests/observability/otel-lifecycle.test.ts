@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const otelMocks = vi.hoisted(() => ({
     sdkInstances: [] as Array<{ options: Record<string, unknown>; start: ReturnType<typeof vi.fn>; shutdown: ReturnType<typeof vi.fn> }>,
     exporterInstances: [] as unknown[],
-    httpInstrumentationInstances: [] as unknown[]
+    instrumentationInstances: [] as Array<{ disable: ReturnType<typeof vi.fn> }>
 }));
 
 vi.mock('@opentelemetry/sdk-node', () => ({
@@ -29,8 +29,30 @@ vi.mock('@opentelemetry/exporter-trace-otlp-http', () => ({
 
 vi.mock('@opentelemetry/instrumentation-http', () => ({
     HttpInstrumentation: class {
+        public readonly disable = vi.fn();
+
         public constructor() {
-            otelMocks.httpInstrumentationInstances.push(this);
+            otelMocks.instrumentationInstances.push(this);
+        }
+    }
+}));
+
+vi.mock('@opentelemetry/instrumentation-pg', () => ({
+    PgInstrumentation: class {
+        public readonly disable = vi.fn();
+
+        public constructor() {
+            otelMocks.instrumentationInstances.push(this);
+        }
+    }
+}));
+
+vi.mock('@opentelemetry/instrumentation-ioredis', () => ({
+    IORedisInstrumentation: class {
+        public readonly disable = vi.fn();
+
+        public constructor() {
+            otelMocks.instrumentationInstances.push(this);
         }
     }
 }));
@@ -42,7 +64,7 @@ describe('OpenTelemetry lifecycle', () => {
         await shutdownOtel();
         otelMocks.sdkInstances.length = 0;
         otelMocks.exporterInstances.length = 0;
-        otelMocks.httpInstrumentationInstances.length = 0;
+        otelMocks.instrumentationInstances.length = 0;
     });
 
     it('initializes only once and can initialize again after shutdown', async() => {
@@ -64,6 +86,7 @@ describe('OpenTelemetry lifecycle', () => {
 
         expect(otelMocks.exporterInstances).toHaveLength(0);
         expect(otelMocks.sdkInstances[0]?.options['traceExporter']).toBeUndefined();
+        expect(otelMocks.sdkInstances[0]?.options['logRecordProcessors']).toEqual([]);
     });
 
     it('configures the service resource and registers HTTP instrumentation once', () => {
@@ -75,6 +98,15 @@ describe('OpenTelemetry lifecycle', () => {
 
         expect(resource?.attributes?.['service.name']).toBe('apollo-test');
         expect(instrumentations).toHaveLength(3);
-        expect(otelMocks.httpInstrumentationInstances).toHaveLength(1);
+        expect(otelMocks.instrumentationInstances).toHaveLength(3);
+    });
+
+    it('disables registered instrumentations during shutdown', async() => {
+        initializeOtel({ serviceName: 'apollo-test' });
+
+        const instrumentations = [...otelMocks.instrumentationInstances];
+        await shutdownOtel();
+
+        expect(instrumentations.every((instrumentation) => instrumentation.disable.mock.calls.length === 1)).toBe(true);
     });
 });

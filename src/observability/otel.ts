@@ -3,6 +3,7 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 import { defaultResource, resourceFromAttributes } from '@opentelemetry/resources';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import type { Instrumentation } from '@opentelemetry/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { W3CTraceContextPropagator } from '@opentelemetry/core';
 import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
@@ -14,6 +15,7 @@ import { BullMQOtel } from 'bullmq-otel';
 let initialized = false;
 let sdk: NodeSDK | null = null;
 let bullMqTelemetry: BullMQOtel | null = null;
+let instrumentations: Instrumentation[] = [];
 
 export interface OtelInitOptions {
     serviceName: string;
@@ -36,16 +38,18 @@ export function initializeOtel(options: OtelInitOptions): void {
     if (!exportEnabled) {
         process.env['OTEL_TRACES_EXPORTER'] = 'none';
     }
+    instrumentations = [
+        new HttpInstrumentation(),
+        new PgInstrumentation(),
+        new IORedisInstrumentation()
+    ];
     try {
         sdk = new NodeSDK({
             resource,
             contextManager,
             textMapPropagator: new W3CTraceContextPropagator(),
-            instrumentations: [
-                new HttpInstrumentation(),
-                new PgInstrumentation(),
-                new IORedisInstrumentation()
-            ],
+            instrumentations,
+            logRecordProcessors: [],
             spanProcessors: exportEnabled ? undefined : [new NoopSpanProcessor()],
             ...(exportEnabled && options.endpoint
                 ? {
@@ -91,6 +95,10 @@ export function extractTraceContext(carrier: Record<string, string>): Context {
 }
 
 export async function shutdownOtel(): Promise<void> {
+    for (const instrumentation of instrumentations) {
+        instrumentation.disable();
+    }
+    instrumentations = [];
     if (sdk) {
         await sdk.shutdown();
         sdk = null;
