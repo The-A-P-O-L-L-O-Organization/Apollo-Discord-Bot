@@ -1,11 +1,13 @@
 import { trace, context, propagation, SpanStatusCode, type Span, type Context } from '@opentelemetry/api';
 import { NodeSDK } from '@opentelemetry/sdk-node';
-import { resourceFromAttributes } from '@opentelemetry/resources';
+import { defaultResource, resourceFromAttributes } from '@opentelemetry/resources';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import type { Instrumentation } from '@opentelemetry/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
-import { ExportResultCode, W3CTraceContextPropagator } from '@opentelemetry/core';
-import { AsyncHooksContextManager } from '@opentelemetry/context-async-hooks';
+import { W3CTraceContextPropagator } from '@opentelemetry/core';
+import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
+import { NoopSpanProcessor } from '@opentelemetry/sdk-trace';
 import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
 import { IORedisInstrumentation } from '@opentelemetry/instrumentation-ioredis';
 import { BullMQOtel } from 'bullmq-otel';
@@ -13,6 +15,7 @@ import { BullMQOtel } from 'bullmq-otel';
 let initialized = false;
 let sdk: NodeSDK | null = null;
 let bullMqTelemetry: BullMQOtel | null = null;
+let instrumentations: Instrumentation[] = [];
 
 export interface OtelInitOptions {
     serviceName: string;
@@ -25,39 +28,39 @@ export function initializeOtel(options: OtelInitOptions): void {
         return;
     }
 
-    const contextManager = new AsyncHooksContextManager();
-    const resource = resourceFromAttributes({
+    const contextManager = new AsyncLocalStorageContextManager();
+    const resource = defaultResource().merge(resourceFromAttributes({
         [SemanticResourceAttributes.SERVICE_NAME]: options.serviceName
-    });
+    }));
 
     const exportEnabled = Boolean(options.endpoint) && process.env['NODE_ENV'] !== 'test';
     const previousExporterSetting = process.env['OTEL_TRACES_EXPORTER'];
     if (!exportEnabled) {
         process.env['OTEL_TRACES_EXPORTER'] = 'none';
     }
+    instrumentations = [
+        new HttpInstrumentation(),
+        new PgInstrumentation(),
+        new IORedisInstrumentation()
+    ];
     try {
         sdk = new NodeSDK({
             resource,
             contextManager,
             textMapPropagator: new W3CTraceContextPropagator(),
-            instrumentations: [
-                new HttpInstrumentation(),
-                new PgInstrumentation(),
-                new IORedisInstrumentation()
-            ],
-            traceExporter: exportEnabled && options.endpoint
-                ? new OTLPTraceExporter({
+            instrumentations,
+            logRecordProcessors: [],
+            spanProcessors: exportEnabled ? undefined : [new NoopSpanProcessor()],
+            ...(exportEnabled && options.endpoint
+                ? {
+                    traceExporter: new OTLPTraceExporter({
                     url: options.endpoint,
                     headers: options.headers
-                })
-                : {
-                    export: (_spans: unknown[], callback: (result: { code: ExportResultCode }) => void) => {
-                        callback({ code: ExportResultCode.SUCCESS });
-                    },
-                    shutdown: async() => undefined,
-                    forceFlush: async() => undefined
+                    })
                 }
+                : {})
         });
+        sdk.start();
     } finally {
         if (previousExporterSetting === undefined) {
             delete process.env['OTEL_TRACES_EXPORTER'];
@@ -65,7 +68,6 @@ export function initializeOtel(options: OtelInitOptions): void {
             process.env['OTEL_TRACES_EXPORTER'] = previousExporterSetting;
         }
     }
-    sdk.start();
     if (options.endpoint) {
         bullMqTelemetry = new BullMQOtel({
             tracerName: 'apollo-bullmq',
@@ -93,6 +95,10 @@ export function extractTraceContext(carrier: Record<string, string>): Context {
 }
 
 export async function shutdownOtel(): Promise<void> {
+    for (const instrumentation of instrumentations) {
+        instrumentation.disable();
+    }
+    instrumentations = [];
     if (sdk) {
         await sdk.shutdown();
         sdk = null;
