@@ -1,19 +1,18 @@
 import { trace, context, propagation, SpanStatusCode, type Span, type Context } from '@opentelemetry/api';
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+import { NodeSDK } from '@opentelemetry/sdk-node';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { W3CTraceContextPropagator } from '@opentelemetry/core';
-import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { AsyncHooksContextManager } from '@opentelemetry/context-async-hooks';
 
 let initialized = false;
+let sdk: NodeSDK | null = null;
 
 export interface OtelInitOptions {
     serviceName: string;
-    endpoint: string;
+    endpoint?: string;
     headers?: Record<string, string>;
 }
 
@@ -22,37 +21,24 @@ export function initializeOtel(options: OtelInitOptions): void {
         return;
     }
 
-    // Enable async context propagation
     const contextManager = new AsyncHooksContextManager();
-    contextManager.enable();
-    context.setGlobalContextManager(contextManager);
-
     const resource = resourceFromAttributes({
         [SemanticResourceAttributes.SERVICE_NAME]: options.serviceName
     });
 
-    const provider = new NodeTracerProvider({
+    sdk = new NodeSDK({
         resource,
-        spanProcessors: [
-            new BatchSpanProcessor(new OTLPTraceExporter({
+        contextManager,
+        textMapPropagator: new W3CTraceContextPropagator(),
+        instrumentations: [new HttpInstrumentation()],
+        ...(options.endpoint ? {
+            traceExporter: new OTLPTraceExporter({
                 url: options.endpoint,
                 headers: options.headers
-            }))
-        ]
+            })
+        } : {})
     });
-
-    provider.register({
-        propagator: new W3CTraceContextPropagator()
-    });
-
-    registerInstrumentations({
-        instrumentations: [
-            new HttpInstrumentation()
-        ],
-        tracerProvider: provider
-    });
-
-    trace.setGlobalTracerProvider(provider);
+    sdk.start();
     initialized = true;
 }
 
@@ -69,9 +55,9 @@ export function extractTraceContext(carrier: Record<string, string>): Context {
 }
 
 export async function shutdownOtel(): Promise<void> {
-    const provider = trace.getTracerProvider();
-    if (provider && typeof (provider as unknown as { shutdown?: () => Promise<void> }).shutdown === 'function') {
-        await (provider as unknown as { shutdown: () => Promise<void> }).shutdown();
+    if (sdk) {
+        await sdk.shutdown();
+        sdk = null;
     }
     initialized = false;
 }
