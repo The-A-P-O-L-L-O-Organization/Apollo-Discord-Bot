@@ -56,3 +56,4 @@ target/
 
 # Generated protobuf (Go runtime)
 gen/
+.cybedefend/
