@@ -19,7 +19,7 @@ describe('OpenTelemetry tracing', () => {
 
   it('creates spans with attributes', () => {
     const tracer = getTracer('test')
-    const span = tracer.startSpan('test-operation', { 'test.attr': 'value' })
+    const span = tracer.startSpan('test-operation', { attributes: { 'test.attr': 'value' } })
     expect(span.spanContext().traceId).toBeDefined()
     span.end()
   })

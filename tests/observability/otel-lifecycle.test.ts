@@ -63,15 +63,15 @@ describe('OpenTelemetry lifecycle', () => {
         initializeOtel({ serviceName: 'apollo-test' });
 
         expect(otelMocks.exporterInstances).toHaveLength(0);
-        expect(otelMocks.sdkInstances[0]?.options.traceExporter).toBeUndefined();
+        expect(otelMocks.sdkInstances[0]?.options['traceExporter']).toBeUndefined();
     });
 
     it('configures the service resource and registers HTTP instrumentation once', () => {
         initializeOtel({ serviceName: 'apollo-test' });
 
         const sdkOptions = otelMocks.sdkInstances[0]?.options;
-        const resource = sdkOptions?.resource as { attributes?: Record<string, unknown> } | undefined;
-        const instrumentations = sdkOptions?.instrumentations as unknown[] | undefined;
+        const resource = sdkOptions?.['resource'] as { attributes?: Record<string, unknown> } | undefined;
+        const instrumentations = sdkOptions?.['instrumentations'] as unknown[] | undefined;
 
         expect(resource?.attributes?.['service.name']).toBe('apollo-test');
         expect(instrumentations).toHaveLength(3);
