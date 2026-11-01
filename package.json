@@ -59,7 +59,7 @@
     "@opentelemetry/core": "^2.11.0",
     "@opentelemetry/exporter-trace-otlp-http": "^0.222.0",
     "@opentelemetry/instrumentation": "^0.222.0",
-    "@opentelemetry/instrumentation-http": "^0.222.0",
+    "@opentelemetry/instrumentation-http": "^0.300.0",
     "@opentelemetry/instrumentation-ioredis": "catalog:",
     "@opentelemetry/instrumentation-pg": "catalog:",
     "@opentelemetry/resources": "^2.11.0",
