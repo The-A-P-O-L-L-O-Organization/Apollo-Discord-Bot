@@ -55,6 +55,7 @@ catalog:
   # Redis/Queue
   ioredis: 6.0.0
   bullmq: 6.3.11
+  bullmq-otel: 2.0.1
   msgpackr: 2.1.0
   # Observability
   '@opentelemetry/api': 1.9.1
@@ -64,6 +65,8 @@ catalog:
   '@opentelemetry/exporter-trace-otlp-http': 0.222.0
   '@opentelemetry/instrumentation': 0.222.0
   '@opentelemetry/instrumentation-http': 0.222.0
+  '@opentelemetry/instrumentation-ioredis': 0.70.0
+  '@opentelemetry/instrumentation-pg': 0.74.0
   '@opentelemetry/resources': 2.11.0
   '@opentelemetry/sdk-node': 0.222.0
   '@opentelemetry/semantic-conventions': 1.43.0

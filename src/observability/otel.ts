@@ -6,9 +6,13 @@ import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { W3CTraceContextPropagator } from '@opentelemetry/core';
 import { AsyncHooksContextManager } from '@opentelemetry/context-async-hooks';
+import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
+import { IORedisInstrumentation } from '@opentelemetry/instrumentation-ioredis';
+import { BullMQOtel } from 'bullmq-otel';
 
 let initialized = false;
 let sdk: NodeSDK | null = null;
+let bullMqTelemetry: BullMQOtel | null = null;
 
 export interface OtelInitOptions {
     serviceName: string;
@@ -30,7 +34,11 @@ export function initializeOtel(options: OtelInitOptions): void {
         resource,
         contextManager,
         textMapPropagator: new W3CTraceContextPropagator(),
-        instrumentations: [new HttpInstrumentation()],
+        instrumentations: [
+            new HttpInstrumentation(),
+            new PgInstrumentation(),
+            new IORedisInstrumentation()
+        ],
         ...(options.endpoint ? {
             traceExporter: new OTLPTraceExporter({
                 url: options.endpoint,
@@ -39,7 +47,18 @@ export function initializeOtel(options: OtelInitOptions): void {
         } : {})
     });
     sdk.start();
+    if (options.endpoint) {
+        bullMqTelemetry = new BullMQOtel({
+            tracerName: 'apollo-bullmq',
+            meterName: 'apollo-bullmq',
+            enableMetrics: false
+        });
+    }
     initialized = true;
+}
+
+export function getBullMqTelemetry(): BullMQOtel | undefined {
+    return bullMqTelemetry ?? undefined;
 }
 
 export function getTracer(name: string) {
@@ -59,6 +78,7 @@ export async function shutdownOtel(): Promise<void> {
         await sdk.shutdown();
         sdk = null;
     }
+    bullMqTelemetry = null;
     initialized = false;
 }
 

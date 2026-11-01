@@ -4,6 +4,7 @@ import { config } from '../config/config.js';
 import { createRedisClient } from '../utils/redis.js';
 import { encode, decode } from 'msgpackr';
 import type { WorkerRuntimeConfig } from '../types/queue.js';
+import { getBullMqTelemetry } from '../observability/otel.js';
 
 const logger = createLogger({ component: 'queue' });
 
@@ -72,7 +73,8 @@ export async function createQueue(name: string, queueConfig = config.queue): Pro
         // Use type assertion for serializer since it's not in the base QueueOptions
         const queueOptions: QueueOptions = {
             connection: conn,
-            defaultJobOptions: getQueueDefaultJobOptions(queueConfig.worker)
+            defaultJobOptions: getQueueDefaultJobOptions(queueConfig.worker),
+            telemetry: getBullMqTelemetry()
         };
 
         // @ts-expect-error serializer is supported by BullMQ but not in QueueOptions type

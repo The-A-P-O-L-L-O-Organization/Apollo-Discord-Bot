@@ -11,7 +11,7 @@ import registerNsfwAnalyze from './queue/jobs/nsfwAnalyze.js';
 import { createLogger } from './utils/logger.js';
 import { warnMissingOtelEndpoint, warnUnverifiedPlugins } from './utils/startupChecks.js';
 import { closeLockRedis } from './utils/lock.js';
-import { initializeOtel, shutdownOtel } from './observability/otel.js';
+import { initializeOtel, shutdownOtel, getBullMqTelemetry } from './observability/otel.js';
 import { performance } from 'node:perf_hooks';
 import {
     recordQueueJobDuration,
@@ -33,7 +33,8 @@ export function getWorkerOptions(workerConfig: WorkerRuntimeConfig, connection: 
         connection,
         concurrency: workerConfig.concurrency,
         lockDuration: workerConfig.lockDuration,
-        limiter: workerConfig.limiter
+        limiter: workerConfig.limiter,
+        telemetry: getBullMqTelemetry()
     };
 }
 
