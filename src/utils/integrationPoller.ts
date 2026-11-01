@@ -41,6 +41,10 @@ interface PollerLimiters {
     rss: LocalLimiter;
 }
 
+interface PollerRunState {
+    inFlight: Set<PollerType>;
+}
+
 interface PollerContext {
     generation: number;
     client: Client;
@@ -48,6 +52,7 @@ interface PollerContext {
     knownItems: Map<string, Set<string>>;
     dedupe: NonceStore | null;
     limiters: PollerLimiters;
+    runState: PollerRunState;
     writeBarrier: Promise<void>;
 }
 
@@ -58,6 +63,7 @@ let knownItems = new Map<string, Set<string>>();
 let startupTimeout: NodeJS.Timeout | null = null;
 let pollerLimiters: PollerLimiters | null = null;
 let pollerGeneration = 0;
+let pollerRunState: PollerRunState | null = null;
 
 const DEFAULT_POLL_CONCURRENCY = 4;
 
@@ -189,6 +195,7 @@ export function initIntegrationPoller(discordClient: Client, cfg: { integrations
     client = discordClient;
     integrationConfig = cfg.integrations;
     knownItems = new Map();
+    pollerRunState = { inFlight: new Set() };
     pollerLimiters = {
         twitch: createLocalLimiter('twitch', integrationConfig.pollConcurrency?.twitch ?? DEFAULT_POLL_CONCURRENCY),
         youtube: createLocalLimiter('youtube', integrationConfig.pollConcurrency?.youtube ?? DEFAULT_POLL_CONCURRENCY),
@@ -238,6 +245,7 @@ export function stopIntegrationPoller(): void {
     pollerLimiters?.youtube.shutdown();
     pollerLimiters?.rss.shutdown();
     pollerLimiters = null;
+    pollerRunState = null;
     pollerDedupe = null;
     client = null;
     integrationConfig = null;
@@ -337,17 +345,17 @@ async function runStartupPoll(generation: number): Promise<void> {
     if (!isCurrentPoller(context)) {
         return;
     }
-    await pollYoutubeSubscriptionsForContext(context);
+    await runPoller('youtube', context);
     if (!isCurrentPoller(context)) {
         return;
     }
-    await pollRssSubscriptionsForContext(context);
+    await runPoller('rss', context);
 }
 
 export async function pollTwitchSubscriptions(): Promise<void> {
     const context = getPollerContext();
     if (!context?.config.twitchClientId) { return; }
-    await pollTwitchSubscriptionsForContext(context);
+    await runPoller('twitch', context);
 }
 
 async function pollTwitchSubscriptionsForContext(context: PollerContext): Promise<void> {
@@ -424,7 +432,7 @@ async function pollTwitchSubscriptionsForContext(context: PollerContext): Promis
 export async function pollYoutubeSubscriptions(): Promise<void> {
     const context = getPollerContext();
     if (!context?.config.youtubeApiKey) { return; }
-    await pollYoutubeSubscriptionsForContext(context);
+    await runPoller('youtube', context);
 }
 
 async function pollYoutubeSubscriptionsForContext(context: PollerContext): Promise<void> {
@@ -501,7 +509,7 @@ async function pollYoutubeSubscriptionsForContext(context: PollerContext): Promi
 export async function pollRssSubscriptions(): Promise<void> {
     const context = getPollerContext();
     if (!context) { return; }
-    await pollRssSubscriptionsForContext(context);
+    await runPoller('rss', context);
 }
 
 async function pollRssSubscriptionsForContext(context: PollerContext): Promise<void> {
@@ -577,22 +585,31 @@ async function pollRssSubscriptionsForContext(context: PollerContext): Promise<v
 }
 
 async function runPoller(type: PollerType, context: PollerContext): Promise<void> {
-    if (type === 'twitch') {
-        await pollTwitchSubscriptionsForContext(context);
+    if (!isCurrentPoller(context) || context.runState.inFlight.has(type)) {
         return;
     }
-    if (type === 'youtube') {
-        await pollYoutubeSubscriptionsForContext(context);
-        return;
+    context.runState.inFlight.add(type);
+    try {
+        if (type === 'twitch') {
+            await pollTwitchSubscriptionsForContext(context);
+            return;
+        }
+        if (type === 'youtube') {
+            await pollYoutubeSubscriptionsForContext(context);
+            return;
+        }
+        await pollRssSubscriptionsForContext(context);
+    } finally {
+        context.runState.inFlight.delete(type);
     }
-    await pollRssSubscriptionsForContext(context);
 }
 
 function getPollerContext(generation = pollerGeneration): PollerContext | null {
     const currentClient = client;
     const config = integrationConfig;
     const limiters = pollerLimiters;
-    if (generation !== pollerGeneration || !currentClient || !config || !limiters) {
+    const runState = pollerRunState;
+    if (generation !== pollerGeneration || !currentClient || !config || !limiters || !runState) {
         return null;
     }
     return {
@@ -602,6 +619,7 @@ function getPollerContext(generation = pollerGeneration): PollerContext | null {
         knownItems,
         dedupe: pollerDedupe,
         limiters,
+        runState,
         writeBarrier: pollerWriteBarrier
     };
 }

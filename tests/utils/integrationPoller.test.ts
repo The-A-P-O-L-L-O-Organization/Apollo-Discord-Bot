@@ -19,17 +19,20 @@ vi.mock('../../src/utils/lock.js', () => ({
 
 import { getData, setData } from '../../src/utils/db.js';
 import { checkTwitchStream, checkYoutubeUploads } from '../../src/utils/integrationClients.js';
+import { getLockRedis } from '../../src/utils/lock.js';
 
 const mockGetData = vi.mocked(getData);
 const mockSetData = vi.mocked(setData);
 const mockCheckTwitch = vi.mocked(checkTwitchStream);
 const mockCheckYoutube = vi.mocked(checkYoutubeUploads);
+const mockGetLockRedis = vi.mocked(getLockRedis);
 
 describe('integrationPoller', () => {
     beforeEach(() => {
         vi.resetModules();
         vi.resetAllMocks();
         vi.useFakeTimers();
+        mockGetLockRedis.mockResolvedValue(null);
     });
 
     it('init starts interval timers for each poller type', async() => {
@@ -285,5 +288,53 @@ describe('integrationPoller', () => {
 
         expect(mockCheckTwitch).toHaveBeenCalledTimes(2);
         expect(mockSetData).toHaveBeenCalledTimes(1);
+    });
+
+    it('coalesces scheduled ticks while a slow provider batch is running', async() => {
+        const poller = await import('../../src/utils/integrationPoller.js');
+        const subscriptions = Array.from({ length: 3 }, (_, index) => ({
+            id: `tw${index}`,
+            type: 'twitch',
+            target_id: `streamer-${index}`,
+            channel_id: 'channel'
+        }));
+        mockGetData.mockResolvedValue({ subscriptions } as never);
+        mockSetData.mockResolvedValue(undefined as never);
+
+        let calls = 0;
+        const release: Array<() => void> = [];
+        mockCheckTwitch.mockImplementation(async() => {
+            calls += 1;
+            if (calls <= subscriptions.length) {
+                await new Promise<void>((resolve) => { release.push(resolve); });
+            }
+            return { live: false };
+        });
+
+        poller.initIntegrationPoller({ channels: { cache: { get: vi.fn() } } } as unknown as Client, {
+            integrations: {
+                pollInterval: { twitch: 100, youtube: 0, rss: 0 },
+                twitchClientId: 'client-id',
+                twitchClientSecret: 'secret',
+                youtubeApiKey: '',
+                pollConcurrency: { twitch: 1 }
+            }
+        });
+
+        await vi.advanceTimersByTimeAsync(500);
+        expect(calls).toBe(1);
+
+        release.shift()?.();
+        await vi.advanceTimersByTimeAsync(0);
+        expect(calls).toBe(2);
+
+        release.shift()?.();
+        await vi.advanceTimersByTimeAsync(0);
+        expect(calls).toBe(3);
+
+        release.shift()?.();
+        await vi.advanceTimersByTimeAsync(0);
+        expect(calls).toBe(3);
+        poller.stopIntegrationPoller();
     });
 });
