@@ -1,4 +1,4 @@
-import { Worker } from 'bullmq';
+import { Worker, type WorkerOptions as BullWorkerOptions } from 'bullmq';
 import Redis from 'ioredis';
 import type { Redis as RedisType } from 'ioredis';
 import { config } from './config/config.js';
@@ -11,14 +11,37 @@ import registerNsfwAnalyze from './queue/jobs/nsfwAnalyze.js';
 import { createLogger } from './utils/logger.js';
 import { warnMissingOtelEndpoint, warnUnverifiedPlugins } from './utils/startupChecks.js';
 import { closeLockRedis } from './utils/lock.js';
-import { initializeOtel, shutdownOtel } from './observability/otel.js';
+import { initializeOtel, shutdownOtel, getBullMqTelemetry } from './observability/otel.js';
+import { performance } from 'node:perf_hooks';
+import {
+    recordQueueJobDuration,
+    recordQueueOutcome,
+    recordQueueStart,
+    recordRedisOperation,
+    setWorkerMemory,
+    startPerformanceMetrics,
+    stopPerformanceMetrics
+} from './utils/metrics.js';
+import type { WorkerRuntimeConfig } from './types/queue.js';
 
 const logger = createLogger({ component: 'worker' });
 
 let worker: Worker | null = null;
 
+export function getWorkerOptions(workerConfig: WorkerRuntimeConfig, connection: RedisType): BullWorkerOptions {
+    return {
+        connection,
+        concurrency: workerConfig.concurrency,
+        lockDuration: workerConfig.lockDuration,
+        limiter: workerConfig.limiter,
+        telemetry: getBullMqTelemetry()
+    };
+}
+
 export async function startWorker(): Promise<Worker> {
     logger.info('[Worker] Starting in worker mode...');
+    startPerformanceMetrics();
+    setWorkerMemory('worker', process.memoryUsage().rss);
 
     warnUnverifiedPlugins();
 
@@ -52,23 +75,37 @@ export async function startWorker(): Promise<Worker> {
         maxRetriesPerRequest: null,
         protocol: 2
     });
+    const redisStartedAt = performance.now();
+    try {
+        await connection.ping();
+        recordRedisOperation('ping', performance.now() - redisStartedAt);
+    } catch (error: unknown) {
+        logger.warn({ err: error as Error }, '[Worker] Redis latency probe failed');
+    }
 
     worker = new Worker(config.queue.prefix, async (job: Parameters<typeof handleJob>[0]) => {
         logger.info(`[Worker] Received job: ${String(job.name)} (${String(job.id)})`);
-        return handleJob(job);
-    }, {
-        connection,
-        concurrency: 4,
-        lockDuration: 60000,
-        limiter: { max: 50, duration: 1000 }
-    });
+        const startedAt = performance.now();
+        recordQueueStart(config.queue.prefix, job.name, Math.max(0, Date.now() - job.timestamp) / 1000);
+        try {
+            return await handleJob(job);
+        } finally {
+            recordQueueJobDuration(config.queue.prefix, job.name, performance.now() - startedAt);
+            setWorkerMemory('worker', process.memoryUsage().rss);
+        }
+    }, getWorkerOptions(config.queue.worker, connection));
 
     worker.on('completed', (job) => {
         logger.info(`[Worker] Job ${String(job.id)} completed`);
+        recordQueueOutcome(config.queue.prefix, job.name, 'success');
     });
 
     worker.on('failed', (job, err) => {
         logger.error({ err }, `[Worker] Job ${job?.id ? String(job.id) : 'unknown'} failed`);
+        if (job) {
+            const attempts = job.opts.attempts ?? 1;
+            recordQueueOutcome(config.queue.prefix, job.name, job.attemptsMade < attempts ? 'retry' : 'failure');
+        }
     });
 
     logger.info('[Worker] Ready and waiting for jobs');
@@ -80,6 +117,8 @@ export async function stopWorker(): Promise<void> {
         await worker.close();
         worker = null;
     }
+    setWorkerMemory('worker', process.memoryUsage().rss);
+    stopPerformanceMetrics();
     await closeQueues();
     await closeDb();
     await closeLockRedis();

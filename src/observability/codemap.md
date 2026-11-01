@@ -12,7 +12,7 @@ OpenTelemetry tracing bootstrap for the bot, with Prometheus metrics and structu
 
 ## Design
 - Single module `otel.ts` with guarded `initializeOtel`, `getTracer`, W3C context `injectTraceContext` and `extractTraceContext`, and `shutdownOtel` for lifecycle management.
-- OTLP HTTP trace exporter behind `BatchSpanProcessor` with `AsyncHooksContextManager` and W3C propagator.
+- OpenTelemetry `NodeSDK` with optional OTLP HTTP export, `AsyncHooksContextManager`, HTTP instrumentation, and W3C propagator. When no endpoint is configured, SDK lifecycle and propagation remain safe without exporting.
 - Auto-instrumentation limited to HTTP, Express, and gRPC; service identity comes from caller-supplied `serviceName`, endpoint, and headers.
 - `traceparent.ts` depends only on `@opentelemetry/api`, so queue producers and workers can use it without importing the SDK; strict version-`00` parsing with zero-ID rejection keeps malformed or invalid headers out of the context chain.
 - Patterns: Singleton (guarded one-time `initializeOtel` with no-op repeats), Facade (`otel.ts` wrapping provider, exporter, context manager, and propagator).

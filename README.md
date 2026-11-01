@@ -65,7 +65,7 @@ Plugin lifecycle (`/plugin list/enable/disable/reload/load/install/uninstall/sea
 
 ### Integrations
 
-GitHub webhook receiver with HMAC verification, Twitch and YouTube live polling, RSS polling, Discord announcement formatting, configurable webhook port and poll intervals.
+GitHub webhook receiver with HMAC verification, Twitch and YouTube live polling, RSS polling, Redis-coordinated provider quotas with bounded local fallback, Discord announcement formatting, configurable webhook port and poll intervals.
 
 ### Interlink
 
@@ -246,21 +246,21 @@ pnpm dev
 
 ### Environment Variables
 
-The authoritative template is `.env.example`. Required on every boot: `DISCORD_TOKEN`, `CLIENT_ID`, `OWNER_IDS`, `ENCRYPTION_KEY`, `OPERATOR_AGREEMENT=true`, `OPERATOR_CONTACT`. Additionally required in production: `HEALTH_AUTH_TOKEN`, `APOLLO_SOCKET_TOKEN`, and `QUEUE_HMAC_SECRET` plus Redis credentials when the queue is enabled.
+The authoritative template is `.env.example`. Required on every boot: `DISCORD_TOKEN`, `CLIENT_ID`, `OWNER_IDS`, `ENCRYPTION_KEY`, `OPERATOR_AGREEMENT=true`, `OPERATOR_CONTACT`. Additionally required in production: `HEALTH_AUTH_TOKEN`, `ADMIN_AUTH_TOKENS`, `APOLLO_SOCKET_TOKEN`, and `QUEUE_HMAC_SECRET` plus Redis credentials when the queue is enabled. `ADMIN_AUTH_TOKENS` is a comma-separated `userId=token` list; only identities also present in `OWNER_IDS` can access Bull Board.
 
 | Group | Key Variables |
 |-------|---------------|
 | Runtime | `NODE_ENV`, `RUN_MODE`, `POD_ID`, `GUILD_ID`, `SHARD_COUNT`, `PLUGIN_DIR` |
 | Database | `DB_TYPE`, `DATABASE_URL`, `DB_POOL_MIN`, `DB_POOL_MAX` |
-| Redis and queue | `QUEUE_ENABLED`, `REDIS_HOST`, `REDIS_PORT`, `REDIS_USERNAME`, `REDIS_PASSWORD`, `QUEUE_PREFIX`, `QUEUE_STALLED_INTERVAL`, `QUEUE_HMAC_SECRET` |
+| Redis and queue | `QUEUE_ENABLED`, `REDIS_HOST`, `REDIS_PORT`, `REDIS_USERNAME`, `REDIS_PASSWORD`, `QUEUE_PREFIX`, `QUEUE_STALLED_INTERVAL`, `WORKER_CONCURRENCY`, `WORKER_LIMITER_MAX`, `WORKER_LIMITER_DURATION_MS`, `WORKER_LOCK_DURATION_MS`, `QUEUE_ATTEMPTS`, `QUEUE_BACKOFF_DELAY_MS`, `QUEUE_HMAC_SECRET` |
 | Interlink | `INTERLINK_ENABLED`, `INTERLINK_GRPC_ADDR`, `INTERLINK_AUTH_KEY`, `INTERLINK_JWT_SECRET`, `INTERLINK_JWT_EXPIRY`, `INTERLINK_TLS_CERT`, `INTERLINK_TLS_KEY`, `INTERLINK_CA_CERT`, `INTERLINK_PUBLIC_KEY`, `INTERLINK_FORWARD_EVENTS` |
-| Integrations | `INTEGRATIONS_WEBHOOK_PORT`, `GITHUB_WEBHOOK_SECRET`, `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET`, `YOUTUBE_API_KEY`, `INTEGRATIONS_POLL_TWITCH`, `INTEGRATIONS_POLL_YOUTUBE`, `INTEGRATIONS_POLL_RSS` |
+| Integrations | `INTEGRATIONS_WEBHOOK_PORT`, `GITHUB_WEBHOOK_SECRET`, `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET`, `YOUTUBE_API_KEY`, `INTEGRATIONS_POLL_TWITCH`, `INTEGRATIONS_POLL_YOUTUBE`, `INTEGRATIONS_POLL_RSS`, `PROVIDER_LIMITER_REDIS`, `PROVIDER_LIMIT_<PROVIDER>_*` |
 | AI and translation | `OPENAI_API_KEY`, `TRANSLATION_API_BASE_URL`, `TRANSLATION_API_KEY`, `NSFW_USE_RUST`, `NSFW_GRPC_ADDR`, `NSFW_THRESHOLD`, `NSFW_RUST_TIMEOUT_MS` |
 | CLI and sockets | `APOLLO_GUILD_ID`, `APOLLO_SOCKET_PATH`, `APOLLO_SOCKET_TOKEN` |
 | Observability | `OTEL_ENDPOINT`, `LOG_LEVEL`, `LOG_SAMPLE_RATE` |
 | Security | `HEALTH_AUTH_TOKEN`, `SECURITY_LOG_RETENTION_DAYS`, `ALLOW_UNVERIFIED_PLUGINS` |
 
-Runtime defaults live in `src/config/config.ts` (`ApolloConfig` type in `src/types/config.ts`). Environment parsing helpers tolerate missing values and fall back to documented defaults.
+Runtime defaults live in `src/config/config.ts` (`ApolloConfig` type in `src/types/config.ts`). Missing worker settings fall back to documented defaults; supplied worker and retry values must be finite integers within their documented bounds or startup fails.
 
 ## Project Structure
 

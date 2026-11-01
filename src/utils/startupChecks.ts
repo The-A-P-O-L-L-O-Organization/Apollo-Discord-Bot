@@ -155,6 +155,18 @@ export function assertHealthAuthToken(): void {
     }
 }
 
+export function assertAdminAuthToken(): void {
+    const isProduction = process.env['NODE_ENV'] === 'production';
+    const tokens = process.env['ADMIN_AUTH_TOKENS'];
+
+    if (isProduction && !tokens) {
+        throw new Error(
+            '[FATAL] ADMIN_AUTH_TOKENS is required in production. ' +
+            'Configure one or more userId=token entries before starting.'
+        );
+    }
+}
+
 export function warnMissingOtelEndpoint(): void {
     const isProduction = process.env['NODE_ENV'] === 'production';
 

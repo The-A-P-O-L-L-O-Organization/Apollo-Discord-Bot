@@ -194,6 +194,12 @@ pnpm dev
 | `REDIS_PASSWORD` | unset | Redis password; required in production |
 | `QUEUE_PREFIX` | `apollo` | Key prefix isolating environments |
 | `QUEUE_STALLED_INTERVAL` | `30000` | Stalled-job scan interval in milliseconds |
+| `WORKER_CONCURRENCY` | `4` | Concurrent jobs per worker; integer from 1 to 100 |
+| `WORKER_LIMITER_MAX` | `50` | Jobs allowed per limiter window; integer from 1 to 10000 |
+| `WORKER_LIMITER_DURATION_MS` | `1000` | Limiter window in milliseconds; integer from 100 to 60000 |
+| `WORKER_LOCK_DURATION_MS` | `60000` | BullMQ lock duration in milliseconds; integer from 1000 to 300000 |
+| `QUEUE_ATTEMPTS` | `3` | Maximum attempts per job; integer from 1 to 10 |
+| `QUEUE_BACKOFF_DELAY_MS` | `1000` | Exponential retry backoff base delay; integer from 100 to 60000 |
 | `QUEUE_HMAC_SECRET` | unset | Job integrity secret; generate with `openssl rand -base64 32` |
 
 ### 4.5 Interlink
@@ -223,6 +229,8 @@ Delivery is at-most-once. Acceptance by the relay does not guarantee the remote 
 | `YOUTUBE_API_KEY` | YouTube polling credential |
 | `INTEGRATIONS_POLL_TWITCH` | Twitch interval in milliseconds, default 300000 |
 | `INTEGRATIONS_POLL_YOUTUBE` | YouTube interval in milliseconds, default 300000 |
+| `PROVIDER_LIMITER_REDIS` | Enables Redis-coordinated provider quotas when set to `true` |
+| `PROVIDER_LIMIT_<PROVIDER>_MAX_CONCURRENT` | Per-provider concurrency cap; defaults to 2 |
 | `INTEGRATIONS_POLL_RSS` | RSS interval in milliseconds, default 900000 |
 | `TRANSLATION_API_BASE_URL` | LibreTranslate endpoint |
 | `TRANSLATION_API_KEY` | LibreTranslate key when required |
@@ -238,6 +246,7 @@ Delivery is at-most-once. Acceptance by the relay does not guarantee the remote 
 |----------|---------|---------|
 | `HEALTH_AUTH_TOKEN` | unset | Bearer token for `/health`, `/ready`, and `/metrics`; required in production, startup fails without it |
 | `SECURITY_LOG_RETENTION_DAYS` | `90` | Security event retention window |
+| `ADMIN_AUTH_TOKENS` | unset | Comma-separated `userId=token` credentials for Bull Board; required in production |
 | `ALLOW_UNVERIFIED_PLUGINS` | `0` | Set `1` only for local development; warns in production |
 | `LOG_SAMPLE_RATE` | `1.0` | Fraction of logs emitted under load |
 | `OTEL_ENDPOINT` | unset | OTLP trace endpoint; recommended in production, startup warns when unset. Enables trace IDs in logs and cross-pod command trace correlation |
@@ -433,6 +442,12 @@ REDIS_USERNAME=default
 REDIS_PASSWORD=strong-password
 QUEUE_PREFIX=apollo
 QUEUE_STALLED_INTERVAL=30000
+WORKER_CONCURRENCY=4
+WORKER_LIMITER_MAX=50
+WORKER_LIMITER_DURATION_MS=1000
+WORKER_LOCK_DURATION_MS=60000
+QUEUE_ATTEMPTS=3
+QUEUE_BACKOFF_DELAY_MS=1000
 QUEUE_HMAC_SECRET=your-base64-encoded-32-byte-secret
 ```
 

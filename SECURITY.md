@@ -78,6 +78,7 @@ Every deployment must meet this baseline:
 - Set `NODE_ENV=production` in production.
 - Enforce startup guards: valid non-placeholder `DISCORD_TOKEN`, `OPERATOR_AGREEMENT=true`, non-empty `OPERATOR_CONTACT`, and configured `ENCRYPTION_KEY`.
 - Set `HEALTH_AUTH_TOKEN` in production; startup fails without it, and every health, readiness, and metrics endpoint requires the Bearer token.
+- Set `ADMIN_AUTH_TOKENS` in production for Bull Board. Credentials use `userId=token` entries, are compared in constant time, and the authenticated user must also be listed in `OWNER_IDS`; spoofed identity headers are ignored.
 - Set `APOLLO_SOCKET_TOKEN` in production; the admin Unix socket rejects unauthenticated control connections.
 - Restrict owner-only commands through accurate `OWNER_IDS`.
 - Use separate Discord tokens, database credentials, Redis passwords, queue HMAC secrets, interlink secrets, webhook secrets, and API keys per environment.

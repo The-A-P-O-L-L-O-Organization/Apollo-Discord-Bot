@@ -16,7 +16,7 @@ import { stopPollScheduler } from './utils/pollScheduler.js';
 import { close as closeDatabase, startWalCheckpointInterval } from './utils/db.js';
 import { closeLockRedis } from './utils/lock.js';
 import { safeError } from './utils/safeError.js';
-import { assertDiscordToken, assertOperatorAgreement, assertEncryptionKey, assertHealthAuthToken, validatePostgresPoolMax, validateSocketToken, warnMissingOtelEndpoint, warnUnverifiedPlugins, validateQueueHmacSecret } from './utils/startupChecks.js';
+import { assertDiscordToken, assertOperatorAgreement, assertEncryptionKey, assertHealthAuthToken, assertAdminAuthToken, validatePostgresPoolMax, validateSocketToken, warnMissingOtelEndpoint, warnUnverifiedPlugins, validateQueueHmacSecret } from './utils/startupChecks.js';
 import { initializeOtel, shutdownOtel } from './observability/otel.js';
 import { startHealthServer, stopHealthServer } from './utils/healthServer.js';
 import { startAdminServer, stopAdminServer } from './admin/server.js';
@@ -415,6 +415,7 @@ if (RUN_MODE === 'worker') {
             assertEncryptionKey(config.ENCRYPTION_KEY);
             assertOperatorAgreement(config.operator);
             assertHealthAuthToken();
+            assertAdminAuthToken();
             validateSocketToken();
             await validateQueueHmacSecret();
             await i18n.init();

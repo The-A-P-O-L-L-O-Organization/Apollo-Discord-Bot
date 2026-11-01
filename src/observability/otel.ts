@@ -1,19 +1,22 @@
 import { trace, context, propagation, SpanStatusCode, type Span, type Context } from '@opentelemetry/api';
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+import { NodeSDK } from '@opentelemetry/sdk-node';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
-import { W3CTraceContextPropagator } from '@opentelemetry/core';
-import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import { ExportResultCode, W3CTraceContextPropagator } from '@opentelemetry/core';
 import { AsyncHooksContextManager } from '@opentelemetry/context-async-hooks';
+import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
+import { IORedisInstrumentation } from '@opentelemetry/instrumentation-ioredis';
+import { BullMQOtel } from 'bullmq-otel';
 
 let initialized = false;
+let sdk: NodeSDK | null = null;
+let bullMqTelemetry: BullMQOtel | null = null;
 
 export interface OtelInitOptions {
     serviceName: string;
-    endpoint: string;
+    endpoint?: string;
     headers?: Record<string, string>;
 }
 
@@ -22,38 +25,59 @@ export function initializeOtel(options: OtelInitOptions): void {
         return;
     }
 
-    // Enable async context propagation
     const contextManager = new AsyncHooksContextManager();
-    contextManager.enable();
-    context.setGlobalContextManager(contextManager);
-
     const resource = resourceFromAttributes({
         [SemanticResourceAttributes.SERVICE_NAME]: options.serviceName
     });
 
-    const provider = new NodeTracerProvider({
-        resource,
-        spanProcessors: [
-            new BatchSpanProcessor(new OTLPTraceExporter({
-                url: options.endpoint,
-                headers: options.headers
-            }))
-        ]
-    });
-
-    provider.register({
-        propagator: new W3CTraceContextPropagator()
-    });
-
-    registerInstrumentations({
-        instrumentations: [
-            new HttpInstrumentation()
-        ],
-        tracerProvider: provider
-    });
-
-    trace.setGlobalTracerProvider(provider);
+    const exportEnabled = Boolean(options.endpoint) && process.env['NODE_ENV'] !== 'test';
+    const previousExporterSetting = process.env['OTEL_TRACES_EXPORTER'];
+    if (!exportEnabled) {
+        process.env['OTEL_TRACES_EXPORTER'] = 'none';
+    }
+    try {
+        sdk = new NodeSDK({
+            resource,
+            contextManager,
+            textMapPropagator: new W3CTraceContextPropagator(),
+            instrumentations: [
+                new HttpInstrumentation(),
+                new PgInstrumentation(),
+                new IORedisInstrumentation()
+            ],
+            traceExporter: exportEnabled && options.endpoint
+                ? new OTLPTraceExporter({
+                    url: options.endpoint,
+                    headers: options.headers
+                })
+                : {
+                    export: (_spans: unknown[], callback: (result: { code: ExportResultCode }) => void) => {
+                        callback({ code: ExportResultCode.SUCCESS });
+                    },
+                    shutdown: async() => undefined,
+                    forceFlush: async() => undefined
+                }
+        });
+    } finally {
+        if (previousExporterSetting === undefined) {
+            delete process.env['OTEL_TRACES_EXPORTER'];
+        } else {
+            process.env['OTEL_TRACES_EXPORTER'] = previousExporterSetting;
+        }
+    }
+    sdk.start();
+    if (options.endpoint) {
+        bullMqTelemetry = new BullMQOtel({
+            tracerName: 'apollo-bullmq',
+            meterName: 'apollo-bullmq',
+            enableMetrics: false
+        });
+    }
     initialized = true;
+}
+
+export function getBullMqTelemetry(): BullMQOtel | undefined {
+    return bullMqTelemetry ?? undefined;
 }
 
 export function getTracer(name: string) {
@@ -69,10 +93,11 @@ export function extractTraceContext(carrier: Record<string, string>): Context {
 }
 
 export async function shutdownOtel(): Promise<void> {
-    const provider = trace.getTracerProvider();
-    if (provider && typeof (provider as unknown as { shutdown?: () => Promise<void> }).shutdown === 'function') {
-        await (provider as unknown as { shutdown: () => Promise<void> }).shutdown();
+    if (sdk) {
+        await sdk.shutdown();
+        sdk = null;
     }
+    bullMqTelemetry = null;
     initialized = false;
 }
 

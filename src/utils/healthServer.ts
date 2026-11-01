@@ -1,6 +1,7 @@
 // Health Check & Metrics Server
 // Exposes /health, /ready, and /metrics endpoints for monitoring
 import { logger } from './logger.js';
+import { createHttpLogger } from './httpLogger.js';
 import type { IncomingMessage, ServerResponse, Server } from 'http';
 import { createServer } from 'http';
 import { register, recordGatewayLatency } from './metrics.js';
@@ -13,6 +14,7 @@ import { Status } from 'discord.js';
 let healthServer: Server | null = null;
 let isReady = false;
 let startupTime = Date.now();
+const requestLogger = createHttpLogger('health:http');
 
 // Health check authentication token (optional)
 const HEALTH_AUTH_TOKEN = process.env['HEALTH_AUTH_TOKEN'] ?? config.health?.authToken ?? null;
@@ -168,6 +170,7 @@ export async function startHealthServer(client: Client): Promise<Server> {
     }
 
     healthServer = createServer((req: IncomingMessage, res: ServerResponse) => { void (async () => {
+        requestLogger(req, res);
         // Check authentication
         if (!isAuthenticated(req)) {
             res.writeHead(401, { 'Content-Type': 'application/json' });

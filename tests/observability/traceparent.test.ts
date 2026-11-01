@@ -45,7 +45,7 @@ describe('parseTraceparent', () => {
 
 describe('runWithExtractedTrace', () => {
     beforeAll(() => {
-        initializeOtel({ serviceName: 'apollo-test', endpoint: 'http://localhost:4318/v1/traces' });
+        initializeOtel({ serviceName: 'apollo-test' });
     });
 
     afterAll(async () => {

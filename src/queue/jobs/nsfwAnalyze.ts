@@ -6,6 +6,8 @@ import { registerHandler } from '../jobHandler.js';
 import { createQueue } from '../queue.js';
 import type { NSFWAnalyzeJobData } from '../../types/queue.js';
 import { analyzeImageGrpc } from '../nsfwClient.js';
+import { config } from '../../config/config.js';
+import { recordQueueEnqueue } from '../../utils/metrics.js';
 
 export const JobNames = {
     NSFW_ANALYZE: 'nsfw:analyze'
@@ -51,6 +53,7 @@ export async function enqueueNsfwAnalysis(
         removeOnComplete: { age: 3600 },
         removeOnFail: { age: 86400, count: 100 }
     });
+    recordQueueEnqueue(config.queue.prefix, JobNames.NSFW_ANALYZE);
     return data;
 }
 

@@ -2,7 +2,7 @@
 // Mirrors src/config/config.js structure with explicit interfaces
 
 import type { ClientOptions } from 'discord.js';
-import type { DefaultJobOptions, JobSerializer } from './queue.js';
+import type { DefaultJobOptions, JobSerializer, WorkerRuntimeConfig } from './queue.js';
 
 export interface DiscordConfig {
     token: string;
@@ -60,6 +60,7 @@ export interface QueueConfig {
     defaultJobOptions?: DefaultJobOptions;
     serializer?: JobSerializer;
     hmacSecret?: string;
+    worker: WorkerRuntimeConfig;
 }
 
 export interface InterlinkConfig {
@@ -220,6 +221,10 @@ export interface HealthConfig {
     authToken: string | undefined;
 }
 
+export interface AdminConfig {
+    authTokens: Record<string, string>;
+}
+
 export interface NsfwConfig {
     useRust: boolean;
     grpcAddr: string;
@@ -246,6 +251,7 @@ export interface ApolloConfig {
     integrations: IntegrationsConfig;
     reactionRoles: ReactionRolesConfig;
     health: HealthConfig;
+    admin: AdminConfig;
     nsfw: NsfwConfig;
     threshold: number;
     deleteMessages: boolean;

@@ -3,6 +3,7 @@
 import { logger } from '../utils/logger.js';
 import { config } from '../config/config.js';
 import { createQueue } from './queue.js';
+import { recordQueueEnqueue } from '../utils/metrics.js';
 
 export const INLINE_NONCE_TTL = 300000;
 const INLINE_NONCE_CLEANUP_INTERVAL = 60000;
@@ -68,6 +69,7 @@ export async function queueOrRun<T, R>(
     if (config.queue.enabled) {
         const queue = await createQueue(config.queue.prefix);
         const job = await queue.add(jobName, data);
+        recordQueueEnqueue(config.queue.prefix, jobName);
         logger.info(`[Gateway] Enqueued ${jobName} as job ${job.id}`);
         return { queued: true, jobId: job.id! };
     }

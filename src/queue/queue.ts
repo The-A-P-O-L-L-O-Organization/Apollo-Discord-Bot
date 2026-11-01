@@ -3,6 +3,8 @@ import { Queue, type QueueOptions } from 'bullmq';
 import { config } from '../config/config.js';
 import { createRedisClient } from '../utils/redis.js';
 import { encode, decode } from 'msgpackr';
+import type { WorkerRuntimeConfig } from '../types/queue.js';
+import { getBullMqTelemetry } from '../observability/otel.js';
 
 const logger = createLogger({ component: 'queue' });
 
@@ -24,6 +26,17 @@ function serializeJobData(data: unknown): Buffer {
 
 function deserializeJobData(data: Buffer): unknown {
     return decode(data);
+}
+
+export function getQueueDefaultJobOptions(workerConfig: WorkerRuntimeConfig = config.queue.worker): NonNullable<QueueOptions['defaultJobOptions']> {
+    const retry = workerConfig.retry ?? { attempts: 3, backoffDelay: 1000 };
+
+    return {
+        attempts: retry.attempts,
+        backoff: { type: 'exponential', delay: retry.backoffDelay },
+        removeOnComplete: { age: 3600 },
+        removeOnFail: { age: 86400, count: 1000 }
+    };
 }
 
 interface NoopQueue {
@@ -60,12 +73,8 @@ export async function createQueue(name: string, queueConfig = config.queue): Pro
         // Use type assertion for serializer since it's not in the base QueueOptions
         const queueOptions: QueueOptions = {
             connection: conn,
-            defaultJobOptions: {
-                attempts: 3,
-                backoff: { type: 'exponential', delay: 1000 },
-                removeOnComplete: { age: 3600 },
-                removeOnFail: { age: 86400, count: 1000 }
-            }
+            defaultJobOptions: getQueueDefaultJobOptions(queueConfig.worker),
+            telemetry: getBullMqTelemetry()
         };
 
         // @ts-expect-error serializer is supported by BullMQ but not in QueueOptions type

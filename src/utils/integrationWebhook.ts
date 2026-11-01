@@ -1,6 +1,7 @@
 // Integration Webhook Server
 // Handles GitHub webhook events with signature verification and replay protection
 import { logger } from './logger.js';
+import { createHttpLogger } from './httpLogger.js';
 
 import { createHmac, timingSafeEqual } from 'crypto';
 import { formatGithubPushNotification, formatGithubPrNotification, formatGithubIssueNotification } from './integrationFormatters.js';
@@ -9,6 +10,7 @@ import type { Client, TextChannel } from 'discord.js';
 import type { GithubCommit, GithubPR, GithubIssue, NotificationPayload } from './integrationFormatters.js';
 
 let server: Server | null = null;
+const requestLogger = createHttpLogger('integration:webhook:http');
 
 const seenDeliveries = new Map<string, number>();
 const DELIVERY_TTL_MS = 10 * 60 * 1000;
@@ -30,6 +32,7 @@ export async function startWebhookServer(port: number, secret: string, discordCl
     const http = await import('http');
 
     server = http.createServer((req: IncomingMessage, res: ServerResponse) => { void (async () => {
+        requestLogger(req, res);
         if (req.method !== 'POST' || req.url !== '/webhooks/github') {
             res.writeHead(404);
             res.end();

@@ -9,12 +9,47 @@ function parseIntSafe(value: string | undefined, defaultValue: number): number {
     return Number.isFinite(n) ? n : defaultValue;
 }
 
+function parseBoundedInt(
+    value: string | undefined,
+    defaultValue: number,
+    minimum: number,
+    maximum: number,
+    key: string
+): number {
+    if (value === undefined) {
+        return defaultValue;
+    }
+
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed) || parsed < minimum || parsed > maximum) {
+        throw new Error(`[FATAL] ${key} must be an integer between ${minimum} and ${maximum}.`);
+    }
+
+    return parsed;
+}
+
 function parseBoolSafe(value: string | undefined): boolean {
     return value === 'true';
 }
 
 function getEnv(key: string): string | undefined {
     return process.env[key];
+}
+
+function parseAdminAuthTokens(value: string | undefined): Record<string, string> {
+    const tokens: Record<string, string> = {};
+    for (const entry of value?.split(',') ?? []) {
+        const separator = entry.indexOf('=');
+        if (separator <= 0 || separator === entry.length - 1) {
+            continue;
+        }
+        const userId = entry.slice(0, separator).trim();
+        const token = entry.slice(separator + 1).trim();
+        if (userId && token) {
+            tokens[userId] = token;
+        }
+    }
+    return tokens;
 }
 
 // NSFW feature flag configuration
@@ -223,6 +258,9 @@ const config = {
     health: {
         authToken: getEnv('HEALTH_AUTH_TOKEN')
     },
+    admin: {
+        authTokens: parseAdminAuthTokens(getEnv('ADMIN_AUTH_TOKENS'))
+    },
 
     // Interlink (Cross-Bot Communication via ConnectRPC Go service)
     interlink: {
@@ -275,7 +313,37 @@ const config = {
             socketPathBase: '/tmp/apollo.sock',
             redisKeyPrefixBase: 'apollo'
         },
-        hmacSecret: getEnv('QUEUE_HMAC_SECRET')
+        hmacSecret: getEnv('QUEUE_HMAC_SECRET'),
+        worker: {
+            concurrency: parseBoundedInt(getEnv('WORKER_CONCURRENCY'), 4, 1, 100, 'WORKER_CONCURRENCY'),
+            limiter: {
+                max: parseBoundedInt(getEnv('WORKER_LIMITER_MAX'), 50, 1, 10000, 'WORKER_LIMITER_MAX'),
+                duration: parseBoundedInt(
+                    getEnv('WORKER_LIMITER_DURATION_MS'),
+                    1000,
+                    100,
+                    60000,
+                    'WORKER_LIMITER_DURATION_MS'
+                )
+            },
+            lockDuration: parseBoundedInt(
+                getEnv('WORKER_LOCK_DURATION_MS'),
+                60000,
+                1000,
+                300000,
+                'WORKER_LOCK_DURATION_MS'
+            ),
+            retry: {
+                attempts: parseBoundedInt(getEnv('QUEUE_ATTEMPTS'), 3, 1, 10, 'QUEUE_ATTEMPTS'),
+                backoffDelay: parseBoundedInt(
+                    getEnv('QUEUE_BACKOFF_DELAY_MS'),
+                    1000,
+                    100,
+                    60000,
+                    'QUEUE_BACKOFF_DELAY_MS'
+                )
+            }
+        }
     },
 
     // Reminders Configuration
@@ -321,4 +389,3 @@ const config = {
 
 export { config };
 export default config;
-

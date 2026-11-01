@@ -1,5 +1,6 @@
 // Translation Service Utility
 // Interfaces with Argos Open Tech translation API
+import { scheduleWithProviderLimit } from './providerLimiters.js';
 
 const FETCH_TIMEOUT_MS = 30000;
 
@@ -51,7 +52,7 @@ export class TranslationService {
             const opts = this._withTimeout();
             let response: Response;
             try {
-                response = await fetch(`${this.baseUrl}/languages`, opts);
+                response = await scheduleWithProviderLimit('libretranslate', () => fetch(`${this.baseUrl}/languages`, opts));
             } finally {
                 this._clearTimeout(opts);
             }
@@ -109,7 +110,7 @@ export class TranslationService {
         });
         let response: Response;
         try {
-            response = await fetch(`${this.baseUrl}/detect`, opts);
+            response = await scheduleWithProviderLimit('libretranslate', () => fetch(`${this.baseUrl}/detect`, opts));
         } finally {
             this._clearTimeout(opts);
         }
@@ -151,7 +152,7 @@ export class TranslationService {
             });
             let translateResponse: Response;
             try {
-                translateResponse = await fetch(`${this.baseUrl}/translate`, translateOpts);
+                translateResponse = await scheduleWithProviderLimit('libretranslate', () => fetch(`${this.baseUrl}/translate`, translateOpts));
             } finally {
                 this._clearTimeout(translateOpts);
             }
@@ -159,7 +160,12 @@ export class TranslationService {
             if (!translateResponse.ok) {
                 const errorData = await translateResponse.json().catch(() => ({})) as Record<string, unknown>;
                 if (translateResponse.status === 429) {
-                    throw new Error('Too many translation requests. Please wait a moment.');
+                    const error = new Error('Too many translation requests. Please wait a moment.') as Error & { retryAfterMs?: number };
+                    const retryAfter = translateResponse.headers?.get?.('retry-after');
+                    if (retryAfter) {
+                        error.retryAfterMs = Number(retryAfter) * 1000;
+                    }
+                    throw error;
                 }
                 if (translateResponse.status === 403) {
                     throw new Error('Translation API authentication failed. Check your API key.');

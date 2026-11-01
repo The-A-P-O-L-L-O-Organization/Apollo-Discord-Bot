@@ -102,6 +102,40 @@ describe('integrationClients', () => {
             });
         });
 
+        it('parses RSS 1.0 RDF feeds with top-level items', async() => {
+            const xml = `<?xml version="1.0"?>
+          <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://purl.org/rss/1.0/">
+            <channel rdf:about="https://example.com/">
+              <title>RDF Feed</title>
+              <link>https://example.com/</link>
+              <description>RDF feed description</description>
+              <items>
+                <rdf:Seq>
+                  <rdf:li rdf:resource="https://example.com/rdf-1"/>
+                </rdf:Seq>
+              </items>
+            </channel>
+            <item rdf:about="https://example.com/rdf-1">
+              <title>RDF Post</title>
+              <link>https://example.com/rdf-1</link>
+              <description>RDF item description</description>
+            </item>
+          </rdf:RDF>`;
+            const { safeFetch } = await import('../../src/utils/safeFetch.js');
+            vi.mocked(safeFetch).mockResolvedValue({ buffer: Buffer.from(xml), contentType: 'application/rss+xml', finalUrl: 'https://example.com/feed.xml' });
+            const { checkRssFeed } = await import('../../src/utils/integrationClients.js');
+
+            await expect(checkRssFeed('https://example.com/feed.xml')).resolves.toEqual({
+                feedTitle: 'RDF Feed',
+                items: [{
+                    title: 'RDF Post',
+                    link: 'https://example.com/rdf-1',
+                    guid: 'https://example.com/rdf-1',
+                    pubDate: ''
+                }]
+            });
+        });
+
         it('parses Atom items from XML', async() => {
             const xml = `<?xml version="1.0"?>
           <feed xmlns="http://www.w3.org/2005/Atom">
@@ -126,6 +160,81 @@ describe('integrationClients', () => {
                     pubDate: '2024-01-01T00:00:00Z'
                 }]
             });
+        });
+
+        it('normalizes CDATA, entities, namespaces, and multiline values', async() => {
+            const xml = `<?xml version="1.0"?>
+          <rss:rss xmlns:rss="http://purl.org/rss/1.0/" version="2.0">
+            <rss:channel>
+              <rss:title>News &amp; Updates</rss:title>
+              <rss:item>
+                <rss:title><![CDATA[First & foremost]]></rss:title>
+                <rss:link>https://example.com/first</rss:link>
+                <rss:description>Line one
+                  &amp; line two</rss:description>
+                <rss:guid isPermaLink="false">entry-1</rss:guid>
+                <rss:pubDate>Tue, 02 Jan 2024 00:00:00 GMT</rss:pubDate>
+              </rss:item>
+            </rss:channel>
+          </rss:rss>`;
+            const { safeFetch } = await import('../../src/utils/safeFetch.js');
+            vi.mocked(safeFetch).mockResolvedValue({ buffer: Buffer.from(xml), contentType: 'application/rss+xml', finalUrl: 'https://example.com/feed.xml' });
+            const { checkRssFeed } = await import('../../src/utils/integrationClients.js');
+
+            await expect(checkRssFeed('https://example.com/feed.xml')).resolves.toEqual({
+                feedTitle: 'News & Updates',
+                items: [{
+                    title: 'First & foremost',
+                    link: 'https://example.com/first',
+                    guid: 'entry-1',
+                    pubDate: 'Tue, 02 Jan 2024 00:00:00 GMT'
+                }]
+            });
+        });
+
+        it('uses alternate identifiers and links when feed fields are missing', async() => {
+            const xml = `<feed xmlns="http://www.w3.org/2005/Atom">
+              <title>Fallback Feed</title>
+              <entry>
+                <title>Entry without link</title>
+                <id>atom-id</id>
+                <updated>2024-01-03T00:00:00Z</updated>
+              </entry>
+              <entry>
+                <title>Entry without id</title>
+                <link href="https://example.com/fallback" />
+                <updated>2024-01-04T00:00:00Z</updated>
+              </entry>
+            </feed>`;
+            const { safeFetch } = await import('../../src/utils/safeFetch.js');
+            vi.mocked(safeFetch).mockResolvedValue({ buffer: Buffer.from(xml), contentType: 'application/atom+xml', finalUrl: 'https://example.com/feed.xml' });
+            const { checkRssFeed } = await import('../../src/utils/integrationClients.js');
+
+            await expect(checkRssFeed('https://example.com/feed.xml')).resolves.toEqual({
+                feedTitle: 'Fallback Feed',
+                items: [
+                    { title: 'Entry without link', link: '', guid: 'atom-id', pubDate: '2024-01-03T00:00:00Z' },
+                    { title: 'Entry without id', link: 'https://example.com/fallback', guid: 'https://example.com/fallback', pubDate: '2024-01-04T00:00:00Z' }
+                ]
+            });
+        });
+
+        it('returns an empty normalized result for an empty feed', async() => {
+            const xml = `<rss version="2.0"><channel><title>Empty</title></channel></rss>`;
+            const { safeFetch } = await import('../../src/utils/safeFetch.js');
+            vi.mocked(safeFetch).mockResolvedValue({ buffer: Buffer.from(xml), contentType: 'application/rss+xml', finalUrl: 'https://example.com/feed.xml' });
+            const { checkRssFeed } = await import('../../src/utils/integrationClients.js');
+
+            await expect(checkRssFeed('https://example.com/feed.xml')).resolves.toEqual({ feedTitle: 'Empty', items: [] });
+        });
+
+        it('returns null for malformed XML without exposing the raw document', async() => {
+            const xml = `<rss><channel><title>Broken</title><item><title>Unclosed`;
+            const { safeFetch } = await import('../../src/utils/safeFetch.js');
+            vi.mocked(safeFetch).mockResolvedValue({ buffer: Buffer.from(xml), contentType: 'application/rss+xml', finalUrl: 'https://example.com/feed.xml' });
+            const { checkRssFeed } = await import('../../src/utils/integrationClients.js');
+
+            await expect(checkRssFeed('https://example.com/feed.xml')).resolves.toBeNull();
         });
     });
 });
