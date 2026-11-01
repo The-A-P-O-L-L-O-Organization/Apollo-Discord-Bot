@@ -79,6 +79,7 @@ catalog:
   i18next-cli: 1.74.4
   # Utilities
   p-limit: 7.3.3
+  bottleneck: 2.19.5
   zod: 4.6.5
   pino: 10.4.0
   pino-pretty: 13.2.0

@@ -229,6 +229,8 @@ Delivery is at-most-once. Acceptance by the relay does not guarantee the remote 
 | `YOUTUBE_API_KEY` | YouTube polling credential |
 | `INTEGRATIONS_POLL_TWITCH` | Twitch interval in milliseconds, default 300000 |
 | `INTEGRATIONS_POLL_YOUTUBE` | YouTube interval in milliseconds, default 300000 |
+| `PROVIDER_LIMITER_REDIS` | Enables Redis-coordinated provider quotas when set to `true` |
+| `PROVIDER_LIMIT_<PROVIDER>_MAX_CONCURRENT` | Per-provider concurrency cap; defaults to 2 |
 | `INTEGRATIONS_POLL_RSS` | RSS interval in milliseconds, default 900000 |
 | `TRANSLATION_API_BASE_URL` | LibreTranslate endpoint |
 | `TRANSLATION_API_KEY` | LibreTranslate key when required |

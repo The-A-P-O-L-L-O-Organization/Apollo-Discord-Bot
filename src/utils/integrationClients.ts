@@ -4,6 +4,7 @@ import { safeFetch } from './safeFetch.js';
 import { createServiceBreaker, CircuitBreakerOpenError } from './circuitBreaker.js';
 import { logger } from './logger.js';
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
+import { scheduleWithProviderLimit } from './providerLimiters.js';
 
 interface TwitchConfig {
     twitchClientId: string;
@@ -85,7 +86,7 @@ export async function checkTwitchStream(streamerName: string, config: TwitchConf
     if (!config.twitchClientId || !config.twitchClientSecret) { return null; }
 
     try {
-        return await twitchBreaker.execute(async () => {
+        return await scheduleWithProviderLimit('twitch', () => twitchBreaker.execute(async () => {
             const tokenRes = await fetch('https://id.twitch.tv/oauth2/token', {
                 method: 'POST',
                 body: new URLSearchParams({
@@ -97,6 +98,10 @@ export async function checkTwitchStream(streamerName: string, config: TwitchConf
             if (!tokenRes.ok) {
                 const error = new Error(`Twitch token error: ${tokenRes.status}`);
                 (error as Error & { status?: number }).status = tokenRes.status;
+                const retryAfter = tokenRes.headers.get('retry-after');
+                if (retryAfter) {
+                    (error as Error & { retryAfterMs?: number }).retryAfterMs = Number(retryAfter) * 1000;
+                }
                 throw error;
             }
             const { access_token } = await tokenRes.json() as TwitchTokenResponse;
@@ -110,6 +115,10 @@ export async function checkTwitchStream(streamerName: string, config: TwitchConf
             if (!res.ok) {
                 const error = new Error(`Twitch API error: ${res.status}`);
                 (error as Error & { status?: number }).status = res.status;
+                const retryAfter = res.headers.get('retry-after');
+                if (retryAfter) {
+                    (error as Error & { retryAfterMs?: number }).retryAfterMs = Number(retryAfter) * 1000;
+                }
                 throw error;
             }
 
@@ -125,7 +134,7 @@ export async function checkTwitchStream(streamerName: string, config: TwitchConf
                 viewers: stream.viewer_count,
                 thumbnail: stream.thumbnail_url.replace('{width}', '640').replace('{height}', '360')
             };
-        });
+        }));
     } catch (error) {
         if (error instanceof CircuitBreakerOpenError || (error as Error).name === 'CircuitBreakerOpenError') {
             logger.info('[CIRCUIT] Twitch circuit breaker open, skipping stream check');
@@ -147,13 +156,17 @@ export async function checkYoutubeUploads(channelId: string, config: YoutubeConf
     if (!config.youtubeApiKey) { return null; }
 
     try {
-        return await youtubeBreaker.execute(async () => {
+        return await scheduleWithProviderLimit('youtube', () => youtubeBreaker.execute(async () => {
             const res = await fetch(
                 `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${encodeURIComponent(channelId)}&order=date&maxResults=5&type=video&key=${config.youtubeApiKey}`
             );
             if (!res.ok) {
                 const error = new Error(`YouTube API error: ${res.status}`);
                 (error as Error & { status?: number }).status = res.status;
+                const retryAfter = res.headers.get('retry-after');
+                if (retryAfter) {
+                    (error as Error & { retryAfterMs?: number }).retryAfterMs = Number(retryAfter) * 1000;
+                }
                 throw error;
             }
 
@@ -165,7 +178,7 @@ export async function checkYoutubeUploads(channelId: string, config: YoutubeConf
                 videoId: item.id.videoId,
                 publishedAt: item.snippet.publishedAt
             }));
-        });
+        }));
     } catch (error) {
         if (error instanceof CircuitBreakerOpenError || (error as Error).name === 'CircuitBreakerOpenError') {
             logger.info('[CIRCUIT] YouTube circuit breaker open, skipping upload check');
@@ -184,11 +197,12 @@ export async function checkYoutubeUploads(channelId: string, config: YoutubeConf
  */
 export async function checkRssFeed(feedUrl: string): Promise<RssFeedResult | null> {
     try {
-        return await rssBreaker.execute(async () => {
+        const origin = new URL(feedUrl).origin;
+        return await scheduleWithProviderLimit('rss', () => rssBreaker.execute(async () => {
             const result = await safeFetch(feedUrl, { timeoutMs: 10000 });
             const xml = result.buffer.toString('utf8');
             return parseFeedXml(xml);
-        });
+        }), origin);
     } catch (error) {
         if (error instanceof CircuitBreakerOpenError || (error as Error).name === 'CircuitBreakerOpenError') {
             logger.info('[CIRCUIT] RSS circuit breaker open, skipping feed check');

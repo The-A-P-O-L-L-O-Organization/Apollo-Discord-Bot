@@ -65,7 +65,7 @@ Plugin lifecycle (`/plugin list/enable/disable/reload/load/install/uninstall/sea
 
 ### Integrations
 
-GitHub webhook receiver with HMAC verification, Twitch and YouTube live polling, RSS polling, Discord announcement formatting, configurable webhook port and poll intervals.
+GitHub webhook receiver with HMAC verification, Twitch and YouTube live polling, RSS polling, Redis-coordinated provider quotas with bounded local fallback, Discord announcement formatting, configurable webhook port and poll intervals.
 
 ### Interlink
 
@@ -254,7 +254,7 @@ The authoritative template is `.env.example`. Required on every boot: `DISCORD_T
 | Database | `DB_TYPE`, `DATABASE_URL`, `DB_POOL_MIN`, `DB_POOL_MAX` |
 | Redis and queue | `QUEUE_ENABLED`, `REDIS_HOST`, `REDIS_PORT`, `REDIS_USERNAME`, `REDIS_PASSWORD`, `QUEUE_PREFIX`, `QUEUE_STALLED_INTERVAL`, `WORKER_CONCURRENCY`, `WORKER_LIMITER_MAX`, `WORKER_LIMITER_DURATION_MS`, `WORKER_LOCK_DURATION_MS`, `QUEUE_ATTEMPTS`, `QUEUE_BACKOFF_DELAY_MS`, `QUEUE_HMAC_SECRET` |
 | Interlink | `INTERLINK_ENABLED`, `INTERLINK_GRPC_ADDR`, `INTERLINK_AUTH_KEY`, `INTERLINK_JWT_SECRET`, `INTERLINK_JWT_EXPIRY`, `INTERLINK_TLS_CERT`, `INTERLINK_TLS_KEY`, `INTERLINK_CA_CERT`, `INTERLINK_PUBLIC_KEY`, `INTERLINK_FORWARD_EVENTS` |
-| Integrations | `INTEGRATIONS_WEBHOOK_PORT`, `GITHUB_WEBHOOK_SECRET`, `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET`, `YOUTUBE_API_KEY`, `INTEGRATIONS_POLL_TWITCH`, `INTEGRATIONS_POLL_YOUTUBE`, `INTEGRATIONS_POLL_RSS` |
+| Integrations | `INTEGRATIONS_WEBHOOK_PORT`, `GITHUB_WEBHOOK_SECRET`, `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET`, `YOUTUBE_API_KEY`, `INTEGRATIONS_POLL_TWITCH`, `INTEGRATIONS_POLL_YOUTUBE`, `INTEGRATIONS_POLL_RSS`, `PROVIDER_LIMITER_REDIS`, `PROVIDER_LIMIT_<PROVIDER>_*` |
 | AI and translation | `OPENAI_API_KEY`, `TRANSLATION_API_BASE_URL`, `TRANSLATION_API_KEY`, `NSFW_USE_RUST`, `NSFW_GRPC_ADDR`, `NSFW_THRESHOLD`, `NSFW_RUST_TIMEOUT_MS` |
 | CLI and sockets | `APOLLO_GUILD_ID`, `APOLLO_SOCKET_PATH`, `APOLLO_SOCKET_TOKEN` |
 | Observability | `OTEL_ENDPOINT`, `LOG_LEVEL`, `LOG_SAMPLE_RATE` |

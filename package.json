@@ -69,6 +69,7 @@
     "acorn": "8.18.0",
     "adm-zip": "^0.6.1",
     "better-sqlite3": "^13.0.3",
+    "bottleneck": "catalog:",
     "buffer": "^6.0.3",
     "bullmq": "^6.3.11",
     "chokidar": "^5.0.0",

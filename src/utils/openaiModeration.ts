@@ -1,5 +1,6 @@
 import { logger } from '../utils/logger.js';
 import { createServiceBreaker, CircuitBreakerOpenError } from './circuitBreaker.js';
+import { scheduleWithProviderLimit } from './providerLimiters.js';
 
 const MODERATION_URL = 'https://api.openai.com/v1/moderations';
 
@@ -36,7 +37,7 @@ export async function checkModeration(content: string): Promise<ModerationResult
     if (!content || content.length < 3) {return null;}
 
     try {
-        const result = await openaiBreaker.execute(async () => {
+        const result = await scheduleWithProviderLimit('openai', () => openaiBreaker.execute(async () => {
             const controller = new AbortController();
             const timer = setTimeout(() => controller.abort(), 30000);
             let response: Response;
@@ -61,12 +62,16 @@ export async function checkModeration(content: string): Promise<ModerationResult
                 // Throw error to trigger circuit breaker
                 const error = new Error(`OpenAI API error: ${response.status}`) as Error & { status: number };
                 error.status = response.status;
+                const retryAfter = response.headers.get('retry-after');
+                if (retryAfter) {
+                    (error as Error & { retryAfterMs?: number }).retryAfterMs = Number(retryAfter) * 1000;
+                }
                 throw error;
             }
 
             const data = await response.json() as { results: ModerationResult[] };
             return data.results[0] ?? null;
-        });
+        }));
 
         return result ?? null;
     } catch (error) {
