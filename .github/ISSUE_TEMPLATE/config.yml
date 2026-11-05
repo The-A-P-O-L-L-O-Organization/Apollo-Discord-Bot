@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/The-A-P-O-L-L-O-Organization/Apollo-Discord-Bot/blob/main/SECURITY.md
+    about: Report security issues privately. Do not open a public issue.
+  - name: Documentation and codemaps
+    url: https://github.com/The-A-P-O-L-L-O-Organization/Apollo-Discord-Bot/blob/main/README.md
+    about: Check the README and codemap before filing documentation gaps.
+  - name: Questions and translation help
+    url: https://github.com/The-A-P-O-L-L-O-Organization/Apollo-Discord-Bot/pulls
+    about: Locale improvements are welcome as pull requests against the relevant src/i18n files.

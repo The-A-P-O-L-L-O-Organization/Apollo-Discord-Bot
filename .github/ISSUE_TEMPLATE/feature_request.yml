@@ -1,0 +1,69 @@
+name: Feature request
+description: Propose a new command, plugin capability, workflow, or improvement
+labels: [enhancement, triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for proposing a feature. Before opening this issue, check existing issues and discussions for similar proposals and add your use case there instead of duplicating.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or motivation
+      description: What workflow, moderation need, or operational gap does this address? Concrete use cases are more persuasive than UI sketches.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the desired behavior in your own words. For commands, include suggested name, options, permissions, and expected responses.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: area
+    attributes:
+      label: Affected areas
+      description: Select every area the feature would touch.
+      options:
+        - label: New plugin or command
+        - label: Existing plugin or command behavior
+        - label: Queue, worker, or scheduler
+        - label: Gateway, sharding, or leader election
+        - label: Database persistence
+        - label: i18n across supported locales
+        - label: Protobuf, interlink, or NSFW service
+        - label: CI, Docker, or tooling
+        - label: Documentation
+
+  - type: checkboxes
+    id: impact
+    attributes:
+      label: Impact considerations
+      description: Which of these does the feature affect? Estimates help reviewers scope the work.
+      options:
+        - label: Multi-instance deployment compatibility needed
+        - label: Database schema or migration needed
+        - label: New locale strings for all supported languages needed
+        - label: New queue jobs or recurring scheduled task needed
+        - label: Rate limits, spam, or audit logging affected
+        - label: Elevated permissions by default granted
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Existing commands, plugins, bots, or workarounds you evaluated and why they fall short.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission checklist
+      options:
+        - label: I searched existing issues and discussions for related proposals
+          required: true
+        - label: This feature could run safely in a multi-instance deployment
+          required: true
