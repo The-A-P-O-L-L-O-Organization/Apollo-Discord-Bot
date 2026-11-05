@@ -1,4 +1,4 @@
-exports.up = async function (knex) {
+export async function up(knex) {
   await knex.schema.createTable('interlink_bots', (table) => {
     table.text('id').primary();
     table.text('name').notNullable().unique();
@@ -13,8 +13,8 @@ exports.up = async function (knex) {
     table.text('created_at').defaultTo(knex.fn.now());
     table.text('updated_at').defaultTo(knex.fn.now());
   });
-};
+}
 
-exports.down = async function (knex) {
+export async function down(knex) {
   await knex.schema.dropTableIfExists('interlink_bots');
-};
+}
