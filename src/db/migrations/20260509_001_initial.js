@@ -1,4 +1,4 @@
-exports.up = async function (knex) {
+export async function up(knex) {
   await knex.schema.createTable('guild_store', (table) => {
     table.text('store').notNullable();
     table.text('guild_id').notNullable();
@@ -18,10 +18,10 @@ exports.up = async function (knex) {
     table.text('key').primary();
     table.jsonb('value');
   });
-};
+}
 
-exports.down = async function (knex) {
+export async function down(knex) {
   await knex.schema.dropTableIfExists('guild_store');
   await knex.schema.dropTableIfExists('guild_user_store');
   await knex.schema.dropTableIfExists('migration_meta');
-};
+}

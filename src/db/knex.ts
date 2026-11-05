@@ -34,8 +34,8 @@ export function getDb(): Knex {
             pool,
             migrations: {
                 directory: new URL('./migrations', import.meta.url).pathname,
-                extension: 'cjs',
-                loadExtensions: ['.cjs']
+                extension: 'js',
+                loadExtensions: ['.js']
             }
         });
     } else {
@@ -50,8 +50,8 @@ export function getDb(): Knex {
                 pool: { min: 1, max: 1 },
                 migrations: {
                     directory: new URL('./migrations', import.meta.url).pathname,
-                    extension: 'cjs',
-                    loadExtensions: ['.cjs']
+                    extension: 'js',
+                    loadExtensions: ['.js']
                 }
             });
         } else {
@@ -64,8 +64,8 @@ export function getDb(): Knex {
                 pool: { min: 1, max: 1 }, // SQLite: single writer
                 migrations: {
                     directory: new URL('./migrations', import.meta.url).pathname,
-                    extension: 'cjs',
-                    loadExtensions: ['.cjs']
+                    extension: 'js',
+                    loadExtensions: ['.js']
                 }
             });
         }
