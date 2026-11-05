@@ -17,6 +17,9 @@ on:
         type: choice
         options: [critical, warning, info]
 
+permissions:
+  contents: read
+
 env:
   PROM_PUSHGATEWAY_URL: ${{ secrets.PROM_PUSHGATEWAY_URL }}
   PROM_JOB_NAME: apollo-dora-mttr
