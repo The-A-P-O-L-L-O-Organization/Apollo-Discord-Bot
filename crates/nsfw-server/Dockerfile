@@ -12,7 +12,7 @@ FROM ubuntu:noble AS builder
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
-    && curl -fsSL "https://go.dev/dl/go1.27.1.linux-amd64.tar.gz" -o /tmp/go.tar.gz \
+    && curl -fsSL "https://go.dev/dl/go1.27.3.linux-amd64.tar.gz" -o /tmp/go.tar.gz \
     && tar -C /usr/local -xzf /tmp/go.tar.gz \
     && rm /tmp/go.tar.gz \
     && rm -rf /var/lib/apt/lists/*
@@ -43,6 +43,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ARG GRPC_HEALTH_PROBE_VERSION=v0.4.57
 RUN git clone --depth 1 --branch ${GRPC_HEALTH_PROBE_VERSION} https://github.com/grpc-ecosystem/grpc-health-probe.git /tmp/grpc-health-probe \
     && cd /tmp/grpc-health-probe \
+    && go get github.com/go-jose/go-jose/v4@v4.1.6 \
     && CGO_ENABLED=0 go build -ldflags="-s -w" -o /bin/grpc_health_probe . \
     && rm -rf /tmp/grpc-health-probe
 
