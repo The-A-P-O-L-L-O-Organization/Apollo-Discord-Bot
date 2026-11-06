@@ -168,7 +168,7 @@ function detectLegacyPatterns(files: string[]): DebtItem[] {
     }
     
     // Sync I/O in async context
-    if (content.includes('JSON.parse(readFileSync') || content.includes('JSON.parse(readFileSync')) {
+    if (content.includes('JSON.parse(readFileSync')) {
       const matches = content.match(/JSON\.parse\(readFileSync\([^)]+\)/g);
       if (matches) {
         items.push({
@@ -325,7 +325,8 @@ function analyzeTestGaps(): DebtItem[] {
   ];
   
   for (const { path, name } of criticalPaths) {
-    const testFiles = runCommand(`find tests -name "*.test.ts" -exec grep -l "${path.replace(/\//g, '\\/')}" {} \\; 2>/dev/null | wc -l`);
+    const escapedPath = path.replace(/\//g, '\\/');
+    const testFiles = runCommand(`find tests -name "*.test.ts" -exec grep -l "${escapedPath}" {} \\; 2>/dev/null | wc -l`);
     if (parseInt(testFiles.trim()) === 0) {
       items.push({
         file: path,
