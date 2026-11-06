@@ -53,8 +53,8 @@ jobs:
         id: image
         run: |
           IMAGE=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
-          echo "full=${IMAGE}:${{ inputs.image-tag }}" >> $GITHUB_OUTPUT
-          echo "name=${IMAGE}" >> $GITHUB_OUTPUT
+          echo "full=${IMAGE}:${{ inputs.image-tag }}" >> "$GITHUB_OUTPUT"
+          echo "name=${IMAGE}" >> "$GITHUB_OUTPUT"
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6
@@ -95,11 +95,13 @@ jobs:
         if: ${{ !inputs.dry-run }}
         run: |
           echo "Deploying ${{ needs.validate.outputs.image }} to staging"
-          echo "## Staging Deployment" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image:** \`${{ needs.validate.outputs.image }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Staging Deployment"
+            echo ""
+            echo "**Image:** \`${{ needs.validate.outputs.image }}\`"
+            echo "**Commit:** \`${{ github.sha }}\`"
+            echo "**Triggered by:** @${{ github.actor }}"
+          } >> "$GITHUB_STEP_SUMMARY"
           # Add your actual deployment commands here
           # e.g., kubectl set image, docker-compose pull && docker-compose up -d, etc.
 
@@ -148,11 +150,13 @@ jobs:
         if: ${{ !inputs.dry-run }}
         run: |
           echo "Deploying ${{ needs.validate.outputs.image }} to production"
-          echo "## Production Deployment" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image:** \`${{ needs.validate.outputs.image }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Production Deployment"
+            echo ""
+            echo "**Image:** \`${{ needs.validate.outputs.image }}\`"
+            echo "**Commit:** \`${{ github.sha }}\`"
+            echo "**Triggered by:** @${{ github.actor }}"
+          } >> "$GITHUB_STEP_SUMMARY"
           # Add your actual deployment commands here
           # e.g., kubectl set image, docker-compose pull && docker-compose up -d, etc.
 
