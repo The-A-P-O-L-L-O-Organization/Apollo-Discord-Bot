@@ -51,12 +51,12 @@ jobs:
 
       - name: Generate audit report
         run: |
-          echo "## Dependency Audit Report" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Dependency Audit Report" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
           pnpm audit --json > audit.json || true
           if [ -f audit.json ]; then
             ADVISORIES=$(cat audit.json | jq '.advisories | length // 0')
-            echo "**Total advisories:** $ADVISORIES" >> $GITHUB_STEP_SUMMARY
+            echo "**Total advisories:** $ADVISORIES" >> "$GITHUB_STEP_SUMMARY"
           fi
 
   dependency-review:
@@ -111,14 +111,14 @@ jobs:
           if [ -f "osv-results.sarif" ] && [ -s "osv-results.sarif" ]; then
             # Check if it's valid JSON and has the required SARIF structure
             if jq -e '.version and .runs' osv-results.sarif > /dev/null 2>&1; then
-              echo "valid=true" >> $GITHUB_OUTPUT
+              echo "valid=true" >> "$GITHUB_OUTPUT"
               echo "SARIF file is valid"
             else
-              echo "valid=false" >> $GITHUB_OUTPUT
+              echo "valid=false" >> "$GITHUB_OUTPUT"
               echo "SARIF file exists but is not valid SARIF format"
             fi
           else
-            echo "valid=false" >> $GITHUB_OUTPUT
+            echo "valid=false" >> "$GITHUB_OUTPUT"
             echo "SARIF file does not exist or is empty"
           fi
 
@@ -165,13 +165,15 @@ jobs:
     steps:
       - name: Generate summary
         run: |
-          echo "## Security Scan Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Dependency Audit | ${{ needs.dependency-audit.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Secrets Scan | ${{ needs.secrets-scan.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| OSV Scanner | ${{ needs.osv-scanner.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Trivy Scan | ${{ needs.trivy.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "_Note: CodeQL analysis runs via GitHub's default setup._" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Security Scan Summary"
+            echo ""
+            echo "| Check | Status |"
+            echo "|-------|--------|"
+            echo "| Dependency Audit | ${{ needs.dependency-audit.result == 'success' && '✅' || '❌' }} |"
+            echo "| Secrets Scan | ${{ needs.secrets-scan.result == 'success' && '✅' || '❌' }} |"
+            echo "| OSV Scanner | ${{ needs.osv-scanner.result == 'success' && '✅' || '❌' }} |"
+            echo "| Trivy Scan | ${{ needs.trivy.result == 'success' && '✅' || '❌' }} |"
+            echo ""
+            echo "_Note: CodeQL analysis runs via GitHub's default setup._"
+          } >> "$GITHUB_STEP_SUMMARY"
