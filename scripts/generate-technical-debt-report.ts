@@ -4,9 +4,9 @@
  * Scans the codebase and generates a markdown report similar to TECHNICAL_DEBT_REPORT.md
  */
 
-import { execSync, spawnSync } from 'node:child_process';
-import { readFileSync, readdirSync, statSync, writeFileSync, existsSync } from 'node:fs';
-import { join, relative, sep, extname, basename, dirname } from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { join, relative, extname, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -259,12 +259,6 @@ function detectCodeQualityIssues(files: string[]): DebtItem[] {
     
     // God files (>500 lines)
     if (lines > 500) {
-      let category = 'Utility';
-      if (rel.includes('/commands/')) category = 'Command (God)';
-      else if (rel.includes('/core/')) category = 'Core';
-      else if (rel.includes('/types/')) category = 'Types';
-      else if (rel.includes('/queue/')) category = 'Queue';
-      
       godFiles.set(rel, lines);
       
       let issue = 'Large file — consider splitting';
