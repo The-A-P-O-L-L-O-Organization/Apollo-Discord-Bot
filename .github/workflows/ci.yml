@@ -45,7 +45,7 @@ jobs:
 
       - name: Generate cache key
         id: cache-key
-        run: echo "key=${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}" >> $GITHUB_OUTPUT
+        run: echo "key=${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}" >> "$GITHUB_OUTPUT"
 
       - name: Restore dependencies cache
         id: cache-restore
@@ -101,7 +101,7 @@ jobs:
           npm install -g @bufbuild/protoc-gen-es@2.16.0
 
       - name: Put global npm bin on PATH
-        run: echo "$HOME/.npm-global/bin" >> $GITHUB_PATH
+        run: echo "$HOME/.npm-global/bin" >> "$GITHUB_PATH"
 
       - name: Save CLI tools cache
         if: steps.tools-cache.outputs.cache-hit != 'true' && success()
