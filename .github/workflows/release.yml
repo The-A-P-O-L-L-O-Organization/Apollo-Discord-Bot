@@ -46,6 +46,22 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            RAW_VERSION="${{ inputs.version }}"
+            IS_PRERELEASE="${{ inputs.prerelease }}"
+          else
+            RAW_VERSION="${GITHUB_REF_NAME#v}"
+            [[ "$RAW_VERSION" == *-* ]] && IS_PRERELEASE="true" || IS_PRERELEASE="false"
+          fi
+          {
+            echo "version=${RAW_VERSION}"
+            echo "tag=v${RAW_VERSION}"
+            echo "prerelease=${IS_PRERELEASE}"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Setup pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
         with:
@@ -89,7 +105,7 @@ jobs:
 
       - name: Lowercase image name
         id: image
-        run: echo "name=$(echo ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+        run: echo "name=$(echo ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }} | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
 
       - name: Extract Docker metadata
         id: meta
@@ -153,7 +169,7 @@ jobs:
           {
             echo "## What's Changed"
             echo ""
-            git log --pretty=format:"* %s (%h)" "$PREV_TAG".."${{ needs.prepare.outputs.tag }}" -- || git log --pretty=format:"* %s (%h)" "$PREV_TAG"..HEAD --
+            git log --pretty=format:'* %s (%h)' "$PREV_TAG..${{ needs.prepare.outputs.tag }}" -- || git log --pretty=format:'* %s (%h)' "$PREV_TAG"..HEAD --
             echo ""
             echo ""
             echo "## Docker Image"
@@ -193,10 +209,12 @@ jobs:
     steps:
       - name: Summary
         run: |
-          echo "## Release Complete" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Version:** ${{ needs.prepare.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Tag:** ${{ needs.prepare.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Pre-release:** ${{ needs.prepare.outputs.prerelease }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Release has been published successfully!" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Release Complete"
+            echo ""
+            echo "**Version:** ${{ needs.prepare.outputs.version }}"
+            echo "**Tag:** ${{ needs.prepare.outputs.tag }}"
+            echo "**Pre-release:** ${{ needs.prepare.outputs.prerelease }}"
+            echo ""
+            echo "Release has been published successfully!"
+          } >> "$GITHUB_STEP_SUMMARY"

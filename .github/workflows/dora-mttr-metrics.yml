@@ -26,19 +26,19 @@ env:
 
 jobs:
   record-mttr:
-    if: env.PROM_PUSHGATEWAY_URL != ''
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Record incident timestamp
         id: timestamp
+        if: env.PROM_PUSHGATEWAY_URL != ''
         run: |
           ACTION="${{ github.event.inputs.action || github.event.client_payload.action }}"
           INCIDENT_ID="${{ github.event.inputs.incident_id || github.event.client_payload.incident_id }}"
 
           if [ "$ACTION" = "created" ]; then
-            echo "$INCIDENT_ID=$(date +%s)" >> $GITHUB_ENV
-            echo "incident_created=true" >> $GITHUB_OUTPUT
+            echo "$INCIDENT_ID=$(date +%s)" >> "$GITHUB_ENV"
+            echo "incident_created=true" >> "$GITHUB_OUTPUT"
           elif [ "$ACTION" = "resolved" ]; then
             START_TIME="${INCIDENT_ID}"
             if [ -z "$START_TIME" ]; then
@@ -47,14 +47,14 @@ jobs:
             fi
             END_TIME=$(date +%s)
             MTTR=$((END_TIME - START_TIME))
-            echo "mttr=$MTTR" >> $GITHUB_OUTPUT
-            echo "incident_resolved=true" >> $GITHUB_OUTPUT
+            echo "mttr=$MTTR" >> "$GITHUB_OUTPUT"
+            echo "incident_resolved=true" >> "$GITHUB_OUTPUT"
           fi
         env:
           INCIDENT_ID: ${{ github.event.inputs.incident_id || github.event.client_payload.incident_id }}
 
       - name: Push MTTR metric on resolution
-        if: steps.timestamp.outputs.incident_resolved == 'true'
+        if: env.PROM_PUSHGATEWAY_URL != '' && steps.timestamp.outputs.incident_resolved == 'true'
         run: |
           MTTR="${{ steps.timestamp.outputs.mttr }}"
           SEVERITY="${{ github.event.inputs.severity || github.event.client_payload.severity }}"

@@ -111,8 +111,8 @@ jobs:
 
       - name: Set test environment variables
         run: |
-          echo "REDIS_SENTINEL_URLS=redis://localhost:26379" >> $GITHUB_ENV
-          echo "TEST_SENTINEL_URLS=redis://localhost:26379" >> $GITHUB_ENV
+          echo "REDIS_SENTINEL_URLS=redis://localhost:26379" >> "$GITHUB_ENV"
+          echo "TEST_SENTINEL_URLS=redis://localhost:26379" >> "$GITHUB_ENV"
 
       - name: Run Redis Failover Tests
         if: ${{ github.event.inputs.test-suite == 'all' || github.event.inputs.test-suite == 'redis-failover' || github.event.inputs.test-suite == '' }}

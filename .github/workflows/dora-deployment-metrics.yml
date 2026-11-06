@@ -2,7 +2,6 @@ name: DORA Deployment Metrics
 
 on:
   deployment_status:
-    types: [created, success, failure, error]
 
 permissions:
   contents: read
@@ -29,7 +28,7 @@ jobs:
           COMMIT_TIME=$(git show -s --format=%ct "$SHA")
           DEPLOY_TIME=$(date +%s)
           LEAD_TIME=$((DEPLOY_TIME - COMMIT_TIME))
-          echo "lead_time=$LEAD_TIME" >> $GITHUB_OUTPUT
+          echo "lead_time=$LEAD_TIME" >> "$GITHUB_OUTPUT"
 
       - name: Push deployment metrics
         if: env.PROM_PUSHGATEWAY_URL != ''
