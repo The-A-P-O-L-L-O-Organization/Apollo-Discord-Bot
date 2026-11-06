@@ -43,7 +43,7 @@ jobs:
         if: ${{ inputs.install-dependencies }}
         id: pnpm-cache
         shell: bash
-        run: echo "store=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+        run: echo "store=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
 
       - name: Setup pnpm cache
         if: ${{ inputs.install-dependencies }}
