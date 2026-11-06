@@ -325,8 +325,8 @@ function analyzeTestGaps(): DebtItem[] {
   ];
   
   for (const { path, name } of criticalPaths) {
-    const escapedPath = path.replace(/\//g, '\\/');
-    const testFiles = runCommand(`find tests -name "*.test.ts" -exec grep -l "${escapedPath}" {} \\; 2>/dev/null | wc -l`);
+    // No escaping needed for grep -l pattern; forward slashes are literal
+    const testFiles = runCommand(`find tests -name "*.test.ts" -exec grep -l "${path}" {} \\; 2>/dev/null | wc -l`);
     if (parseInt(testFiles.trim()) === 0) {
       items.push({
         file: path,
