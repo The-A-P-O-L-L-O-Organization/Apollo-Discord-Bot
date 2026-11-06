@@ -99,7 +99,7 @@ jobs:
 
       - name: Lowercase image name
         id: image
-        run: echo "name=$(echo ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+        run: echo "name=$(echo ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }} | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
 
       - name: Extract Docker metadata
         id: meta
@@ -149,14 +149,16 @@ jobs:
 
       - name: Export build digest
         run: |
-          echo "## Docker Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image:** \`${{ steps.image.outputs.name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Digest:** \`${{ steps.build.outputs.digest }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Tags:**" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Docker Build Summary"
+            echo ""
+            echo "**Image:** \`${{ steps.image.outputs.name }}\`"
+            echo "**Digest:** \`${{ steps.build.outputs.digest }}\`"
+            echo "**Tags:**"
+            echo "\`\`\`"
+            echo "${{ steps.meta.outputs.tags }}"
+            echo "\`\`\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   build-interlink:
     name: Build Interlink
@@ -182,7 +184,7 @@ jobs:
 
       - name: Lowercase image name
         id: image
-        run: echo "name=$(echo ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-interlink | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+        run: echo "name=$(echo ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-interlink | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
 
       - name: Extract Docker metadata
         id: meta
@@ -228,14 +230,16 @@ jobs:
 
       - name: Export build digest
         run: |
-          echo "## Interlink Docker Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image:** `${{ steps.image.outputs.name }}`" >> $GITHUB_STEP_SUMMARY
-          echo "**Digest:** `${{ steps.build.outputs.digest }}`" >> $GITHUB_STEP_SUMMARY
-          echo "**Tags:**" >> $GITHUB_STEP_SUMMARY
-          echo "```" >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
-          echo "```" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Interlink Docker Build Summary"
+            echo ""
+            echo "**Image:** \`${{ steps.image.outputs.name }}\`"
+            echo "**Digest:** \`${{ steps.build.outputs.digest }}\`"
+            echo "**Tags:**"
+            echo "\`\`\`"
+            echo "${{ steps.meta.outputs.tags }}"
+            echo "\`\`\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   build-nsfw:
     name: Build NSFW
@@ -261,7 +265,7 @@ jobs:
 
       - name: Lowercase image name
         id: image
-        run: echo "name=$(echo ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-nsfw | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+        run: echo "name=$(echo ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-nsfw | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
 
       - name: Extract Docker metadata
         id: meta
@@ -307,12 +311,14 @@ jobs:
 
       - name: Export build digest
         run: |
-          echo "## NSFW Docker Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image:** \`${{ steps.image.outputs.name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Digest:** \`${{ steps.build.outputs.digest }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Tags:**" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## NSFW Docker Build Summary"
+            echo ""
+            echo "**Image:** \`${{ steps.image.outputs.name }}\`"
+            echo "**Digest:** \`${{ steps.build.outputs.digest }}\`"
+            echo "**Tags:**"
+            echo "\`\`\`"
+            echo "${{ steps.meta.outputs.tags }}"
+            echo "\`\`\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
