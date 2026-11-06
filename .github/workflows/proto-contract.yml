@@ -53,7 +53,7 @@ jobs:
 
       - name: Generate cache key
         id: cache-key
-        run: echo "key=${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}" >> $GITHUB_OUTPUT
+        run: echo "key=${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}" >> "$GITHUB_OUTPUT"
 
       - name: Restore dependencies cache
         id: cache-restore
