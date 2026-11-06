@@ -38,7 +38,8 @@
     "lint:fix": "oxlint --type-aware --type-check --fix",
     "lint:locales": "node scripts/lint-locales.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.test.json",
-    "manifest": "node scripts/generate-manifest.mjs"
+    "manifest": "node scripts/generate-manifest.mjs",
+    "debt:report": "tsx scripts/generate-technical-debt-report.ts"
   },
   "author": "CodeMaster013",
   "license": "GPLv3",
