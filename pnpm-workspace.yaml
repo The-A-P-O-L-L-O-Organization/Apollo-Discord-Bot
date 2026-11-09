@@ -30,20 +30,20 @@ catalog:
   # TypeScript & tooling
   typescript: 7.0.2
   tsx: 4.23.15
-  oxlint: 1.87.0
-  oxlint-tsgolint: 7.0.2003
+  oxlint: 1.91.0
+  oxlint-tsgolint: 7.0.2006
   esbuild: 0.28.2
   # Testing
-  vitest: 5.0.5
-  '@vitest/coverage-v8': 5.0.5
-  '@vitest/ui': 5.0.5
+  vitest: 5.1.0
+  '@vitest/coverage-v8': 5.1.0
+  '@vitest/ui': 5.1.0
   supertest: 7.3.1
   '@types/supertest': 7.2.1
   testcontainers: 12.2.0
   '@testcontainers/redis': 12.2.0
   # Protobuf
   '@bufbuild/buf': 1.73.0
-  '@bufbuild/protoc-gen-es': 2.16.0
+  '@bufbuild/protoc-gen-es': 2.17.0
   '@bufbuild/protobuf': 2.16.0
   # Discord.js
   discord.js: 14.27.0
@@ -68,8 +68,8 @@ catalog:
   '@opentelemetry/exporter-trace-otlp-http': 0.300.0
   '@opentelemetry/instrumentation': 0.300.0
   '@opentelemetry/instrumentation-http': 0.300.0
-  '@opentelemetry/instrumentation-ioredis': 0.72.0
-  '@opentelemetry/instrumentation-pg': 0.77.0
+  '@opentelemetry/instrumentation-ioredis': 0.73.0
+  '@opentelemetry/instrumentation-pg': 0.78.0
   '@opentelemetry/resources': 3.0.0
   '@opentelemetry/sdk-node': 0.300.0
   '@opentelemetry/sdk-trace': 3.0.0
@@ -81,7 +81,7 @@ catalog:
   # i18n
   i18next: 26.4.2
   i18next-fs-backend: 2.6.8
-  i18next-cli: 1.74.4
+  i18next-cli: 1.85.1
   # Utilities
   p-limit: 7.3.3
   bottleneck: 2.19.5
@@ -96,4 +96,4 @@ catalog:
   adm-zip: 0.6.1
   buffer: 6.0.3
   madge: 8.0.0
-  fast-xml-parser: ^5.11.2
+  fast-xml-parser: ^5.12.0
