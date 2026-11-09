@@ -33,7 +33,7 @@ jobs:
         uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115
         with:
           version: ${{ env.PNPM_VERSION }}
 
@@ -84,7 +84,7 @@ jobs:
           fetch-depth: 0
 
       - name: TruffleHog secrets scan
-        uses: trufflesecurity/trufflehog@8ee38640f6e6eeb4cc19a40fcdb0ab2d1944fa64
+        uses: trufflesecurity/trufflehog@f8221ca52ac51bf66228d6ec3691f3ea0782ae15
         with:
           extra_args: --only-verified
 
