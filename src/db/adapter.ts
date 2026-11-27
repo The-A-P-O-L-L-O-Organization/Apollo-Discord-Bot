@@ -55,10 +55,47 @@ export async function setGuildData(store: string, guildId: string, data: GuildCo
 }
 
 export async function updateGuildData(store: string, guildId: string, updater: (current: GuildConfig) => GuildConfig): Promise<GuildConfig> {
-    const current = await getGuildData(store, guildId);
-    const next = updater(current);
-    await setGuildData(store, guildId, next);
-    return next;
+    const db = assertDb();
+    return db.transaction(async (trx) => {
+        const row = await trx('guild_store')
+            .select('data')
+            .where({ store, guild_id: guildId })
+            .forUpdate()
+            .first<{ data: string }>();
+        const current = row
+            ? validateGuildData(store, (await decryptFields(deserialize(row.data), SENSITIVE_GUILD_FIELDS)) as Record<string, unknown>) || {}
+            : {};
+        const next = updater(current);
+        const validated = validateGuildData(store, next);
+        const encryptedData = await encryptFields(validated, SENSITIVE_GUILD_FIELDS);
+        await trx('guild_store')
+            .insert({ store, guild_id: guildId, data: serialize(encryptedData) })
+            .onConflict(['store', 'guild_id'])
+            .merge();
+        return validated;
+    });
+}
+
+export async function updateUserData(store: string, guildId: string, userId: string, updater: (current: UserConfig) => UserConfig): Promise<UserConfig> {
+    const db = assertDb();
+    return db.transaction(async (trx) => {
+        const row = await trx('guild_user_store')
+            .select('data')
+            .where({ store, guild_id: guildId, user_id: userId })
+            .forUpdate()
+            .first<{ data: string }>();
+        const current = row
+            ? validateUserData(store, (await decryptFields(deserialize(row.data), SENSITIVE_USER_FIELDS)) as Record<string, unknown>) || {}
+            : {};
+        const next = updater(current);
+        const validated = validateUserData(store, next);
+        const encryptedData = await encryptFields(validated, SENSITIVE_USER_FIELDS);
+        await trx('guild_user_store')
+            .insert({ store, guild_id: guildId, user_id: userId, data: serialize(encryptedData) })
+            .onConflict(['store', 'guild_id', 'user_id'])
+            .merge();
+        return validated;
+    });
 }
 
 export async function getAllGuildData(store: string): Promise<{ guildId: string; data: GuildConfig }[]> {

@@ -19,6 +19,7 @@ interface DbAdapter {
     getAllGuildData: (store: string) => Promise<{ guildId: string; data: GuildConfig }[]>;
     getUserData: (store: string, guildId: string, userId: string) => Promise<UserConfig | undefined>;
     setUserData: (store: string, guildId: string, userId: string, data: UserConfig) => Promise<void>;
+    updateUserData: (store: string, guildId: string, userId: string, updater: (data: UserConfig) => UserConfig) => Promise<UserConfig>;
     getAllUserData: (store: string, guildId: string) => Promise<{ userId: string; data: UserConfig }[]>;
     getData: (store: string) => Promise<GlobalConfig>;
     setData: (store: string, data: GlobalConfig) => Promise<void>;
@@ -34,12 +35,12 @@ async function getAdapter(): Promise<AdapterHandle> {
 
 async function _initAdapter(): Promise<AdapterHandle> {
     if (USE_PG) {
-        const { createAdapter, getGuildData, setGuildData, updateGuildData,
+        const { createAdapter, getGuildData, setGuildData, updateGuildData, updateUserData,
             getAllGuildData, getUserData, setUserData, getAllUserData,
             getData, setData } = await import('../db/adapter.js');
         const { getDb } = await import('../db/knex.js');
         createAdapter(getDb());
-        _pgAdapter = { getGuildData, setGuildData, updateGuildData,
+        _pgAdapter = { getGuildData, setGuildData, updateGuildData, updateUserData,
             getAllGuildData, getUserData, setUserData, getAllUserData,
             getData, setData };
         return _pgAdapter;
@@ -114,6 +115,19 @@ export async function setGuildData(store: string, guildId: string, data: GuildCo
 }
 
 export async function updateGuildData(store: string, guildId: string, updater: (data: GuildConfig) => GuildConfig): Promise<GuildConfig> {
+    if (USE_PG) { return (await getAdapter() as DbAdapter).updateGuildData(store, guildId, updater); }
+    const isTest = process.env['NODE_ENV'] === 'test' || process.env['VITEST'] === 'true';
+    if (!USE_PG && !isTest) {
+        const { db } = await getAdapter() as { db: SqliteDatabase.Database };
+        return db.transaction(() => {
+            const row = db.prepare('SELECT data FROM guild_store WHERE store = ? AND guild_id = ?').get(store, guildId) as { data: string } | undefined;
+            const current = row ? validateGuildData(store, deserialize(row.data)) : {};
+            const next = updater(current);
+            db.prepare('INSERT INTO guild_store (store, guild_id, data) VALUES (?, ?, ?) ON CONFLICT(store, guild_id) DO UPDATE SET data = excluded.data')
+                .run(store, guildId, serialize(next));
+            return next;
+        })();
+    }
     const current = await getGuildData(store, guildId);
     const next = updater(current);
     await setGuildData(store, guildId, next);
@@ -121,6 +135,19 @@ export async function updateGuildData(store: string, guildId: string, updater: (
 }
 
 export async function updateUserData(store: string, guildId: string, userId: string, updater: (data: UserConfig) => UserConfig): Promise<UserConfig> {
+    if (USE_PG) { return (await getAdapter() as DbAdapter).updateUserData(store, guildId, userId, updater); }
+    const isTest = process.env['NODE_ENV'] === 'test' || process.env['VITEST'] === 'true';
+    if (!USE_PG && !isTest) {
+        const { db } = await getAdapter() as { db: SqliteDatabase.Database };
+        return db.transaction(() => {
+            const row = db.prepare('SELECT data FROM guild_user_store WHERE store = ? AND guild_id = ? AND user_id = ?').get(store, guildId, userId) as { data: string } | undefined;
+            const current = row ? validateUserData(store, deserialize(row.data)) : {};
+            const next = updater(current as UserConfig);
+            db.prepare('INSERT INTO guild_user_store (store, guild_id, user_id, data) VALUES (?, ?, ?, ?) ON CONFLICT(store, guild_id, user_id) DO UPDATE SET data = excluded.data')
+                .run(store, guildId, userId, serialize(next));
+            return next;
+        })();
+    }
     const current = await getUserData(store, guildId, userId) ?? {};
     const next = updater(current as UserConfig);
     await setUserData(store, guildId, userId, next);
