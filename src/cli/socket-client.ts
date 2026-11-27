@@ -1,7 +1,8 @@
 import net from 'node:net';
 import { randomUUID } from 'node:crypto';
+import { join } from 'node:path';
 
-const SOCKET_PATH = process.env['APOLLO_SOCKET_PATH'] ?? '/tmp/apollo.sock';
+const SOCKET_PATH = process.env['APOLLO_SOCKET_PATH'] ?? join(process.cwd(), 'data', 'apollo.sock');
 
 export async function sendSocketCommand(command: string, args: Record<string, unknown>): Promise<unknown> {
     return new Promise((resolve, reject) => {

@@ -26,8 +26,14 @@ services:
     volumes:
       - bot-data:/app/src/data
       - bot-plugins:/app/data/plugins
+    stop_grace_period: 30s
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => { if (r.statusCode !== 200) process.exit(1) }).on('error', () => process.exit(1))"]
+      test:
+        - CMD
+        - node
+        - -e
+        - |
+          const t=process.env.HEALTH_AUTH_TOKEN;const p=Number(process.env.HEALTH_PORT||3000);require('http').get({host:'localhost',port:p,path:'/ready',headers:t?{authorization:'Bearer '+t}:{}},r=>{if(r.statusCode!==200)process.exit(1)}).on('error',()=>process.exit(1))
       interval: 30s
       timeout: 10s
       retries: 3

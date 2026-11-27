@@ -15,7 +15,7 @@ Strict TypeScript ESM Discord bot on discord.js v14, Node 22+ (CI and production
 1. Developer runs `pnpm install`, copies `.env.example` to `.env`, runs `pnpm migrate` and `pnpm deploy-commands`, then `pnpm dev` (tsx watch on `src/index.ts`) or `pnpm build` followed by `node dist/index.js`.
 2. Gateway role (`RUN_MODE=gateway`) acquires Redis leader lock in `src/gateway/leader.ts`, connects to Discord, loads plugins via `PluginManager`, and runs schedulers under `withLock`.
 3. Discord interactions are serialized by `src/queue/serializeInteraction.ts`, enqueued in BullMQ via `src/queue/queue.ts`, and processed by `src/queue/jobs/processCommand.ts` in worker role (`RUN_MODE=worker` or `src/worker.ts`).
-4. Cross-pod coordination flows over Redis EventBus (`plugin.action` names), Unix socket RPC (`/tmp/apollo.sock` or `APOLLO_SOCKET_PATH`), and optional interlink HTTP relay in `services/interlink/`.
+4. Cross-pod coordination flows over Redis EventBus (`plugin.action` names), Unix socket RPC (`data/apollo.sock` or `APOLLO_SOCKET_PATH`), and optional interlink HTTP relay in `services/interlink/`.
 5. Verification flows through `pnpm lint`, `pnpm typecheck`, `pnpm test` or `pnpm vitest run <path>`, `pnpm lint:locales`, `pnpm proto:lint` plus `pnpm proto:breaking`, and `pnpm manifest` after plugin source changes.
 
 ## Integration

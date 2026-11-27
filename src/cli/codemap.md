@@ -1,7 +1,7 @@
 # src/cli/codemap.md
 
 ## Responsibility
-Terminal administration for the bot: argument parsing, plugin command discovery, output formatting, and Unix-socket dispatch to the running core over `/tmp/apollo.sock` or `APOLLO_SOCKET_PATH`.
+Terminal administration for the bot: argument parsing, plugin command discovery, output formatting, and Unix-socket dispatch to the running core over `data/apollo.sock` (or `APOLLO_SOCKET_PATH`).
 
 ## Files
 
@@ -21,7 +21,7 @@ No subdirectories; all modules are top-level files in `src/cli/`.
 - `parse.ts`: `parseArgs` splits argv into command path and flags object.
 - `discover.ts`: `resolveCommand` scans `src/plugins/*/cli/` modules and builds the command map.
 - `format.ts`: `formatSuccess`, `formatError`, `formatInfo` output helpers.
-- `socket-client.ts`: `sendSocketCommand(command, args)` opens `APOLLO_SOCKET_PATH` (default `/tmp/apollo.sock`), writes newline-delimited JSON with a UUID, waits up to 10 seconds for the matching reply.
+- `socket-client.ts`: `sendSocketCommand(command, args)` opens `APOLLO_SOCKET_PATH` (default `data/apollo.sock`), writes newline-delimited JSON with a UUID, waits up to 10 seconds for the matching reply.
 - `socket-server.ts`: `SocketServer` bound to `PluginManager`; `DEFAULT_SOCKET_PATH` is `APOLLO_SOCKET_PATH` or `data/apollo.sock`. Enforces peer-credential checks and optional `APOLLO_SOCKET_TOKEN`, parses newline-delimited JSON, and dispatches to handlers registered via `manager.registerSocketHandler('namespace.action', handler)`.
 - Patterns: Command (CLI command map with local `execute` versus socket dispatch), Registry (`resolveCommand` building the command map from plugin `cli/` modules), Dispatcher (socket server routing `namespace.action` to registered handlers), Proxy (`sendSocketCommand` forwarding to the running core).
 
@@ -34,4 +34,4 @@ No subdirectories; all modules are top-level files in `src/cli/`.
 
 ## Integration
 - Depends on `node:net`, `node:crypto`, `src/core/PluginManager.ts`, plugin `cli/` modules, `src/types/cli.ts`.
-- Consumed by `bin/apollo.ts`. The socket defaults to `/tmp/apollo.sock` (client) or `APOLLO_SOCKET_PATH` override; server falls back to `data/apollo.sock` under the working directory.
+- Consumed by `bin/apollo.ts`. The socket defaults to `data/apollo.sock` for both client and server, or `APOLLO_SOCKET_PATH` override; server falls back to `data/apollo.sock` under the working directory.
