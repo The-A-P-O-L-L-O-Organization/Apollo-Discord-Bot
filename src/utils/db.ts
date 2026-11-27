@@ -1,7 +1,7 @@
 // Unified PG/SQLite interface with adapter pattern
 import { config } from '../config/config.js';
 import { getDb } from '../db/knex.js';
-import { createClient, type Client, type ResultSet, type Row } from '@libsql/client';
+import SqliteDatabase from 'better-sqlite3';
 import { validateGuildData, validateUserData, validateGlobalData, type GuildConfig, type UserConfig, type GlobalConfig } from '../db/schemas.js';
 
 export type { UserConfig, GuildConfig, GlobalConfig };
@@ -9,7 +9,7 @@ export type { UserConfig, GuildConfig, GlobalConfig };
 const USE_PG = config.database.type === 'postgres';
 
 let _pgAdapter: DbAdapter | null = null;
-let _sqliteClient: Client | null = null;
+let _sqliteDb: SqliteDatabase.Database | null = null;
 let _adapterPromise: Promise<AdapterHandle> | null = null;
 
 interface DbAdapter {
@@ -24,7 +24,7 @@ interface DbAdapter {
     setData: (store: string, data: GlobalConfig) => Promise<void>;
 }
 
-type AdapterHandle = DbAdapter | { client: Client };
+type AdapterHandle = DbAdapter | { db: SqliteDatabase.Database };
 
 async function getAdapter(): Promise<AdapterHandle> {
     if (_adapterPromise) { return _adapterPromise; }
@@ -53,31 +53,24 @@ async function _initAdapter(): Promise<AdapterHandle> {
     if (!existsSync(DATA_DIR)) { mkdirSync(DATA_DIR, { recursive: true }); }
 
     const dbPath = path.join(DATA_DIR, 'apollo.db');
-    const client = createClient({
-        url: `file:${dbPath}`,
-        intMode: 'number',
-        concurrency: 4,
-    });
+    const db = new SqliteDatabase(dbPath);
 
-    // Initialize tables
-    await client.batch([
-        `CREATE TABLE IF NOT EXISTS guild_store (
+    db.pragma('journal_mode = WAL');
+    db.pragma('wal_autocheckpoint = 1000');
+    db.pragma('foreign_keys = ON');
+    db.pragma('synchronous = NORMAL');
+    db.pragma('busy_timeout = 5000');
+
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS guild_store (
         store TEXT NOT NULL, guild_id TEXT NOT NULL, data TEXT NOT NULL DEFAULT '{}',
-        PRIMARY KEY (store, guild_id))`,
-        `CREATE TABLE IF NOT EXISTS guild_user_store (
+        PRIMARY KEY (store, guild_id));
+        CREATE TABLE IF NOT EXISTS guild_user_store (
         store TEXT NOT NULL, guild_id TEXT NOT NULL, user_id TEXT NOT NULL,
-        data TEXT NOT NULL DEFAULT '[]', PRIMARY KEY (store, guild_id, user_id))`,
-    ], 'write');
+        data TEXT NOT NULL DEFAULT '[]', PRIMARY KEY (store, guild_id, user_id));`);
 
-    // Enable WAL mode
-    await client.execute('PRAGMA journal_mode = WAL');
-    await client.execute('PRAGMA wal_autocheckpoint = 1000');
-    await client.execute('PRAGMA foreign_keys = ON');
-    await client.execute('PRAGMA synchronous = NORMAL');
-    await client.execute('PRAGMA busy_timeout = 5000');
-
-    _sqliteClient = client;
-    return { client };
+    _sqliteDb = db;
+    return { db };
 }
 
 function deserialize(value: string): Record<string, unknown> {
@@ -99,13 +92,9 @@ export async function getGuildData(store: string, guildId: string): Promise<Guil
             .first();
         try { return validateGuildData(store, row ? JSON.parse(row.data as string) : {}); } catch { return {}; }
     }
-    const { client } = await getAdapter() as { client: Client };
-    const result = await client.execute({
-        sql: 'SELECT data FROM guild_store WHERE store = ? AND guild_id = ?',
-        args: [store, guildId],
-    });
-    const row = result.rows[0];
-    return row ? validateGuildData(store, deserialize(row['data'] as string)) : {};
+    const { db } = await getAdapter() as { db: SqliteDatabase.Database };
+    const row = db.prepare('SELECT data FROM guild_store WHERE store = ? AND guild_id = ?').get(store, guildId) as { data: string } | undefined;
+    return row ? validateGuildData(store, deserialize(row.data)) : {};
 }
 
 export async function setGuildData(store: string, guildId: string, data: GuildConfig): Promise<void> {
@@ -119,11 +108,9 @@ export async function setGuildData(store: string, guildId: string, data: GuildCo
         );
         return;
     }
-    const { client } = await getAdapter() as { client: Client };
-    await client.execute({
-        sql: 'INSERT INTO guild_store (store, guild_id, data) VALUES (?, ?, ?) ON CONFLICT(store, guild_id) DO UPDATE SET data = excluded.data',
-        args: [store, guildId, serialize(data)],
-    });
+    const { db } = await getAdapter() as { db: SqliteDatabase.Database };
+    db.prepare('INSERT INTO guild_store (store, guild_id, data) VALUES (?, ?, ?) ON CONFLICT(store, guild_id) DO UPDATE SET data = excluded.data')
+        .run(store, guildId, serialize(data));
 }
 
 export async function updateGuildData(store: string, guildId: string, updater: (data: GuildConfig) => GuildConfig): Promise<GuildConfig> {
@@ -166,14 +153,11 @@ export async function removeFromGuildArray(store: string, guildId: string, key: 
 
 export async function getAllGuildData(store: string): Promise<{ guildId: string; data: GuildConfig }[]> {
     if (USE_PG) { return (await getAdapter() as DbAdapter).getAllGuildData(store); }
-    const { client } = await getAdapter() as { client: Client };
-    const result = await client.execute({
-        sql: 'SELECT guild_id, data FROM guild_store WHERE store = ? AND guild_id != ?',
-        args: [store, '__global__'],
-    });
-    return result.rows.map((r: Row) => ({
-        guildId: r['guild_id'] as string,
-        data: validateGuildData(store, deserialize(r['data'] as string)),
+    const { db } = await getAdapter() as { db: SqliteDatabase.Database };
+    const rows = db.prepare('SELECT guild_id, data FROM guild_store WHERE store = ? AND guild_id != ?').all(store, '__global__') as { guild_id: string; data: string }[];
+    return rows.map(r => ({
+        guildId: r.guild_id,
+        data: validateGuildData(store, deserialize(r.data)),
     }));
 }
 
@@ -183,33 +167,24 @@ export async function getAllGuildIds(store: string): Promise<string[]> {
         const data = await getAllGuildData(store);
         return data.map(d => d.guildId);
     }
-    const { client } = await getAdapter() as { client: Client };
-    const result = await client.execute({
-        sql: 'SELECT guild_id FROM guild_store WHERE store = ? AND guild_id != ?',
-        args: [store, '__global__'],
-    });
-    return result.rows.map((r: Row) => r['guild_id'] as string);
+    const { db } = await getAdapter() as { db: SqliteDatabase.Database };
+    const rows = db.prepare('SELECT guild_id FROM guild_store WHERE store = ? AND guild_id != ?').all(store, '__global__') as { guild_id: string }[];
+    return rows.map(r => r.guild_id);
 }
 
 export async function getUserData(store: string, guildId: string, userId: string): Promise<UserConfig | undefined> {
     if (USE_PG) { return (await getAdapter() as DbAdapter).getUserData(store, guildId, userId); }
-    const { client } = await getAdapter() as { client: Client };
-    const result = await client.execute({
-        sql: 'SELECT data FROM guild_user_store WHERE store = ? AND guild_id = ? AND user_id = ?',
-        args: [store, guildId, userId],
-    });
-    const row = result.rows[0];
+    const { db } = await getAdapter() as { db: SqliteDatabase.Database };
+    const row = db.prepare('SELECT data FROM guild_user_store WHERE store = ? AND guild_id = ? AND user_id = ?').get(store, guildId, userId) as { data: string } | undefined;
     if (!row) { return undefined; }
-    return validateUserData(store, deserialize(row['data'] as string));
+    return validateUserData(store, deserialize(row.data));
 }
 
 export async function setUserData(store: string, guildId: string, userId: string, data: UserConfig): Promise<void> {
     if (USE_PG) { return (await getAdapter() as DbAdapter).setUserData(store, guildId, userId, data); }
-    const { client } = await getAdapter() as { client: Client };
-    await client.execute({
-        sql: 'INSERT INTO guild_user_store (store, guild_id, user_id, data) VALUES (?, ?, ?, ?) ON CONFLICT(store, guild_id, user_id) DO UPDATE SET data = excluded.data',
-        args: [store, guildId, userId, serialize(data)],
-    });
+    const { db } = await getAdapter() as { db: SqliteDatabase.Database };
+    db.prepare('INSERT INTO guild_user_store (store, guild_id, user_id, data) VALUES (?, ?, ?, ?) ON CONFLICT(store, guild_id, user_id) DO UPDATE SET data = excluded.data')
+        .run(store, guildId, userId, serialize(data));
 }
 
 export async function appendToUserArray(store: string, guildId: string, userId: string, item: unknown): Promise<void> {
@@ -235,14 +210,11 @@ export async function removeFromUserArray(store: string, guildId: string, userId
 
 export async function getAllUserData(store: string, guildId: string): Promise<{ userId: string; data: UserConfig }[]> {
     if (USE_PG) { return (await getAdapter() as DbAdapter).getAllUserData(store, guildId); }
-    const { client } = await getAdapter() as { client: Client };
-    const result = await client.execute({
-        sql: 'SELECT user_id, data FROM guild_user_store WHERE store = ? AND guild_id = ?',
-        args: [store, guildId],
-    });
-    return result.rows.map((r: Row) => ({
-        userId: r['user_id'] as string,
-        data: validateUserData(store, deserialize(r['data'] as string)),
+    const { db } = await getAdapter() as { db: SqliteDatabase.Database };
+    const rows = db.prepare('SELECT user_id, data FROM guild_user_store WHERE store = ? AND guild_id = ?').all(store, guildId) as { user_id: string; data: string }[];
+    return rows.map(r => ({
+        userId: r.user_id,
+        data: validateUserData(store, deserialize(r.data)),
     }));
 }
 
@@ -277,9 +249,9 @@ export async function writeToSubDir(subdir: string, filename: string, data: unkn
 }
 
 export async function close(): Promise<void> {
-    if (!USE_PG && _sqliteClient) {
-        _sqliteClient.close();
-        _sqliteClient = null;
+    if (!USE_PG && _sqliteDb) {
+        _sqliteDb.close();
+        _sqliteDb = null;
     }
     return Promise.resolve();
 }
@@ -291,12 +263,12 @@ export function startWalCheckpointInterval(intervalMs = 5 * 60 * 1000): void {
     if (_walCheckpointInterval) { return; }
     if (USE_PG) { return; } // Only for SQLite
 
-    _walCheckpointInterval = setInterval(async () => {
-        if (_sqliteClient) {
+    _walCheckpointInterval = setInterval(() => {
+        if (_sqliteDb) {
             try {
-                await _sqliteClient.execute('PRAGMA wal_checkpoint(TRUNCATE)');
+                _sqliteDb.pragma('wal_checkpoint(TRUNCATE)');
             } catch (err) {
-                import('./logger.js').then(({ logger }) => {
+                void import('./logger.js').then(({ logger }) => {
                     logger.warn({ err: err as Error }, '[DB] WAL checkpoint failed');
                 }).catch(err => {
                     console.warn('[DB] WAL checkpoint failed (logger import error):', (err as Error).message);

@@ -36,7 +36,7 @@ export interface PoolConfig {
     createRetryIntervalMillis?: number;
 }
 
-// better-sqlite3 is only used by Knex for migrations; main data path uses @libsql/client
+// better-sqlite3 backs both Knex (migrations, adapter) and the main data path in src/utils/db.ts
 // No public types re-exported
 
 export interface MigrationConfig {

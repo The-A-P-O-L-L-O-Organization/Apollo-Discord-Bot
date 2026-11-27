@@ -52,7 +52,6 @@
     "@discordjs/builders": "^1.15.0",
     "@discordjs/rest": "^2.6.3",
     "@hono/node-server": "^2.1.5",
-    "@libsql/client": "^0.18.0",
     "@noble/hashes": "^2.4.0",
     "@opentelemetry/api": "^1.10.0",
     "@opentelemetry/context-async-hooks": "^3.0.0",

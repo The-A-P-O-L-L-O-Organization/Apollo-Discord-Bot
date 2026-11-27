@@ -55,7 +55,6 @@ catalog:
   '@types/pg': 8.23.1
   better-sqlite3: 13.0.3
   '@types/better-sqlite3': 9.6.0
-  '@libsql/client': 0.18.0
   # Redis/Queue
   ioredis: 6.0.0
   bullmq: 6.3.11
