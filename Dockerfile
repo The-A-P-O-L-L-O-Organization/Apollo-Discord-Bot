@@ -19,16 +19,23 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* .npmrc* ./
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --prefer-offline
 
-# Copy application source code
+# Copy TypeScript configs, application source, and scripts
+COPY tsconfig*.json ./
 COPY src ./src
 COPY protos ./protos
 COPY bin ./bin
-COPY scripts/deploy-commands.js ./
+COPY scripts ./scripts
 COPY plugin-manifest.json ./
+
+# Compile TypeScript to dist/, bundle the CLI, regenerate plugin manifest
+RUN pnpm build && pnpm build:cli && pnpm manifest
+
+# Overlay compiled JS files onto src so ESM '.js' imports resolve at runtime
+RUN apk add --no-cache tar && cd ./dist && find . -type f -name '*.js' -print0 | tar --null -cf - --files-from=- | tar -xf - -C ../src && apk del tar
 
 # Create directories for persistent data
 RUN mkdir -p /app/src/data /app/logs /app/data/plugins && \
-    ln -s /app/bin/apollo.js /usr/local/bin/apollo
+    ln -s /app/dist/bin/apollo.js /usr/local/bin/apollo
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
@@ -41,4 +48,4 @@ USER nodejs
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD node -e "const t=process.env.HEALTH_AUTH_TOKEN;const p=Number(process.env.HEALTH_PORT||9090);require('http').get({host:'localhost',port:p,path:'/ready',headers:t?{authorization:'Bearer '+t}:{}},(r)=>{if(r.statusCode!==200)process.exit(1)}).on('error',()=>process.exit(1))" || exit 1
 
-CMD ["pnpm", "start"]
+CMD ["node", "dist/index.js"]
