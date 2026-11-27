@@ -92,8 +92,8 @@ RUN addgroup -g 1001 -S nodejs && \
 
 USER nodejs
 
-# Health check - hits real /health endpoint
+# Health check - hits real /ready endpoint
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:' + (process.env.HEALTH_PORT || 9090) + '/health', (r) => { if (r.statusCode !== 200) process.exit(1) }).on('error', () => process.exit(1))" || exit 1
+    CMD node -e "const t=process.env.HEALTH_AUTH_TOKEN;const p=Number(process.env.HEALTH_PORT||9090);require('http').get({host:'localhost',port:p,path:'/ready',headers:t?{authorization:'Bearer '+t}:{}},(r)=>{if(r.statusCode!==200)process.exit(1)}).on('error',()=>process.exit(1))" || exit 1
 
 CMD ["node", "dist/index.js"]
