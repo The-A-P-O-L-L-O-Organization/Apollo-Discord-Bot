@@ -72,6 +72,7 @@ jobs:
         with:
           fail-on-severity: high
           deny-licenses: GPL-3.0, AGPL-3.0
+          allow-dependencies-licenses: pkg:githubactions/trufflesecurity/trufflehog
           comment-summary-in-pr: always
 
   secrets-scan:
