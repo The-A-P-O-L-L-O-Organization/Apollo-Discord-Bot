@@ -181,7 +181,11 @@ export abstract class Plugin<C extends CommandModule = CommandModule, _E extends
 
                 const { name, once, execute } = mod.default as EventHandlerModule;
                 const handler = (...args: unknown[]) => {
-                    void execute(...args, this.client);
+                    void Promise.resolve()
+                        .then(() => execute(...args, this.client))
+                        .catch((err: unknown) => {
+                            logger.error({ err: err as Error, msg: `[Plugin] Error in event handler ${name}` });
+                        });
                 };
                 this.client[once ? 'once' : 'on'](name, handler);
                 this.eventHandlers.push({ name, handler, once: once ?? false });

@@ -48,4 +48,41 @@ describe('Plugin base class', () => {
         expect(TestPlugin.dependencies).toEqual([]);
         expect(TestPlugin.version).toBe('1.0.0');
     });
+
+    it('_loadEvents swallows rejected event handlers (no unhandled rejection)', async() => {
+        const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import('node:fs');
+        const { tmpdir } = await import('node:os');
+        const { join } = await import('node:path');
+        const dir = mkdtempSync(join(tmpdir(), 'apollo-evt-'));
+        mkdirSync(join(dir, 'events'), { recursive: true });
+        writeFileSync(
+            join(dir, 'events', 'x.js'),
+            'export default { name: "messageCreate", once: false, execute() { return Promise.reject(new Error("boom")); } };'
+        );
+
+        const listeners = new Map<string, (...args: unknown[]) => void>();
+        const client = {
+            on: (name: string, fn: (...args: unknown[]) => void): void => { listeners.set(name, fn); },
+            once: (): void => undefined,
+            removeListener: (): void => undefined
+        } as unknown as TypedClient;
+        const plugin = new TestPlugin(client, { bus: new EventBusImpl() } as unknown as TestPlugin['manager']);
+        plugin.setDirectory(dir);
+
+        await plugin._loadEvents();
+        const handler = listeners.get('messageCreate');
+        expect(typeof handler).toBe('function');
+
+        let unhandled = false;
+        const onUnhandled = (): void => { unhandled = true; };
+        process.on('unhandledRejection', onUnhandled);
+        try {
+            expect(() => handler?.({}, client)).not.toThrow();
+            await new Promise(resolve => setTimeout(resolve, 10));
+            expect(unhandled).toBe(false);
+        } finally {
+            process.off('unhandledRejection', onUnhandled);
+            rmSync(dir, { recursive: true, force: true });
+        }
+    });
 });

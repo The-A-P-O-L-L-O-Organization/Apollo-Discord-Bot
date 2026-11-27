@@ -22,7 +22,7 @@ import { startHealthServer, stopHealthServer } from './utils/healthServer.js';
 import { startAdminServer, stopAdminServer } from './admin/server.js';
 import { createLogger } from './utils/logger.js';
 import type { TypedClient } from './core/PluginManager.js';
-import { SocketServer } from './cli/socket-server.js';
+import { SocketServer, DEFAULT_SOCKET_PATH } from './cli/socket-server.js';
 import { i18n } from './i18n/index.js';
 import { startLocaleWatcher } from './i18n/watchLocales.js';
 import { subscribeInvalidation } from './i18n/localeCache.js';
@@ -85,7 +85,11 @@ client.bus = bus;
 
 let socketServer: SocketServer | undefined;
 
-client.once('clientReady', () => { void onClientReady(); });
+client.once('clientReady', () => {
+    void onClientReady().catch((error: unknown) => {
+        logger.error({ err: error as Error }, '[ERROR] Failed during startup after client ready');
+    });
+});
 
 async function onClientReady(): Promise<void> {
     logger.info('[SUCCESS] Bot is online! Logged in as ' + client.user.tag);
@@ -145,7 +149,7 @@ async function onClientReady(): Promise<void> {
 
     socketServer = new SocketServer(pluginManager);
     await socketServer.start();
-    logger.info('[INFO] Socket server listening on /tmp/apollo.sock');
+    logger.info('[INFO] Socket server listening on ' + DEFAULT_SOCKET_PATH);
     client.socketServer = socketServer;
 
     await startHealthServer(client);
@@ -390,9 +394,6 @@ if (RUN_MODE === 'worker') {
 
     process.on('unhandledRejection', (error: unknown) => {
         logger.error({ err: error as Error }, '[ERROR] Unhandled promise rejection');
-        if (process.env['NODE_ENV'] === 'production') {
-            process.exit(1);
-        }
     });
 
     process.on('uncaughtException', (error: Error) => {

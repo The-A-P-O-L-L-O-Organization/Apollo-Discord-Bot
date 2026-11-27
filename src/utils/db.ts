@@ -29,7 +29,10 @@ type AdapterHandle = DbAdapter | { db: SqliteDatabase.Database };
 
 async function getAdapter(): Promise<AdapterHandle> {
     if (_adapterPromise) { return _adapterPromise; }
-    _adapterPromise = _initAdapter();
+    _adapterPromise = _initAdapter().catch((err: unknown) => {
+        _adapterPromise = null;
+        throw err;
+    });
     return _adapterPromise;
 }
 
@@ -280,6 +283,12 @@ export async function close(): Promise<void> {
         _sqliteDb.close();
         _sqliteDb = null;
     }
+    if (USE_PG) {
+        const { closeDb } = await import('../db/knex.js');
+        await closeDb();
+    }
+    _pgAdapter = null;
+    _adapterPromise = null;
     return Promise.resolve();
 }
 
@@ -298,7 +307,9 @@ export function startWalCheckpointInterval(intervalMs = 5 * 60 * 1000): void {
                 void import('./logger.js').then(({ logger }) => {
                     logger.warn({ err: err as Error }, '[DB] WAL checkpoint failed');
                 }).catch(err => {
-                    console.warn('[DB] WAL checkpoint failed (logger import error):', (err as Error).message);
+                    void import('./logger.js').then(({ logger }) => {
+                        logger.warn({ err: err as Error }, '[DB] WAL checkpoint failed (logger import error)');
+                    }).catch(() => { /* logger unavailable */ });
                 });
             }
         }

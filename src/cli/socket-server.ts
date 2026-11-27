@@ -1,6 +1,6 @@
 import net from 'node:net';
 import fs from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import type PluginManager from '../core/PluginManager.js';
 
 export const DEFAULT_SOCKET_PATH = process.env['APOLLO_SOCKET_PATH'] ?? join(process.cwd(), 'data', 'apollo.sock');
@@ -56,8 +56,19 @@ export class SocketServer {
             });
             socket.on('error', () => { /* client disconnects are routine */ });
         });
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
+            const onError = (error: NodeJS.ErrnoException): void => {
+                this.server!.off('error', onError);
+                reject(error);
+            };
+            try {
+                fs.mkdirSync(dirname(this.socketPath), { recursive: true });
+            } catch {
+                // Ignore mkdir failures; listen will surface any real problem
+            }
+            this.server!.once('error', onError);
             this.server!.listen(this.socketPath, () => {
+                this.server!.off('error', onError);
                 try { fs.chmodSync(this.socketPath, 0o600); } catch {
                     // Ignore chmod failures (e.g. on Windows)
                 }
